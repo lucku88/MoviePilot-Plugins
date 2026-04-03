@@ -1,13 +1,14 @@
 {
   "SQFarm": {
     "name": "SQ种菜",
-    "description": "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态定时和站点 Cookie 同步。",
+    "description": "思齐农场自动收菜、售卖、种植，支持 Vue 面板、动态定时和站点 Cookie 同步。",
     "labels": "工具,自动化,农场",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.3.0": "新增田块点击交互、优先种植下拉、OCR 容器说明，并将收益改为售出减种植成本。",
       "v0.2.1": "修复验证码图片相对地址导致的收菜失败，并提升插件版本便于 MoviePilot 更新。",
       "v0.2.0": "升级为 Vue 面板，新增动态最近收菜调度、站点 Cookie 同步和农场仪表盘。",
       "v0.1.0": "首版发布，支持 MoviePilot V2 定时执行思齐农场收菜、售卖和补种。"

@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_54dc9710_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_83d021fa_lang = '';
 
 const {toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-54dc9710"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-83d021fa"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-page" };
 const _hoisted_2 = { class: "sq-toolbar" };
 const _hoisted_3 = { class: "sq-title" };
@@ -40,37 +40,48 @@ const _hoisted_24 = { class: "sq-panel" };
 const _hoisted_25 = { class: "sq-panel-head" };
 const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "种子商店", -1));
 const _hoisted_27 = { class: "sq-submeta" };
-const _hoisted_28 = { class: "sq-seed-grid" };
-const _hoisted_29 = { class: "sq-seed-icon" };
-const _hoisted_30 = { class: "sq-seed-name" };
-const _hoisted_31 = { class: "sq-seed-line" };
-const _hoisted_32 = { class: "sq-seed-line" };
-const _hoisted_33 = { class: "sq-seed-line" };
-const _hoisted_34 = { class: "sq-seed-note" };
-const _hoisted_35 = { class: "sq-farm-shell" };
-const _hoisted_36 = { class: "sq-group-title" };
-const _hoisted_37 = { class: "sq-slot-grid" };
-const _hoisted_38 = { class: "sq-slot-icon" };
-const _hoisted_39 = { class: "sq-slot-name" };
-const _hoisted_40 = { class: "sq-slot-badge" };
-const _hoisted_41 = { class: "sq-slot-desc" };
-const _hoisted_42 = { class: "sq-slot-time" };
-const _hoisted_43 = { class: "sq-panel" };
-const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_28 = { class: "sq-seed-toolbar" };
+const _hoisted_29 = { class: "sq-interaction-note" };
+const _hoisted_30 = { class: "sq-current-seed" };
+const _hoisted_31 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "当前种子", -1));
+const _hoisted_32 = { class: "sq-seed-grid" };
+const _hoisted_33 = ["disabled", "onClick"];
+const _hoisted_34 = { class: "sq-seed-icon" };
+const _hoisted_35 = { class: "sq-seed-name" };
+const _hoisted_36 = { class: "sq-seed-line" };
+const _hoisted_37 = { class: "sq-seed-line" };
+const _hoisted_38 = { class: "sq-seed-line" };
+const _hoisted_39 = { class: "sq-seed-note" };
+const _hoisted_40 = { class: "sq-farm-shell" };
+const _hoisted_41 = { class: "sq-farm-banner" };
+const _hoisted_42 = { class: "sq-group-title" };
+const _hoisted_43 = { class: "sq-slot-grid" };
+const _hoisted_44 = ["disabled", "onClick"];
+const _hoisted_45 = { class: "sq-slot-icon" };
+const _hoisted_46 = { class: "sq-slot-name" };
+const _hoisted_47 = { class: "sq-slot-badge" };
+const _hoisted_48 = { class: "sq-slot-desc" };
+const _hoisted_49 = { class: "sq-slot-time" };
+const _hoisted_50 = {
+  key: 0,
+  class: "sq-slot-action"
+};
+const _hoisted_51 = { class: "sq-panel" };
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("span", null, "最近记录")
 ], -1));
-const _hoisted_45 = {
+const _hoisted_53 = {
   key: 0,
   class: "sq-empty"
 };
-const _hoisted_46 = {
+const _hoisted_54 = {
   key: 1,
   class: "sq-history-list"
 };
-const _hoisted_47 = { class: "sq-history-top" };
-const _hoisted_48 = { class: "sq-history-lines" };
+const _hoisted_55 = { class: "sq-history-top" };
+const _hoisted_56 = { class: "sq-history-lines" };
 
-const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
+const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
 
 
@@ -86,17 +97,32 @@ const props = __props;
 
 
 const loading = ref(false);
-const status = reactive({ farm_status: {}, history: [] });
+const status = reactive({ farm_status: {}, history: [], config: {} });
 const message = reactive({ text: '', type: 'success' });
 const nowTs = ref(Math.floor(Date.now() / 1000));
+const selectedSeedId = ref(null);
 let timer = null;
 
 const farm = computed(() => status.farm_status || {});
 const historyItems = computed(() => status.history || farm.value.history || []);
+const unlockedSeeds = computed(() => (farm.value.seed_shop || []).filter(seed => seed.unlocked));
+const selectedSeed = computed(() => unlockedSeeds.value.find(seed => seed.id === selectedSeedId.value) || null);
 
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
+}
+
+function syncSelectedSeed() {
+  if (!unlockedSeeds.value.length) {
+    selectedSeedId.value = null;
+    return
+  }
+  if (unlockedSeeds.value.some(seed => seed.id === selectedSeedId.value)) {
+    return
+  }
+  const preferred = unlockedSeeds.value.find(seed => seed.name === status.config?.prefer_seed || seed.preferred);
+  selectedSeedId.value = (preferred || unlockedSeeds.value[0]).id;
 }
 
 async function loadStatus() {
@@ -104,6 +130,7 @@ async function loadStatus() {
   try {
     const res = await props.api.get('/plugin/SQFarm/status');
     Object.assign(status, res || {});
+    syncSelectedSeed();
   } catch (error) {
     flash(error?.message || '加载状态失败', 'error');
   } finally {
@@ -150,6 +177,60 @@ async function syncCookie() {
   }
 }
 
+async function harvestPlot(slot) {
+  loading.value = true;
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plot/harvest', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+    });
+    flash(res.message || `已处理 ${slot.land_name} #${slot.slot_index}`);
+    await loadStatus();
+  } catch (error) {
+    flash(error?.message || '手动收菜失败', 'error');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function plantPlot(slot) {
+  if (!selectedSeed.value) {
+    flash('请先在上方选择种子', 'warning');
+    return
+  }
+  loading.value = true;
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plot/plant', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+      seed_id: selectedSeedId.value,
+    });
+    flash(res.message || `已处理 ${slot.land_name} #${slot.slot_index}`);
+    await loadStatus();
+  } catch (error) {
+    flash(error?.message || '手动种植失败', 'error');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function onSlotClick(slot) {
+  if (slot.can_harvest) {
+    await harvestPlot(slot);
+    return
+  }
+  if (slot.can_plant) {
+    await plantPlot(slot);
+  }
+}
+
+function selectSeed(seed) {
+  if (!seed?.unlocked || loading.value) {
+    return
+  }
+  selectedSeedId.value = seed.id;
+}
+
 function formatRemain(seconds) {
   const sec = Math.max(0, Number(seconds) || 0);
   if (!sec) return '现在可收'
@@ -170,9 +251,22 @@ function slotText(slot) {
   return slot.remaining_label || slot.reward_text || ''
 }
 
+function slotActionText(slot) {
+  if (slot.can_harvest) {
+    return '点击收菜'
+  }
+  if (slot.can_plant) {
+    return selectedSeed.value ? `点击种植 ${selectedSeed.value.icon}${selectedSeed.value.name}` : '先选种子'
+  }
+  return slot.action_label || ''
+}
+
 function closePlugin() {
   emit('close');
 }
+
+watch(unlockedSeeds, syncSelectedSeed, { deep: true });
+watch(() => status.config?.prefer_seed, syncSelectedSeed);
 
 onMounted(async () => {
   await loadStatus();
@@ -306,63 +400,91 @@ return (_ctx, _cache) => {
         _createElementVNode("div", _hoisted_27, "计划触发 " + _toDisplayString(farm.value.next_trigger_time || status.next_trigger_time || '等待轮询'), 1)
       ]),
       _createElementVNode("div", _hoisted_28, [
+        _createElementVNode("div", _hoisted_29, _toDisplayString(farm.value.interaction_note || '先选种子，再点击空地种植；点击成熟田可手动收菜。'), 1),
+        _createElementVNode("div", _hoisted_30, [
+          _hoisted_31,
+          _createElementVNode("strong", null, _toDisplayString(selectedSeed.value ? `${selectedSeed.value.icon} ${selectedSeed.value.name}` : '暂无可用种子'), 1)
+        ])
+      ]),
+      _createElementVNode("div", _hoisted_32, [
         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.seed_shop || [], (seed) => {
-          return (_openBlock(), _createElementBlock("div", {
+          return (_openBlock(), _createElementBlock("button", {
             key: seed.id,
-            class: _normalizeClass(["sq-seed-card", { 'is-locked': !seed.unlocked, 'is-preferred': seed.preferred }])
+            type: "button",
+            class: _normalizeClass(["sq-seed-card", {
+            'is-locked': !seed.unlocked,
+            'is-preferred': seed.preferred,
+            'is-selected': seed.id === selectedSeedId.value,
+          }]),
+            disabled: !seed.unlocked || loading.value,
+            onClick: $event => (selectSeed(seed))
           }, [
-            _createElementVNode("div", _hoisted_29, _toDisplayString(seed.icon), 1),
-            _createElementVNode("div", _hoisted_30, _toDisplayString(seed.name), 1),
-            _createElementVNode("div", _hoisted_31, "消耗：" + _toDisplayString(seed.cost), 1),
-            _createElementVNode("div", _hoisted_32, "收获：" + _toDisplayString(seed.reward), 1),
-            _createElementVNode("div", _hoisted_33, "生长：" + _toDisplayString(seed.grow_text), 1),
-            _createElementVNode("div", _hoisted_34, _toDisplayString(seed.unlocked ? (seed.preferred ? '当前优先种子' : '已解锁') : seed.unlock_text), 1)
-          ], 2))
+            _createElementVNode("div", _hoisted_34, _toDisplayString(seed.icon), 1),
+            _createElementVNode("div", _hoisted_35, _toDisplayString(seed.name), 1),
+            _createElementVNode("div", _hoisted_36, "消耗：" + _toDisplayString(seed.cost), 1),
+            _createElementVNode("div", _hoisted_37, "收获：" + _toDisplayString(seed.reward), 1),
+            _createElementVNode("div", _hoisted_38, "生长：" + _toDisplayString(seed.grow_text), 1),
+            _createElementVNode("div", _hoisted_39, _toDisplayString(seed.unlocked ? (seed.id === selectedSeedId.value ? '当前已选种子' : (seed.preferred ? '默认优先种子' : '已解锁')) : seed.unlock_text), 1)
+          ], 10, _hoisted_33))
         }), 128))
       ])
     ]),
-    _createElementVNode("div", _hoisted_35, [
+    _createElementVNode("div", _hoisted_40, [
+      _createElementVNode("div", _hoisted_41, [
+        _createElementVNode("div", null, _toDisplayString(farm.value.interaction_note || '点击成熟田收菜；先选种子，再点击空地种植。'), 1),
+        _createElementVNode("div", null, "当前准备种植：" + _toDisplayString(selectedSeed.value ? `${selectedSeed.value.icon} ${selectedSeed.value.name}` : '请先在上方选择种子'), 1)
+      ]),
       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.land_groups || [], (group) => {
         return (_openBlock(), _createElementBlock("div", {
           key: group.id,
           class: "sq-land-group"
         }, [
-          _createElementVNode("div", _hoisted_36, [
+          _createElementVNode("div", _hoisted_42, [
             _createTextVNode(_toDisplayString(group.name) + " ", 1),
             _createElementVNode("span", null, _toDisplayString(group.subtitle), 1)
           ]),
-          _createElementVNode("div", _hoisted_37, [
+          _createElementVNode("div", _hoisted_43, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(group.slots, (slot) => {
-              return (_openBlock(), _createElementBlock("div", {
+              return (_openBlock(), _createElementBlock("button", {
                 key: `${group.id}-${slot.slot_index}`,
-                class: _normalizeClass(["sq-slot", `is-${slot.state}`])
+                type: "button",
+                class: _normalizeClass(["sq-slot", {
+              [`is-${slot.state}`]: true,
+              'is-clickable': slot.can_harvest || slot.can_plant,
+              'is-busy': loading.value,
+            }]),
+                disabled: loading.value || (!slot.can_harvest && !slot.can_plant),
+                onClick: $event => (onSlotClick(slot))
               }, [
-                _createElementVNode("div", _hoisted_38, _toDisplayString(slot.icon), 1),
-                _createElementVNode("div", _hoisted_39, _toDisplayString(slot.title), 1),
-                _createElementVNode("div", _hoisted_40, _toDisplayString(slot.badge), 1),
-                _createElementVNode("div", _hoisted_41, _toDisplayString(slot.description), 1),
-                _createElementVNode("div", _hoisted_42, _toDisplayString(slotText(slot)), 1)
-              ], 2))
+                _createElementVNode("div", _hoisted_45, _toDisplayString(slot.icon), 1),
+                _createElementVNode("div", _hoisted_46, _toDisplayString(slot.title), 1),
+                _createElementVNode("div", _hoisted_47, _toDisplayString(slot.badge), 1),
+                _createElementVNode("div", _hoisted_48, _toDisplayString(slot.description), 1),
+                _createElementVNode("div", _hoisted_49, _toDisplayString(slotText(slot)), 1),
+                (slot.can_harvest || slot.can_plant)
+                  ? (_openBlock(), _createElementBlock("div", _hoisted_50, _toDisplayString(slotActionText(slot)), 1))
+                  : _createCommentVNode("", true)
+              ], 10, _hoisted_44))
             }), 128))
           ])
         ]))
       }), 128))
     ]),
-    _createElementVNode("div", _hoisted_43, [
-      _hoisted_44,
-      (!(historyItems.value.length))
-        ? (_openBlock(), _createElementBlock("div", _hoisted_45, "暂无执行记录"))
-        : (_openBlock(), _createElementBlock("div", _hoisted_46, [
+    _createElementVNode("div", _hoisted_51, [
+      _hoisted_52,
+      (!historyItems.value.length)
+        ? (_openBlock(), _createElementBlock("div", _hoisted_53, "暂无执行记录"))
+        : (_openBlock(), _createElementBlock("div", _hoisted_54, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
               return (_openBlock(), _createElementBlock("div", {
                 key: `${item.time}-${item.title}`,
                 class: "sq-history-item"
               }, [
-                _createElementVNode("div", _hoisted_47, [
+                _createElementVNode("div", _hoisted_55, [
                   _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                   _createElementVNode("span", null, _toDisplayString(item.time), 1)
                 ]),
-                _createElementVNode("div", _hoisted_48, _toDisplayString((item.lines || []).join(' / ')), 1)
+                _createElementVNode("div", _hoisted_56, _toDisplayString((item.lines || []).join(' / ')), 1)
               ]))
             }), 128))
           ]))
@@ -372,6 +494,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-54dc9710"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-83d021fa"]]);
 
 export { PageView as default };

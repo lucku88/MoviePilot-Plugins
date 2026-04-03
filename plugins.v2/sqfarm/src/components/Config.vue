@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="sq-config">
     <div class="sq-head">
       <div>
@@ -32,18 +32,44 @@
         <h3>站点与调度</h3>
         <v-text-field v-model="config.site_domain" label="站点域名" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.cron" label="轮询 CRON" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.prefer_seed" label="优先种子" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.schedule_buffer_seconds" label="智能调度缓冲秒数" type="number" variant="outlined" density="comfortable" />
+        <v-select
+          v-model="config.prefer_seed"
+          :items="seedOptions"
+          item-title="title"
+          item-value="value"
+          label="优先种植"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+        />
+        <div class="sq-note">优先种植会结合当前已解锁种子显示。刚解锁新种子时，先到状态页刷新一次即可更新下拉。</div>
+        <v-text-field v-model="config.schedule_buffer_seconds" label="智能调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mt-3" />
       </div>
 
       <div class="sq-card">
         <h3>网络与 OCR</h3>
-        <v-text-field v-model="config.ocr_api_url" label="OCR API 地址" variant="outlined" density="comfortable" class="mb-3" />
+        <v-text-field
+          v-model="config.ocr_api_url"
+          label="OCR API 地址"
+          placeholder="http://ip:8089/api/tr-run/"
+          hint="默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP"
+          persistent-hint
+          variant="outlined"
+          density="comfortable"
+          class="mb-3"
+        />
         <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.http_retry_times" label="网络重试次数" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.http_retry_delay" label="网络重试间隔(ms)" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.ocr_retry_times" label="OCR 重试次数" type="number" variant="outlined" density="comfortable" />
+      </div>
+
+      <div class="sq-card sq-card-wide">
+        <h3>OCR 说明</h3>
+        <v-alert type="info" variant="tonal" class="mb-3">自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。</v-alert>
+        <div class="sq-note">推荐先部署 <code>trwebocr</code>，然后把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，其中 <code>ip</code> 替换为 Docker 宿主机 IP。</div>
+        <pre class="sq-code">{{ ocrComposeExample }}</pre>
       </div>
 
       <div class="sq-card sq-card-wide">
@@ -63,6 +89,7 @@ const emit = defineEmits(['switch', 'close'])
 
 const saving = ref(false)
 const message = reactive({ text: '', type: 'success' })
+const seedOptions = ref([])
 const config = reactive({
   enabled: false,
   notify: true,
@@ -73,7 +100,7 @@ const config = reactive({
   cron: '*/10 * * * *',
   site_domain: 'si-qi.xyz',
   cookie: '',
-  ocr_api_url: '',
+  ocr_api_url: 'http://ip:8089/api/tr-run/',
   prefer_seed: '西红柿',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
@@ -83,15 +110,66 @@ const config = reactive({
   ocr_retry_times: 2,
 })
 
+const ocrComposeExample = `version: '3.8'
+services:
+  trwebocr:
+    image: mmmz/trwebocr:latest
+    container_name: trwebocr
+    ports:
+      - "8089:8089"
+    restart: always
+    volumes:
+      - ./data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
+    network_mode: bridge`
+
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function applySeedOptions(items) {
+  const normalized = (items || [])
+    .map(item => (typeof item === 'string' ? { title: item, value: item } : item))
+    .filter(item => item?.value)
+
+  if (config.prefer_seed && !normalized.some(item => item.value === config.prefer_seed)) {
+    normalized.unshift({ title: `${config.prefer_seed}（当前配置）`, value: config.prefer_seed })
+  }
+
+  seedOptions.value = normalized.length
+    ? normalized
+    : [{ title: '🍅 西红柿', value: '西红柿' }]
+}
+
+function applyStatusSeedOptions(seedShop) {
+  const unlocked = (seedShop || [])
+    .filter(seed => seed.unlocked && seed.name)
+    .map(seed => ({
+      title: `${seed.icon || '🌱'} ${seed.name}`,
+      value: seed.name,
+    }))
+  if (unlocked.length) {
+    applySeedOptions(unlocked)
+  }
+}
+
+async function loadStatusSeedOptions() {
+  try {
+    const res = await props.api.get('/plugin/SQFarm/status')
+    applyStatusSeedOptions(res?.farm_status?.seed_shop)
+  } catch (error) {
+    // 状态种子下拉只是增强项，失败时保留当前配置返回的选项即可
+  }
 }
 
 async function loadConfig() {
   try {
     const res = await props.api.get('/plugin/SQFarm/config')
     Object.assign(config, res || {})
+    applySeedOptions(res?.seed_options)
+    await loadStatusSeedOptions()
   } catch (error) {
     flash(error?.message || '加载配置失败', 'error')
   }
@@ -101,6 +179,10 @@ async function saveConfig() {
   saving.value = true
   try {
     const res = await props.api.post('/plugin/SQFarm/config', { ...config })
+    if (res.config) {
+      Object.assign(config, res.config)
+      applySeedOptions(res.config.seed_options)
+    }
     flash(res.message || '配置已保存')
     if (config.onlyonce) {
       config.onlyonce = false
@@ -118,7 +200,9 @@ async function syncCookie() {
     const res = await props.api.get('/plugin/SQFarm/cookie')
     if (res.config) {
       Object.assign(config, res.config)
+      applySeedOptions(res.config.seed_options)
     }
+    await loadStatusSeedOptions()
     flash(res.message || 'Cookie 已同步')
   } catch (error) {
     flash(error?.message || '同步 Cookie 失败', 'error')
@@ -145,6 +229,10 @@ onMounted(loadConfig)
 .sq-card h3 { margin: 0 0 16px; font-size: 20px; font-weight: 800; }
 .sq-card-wide { grid-column: 1 / -1; }
 .sq-switches { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px; }
-.sq-note { margin-top: 12px; color: #7b7263; font-size: 13px; }
-@media (max-width: 960px) { .sq-head { flex-direction: column; } .sq-form-grid { grid-template-columns: 1fr; } }
+.sq-note { margin-top: 12px; color: #7b7263; font-size: 13px; line-height: 1.7; }
+.sq-code { margin-top: 14px; padding: 14px 16px; border-radius: 18px; background: #f5f2eb; border: 1px solid #e8dec8; color: #4a4236; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+@media (max-width: 960px) {
+  .sq-head { flex-direction: column; }
+  .sq-form-grid { grid-template-columns: 1fr; }
+}
 </style>

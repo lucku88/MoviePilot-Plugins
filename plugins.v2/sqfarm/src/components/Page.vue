@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="sq-page">
     <div class="sq-toolbar">
       <div>
@@ -50,36 +50,75 @@
         <span>种子商店</span>
         <div class="sq-submeta">计划触发 {{ farm.next_trigger_time || status.next_trigger_time || '等待轮询' }}</div>
       </div>
+      <div class="sq-seed-toolbar">
+        <div class="sq-interaction-note">{{ farm.interaction_note || '先选种子，再点击空地种植；点击成熟田可手动收菜。' }}</div>
+        <div class="sq-current-seed">
+          <span>当前种子</span>
+          <strong>{{ selectedSeed ? `${selectedSeed.icon} ${selectedSeed.name}` : '暂无可用种子' }}</strong>
+        </div>
+      </div>
       <div class="sq-seed-grid">
-        <div v-for="seed in farm.seed_shop || []" :key="seed.id" class="sq-seed-card" :class="{ 'is-locked': !seed.unlocked, 'is-preferred': seed.preferred }">
+        <button
+          v-for="seed in farm.seed_shop || []"
+          :key="seed.id"
+          type="button"
+          class="sq-seed-card"
+          :class="{
+            'is-locked': !seed.unlocked,
+            'is-preferred': seed.preferred,
+            'is-selected': seed.id === selectedSeedId,
+          }"
+          :disabled="!seed.unlocked || loading"
+          @click="selectSeed(seed)"
+        >
           <div class="sq-seed-icon">{{ seed.icon }}</div>
           <div class="sq-seed-name">{{ seed.name }}</div>
           <div class="sq-seed-line">消耗：{{ seed.cost }}</div>
           <div class="sq-seed-line">收获：{{ seed.reward }}</div>
           <div class="sq-seed-line">生长：{{ seed.grow_text }}</div>
-          <div class="sq-seed-note">{{ seed.unlocked ? (seed.preferred ? '当前优先种子' : '已解锁') : seed.unlock_text }}</div>
-        </div>
+          <div class="sq-seed-note">
+            {{ seed.unlocked ? (seed.id === selectedSeedId ? '当前已选种子' : (seed.preferred ? '默认优先种子' : '已解锁')) : seed.unlock_text }}
+          </div>
+        </button>
       </div>
     </div>
 
     <div class="sq-farm-shell">
+      <div class="sq-farm-banner">
+        <div>{{ farm.interaction_note || '点击成熟田收菜；先选种子，再点击空地种植。' }}</div>
+        <div>当前准备种植：{{ selectedSeed ? `${selectedSeed.icon} ${selectedSeed.name}` : '请先在上方选择种子' }}</div>
+      </div>
+
       <div v-for="group in farm.land_groups || []" :key="group.id" class="sq-land-group">
         <div class="sq-group-title">{{ group.name }} <span>{{ group.subtitle }}</span></div>
         <div class="sq-slot-grid">
-          <div v-for="slot in group.slots" :key="`${group.id}-${slot.slot_index}`" class="sq-slot" :class="`is-${slot.state}`">
+          <button
+            v-for="slot in group.slots"
+            :key="`${group.id}-${slot.slot_index}`"
+            type="button"
+            class="sq-slot"
+            :class="{
+              [`is-${slot.state}`]: true,
+              'is-clickable': slot.can_harvest || slot.can_plant,
+              'is-busy': loading,
+            }"
+            :disabled="loading || (!slot.can_harvest && !slot.can_plant)"
+            @click="onSlotClick(slot)"
+          >
             <div class="sq-slot-icon">{{ slot.icon }}</div>
             <div class="sq-slot-name">{{ slot.title }}</div>
             <div class="sq-slot-badge">{{ slot.badge }}</div>
             <div class="sq-slot-desc">{{ slot.description }}</div>
             <div class="sq-slot-time">{{ slotText(slot) }}</div>
-          </div>
+            <div v-if="slot.can_harvest || slot.can_plant" class="sq-slot-action">{{ slotActionText(slot) }}</div>
+          </button>
         </div>
       </div>
     </div>
 
     <div class="sq-panel">
       <div class="sq-panel-head"><span>最近记录</span></div>
-      <div v-if="!(historyItems.length)" class="sq-empty">暂无执行记录</div>
+      <div v-if="!historyItems.length" class="sq-empty">暂无执行记录</div>
       <div v-else class="sq-history-list">
         <div v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="sq-history-item">
           <div class="sq-history-top">
@@ -94,23 +133,38 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 const props = defineProps({ api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['switch', 'close'])
 
 const loading = ref(false)
-const status = reactive({ farm_status: {}, history: [] })
+const status = reactive({ farm_status: {}, history: [], config: {} })
 const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
+const selectedSeedId = ref(null)
 let timer = null
 
 const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
+const unlockedSeeds = computed(() => (farm.value.seed_shop || []).filter(seed => seed.unlocked))
+const selectedSeed = computed(() => unlockedSeeds.value.find(seed => seed.id === selectedSeedId.value) || null)
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function syncSelectedSeed() {
+  if (!unlockedSeeds.value.length) {
+    selectedSeedId.value = null
+    return
+  }
+  if (unlockedSeeds.value.some(seed => seed.id === selectedSeedId.value)) {
+    return
+  }
+  const preferred = unlockedSeeds.value.find(seed => seed.name === status.config?.prefer_seed || seed.preferred)
+  selectedSeedId.value = (preferred || unlockedSeeds.value[0]).id
 }
 
 async function loadStatus() {
@@ -118,6 +172,7 @@ async function loadStatus() {
   try {
     const res = await props.api.get('/plugin/SQFarm/status')
     Object.assign(status, res || {})
+    syncSelectedSeed()
   } catch (error) {
     flash(error?.message || '加载状态失败', 'error')
   } finally {
@@ -164,6 +219,60 @@ async function syncCookie() {
   }
 }
 
+async function harvestPlot(slot) {
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plot/harvest', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+    })
+    flash(res.message || `已处理 ${slot.land_name} #${slot.slot_index}`)
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '手动收菜失败', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function plantPlot(slot) {
+  if (!selectedSeed.value) {
+    flash('请先在上方选择种子', 'warning')
+    return
+  }
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plot/plant', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+      seed_id: selectedSeedId.value,
+    })
+    flash(res.message || `已处理 ${slot.land_name} #${slot.slot_index}`)
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '手动种植失败', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onSlotClick(slot) {
+  if (slot.can_harvest) {
+    await harvestPlot(slot)
+    return
+  }
+  if (slot.can_plant) {
+    await plantPlot(slot)
+  }
+}
+
+function selectSeed(seed) {
+  if (!seed?.unlocked || loading.value) {
+    return
+  }
+  selectedSeedId.value = seed.id
+}
+
 function formatRemain(seconds) {
   const sec = Math.max(0, Number(seconds) || 0)
   if (!sec) return '现在可收'
@@ -184,9 +293,22 @@ function slotText(slot) {
   return slot.remaining_label || slot.reward_text || ''
 }
 
+function slotActionText(slot) {
+  if (slot.can_harvest) {
+    return '点击收菜'
+  }
+  if (slot.can_plant) {
+    return selectedSeed.value ? `点击种植 ${selectedSeed.value.icon}${selectedSeed.value.name}` : '先选种子'
+  }
+  return slot.action_label || ''
+}
+
 function closePlugin() {
   emit('close')
 }
+
+watch(unlockedSeeds, syncSelectedSeed, { deep: true })
+watch(() => status.config?.prefer_seed, syncSelectedSeed)
 
 onMounted(async () => {
   await loadStatus()
@@ -217,20 +339,32 @@ onBeforeUnmount(() => {
 .sq-chip { padding: 6px 12px; border-radius: 999px; background: #f4efe3; color: #7d7259; font-size: 12px; }
 .sq-empty { padding: 36px 0; text-align: center; color: #9e9a90; }
 .sq-bag-grid, .sq-seed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }
-.sq-bag-card, .sq-seed-card { padding: 18px 14px; border-radius: 20px; background: #fffaf0; border: 1px solid #f0ddaa; text-align: center; }
+.sq-bag-card { padding: 18px 14px; border-radius: 20px; background: #fffaf0; border: 1px solid #f0ddaa; text-align: center; }
+.sq-seed-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border-radius: 18px; background: #f8f3e7; color: #6f634f; }
+.sq-interaction-note { font-size: 13px; line-height: 1.5; }
+.sq-current-seed { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 12px; color: #847760; }
+.sq-current-seed strong { color: #2d6d41; font-size: 16px; }
+.sq-seed-card { width: 100%; padding: 18px 14px; border-radius: 20px; background: #fffaf0; border: 1px solid #f0ddaa; text-align: center; cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; font: inherit; color: inherit; appearance: none; }
+.sq-seed-card:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(160,123,55,0.12); }
+.sq-seed-card:disabled { cursor: not-allowed; }
 .sq-bag-icon, .sq-seed-icon { font-size: 28px; margin-bottom: 6px; }
 .sq-bag-name, .sq-seed-name { font-weight: 700; }
 .sq-bag-meta, .sq-seed-line, .sq-seed-note { font-size: 12px; color: #766d5c; margin-top: 4px; }
 .sq-bag-total { margin-top: 6px; font-weight: 700; color: #db8a00; }
 .sq-seed-card.is-locked { opacity: 0.45; filter: grayscale(0.3); }
-.sq-seed-card.is-preferred { box-shadow: 0 10px 24px rgba(111, 202, 151, 0.24); border-color: #78d49d; }
+.sq-seed-card.is-preferred { border-color: #78d49d; }
+.sq-seed-card.is-selected { border-color: #4caf69; background: linear-gradient(180deg, #f4fff1 0%, #e6f8e4 100%); box-shadow: 0 12px 26px rgba(76, 175, 105, 0.22); }
 .sq-farm-shell { background: rgba(245, 245, 245, 0.6); border: 1px solid rgba(158,158,158,0.25); border-radius: 28px; padding: 16px; margin-bottom: 18px; }
+.sq-farm-banner { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 16px; padding: 14px 18px; border-radius: 20px; background: linear-gradient(90deg, #eff8eb 0%, #fff8e9 100%); color: #5f634f; font-size: 13px; }
 .sq-land-group { padding: 18px; margin-bottom: 14px; }
 .sq-land-group:last-child { margin-bottom: 0; }
 .sq-group-title { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
 .sq-group-title span { font-size: 13px; color: #7a7365; margin-left: 8px; font-weight: 500; }
 .sq-slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
-.sq-slot { min-height: 150px; border-radius: 22px; padding: 14px 12px; text-align: center; border: 1px solid transparent; display: flex; flex-direction: column; justify-content: space-between; }
+.sq-slot { width: 100%; min-height: 164px; border-radius: 22px; padding: 14px 12px; text-align: center; border: 1px solid transparent; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; font: inherit; color: inherit; appearance: none; }
+.sq-slot.is-clickable { cursor: pointer; }
+.sq-slot.is-clickable:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(112, 102, 84, 0.16); }
+.sq-slot.is-busy { opacity: 0.76; }
 .sq-slot.is-growing { background: linear-gradient(180deg, #fff4ba 0%, #ffe188 100%); border-color: #f0cc5b; }
 .sq-slot.is-ready { background: linear-gradient(180deg, #d8ffd5 0%, #9ae2a2 100%); border-color: #76c580; }
 .sq-slot.is-empty { background: #eef9ea; border-color: #9ed1a7; }
@@ -240,9 +374,16 @@ onBeforeUnmount(() => {
 .sq-slot-name { font-weight: 800; }
 .sq-slot-badge, .sq-slot-desc, .sq-slot-time { font-size: 12px; }
 .sq-slot-time { font-weight: 700; color: #6e5e3d; }
+.sq-slot-action { margin-top: 8px; padding: 6px 8px; border-radius: 999px; background: rgba(255,255,255,0.55); color: #3f5f39; font-size: 12px; font-weight: 700; }
 .sq-history-list { display: flex; flex-direction: column; gap: 12px; }
 .sq-history-item { padding: 14px 16px; background: #f8f5ef; border-radius: 18px; border: 1px solid #ebe3d2; }
 .sq-history-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .sq-history-top span, .sq-history-lines { color: #746f62; font-size: 13px; }
-@media (max-width: 900px) { .sq-toolbar, .sq-panel-head { flex-direction: column; align-items: stretch; } }
+@media (max-width: 900px) {
+  .sq-toolbar,
+  .sq-panel-head,
+  .sq-seed-toolbar,
+  .sq-farm-banner { flex-direction: column; align-items: stretch; }
+  .sq-current-seed { align-items: flex-start; }
+}
 </style>
