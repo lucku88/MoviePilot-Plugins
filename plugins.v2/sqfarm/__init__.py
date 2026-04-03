@@ -23,8 +23,8 @@ class SQFarm(_PluginBase):
     plugin_desc = "自动收菜、售出背包作物并补种思齐农场。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
     plugin_version = "0.1.0"
-    plugin_author = "local"
-    author_url = ""
+    plugin_author = "lucku88"
+    author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
     plugin_order = 66
     auth_level = 2
@@ -738,3 +738,4 @@ class SQFarm(_PluginBase):
     @staticmethod
     def _get_error_detail(err: Exception) -> str:
         return str(err) or err.__class__.__name__
+

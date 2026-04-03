@@ -1,6 +1,10 @@
-# MoviePilot-Plugins
+﻿# MoviePilot-Plugins
 
 个人 MoviePilot 插件仓库，目前仅保留 `SQFarm`。
+
+仓库地址：
+
+- `https://github.com/lucku88/MoviePilot-Plugins/`
 
 ## 插件列表
 
@@ -18,7 +22,11 @@ package.v2.json
 
 ## 使用说明
 
-在 MoviePilot 的自定义插件仓库中添加本仓库地址后，即可安装 `SQFarm` 插件。
+在 MoviePilot 的自定义插件仓库中填入：
+
+- `https://github.com/lucku88/MoviePilot-Plugins/`
+
+然后安装 `SQFarm` 插件。
 
 插件需要配置：
 
