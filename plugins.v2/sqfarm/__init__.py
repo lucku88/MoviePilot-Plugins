@@ -62,6 +62,7 @@ class SQFarm(_PluginBase):
     _http_retry_times: int = 3
     _http_retry_delay: int = 1500
     _ocr_retry_times: int = 2
+    _ready_retry_seconds: int = 60
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -267,6 +268,10 @@ class SQFarm(_PluginBase):
                         logger.warning("plant_fill_empty failed: %s", err)
 
             next_run = self._compute_next_run(data)
+            if ready_plots and not action_harvest:
+                retry_at = int(time.time()) + max(30, self._ready_retry_seconds)
+                next_run = min(next_run, retry_at) if next_run else retry_at
+                logger.warning("INFO 存在成熟作物但本次未收获成功，延后 %s 秒重试", max(30, self._ready_retry_seconds))
             self._schedule_next_run(next_run, reason)
             log_result = self._parse_logs(data.get("user_logs") or [], run_start)
             next_run_text = self._format_ts(next_run) if next_run else "暂无成熟作物"
@@ -741,8 +746,6 @@ class SQFarm(_PluginBase):
             plant_time = int(plot.get("plant_time") or 0)
             grow_time = int((seed or {}).get("grow_time") or 0)
             harvest_ts = int(plot.get("harvest_time") or 0) or (plant_time + grow_time if plant_time and grow_time else 0)
-            if plot.get("is_ready") == 1 or (harvest_ts and harvest_ts <= now):
-                return now
             if harvest_ts > now:
                 future_times.append(harvest_ts)
         return min(future_times) if future_times else None
