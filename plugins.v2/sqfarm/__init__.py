@@ -3,6 +3,7 @@ import socket
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin
 
 import pytz
 import requests
@@ -636,6 +637,7 @@ class SQFarm(_PluginBase):
                 if not image_url:
                     last_detail = "验证码图片地址为空"
                     continue
+                image_url = urljoin(f"{self._site_url}/", str(image_url))
                 img_response = self._request_with_retry("captchaImage", lambda: session.get(image_url, timeout=(self._http_timeout, self._http_timeout)))
                 img_response.raise_for_status()
                 code = self._recognize_captcha(session, img_response.content)
