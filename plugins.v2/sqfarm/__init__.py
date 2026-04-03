@@ -217,13 +217,15 @@ class SQFarm(_PluginBase):
             action_plant = False
             sell_success_count = 0
             planted_seed_name = ""
+            harvest_failure_detail = ""
             harvest_snapshot: List[Dict[str, Any]] = []
 
             if ready_plots:
-                harvested = self._harvest_all(session)
-                action_harvest = bool(harvested)
+                harvest_result = self._harvest_all(session)
+                action_harvest = bool(harvest_result.get("success"))
+                harvest_failure_detail = harvest_result.get("detail") or ""
                 data = self._fetch_state(session)
-                if harvested:
+                if action_harvest:
                     harvest_snapshot = [
                         {
                             "name": item.get("name"),
@@ -284,8 +286,10 @@ class SQFarm(_PluginBase):
                 next_run_text,
                 sell_success_count=sell_success_count,
                 planted_seed_name=planted_seed_name,
+                harvest_failure_detail=harvest_failure_detail,
             )
             has_action_lines = any(line.startswith(("✅", "💰", "🧺", "🌱")) for line in msg_lines)
+            has_warning_lines = any(line.startswith("⚠️") for line in msg_lines)
 
             state_record = self._build_state_record(data, next_run, msg_lines)
             farm_status = self._build_ui_state(data, next_run, msg_lines)
@@ -293,11 +297,17 @@ class SQFarm(_PluginBase):
             self.save_data("farm_status", farm_status)
             self.save_data("last_run", self._format_time(self._aware_now()))
 
-            title = "🌱 SQ种菜报告" if has_action_lines else "ℹ️ SQ种菜无动作"
+            if has_action_lines:
+                title = "🌱 SQ种菜报告"
+            elif has_warning_lines:
+                title = "⚠️ SQ种菜收菜失败"
+            else:
+                title = "ℹ️ SQ种菜无动作"
             self._append_history(title, msg_lines or ["本次无动作"])
 
-            if self._notify and has_action_lines:
-                self.post_message(mtype=NotificationType.Plugin, title=f"🌱 {self.plugin_name}报告", text="\n".join(msg_lines))
+            if self._notify and (has_action_lines or has_warning_lines):
+                notify_title = f"🌱 {self.plugin_name}报告" if has_action_lines else f"⚠️ {self.plugin_name}收菜失败"
+                self.post_message(mtype=NotificationType.Plugin, title=notify_title, text="\n".join(msg_lines))
 
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
         except Exception as err:
@@ -609,24 +619,28 @@ class SQFarm(_PluginBase):
         logger.info("INFO OCR 最终结果: %s (置信度: %s)", best_text or "EMPTY", best_confidence)
         return best_text
 
-    def _harvest_all(self, session: requests.Session) -> bool:
+    def _harvest_all(self, session: requests.Session) -> Dict[str, Any]:
         logger.info("INFO 开始收获...")
+        last_detail = "未知原因"
         for idx in range(1, 6):
             logger.info("Harvest attempt %s/5", idx)
             try:
                 cap_res = self._post_action(session, "get_harvest_all_captcha", {}, retry_network=True)
                 if not cap_res or not cap_res.get("success") or not cap_res.get("captcha"):
+                    last_detail = f"验证码接口失败：{(cap_res or {}).get('msg', 'UNKNOWN')}"
                     logger.warning("get_harvest_all_captcha failed: %s", (cap_res or {}).get("msg", "UNKNOWN"))
                     continue
 
                 captcha = cap_res["captcha"]
                 image_url = captcha.get("image_url")
                 if not image_url:
+                    last_detail = "验证码图片地址为空"
                     continue
                 img_response = self._request_with_retry("captchaImage", lambda: session.get(image_url, timeout=(self._http_timeout, self._http_timeout)))
                 img_response.raise_for_status()
                 code = self._recognize_captcha(session, img_response.content)
                 if not code:
+                    last_detail = "OCR 未识别出有效验证码"
                     logger.warning("captcha OCR failed, retry...")
                     continue
 
@@ -636,14 +650,16 @@ class SQFarm(_PluginBase):
                 }, retry_network=False)
                 if harvest_res and harvest_res.get("success"):
                     logger.info("Harvest completed")
-                    return True
+                    return {"success": True, "detail": ""}
+                last_detail = f"提交收菜失败：{(harvest_res or {}).get('msg', 'UNKNOWN')}"
                 logger.warning("harvest_all failed: %s", (harvest_res or {}).get("msg", "UNKNOWN"))
                 if not (harvest_res or {}).get("captcha_required"):
                     break
             except Exception as err:
+                last_detail = self._get_error_detail(err)
                 logger.warning("harvest flow failed: %s", err)
         logger.warning("harvest not completed after retries")
-        return False
+        return {"success": False, "detail": last_detail}
 
     def _should_skip_run(self) -> bool:
         next_run = self._load_saved_next_run()
@@ -968,6 +984,7 @@ class SQFarm(_PluginBase):
         next_run_text: str,
         sell_success_count: int = 0,
         planted_seed_name: str = "",
+        harvest_failure_detail: str = "",
     ) -> List[str]:
         def join_summary(summary_map: dict) -> str:
             return "  ".join([f"{key}×{value}" for key, value in summary_map.items()])
@@ -994,6 +1011,8 @@ class SQFarm(_PluginBase):
             lines.append(f"🌱 补种：{join_summary(log_result.get('plant'))}")
         elif action_plant and planted_seed_name:
             lines.append(f"🌱 补种：{planted_seed_name}")
+        if harvest_failure_detail:
+            lines.append(f"⚠️ 收菜失败：{harvest_failure_detail}")
         if not lines:
             lines.append("ℹ️ 本次没有可执行动作")
         lines.append(f"⏰ 下次可收：{next_run_text}")
