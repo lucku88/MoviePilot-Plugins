@@ -1,14 +1,15 @@
-{
+﻿{
   "SQFarm": {
     "name": "SQ种菜",
-    "description": "自动收菜、售出背包作物并补种思齐农场。",
-    "labels": "工具,自动化",
-    "version": "0.1.0",
+    "description": "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态定时和站点 Cookie 同步。",
+    "labels": "工具,自动化,农场",
+    "version": "0.2.0",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
-    "level": 2,
+    "level": 1,
     "history": {
-      "v0.1.0": "初版发布，支持 MoviePilot V2 定时执行思齐农场收菜、售出和补种。"
+      "v0.2.0": "升级为 Vue 面板，新增动态最近收菜调度、站点 Cookie 同步和农场仪表盘。",
+      "v0.1.0": "首版发布，支持 MoviePilot V2 定时执行思齐农场收菜、售卖和补种。"
     }
   }
 }
