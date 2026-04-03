@@ -9,6 +9,7 @@
         <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
         <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步Cookie</v-btn>
         <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
+        <v-btn variant="text" @click="closePlugin">关闭</v-btn>
       </div>
     </div>
 
@@ -124,6 +125,10 @@ async function syncCookie() {
   } finally {
     saving.value = false
   }
+}
+
+function closePlugin() {
+  emit('close')
 }
 
 onMounted(loadConfig)

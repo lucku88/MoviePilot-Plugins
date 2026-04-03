@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_be9268cd_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_54dc9710_lang = '';
 
 const {toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-be9268cd"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-54dc9710"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-page" };
 const _hoisted_2 = { class: "sq-toolbar" };
 const _hoisted_3 = { class: "sq-title" };
@@ -170,6 +170,10 @@ function slotText(slot) {
   return slot.remaining_label || slot.reward_text || ''
 }
 
+function closePlugin() {
+  emit('close');
+}
+
 onMounted(async () => {
   await loadStatus();
   timer = window.setInterval(() => {
@@ -231,6 +235,15 @@ return (_ctx, _cache) => {
         }, {
           default: _withCtx(() => [
             _createTextVNode("配置")
+          ]),
+          _: 1
+        }),
+        _createVNode(_component_v_btn, {
+          variant: "text",
+          onClick: closePlugin
+        }, {
+          default: _withCtx(() => [
+            _createTextVNode("关闭")
           ]),
           _: 1
         })
@@ -359,6 +372,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-be9268cd"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-54dc9710"]]);
 
 export { PageView as default };

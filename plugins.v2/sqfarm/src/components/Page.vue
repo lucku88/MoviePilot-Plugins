@@ -10,6 +10,7 @@
         <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新</v-btn>
         <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步Cookie</v-btn>
         <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
+        <v-btn variant="text" @click="closePlugin">关闭</v-btn>
       </div>
     </div>
 
@@ -181,6 +182,10 @@ function slotText(slot) {
     if (slot.state === 'ready') return '现在可收'
   }
   return slot.remaining_label || slot.reward_text || ''
+}
+
+function closePlugin() {
+  emit('close')
 }
 
 onMounted(async () => {

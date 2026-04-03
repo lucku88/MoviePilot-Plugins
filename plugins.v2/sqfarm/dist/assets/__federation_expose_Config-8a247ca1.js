@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_953f6c6a_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_68fa62e0_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-953f6c6a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-68fa62e0"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-config" };
 const _hoisted_2 = { class: "sq-head" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -107,6 +107,10 @@ async function syncCookie() {
   }
 }
 
+function closePlugin() {
+  emit('close');
+}
+
 onMounted(loadConfig);
 
 return (_ctx, _cache) => {
@@ -150,7 +154,16 @@ return (_ctx, _cache) => {
             _createTextVNode("保存")
           ]),
           _: 1
-        }, 8, ["loading"])
+        }, 8, ["loading"]),
+        _createVNode(_component_v_btn, {
+          variant: "text",
+          onClick: closePlugin
+        }, {
+          default: _withCtx(() => [
+            _createTextVNode("关闭")
+          ]),
+          _: 1
+        })
       ])
     ]),
     (message.text)
@@ -323,6 +336,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-953f6c6a"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-68fa62e0"]]);
 
 export { ConfigView as default };
