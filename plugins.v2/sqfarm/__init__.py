@@ -25,7 +25,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ种菜"
     plugin_desc = "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.0"
+    plugin_version = "0.2.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
