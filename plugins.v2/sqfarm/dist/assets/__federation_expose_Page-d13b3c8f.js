@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_85aeb59f_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_219b7add_lang = '';
 
 const {toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-85aeb59f"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-219b7add"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-page" };
 const _hoisted_2 = { class: "sq-toolbar" };
 const _hoisted_3 = { class: "sq-title" };
@@ -278,7 +278,7 @@ return (_ctx, _cache) => {
     ]),
     _createElementVNode("div", _hoisted_9, [
       _hoisted_10,
-      _createElementVNode("div", _hoisted_11, _toDisplayString(farm.value.page_note || '请在配置页选择优先种植后，点击立即执行完成收菜、售出和种植。'), 1)
+      _createElementVNode("div", _hoisted_11, _toDisplayString(farm.value.page_note || '插件会先动态识别最近收菜时间并记录下一次运行；如果当前还没有收菜时间，会自动运行一次获取农场信息。'), 1)
     ]),
     _createElementVNode("div", _hoisted_12, [
       _createElementVNode("div", _hoisted_13, [
@@ -379,6 +379,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-85aeb59f"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-219b7add"]]);
 
 export { PageView as default };

@@ -25,7 +25,7 @@
 
     <div class="sq-panel sq-panel-note">
       <div class="sq-note-title">执行说明</div>
-      <div class="sq-note-text">{{ farm.page_note || '请在配置页选择优先种植后，点击立即执行完成收菜、售出和种植。' }}</div>
+      <div class="sq-note-text">{{ farm.page_note || '插件会先动态识别最近收菜时间并记录下一次运行；如果当前还没有收菜时间，会自动运行一次获取农场信息。' }}</div>
     </div>
 
     <div class="sq-panel">

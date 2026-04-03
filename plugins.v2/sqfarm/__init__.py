@@ -9,7 +9,6 @@ import pytz
 import requests
 import urllib3.util.connection as urllib3_connection
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
@@ -25,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ种菜"
     plugin_desc = "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.3.1"
+    plugin_version = "0.3.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -67,6 +66,7 @@ class SQFarm(_PluginBase):
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
+    _bootstrap_pending: bool = False
 
     _crop_icon = {
         "萝卜": "🥕",
@@ -97,6 +97,7 @@ class SQFarm(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
+        self._bootstrap_pending = self._enabled and not self._next_trigger_time
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -139,26 +140,14 @@ class SQFarm(_PluginBase):
 
     def get_service(self) -> List[Dict[str, Any]]:
         services: List[Dict[str, Any]] = []
-        if self._enabled and self._cron:
-            try:
-                services.append({
-                    "id": "SQFarm_poll",
-                    "name": "SQ种菜轮询服务",
-                    "trigger": CronTrigger.from_crontab(self._cron),
-                    "func": self._poll_worker,
-                    "kwargs": {},
-                })
-            except Exception as err:
-                logger.error("%s CRON 配置错误：%s", self.plugin_name, err)
-
         if self._enabled:
             next_run = self._get_next_run_for_service()
             if next_run:
                 services.append({
                     "id": "SQFarm_auto",
-                    "name": "SQ种菜智能调度",
+                    "name": "SQ种菜初始化" if self._bootstrap_pending else "SQ种菜智能调度",
                     "trigger": "date",
-                    "func": self._auto_worker,
+                    "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
                     "kwargs": {"run_date": next_run},
                 })
         return services
@@ -334,11 +323,20 @@ class SQFarm(_PluginBase):
     def _manual_worker(self):
         return self.run_job(force=True, reason="onlyonce")
 
-    def _poll_worker(self):
-        return self.run_job(force=False, reason="cron")
-
     def _auto_worker(self):
         return self.run_job(force=True, reason="smart")
+
+    def _bootstrap_worker(self):
+        self._bootstrap_pending = False
+        if not self._enabled:
+            return {"success": False, "message": "插件未启用"}
+        try:
+            farm_status = self._refresh_state(reason="bootstrap")
+            return {"success": True, "message": "已初始化农场状态", "farm_status": farm_status}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 初始化状态失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
 
     def _refresh_data(self):
         try:
@@ -760,11 +758,12 @@ class SQFarm(_PluginBase):
         now = self._aware_now()
         if next_trigger:
             return next_trigger if next_trigger > now else now + timedelta(seconds=5)
-        if not self.get_data("farm_status"):
+        if self._bootstrap_pending:
             return now + timedelta(seconds=8)
         return None
 
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
+        self._bootstrap_pending = False
         if next_run_ts:
             next_run = self._aware_from_timestamp(next_run_ts)
             next_trigger = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
@@ -781,7 +780,7 @@ class SQFarm(_PluginBase):
             self._next_trigger_time = None
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
-            logger.info("INFO 当前没有已种植作物，保留 CRON 轮询")
+            logger.info("INFO 当前没有已识别的收菜时间，不注册下一次自动运行")
 
         if self._enabled:
             self._reregister_plugin(reason or "schedule_next_run")
@@ -1022,7 +1021,7 @@ class SQFarm(_PluginBase):
             "next_run_time": self._format_ts(next_run) if next_run else "暂无成熟作物",
             "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "等待下一次轮询",
             "cookie_source": self._cookie_source,
-            "page_note": "状态页仅展示当前农场信息。请在配置页选择优先种植后，使用“立即执行”完成收菜、售出和种植。",
+            "page_note": "状态页仅展示当前农场信息。插件会先动态识别最近收菜时间并记录下一次运行；如果当前还没有收菜时间，会自动运行一次获取农场信息。",
             "overview": [
                 {"label": "魔力值", "value": int(data.get("user_bonus") or 0), "accent": "amber"},
                 {"label": "总种植收获", "value": int(user_stats.get("total_harvest") or 0), "accent": "cyan"},

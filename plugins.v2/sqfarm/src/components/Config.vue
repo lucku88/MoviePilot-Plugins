@@ -31,7 +31,6 @@
       <div class="sq-card">
         <h3>站点与调度</h3>
         <v-text-field v-model="config.site_domain" label="站点域名" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.cron" label="轮询 CRON" variant="outlined" density="comfortable" class="mb-3" />
         <v-select
           v-model="config.prefer_seed"
           :items="seedOptions"
@@ -41,7 +40,7 @@
           class="mb-2"
           :menu-props="{ maxHeight: 280 }"
         />
-        <div class="sq-note">这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
+        <div class="sq-note">插件已取消固定轮询。保存配置或重启后会先运行一次获取农场信息，之后只按最近收菜时间自动运行。这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
         <v-text-field v-model="config.schedule_buffer_seconds" label="智能调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mt-3" />
       </div>
 

@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_89953724_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_d2814122_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-89953724"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-d2814122"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-config" };
 const _hoisted_2 = { class: "sq-head" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -20,7 +20,7 @@ const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_8 = { class: "sq-switches" };
 const _hoisted_9 = { class: "sq-card" };
 const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "站点与调度", -1));
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "插件已取消固定轮询。保存配置或重启后会先运行一次获取农场信息，之后只按最近收菜时间自动运行。这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
 const _hoisted_12 = { class: "sq-card" };
 const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "网络与 OCR", -1));
 const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
@@ -302,17 +302,9 @@ return (_ctx, _cache) => {
           density: "comfortable",
           class: "mb-3"
         }, null, 8, ["modelValue"]),
-        _createVNode(_component_v_text_field, {
-          modelValue: config.cron,
-          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.cron) = $event)),
-          label: "轮询 CRON",
-          variant: "outlined",
-          density: "comfortable",
-          class: "mb-3"
-        }, null, 8, ["modelValue"]),
         _createVNode(_component_v_select, {
           modelValue: config.prefer_seed,
-          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.prefer_seed) = $event)),
+          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.prefer_seed) = $event)),
           items: seedOptions.value,
           label: "优先种植",
           variant: "outlined",
@@ -323,7 +315,7 @@ return (_ctx, _cache) => {
         _hoisted_11,
         _createVNode(_component_v_text_field, {
           modelValue: config.schedule_buffer_seconds,
-          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.schedule_buffer_seconds) = $event)),
+          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.schedule_buffer_seconds) = $event)),
           label: "智能调度缓冲秒数",
           type: "number",
           variant: "outlined",
@@ -335,7 +327,7 @@ return (_ctx, _cache) => {
         _hoisted_13,
         _createVNode(_component_v_text_field, {
           modelValue: config.ocr_api_url,
-          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.ocr_api_url) = $event)),
+          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.ocr_api_url) = $event)),
           label: "OCR API 地址",
           placeholder: "http://ip:8089/api/tr-run/",
           hint: "默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP",
@@ -360,7 +352,7 @@ return (_ctx, _cache) => {
         _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample)),
         _createVNode(_component_v_text_field, {
           modelValue: config.random_delay_max_seconds,
-          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.random_delay_max_seconds) = $event)),
+          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.random_delay_max_seconds) = $event)),
           label: "随机延迟上限(秒)",
           type: "number",
           variant: "outlined",
@@ -369,7 +361,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_timeout,
-          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.http_timeout) = $event)),
+          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.http_timeout) = $event)),
           label: "HTTP 超时(秒)",
           type: "number",
           variant: "outlined",
@@ -378,7 +370,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_retry_times,
-          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_retry_times) = $event)),
+          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.http_retry_times) = $event)),
           label: "网络重试次数",
           type: "number",
           variant: "outlined",
@@ -387,7 +379,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_retry_delay,
-          "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.http_retry_delay) = $event)),
+          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_retry_delay) = $event)),
           label: "网络重试间隔(ms)",
           type: "number",
           variant: "outlined",
@@ -396,7 +388,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.ocr_retry_times,
-          "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.ocr_retry_times) = $event)),
+          "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.ocr_retry_times) = $event)),
           label: "OCR 重试次数",
           type: "number",
           variant: "outlined",
@@ -407,7 +399,7 @@ return (_ctx, _cache) => {
         _hoisted_17,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.cookie) = $event)),
+          "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.cookie) = $event)),
           label: "SIQI Cookie",
           rows: "7",
           variant: "outlined",
@@ -422,6 +414,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-89953724"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d2814122"]]);
 
 export { ConfigView as default };
