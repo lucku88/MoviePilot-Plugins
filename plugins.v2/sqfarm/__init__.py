@@ -25,7 +25,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ种菜"
     plugin_desc = "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.3.0"
+    plugin_version = "0.3.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -125,8 +125,6 @@ class SQFarm(_PluginBase):
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 SQFarm 状态"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新农场数据"},
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 SQFarm"},
-            {"path": "/plot/harvest", "endpoint": self._harvest_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动收获指定田块"},
-            {"path": "/plot/plant", "endpoint": self._plant_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动种植指定田块"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -514,17 +512,49 @@ class SQFarm(_PluginBase):
         self.save_data("last_run", self._format_time(self._aware_now()))
         return farm_status
 
-    def _get_seed_options(self) -> List[Dict[str, str]]:
+    def _get_seed_options(self) -> List[str]:
         farm_status = self.get_data("farm_status") or {}
         seed_shop = farm_status.get("seed_shop") or []
-        options = [
-            {"title": f"{seed.get('icon', '🌱')} {seed.get('name', '未知种子')}", "value": seed.get("name") or ""}
-            for seed in seed_shop
-            if seed.get("unlocked") and seed.get("name")
-        ]
+        options = [seed.get("name") for seed in seed_shop if seed.get("unlocked") and seed.get("name")]
         if options:
             return options
-        return [{"title": f"{icon} {name}", "value": name} for name, icon in self._crop_icon.items()]
+        return list(self._crop_icon.keys())
+
+    def _get_land_slot_meta(self, data: dict, land: dict, idx: int) -> Dict[str, int]:
+        plot_slot = data.get("plot_slot") or {}
+        effective = plot_slot.get("effective_plot_counts") or {}
+        max_counts = plot_slot.get("max_plot_counts") or plot_slot.get("plot_counts") or {}
+        user_stats = data.get("user_stats") or {}
+        total_harvest = int(user_stats.get("total_harvest") or 0)
+        unlocked_count = int(user_stats.get("unlocked_land_count") or 0)
+        land_id = int(land.get("id") or 0)
+        unlock_need = int(land.get("unlock_harvest") or 0)
+        plot_indexes = [
+            int(plot.get("plot_index") or 0) + 1
+            for plot in (data.get("user_lands") or [])
+            if int(plot.get("land_id") or 0) == land_id
+        ]
+        base_total = int(land.get("plot_count") or 0)
+        max_total = int(max_counts.get(str(land_id)) or max_counts.get(land_id) or 0)
+        effective_total = int(effective.get(str(land_id)) or effective.get(land_id) or 0)
+        planted_max = max(plot_indexes) if plot_indexes else 0
+        total_slots = max(base_total, max_total, effective_total, planted_max)
+        land_unlocked = (
+            (idx < unlocked_count and total_harvest >= unlock_need)
+            or effective_total > 0
+            or planted_max > 0
+        )
+        available_slots = max(effective_total, planted_max)
+        if land_unlocked and available_slots <= 0:
+            available_slots = min(total_slots, base_total or total_slots)
+        available_slots = min(max(available_slots, 0), total_slots)
+        return {
+            "land_id": land_id,
+            "unlock_need": unlock_need,
+            "total_slots": total_slots,
+            "available_slots": available_slots,
+            "land_unlocked": land_unlocked,
+        }
 
     def _ensure_cookie(self):
         if self._auto_cookie:
@@ -778,24 +808,17 @@ class SQFarm(_PluginBase):
         self._next_trigger_time = self._parse_datetime(raw)
         return self._next_trigger_time
 
-    @staticmethod
-    def _count_empty_plots(data: dict) -> int:
+    def _count_empty_plots(self, data: dict) -> int:
         lands = data.get("lands") or []
-        plot_slot = data.get("plot_slot") or {}
-        enabled = bool(plot_slot.get("enabled"))
-        effective = plot_slot.get("effective_plot_counts") or {}
-        total_harvest = int((data.get("user_stats") or {}).get("total_harvest") or 0)
-        unlocked_count = int((data.get("user_stats") or {}).get("unlocked_land_count") or 0)
         user_lands = data.get("user_lands") or []
         empty = 0
         for idx, land in enumerate(lands):
-            unlock_need = int(land.get("unlock_harvest") or 0)
-            if not (idx < unlocked_count and total_harvest >= unlock_need):
+            meta = self._get_land_slot_meta(data, land, idx)
+            if not meta.get("land_unlocked"):
                 continue
-            land_id = int(land.get("id") or 0)
-            total = int(effective.get(str(land_id)) or effective.get(land_id) or land.get("plot_count") or 0) if enabled else int(land.get("plot_count") or 0)
+            land_id = int(meta.get("land_id") or 0)
             planted = len([plot for plot in user_lands if int(plot.get("land_id") or 0) == land_id and plot.get("seed_id")])
-            empty += max(0, total - planted)
+            empty += max(0, int(meta.get("available_slots") or 0) - planted)
         return empty
 
     def _pick_seed(self, data: dict) -> Optional[dict]:
@@ -815,21 +838,13 @@ class SQFarm(_PluginBase):
     def _find_slot_context(self, data: dict, land_id: int, slot_index: int) -> Dict[str, Any]:
         lands = data.get("lands") or []
         user_lands = data.get("user_lands") or []
-        plot_slot = data.get("plot_slot") or {}
-        effective = plot_slot.get("effective_plot_counts") or {}
-        user_stats = data.get("user_stats") or {}
-        total_harvest = int(user_stats.get("total_harvest") or 0)
-        unlocked_count = int(user_stats.get("unlocked_land_count") or 0)
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
 
         for idx, land in enumerate(lands):
             current_land_id = int(land.get("id") or 0)
             if current_land_id != land_id:
                 continue
-            total_slots = int(land.get("plot_count") or 0)
-            unlock_need = int(land.get("unlock_harvest") or 0)
-            land_unlocked = idx < unlocked_count and total_harvest >= unlock_need
-            available_slots = int(effective.get(str(land_id)) or effective.get(land_id) or total_slots)
+            meta = self._get_land_slot_meta(data, land, idx)
             plot = next(
                 (
                     item for item in user_lands
@@ -842,12 +857,12 @@ class SQFarm(_PluginBase):
             seed = seed_map.get(str((plot or {}).get("seed_id"))) or {}
             harvest_ts = self._plot_harvest_time(plot, seed) if plot else 0
             ready = bool(plot and (plot.get("is_ready") == 1 or (harvest_ts and harvest_ts <= int(time.time()))))
-            is_open_slot = land_unlocked and slot_index <= min(available_slots, total_slots)
+            is_open_slot = meta.get("land_unlocked") and slot_index <= int(meta.get("available_slots") or 0)
             return {
                 "land": land,
                 "land_name": land.get("name") or land.get("land_name") or f"农场 {idx + 1}",
-                "land_unlocked": land_unlocked,
-                "available_slots": min(available_slots, total_slots),
+                "land_unlocked": meta.get("land_unlocked"),
+                "available_slots": int(meta.get("available_slots") or 0),
                 "is_open_slot": is_open_slot,
                 "plot": plot,
                 "seed": seed,
@@ -1007,7 +1022,7 @@ class SQFarm(_PluginBase):
             "next_run_time": self._format_ts(next_run) if next_run else "暂无成熟作物",
             "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "等待下一次轮询",
             "cookie_source": self._cookie_source,
-            "interaction_note": "先选种子，再点击空地种植；点击成熟田可手动收菜。当前站点接口仍是一键收成熟田 / 一键种空地，页面会在执行后自动刷新。",
+            "page_note": "状态页仅展示当前农场信息。请在配置页选择优先种植后，使用“立即执行”完成收菜、售出和种植。",
             "overview": [
                 {"label": "魔力值", "value": int(data.get("user_bonus") or 0), "accent": "amber"},
                 {"label": "总种植收获", "value": int(user_stats.get("total_harvest") or 0), "accent": "cyan"},
@@ -1064,20 +1079,16 @@ class SQFarm(_PluginBase):
     def _build_land_groups(self, data: dict) -> List[Dict[str, Any]]:
         lands = data.get("lands") or []
         user_lands = data.get("user_lands") or []
-        plot_slot = data.get("plot_slot") or {}
-        effective = plot_slot.get("effective_plot_counts") or {}
-        user_stats = data.get("user_stats") or {}
-        total_harvest = int(user_stats.get("total_harvest") or 0)
-        unlocked_count = int(user_stats.get("unlocked_land_count") or 0)
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
         groups: List[Dict[str, Any]] = []
 
         for idx, land in enumerate(lands):
-            land_id = int(land.get("id") or 0)
-            total_slots = int(land.get("plot_count") or 0)
-            unlock_need = int(land.get("unlock_harvest") or 0)
-            land_unlocked = idx < unlocked_count and total_harvest >= unlock_need
-            available_slots = int(effective.get(str(land_id)) or effective.get(land_id) or total_slots)
+            meta = self._get_land_slot_meta(data, land, idx)
+            land_id = int(meta.get("land_id") or 0)
+            total_slots = int(meta.get("total_slots") or 0)
+            unlock_need = int(meta.get("unlock_need") or 0)
+            land_unlocked = bool(meta.get("land_unlocked"))
+            available_slots = int(meta.get("available_slots") or 0)
             land_name = land.get("name") or land.get("land_name") or f"农场 {idx + 1}"
             plot_map = {
                 int(plot.get("plot_index") or 0) + 1: plot
@@ -1099,9 +1110,6 @@ class SQFarm(_PluginBase):
                         "remaining_label": "",
                         "reward_text": "",
                         "harvest_ts": 0,
-                        "can_harvest": False,
-                        "can_plant": False,
-                        "action_label": "",
                     })
                     continue
 
@@ -1122,9 +1130,6 @@ class SQFarm(_PluginBase):
                         "remaining_label": "现在可收" if ready else self._format_duration(max(0, harvest_ts - int(time.time()))),
                         "reward_text": f"成长 {self._format_duration(int(seed.get('grow_time') or 0))}",
                         "harvest_ts": harvest_ts,
-                        "can_harvest": ready,
-                        "can_plant": False,
-                        "action_label": "点击收菜" if ready else "",
                     })
                 elif slot_index <= available_slots:
                     slots.append({
@@ -1139,9 +1144,6 @@ class SQFarm(_PluginBase):
                         "remaining_label": "等待种植",
                         "reward_text": "",
                         "harvest_ts": 0,
-                        "can_harvest": False,
-                        "can_plant": True,
-                        "action_label": "点击种植",
                     })
                 elif slot_index == available_slots + 1 and land_unlocked:
                     expand_cost = land.get("next_plot_cost") or land.get("plot_price") or "待站点开放"
@@ -1157,9 +1159,6 @@ class SQFarm(_PluginBase):
                         "remaining_label": "",
                         "reward_text": "",
                         "harvest_ts": 0,
-                        "can_harvest": False,
-                        "can_plant": False,
-                        "action_label": "",
                     })
                 else:
                     slots.append({
@@ -1174,9 +1173,6 @@ class SQFarm(_PluginBase):
                         "remaining_label": "",
                         "reward_text": "",
                         "harvest_ts": 0,
-                        "can_harvest": False,
-                        "can_plant": False,
-                        "action_label": "",
                     })
 
             groups.append({

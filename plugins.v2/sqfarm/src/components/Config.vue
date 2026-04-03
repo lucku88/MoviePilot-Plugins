@@ -35,14 +35,13 @@
         <v-select
           v-model="config.prefer_seed"
           :items="seedOptions"
-          item-title="title"
-          item-value="value"
           label="优先种植"
           variant="outlined"
           density="comfortable"
           class="mb-2"
+          :menu-props="{ maxHeight: 280 }"
         />
-        <div class="sq-note">优先种植会结合当前已解锁种子显示。刚解锁新种子时，先到状态页刷新一次即可更新下拉。</div>
+        <div class="sq-note">这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
         <v-text-field v-model="config.schedule_buffer_seconds" label="智能调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mt-3" />
       </div>
 
@@ -58,18 +57,16 @@
           density="comfortable"
           class="mb-3"
         />
-        <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
+        <v-alert type="info" variant="tonal" class="mb-3">
+          自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。
+        </v-alert>
+        <div class="sq-note">推荐先部署 <code>trwebocr</code>，然后把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，其中 <code>ip</code> 替换为 Docker 宿主机 IP。</div>
+        <pre class="sq-code">{{ ocrComposeExample }}</pre>
+        <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" class="mb-3 mt-3" />
         <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.http_retry_times" label="网络重试次数" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.http_retry_delay" label="网络重试间隔(ms)" type="number" variant="outlined" density="comfortable" class="mb-3" />
         <v-text-field v-model="config.ocr_retry_times" label="OCR 重试次数" type="number" variant="outlined" density="comfortable" />
-      </div>
-
-      <div class="sq-card sq-card-wide">
-        <h3>OCR 说明</h3>
-        <v-alert type="info" variant="tonal" class="mb-3">自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。</v-alert>
-        <div class="sq-note">推荐先部署 <code>trwebocr</code>，然后把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，其中 <code>ip</code> 替换为 Docker 宿主机 IP。</div>
-        <pre class="sq-code">{{ ocrComposeExample }}</pre>
       </div>
 
       <div class="sq-card sq-card-wide">
@@ -89,7 +86,7 @@ const emit = defineEmits(['switch', 'close'])
 
 const saving = ref(false)
 const message = reactive({ text: '', type: 'success' })
-const seedOptions = ref([])
+const seedOptions = ref(['西红柿'])
 const config = reactive({
   enabled: false,
   notify: true,
@@ -131,25 +128,20 @@ function flash(text, type = 'success') {
 
 function applySeedOptions(items) {
   const normalized = (items || [])
-    .map(item => (typeof item === 'string' ? { title: item, value: item } : item))
-    .filter(item => item?.value)
+    .map(item => typeof item === 'string' ? item : item?.value || item?.name || '')
+    .filter(Boolean)
 
-  if (config.prefer_seed && !normalized.some(item => item.value === config.prefer_seed)) {
-    normalized.unshift({ title: `${config.prefer_seed}（当前配置）`, value: config.prefer_seed })
+  if (config.prefer_seed && !normalized.includes(config.prefer_seed)) {
+    normalized.unshift(config.prefer_seed)
   }
 
-  seedOptions.value = normalized.length
-    ? normalized
-    : [{ title: '🍅 西红柿', value: '西红柿' }]
+  seedOptions.value = normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃']
 }
 
 function applyStatusSeedOptions(seedShop) {
   const unlocked = (seedShop || [])
     .filter(seed => seed.unlocked && seed.name)
-    .map(seed => ({
-      title: `${seed.icon || '🌱'} ${seed.name}`,
-      value: seed.name,
-    }))
+    .map(seed => seed.name)
   if (unlocked.length) {
     applySeedOptions(unlocked)
   }
@@ -160,7 +152,7 @@ async function loadStatusSeedOptions() {
     const res = await props.api.get('/plugin/SQFarm/status')
     applyStatusSeedOptions(res?.farm_status?.seed_shop)
   } catch (error) {
-    // 状态种子下拉只是增强项，失败时保留当前配置返回的选项即可
+    // 保留默认种子选项
   }
 }
 

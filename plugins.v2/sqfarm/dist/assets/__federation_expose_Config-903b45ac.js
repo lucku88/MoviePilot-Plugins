@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_0c42bfaf_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_89953724_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-0c42bfaf"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-89953724"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-config" };
 const _hoisted_2 = { class: "sq-head" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -20,13 +20,11 @@ const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_8 = { class: "sq-switches" };
 const _hoisted_9 = { class: "sq-card" };
 const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "站点与调度", -1));
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "优先种植会结合当前已解锁种子显示。刚解锁新种子时，先到状态页刷新一次即可更新下拉。", -1));
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
 const _hoisted_12 = { class: "sq-card" };
 const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "网络与 OCR", -1));
-const _hoisted_14 = { class: "sq-card sq-card-wide" };
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "OCR 说明", -1));
-const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
-const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
+const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
   /*#__PURE__*/_createTextVNode("推荐先部署 "),
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
   /*#__PURE__*/_createTextVNode("，然后把 OCR 地址填成 "),
@@ -35,9 +33,9 @@ const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
   /*#__PURE__*/_createElementVNode("code", null, "ip"),
   /*#__PURE__*/_createTextVNode(" 替换为 Docker 宿主机 IP。")
 ], -1));
-const _hoisted_18 = { class: "sq-card sq-card-wide" };
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "手动 Cookie", -1));
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "开启自动同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。这里仍可作为手动兜底。", -1));
+const _hoisted_16 = { class: "sq-card sq-card-wide" };
+const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "手动 Cookie", -1));
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "开启自动同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。这里仍可作为手动兜底。", -1));
 
 const {onMounted,reactive,ref} = await importShared('vue');
 
@@ -70,7 +68,7 @@ const props = __props;
 
 const saving = ref(false);
 const message = reactive({ text: '', type: 'success' });
-const seedOptions = ref([]);
+const seedOptions = ref(['西红柿']);
 const config = reactive({
   enabled: false,
   notify: true,
@@ -98,25 +96,20 @@ function flash(text, type = 'success') {
 
 function applySeedOptions(items) {
   const normalized = (items || [])
-    .map(item => (typeof item === 'string' ? { title: item, value: item } : item))
-    .filter(item => item?.value);
+    .map(item => typeof item === 'string' ? item : item?.value || item?.name || '')
+    .filter(Boolean);
 
-  if (config.prefer_seed && !normalized.some(item => item.value === config.prefer_seed)) {
-    normalized.unshift({ title: `${config.prefer_seed}（当前配置）`, value: config.prefer_seed });
+  if (config.prefer_seed && !normalized.includes(config.prefer_seed)) {
+    normalized.unshift(config.prefer_seed);
   }
 
-  seedOptions.value = normalized.length
-    ? normalized
-    : [{ title: '🍅 西红柿', value: '西红柿' }];
+  seedOptions.value = normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃'];
 }
 
 function applyStatusSeedOptions(seedShop) {
   const unlocked = (seedShop || [])
     .filter(seed => seed.unlocked && seed.name)
-    .map(seed => ({
-      title: `${seed.icon || '🌱'} ${seed.name}`,
-      value: seed.name,
-    }));
+    .map(seed => seed.name);
   if (unlocked.length) {
     applySeedOptions(unlocked);
   }
@@ -127,7 +120,7 @@ async function loadStatusSeedOptions() {
     const res = await props.api.get('/plugin/SQFarm/status');
     applyStatusSeedOptions(res?.farm_status?.seed_shop);
   } catch (error) {
-    // 状态种子下拉只是增强项，失败时保留当前配置返回的选项即可
+    // 保留默认种子选项
   }
 }
 
@@ -321,12 +314,11 @@ return (_ctx, _cache) => {
           modelValue: config.prefer_seed,
           "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.prefer_seed) = $event)),
           items: seedOptions.value,
-          "item-title": "title",
-          "item-value": "value",
           label: "优先种植",
           variant: "outlined",
           density: "comfortable",
-          class: "mb-2"
+          class: "mb-2",
+          "menu-props": { maxHeight: 280 }
         }, null, 8, ["modelValue", "items"]),
         _hoisted_11,
         _createVNode(_component_v_text_field, {
@@ -352,6 +344,20 @@ return (_ctx, _cache) => {
           density: "comfortable",
           class: "mb-3"
         }, null, 8, ["modelValue"]),
+        _createVNode(_component_v_alert, {
+          type: "info",
+          variant: "tonal",
+          class: "mb-3"
+        }, {
+          default: _withCtx(() => [
+            _createTextVNode(" 自动收菜验证码依赖 "),
+            _hoisted_14,
+            _createTextVNode(" 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。 ")
+          ]),
+          _: 1
+        }),
+        _hoisted_15,
+        _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample)),
         _createVNode(_component_v_text_field, {
           modelValue: config.random_delay_max_seconds,
           "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.random_delay_max_seconds) = $event)),
@@ -359,7 +365,7 @@ return (_ctx, _cache) => {
           type: "number",
           variant: "outlined",
           density: "comfortable",
-          class: "mb-3"
+          class: "mb-3 mt-3"
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_timeout,
@@ -397,25 +403,8 @@ return (_ctx, _cache) => {
           density: "comfortable"
         }, null, 8, ["modelValue"])
       ]),
-      _createElementVNode("div", _hoisted_14, [
-        _hoisted_15,
-        _createVNode(_component_v_alert, {
-          type: "info",
-          variant: "tonal",
-          class: "mb-3"
-        }, {
-          default: _withCtx(() => [
-            _createTextVNode("自动收菜验证码依赖 "),
-            _hoisted_16,
-            _createTextVNode(" 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。")
-          ]),
-          _: 1
-        }),
+      _createElementVNode("div", _hoisted_16, [
         _hoisted_17,
-        _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample))
-      ]),
-      _createElementVNode("div", _hoisted_18, [
-        _hoisted_19,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
           "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.cookie) = $event)),
@@ -425,7 +414,7 @@ return (_ctx, _cache) => {
           density: "comfortable",
           placeholder: "例如 c_secure_pass=..."
         }, null, 8, ["modelValue"]),
-        _hoisted_20
+        _hoisted_18
       ])
     ])
   ]))
@@ -433,6 +422,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0c42bfaf"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-89953724"]]);
 
 export { ConfigView as default };
