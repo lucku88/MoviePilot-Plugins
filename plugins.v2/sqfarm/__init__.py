@@ -214,11 +214,13 @@ class SQFarm(_PluginBase):
             action_harvest = False
             action_sell = False
             action_plant = False
+            sell_success_count = 0
+            planted_seed_name = ""
             harvest_snapshot: List[Dict[str, Any]] = []
 
             if ready_plots:
-                action_harvest = True
                 harvested = self._harvest_all(session)
+                action_harvest = bool(harvested)
                 data = self._fetch_state(session)
                 if harvested:
                     harvest_snapshot = [
@@ -233,16 +235,18 @@ class SQFarm(_PluginBase):
 
             inventory = data.get("inventory") or []
             if inventory:
-                action_sell = True
                 logger.info("INFO 开始售出背包作物，共 %s 类...", len(inventory))
                 for item in inventory:
                     try:
-                        self._post_action(session, "sell_inventory", {
+                        result = self._post_action(session, "sell_inventory", {
                             "seed_id": item.get("seed_id"),
                             "quantity": item.get("quantity"),
                         }, retry_network=False)
+                        if not result or result.get("success", True):
+                            sell_success_count += 1
                     except Exception as err:
                         logger.warning("sell_inventory failed: %s", err)
+                action_sell = sell_success_count > 0
                 data = self._fetch_state(session)
                 logger.info("INFO 售出完成")
 
@@ -251,12 +255,14 @@ class SQFarm(_PluginBase):
             if empty_count > 0:
                 best_seed = self._pick_seed(data)
                 if best_seed:
-                    action_plant = True
                     logger.info("INFO 准备补种：%s", best_seed.get("name"))
                     try:
-                        self._post_action(session, "plant_fill_empty", {"seed_id": best_seed.get("id")}, retry_network=False)
+                        result = self._post_action(session, "plant_fill_empty", {"seed_id": best_seed.get("id")}, retry_network=False)
+                        if result and result.get("success", True):
+                            action_plant = True
+                            planted_seed_name = best_seed.get("name") or ""
+                            logger.info("INFO 补种完成：%s", best_seed.get("name"))
                         data = self._fetch_state(session)
-                        logger.info("INFO 补种完成：%s", best_seed.get("name"))
                     except Exception as err:
                         logger.warning("plant_fill_empty failed: %s", err)
 
@@ -264,7 +270,17 @@ class SQFarm(_PluginBase):
             self._schedule_next_run(next_run, reason)
             log_result = self._parse_logs(data.get("user_logs") or [], run_start)
             next_run_text = self._format_ts(next_run) if next_run else "暂无成熟作物"
-            msg_lines = self._build_result_lines(action_harvest, action_sell, action_plant, harvest_snapshot, log_result, next_run_text)
+            msg_lines = self._build_result_lines(
+                action_harvest,
+                action_sell,
+                action_plant,
+                harvest_snapshot,
+                log_result,
+                next_run_text,
+                sell_success_count=sell_success_count,
+                planted_seed_name=planted_seed_name,
+            )
+            has_action_lines = any(line.startswith(("✅", "💰", "🧺", "🌱")) for line in msg_lines)
 
             state_record = self._build_state_record(data, next_run, msg_lines)
             farm_status = self._build_ui_state(data, next_run, msg_lines)
@@ -272,10 +288,10 @@ class SQFarm(_PluginBase):
             self.save_data("farm_status", farm_status)
             self.save_data("last_run", self._format_time(self._aware_now()))
 
-            title = "🌱 SQ种菜报告" if any([action_harvest, action_sell, action_plant]) else "ℹ️ SQ种菜无动作"
+            title = "🌱 SQ种菜报告" if has_action_lines else "ℹ️ SQ种菜无动作"
             self._append_history(title, msg_lines or ["本次无动作"])
 
-            if self._notify and any([action_harvest, action_sell, action_plant]):
+            if self._notify and has_action_lines:
                 self.post_message(mtype=NotificationType.Plugin, title=f"🌱 {self.plugin_name}报告", text="\n".join(msg_lines))
 
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
@@ -939,7 +955,17 @@ class SQFarm(_PluginBase):
             return plant_time + grow_time
         return 0
 
-    def _build_result_lines(self, action_harvest: bool, action_sell: bool, action_plant: bool, harvest_snapshot: List[dict], log_result: dict, next_run_text: str) -> List[str]:
+    def _build_result_lines(
+        self,
+        action_harvest: bool,
+        action_sell: bool,
+        action_plant: bool,
+        harvest_snapshot: List[dict],
+        log_result: dict,
+        next_run_text: str,
+        sell_success_count: int = 0,
+        planted_seed_name: str = "",
+    ) -> List[str]:
         def join_summary(summary_map: dict) -> str:
             return "  ".join([f"{key}×{value}" for key, value in summary_map.items()])
 
@@ -959,8 +985,12 @@ class SQFarm(_PluginBase):
             lines.append(f"💰 收益：{log_result.get('income')} 魔力")
         if action_sell and log_result.get("sell"):
             lines.append(f"🧺 售出：{join_summary(log_result.get('sell'))}")
+        elif action_sell and sell_success_count > 0:
+            lines.append(f"🧺 售出：已处理 {sell_success_count} 类作物")
         if action_plant and log_result.get("plant"):
             lines.append(f"🌱 补种：{join_summary(log_result.get('plant'))}")
+        elif action_plant and planted_seed_name:
+            lines.append(f"🌱 补种：{planted_seed_name}")
         if not lines:
             lines.append("ℹ️ 本次没有可执行动作")
         lines.append(f"⏰ 下次可收：{next_run_text}")
