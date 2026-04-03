@@ -1,4 +1,4 @@
-﻿{
+{
   "SQFarm": {
     "name": "SQ种菜",
     "description": "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态定时和站点 Cookie 同步。",
