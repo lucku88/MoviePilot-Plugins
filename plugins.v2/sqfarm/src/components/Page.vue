@@ -201,6 +201,8 @@ const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const isDarkTheme = ref(false)
 const selectedSeedId = ref(null)
+const lastRunAutoRefreshTs = ref(0)
+const lastTriggerAutoRefreshTs = ref(0)
 
 let timer = null
 let themeObserver = null
@@ -220,10 +222,33 @@ const allSlots = computed(() => {
 })
 const readySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'ready'))
 const emptySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'empty'))
+const nextRunTs = computed(() => Number(farm.value.next_run_ts || 0) || parseDateTime(farm.value.next_run_time))
+const nextTriggerTs = computed(() => Number(farm.value.next_trigger_ts || 0) || parseDateTime(farm.value.next_trigger_time))
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function parseDateTime(value) {
+  if (!value || typeof value !== 'string') {
+    return 0
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+  if (!match) {
+    return 0
+  }
+  const [, year, month, day, hour, minute, second] = match
+  return Math.floor(
+    new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).getTime() / 1000,
+  )
 }
 
 function findThemeNode() {
@@ -290,6 +315,18 @@ function syncSelectedSeed() {
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true })
 
+watch(nextRunTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastRunAutoRefreshTs.value = 0
+  }
+})
+
+watch(nextTriggerTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastTriggerAutoRefreshTs.value = 0
+  }
+})
+
 async function loadStatus() {
   loading.value = true
   try {
@@ -299,6 +336,27 @@ async function loadStatus() {
     flash(error?.message || '加载状态失败', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function maybeAutoRefreshStatus() {
+  if (loading.value) {
+    return
+  }
+
+  let shouldRefresh = false
+  if (nextRunTs.value && nowTs.value >= nextRunTs.value && nextRunTs.value !== lastRunAutoRefreshTs.value) {
+    lastRunAutoRefreshTs.value = nextRunTs.value
+    shouldRefresh = true
+  }
+
+  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && nextTriggerTs.value !== lastTriggerAutoRefreshTs.value) {
+    lastTriggerAutoRefreshTs.value = nextTriggerTs.value
+    shouldRefresh = true
+  }
+
+  if (shouldRefresh) {
+    await loadStatus()
   }
 }
 
@@ -501,6 +559,7 @@ onMounted(async () => {
   await loadStatus()
   timer = window.setInterval(() => {
     nowTs.value = Math.floor(Date.now() / 1000)
+    void maybeAutoRefreshStatus()
   }, 1000)
 })
 

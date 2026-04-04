@@ -78,7 +78,7 @@
             v-model="config.ocr_api_url"
             label="OCR API 地址"
             placeholder="http://ip:8089/api/tr-run/"
-            hint="默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。"
+            hint="OCR 仅用于批量收菜验证码识别。默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。"
             persistent-hint
             variant="outlined"
             density="comfortable"
@@ -133,9 +133,10 @@
             </div>
           </div>
           <v-alert type="info" variant="tonal" class="mb-3">
-            自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件仍可刷新状态，但自动收菜会失败。
+            批量收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件仍可刷新状态；批量收菜失败后，插件会自动尝试逐坑位收菜兜底。
           </v-alert>
-          <div class="sq-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
+          <div class="sq-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，这样批量收菜成功率最高。</div>
+          <div class="sq-note">逐坑位手动收菜和批量收菜失败后的兜底收菜，不依赖 OCR。</div>
           <div class="sq-note">容器安装参考如下：</div>
           <pre class="sq-code">{{ ocrComposeExample }}</pre>
         </article>

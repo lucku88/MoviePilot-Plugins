@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_647a2cd6_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_2162caff_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-647a2cd6"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-2162caff"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -134,6 +134,8 @@ const message = reactive({ text: '', type: 'success' });
 const nowTs = ref(Math.floor(Date.now() / 1000));
 const isDarkTheme = ref(false);
 const selectedSeedId = ref(null);
+const lastRunAutoRefreshTs = ref(0);
+const lastTriggerAutoRefreshTs = ref(0);
 
 let timer = null;
 let themeObserver = null;
@@ -153,10 +155,33 @@ const allSlots = computed(() => {
 });
 const readySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'ready'));
 const emptySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'empty'));
+const nextRunTs = computed(() => Number(farm.value.next_run_ts || 0) || parseDateTime(farm.value.next_run_time));
+const nextTriggerTs = computed(() => Number(farm.value.next_trigger_ts || 0) || parseDateTime(farm.value.next_trigger_time));
 
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
+}
+
+function parseDateTime(value) {
+  if (!value || typeof value !== 'string') {
+    return 0
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) {
+    return 0
+  }
+  const [, year, month, day, hour, minute, second] = match;
+  return Math.floor(
+    new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).getTime() / 1000,
+  )
 }
 
 function findThemeNode() {
@@ -223,6 +248,18 @@ function syncSelectedSeed() {
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true });
 
+watch(nextRunTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastRunAutoRefreshTs.value = 0;
+  }
+});
+
+watch(nextTriggerTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastTriggerAutoRefreshTs.value = 0;
+  }
+});
+
 async function loadStatus() {
   loading.value = true;
   try {
@@ -232,6 +269,27 @@ async function loadStatus() {
     flash(error?.message || '加载状态失败', 'error');
   } finally {
     loading.value = false;
+  }
+}
+
+async function maybeAutoRefreshStatus() {
+  if (loading.value) {
+    return
+  }
+
+  let shouldRefresh = false;
+  if (nextRunTs.value && nowTs.value >= nextRunTs.value && nextRunTs.value !== lastRunAutoRefreshTs.value) {
+    lastRunAutoRefreshTs.value = nextRunTs.value;
+    shouldRefresh = true;
+  }
+
+  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && nextTriggerTs.value !== lastTriggerAutoRefreshTs.value) {
+    lastTriggerAutoRefreshTs.value = nextTriggerTs.value;
+    shouldRefresh = true;
+  }
+
+  if (shouldRefresh) {
+    await loadStatus();
   }
 }
 
@@ -434,6 +492,7 @@ onMounted(async () => {
   await loadStatus();
   timer = window.setInterval(() => {
     nowTs.value = Math.floor(Date.now() / 1000);
+    void maybeAutoRefreshStatus();
   }, 1000);
 });
 
@@ -696,6 +755,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-647a2cd6"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-2162caff"]]);
 
 export { PageView as default };

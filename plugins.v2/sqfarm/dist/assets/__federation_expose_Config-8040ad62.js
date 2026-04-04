@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_cbbc9eeb_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_14a531c1_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-cbbc9eeb"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-14a531c1"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-hero-copy" }, [
@@ -53,17 +53,18 @@ const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
   /*#__PURE__*/_createTextVNode("，再把 OCR 地址填成 "),
   /*#__PURE__*/_createElementVNode("code", null, "http://ip:8089/api/tr-run/"),
-  /*#__PURE__*/_createTextVNode("。")
+  /*#__PURE__*/_createTextVNode("，这样批量收菜成功率最高。")
 ], -1));
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "容器安装参考如下：", -1));
-const _hoisted_20 = { class: "sq-panel sq-panel-wide" };
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "逐坑位手动收菜和批量收菜失败后的兜底收菜，不依赖 OCR。", -1));
+const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "容器安装参考如下：", -1));
+const _hoisted_21 = { class: "sq-panel sq-panel-wide" };
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "兜底配置")
   ])
 ], -1));
-const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
   /*#__PURE__*/_createTextVNode(" 开启站点 Cookie 后，插件会优先读取 MoviePilot 站点管理中的 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode(" Cookie。 这里仍可作为手动兜底。 ")
@@ -445,7 +446,7 @@ return (_ctx, _cache) => {
             "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.ocr_api_url) = $event)),
             label: "OCR API 地址",
             placeholder: "http://ip:8089/api/tr-run/",
-            hint: "默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。",
+            hint: "OCR 仅用于批量收菜验证码识别。默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。",
             "persistent-hint": "",
             variant: "outlined",
             density: "comfortable",
@@ -504,18 +505,19 @@ return (_ctx, _cache) => {
             class: "mb-3"
           }, {
             default: _withCtx(() => [
-              _createTextVNode(" 自动收菜验证码依赖 "),
+              _createTextVNode(" 批量收菜验证码依赖 "),
               _hoisted_17,
-              _createTextVNode(" 容器。未部署 OCR 时，插件仍可刷新状态，但自动收菜会失败。 ")
+              _createTextVNode(" 容器。未部署 OCR 时，插件仍可刷新状态；批量收菜失败后，插件会自动尝试逐坑位收菜兜底。 ")
             ]),
             _: 1
           }),
           _hoisted_18,
           _hoisted_19,
+          _hoisted_20,
           _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample))
         ]),
-        _createElementVNode("article", _hoisted_20, [
-          _hoisted_21,
+        _createElementVNode("article", _hoisted_21, [
+          _hoisted_22,
           _createVNode(_component_v_textarea, {
             modelValue: config.cookie,
             "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.cookie) = $event)),
@@ -525,7 +527,7 @@ return (_ctx, _cache) => {
             density: "comfortable",
             placeholder: "例如 c_secure_pass=..."
           }, null, 8, ["modelValue"]),
-          _hoisted_22
+          _hoisted_23
         ])
       ])
     ])
@@ -534,6 +536,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cbbc9eeb"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-14a531c1"]]);
 
 export { ConfigView as default };
