@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_24de65dd_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_e08dc9b9_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-24de65dd"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-e08dc9b9"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -130,6 +130,7 @@ const props = __props;
 
 const loading = ref(false);
 const actingSlotKey = ref('');
+const rootEl = ref(null);
 const status = reactive({ farm_status: {}, history: [] });
 const message = reactive({ text: '', type: 'success' });
 const nowTs = ref(Math.floor(Date.now() / 1000));
@@ -139,6 +140,7 @@ const selectedSeedId = ref(null);
 let timer = null;
 let themeObserver = null;
 let mediaQuery = null;
+let observedThemeNode = null;
 
 const farm = computed(() => status.farm_status || {});
 const historyItems = computed(() => status.history || farm.value.history || []);
@@ -159,13 +161,50 @@ function flash(text, type = 'success') {
   message.type = type;
 }
 
+function findThemeNode() {
+  let current = rootEl.value;
+  while (current) {
+    if (current.getAttribute?.('data-theme')) {
+      return current
+    }
+    current = current.parentElement;
+  }
+  if (document.body?.getAttribute('data-theme')) {
+    return document.body
+  }
+  if (document.documentElement?.getAttribute('data-theme')) {
+    return document.documentElement
+  }
+  return null
+}
+
 function detectTheme() {
-  const docTheme = document.documentElement.getAttribute('data-theme');
-  const bodyTheme = document.body?.getAttribute('data-theme');
-  const themeValue = bodyTheme || docTheme || '';
+  const themeNode = findThemeNode();
+  const themeValue = themeNode?.getAttribute?.('data-theme') || '';
   const darkThemes = new Set(['dark', 'purple', 'transparent']);
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark);
+}
+
+function bindThemeObserver() {
+  themeObserver?.disconnect();
+  themeObserver = new MutationObserver(() => {
+    const nextNode = findThemeNode();
+    if (nextNode && nextNode !== observedThemeNode) {
+      bindThemeObserver();
+      return
+    }
+    detectTheme();
+  });
+
+  observedThemeNode = findThemeNode();
+  if (observedThemeNode) {
+    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
+  }
 }
 
 function syncSelectedSeed() {
@@ -374,12 +413,7 @@ onMounted(async () => {
   detectTheme();
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
   mediaQuery?.addEventListener?.('change', detectTheme);
-
-  themeObserver = new MutationObserver(detectTheme);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
-  }
+  bindThemeObserver();
 
   await loadStatus();
   timer = window.setInterval(() => {
@@ -400,13 +434,15 @@ return (_ctx, _cache) => {
   const _component_v_alert = _resolveComponent("v-alert");
 
   return (_openBlock(), _createElementBlock("div", {
+    ref_key: "rootEl",
+    ref: rootEl,
     class: _normalizeClass(["sq-page", { 'is-dark-theme': isDarkTheme.value }])
   }, [
     _createElementVNode("div", _hoisted_1, [
       _createElementVNode("section", _hoisted_2, [
         _createElementVNode("div", _hoisted_3, [
           _hoisted_4,
-          _createElementVNode("h1", _hoisted_5, _toDisplayString(farm.value.title || 'SQ农场'), 1),
+          _createElementVNode("h1", _hoisted_5, _toDisplayString(farm.value.title || '种菜赚魔力'), 1),
           _createElementVNode("p", _hoisted_6, " 最近执行 " + _toDisplayString(status.last_run || '暂无') + " · 下次可收 " + _toDisplayString(farm.value.next_run_time || '待识别'), 1)
         ]),
         _createElementVNode("div", _hoisted_7, [
@@ -646,6 +682,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-24de65dd"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e08dc9b9"]]);
 
 export { PageView as default };

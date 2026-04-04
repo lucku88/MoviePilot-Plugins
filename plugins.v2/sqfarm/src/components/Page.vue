@@ -1,10 +1,10 @@
 <template>
-  <div class="sq-page" :class="{ 'is-dark-theme': isDarkTheme }">
+  <div ref="rootEl" class="sq-page" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="sq-shell">
       <section class="sq-hero">
         <div class="sq-hero-copy">
           <div class="sq-badge">SQ农场</div>
-          <h1 class="sq-title">{{ farm.title || 'SQ农场' }}</h1>
+          <h1 class="sq-title">{{ farm.title || '种菜赚魔力' }}</h1>
           <p class="sq-subtitle">
             最近执行 {{ status.last_run || '暂无' }} · 下次可收 {{ farm.next_run_time || '待识别' }}
           </p>
@@ -197,6 +197,7 @@ const emit = defineEmits(['switch', 'close'])
 
 const loading = ref(false)
 const actingSlotKey = ref('')
+const rootEl = ref(null)
 const status = reactive({ farm_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
@@ -206,6 +207,7 @@ const selectedSeedId = ref(null)
 let timer = null
 let themeObserver = null
 let mediaQuery = null
+let observedThemeNode = null
 
 const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
@@ -226,13 +228,50 @@ function flash(text, type = 'success') {
   message.type = type
 }
 
+function findThemeNode() {
+  let current = rootEl.value
+  while (current) {
+    if (current.getAttribute?.('data-theme')) {
+      return current
+    }
+    current = current.parentElement
+  }
+  if (document.body?.getAttribute('data-theme')) {
+    return document.body
+  }
+  if (document.documentElement?.getAttribute('data-theme')) {
+    return document.documentElement
+  }
+  return null
+}
+
 function detectTheme() {
-  const docTheme = document.documentElement.getAttribute('data-theme')
-  const bodyTheme = document.body?.getAttribute('data-theme')
-  const themeValue = bodyTheme || docTheme || ''
+  const themeNode = findThemeNode()
+  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
   const darkThemes = new Set(['dark', 'purple', 'transparent'])
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+}
+
+function bindThemeObserver() {
+  themeObserver?.disconnect()
+  themeObserver = new MutationObserver(() => {
+    const nextNode = findThemeNode()
+    if (nextNode && nextNode !== observedThemeNode) {
+      bindThemeObserver()
+      return
+    }
+    detectTheme()
+  })
+
+  observedThemeNode = findThemeNode()
+  if (observedThemeNode) {
+    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
+  }
+  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
+  }
 }
 
 function syncSelectedSeed() {
@@ -441,12 +480,7 @@ onMounted(async () => {
   detectTheme()
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
   mediaQuery?.addEventListener?.('change', detectTheme)
-
-  themeObserver = new MutationObserver(detectTheme)
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-  }
+  bindThemeObserver()
 
   await loadStatus()
   timer = window.setInterval(() => {

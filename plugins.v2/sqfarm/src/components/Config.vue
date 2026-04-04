@@ -1,5 +1,5 @@
 <template>
-  <div class="sq-config" :class="{ 'is-dark-theme': isDarkTheme }">
+  <div ref="rootEl" class="sq-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="sq-shell">
       <section class="sq-hero">
         <div class="sq-hero-copy">
@@ -176,6 +176,7 @@ const props = defineProps({
 const emit = defineEmits(['switch', 'close'])
 
 const saving = ref(false)
+const rootEl = ref(null)
 const isDarkTheme = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const seedOptions = ref(['西红柿'])
@@ -215,19 +216,57 @@ services:
 
 let themeObserver = null
 let mediaQuery = null
+let observedThemeNode = null
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
 }
 
+function findThemeNode() {
+  let current = rootEl.value
+  while (current) {
+    if (current.getAttribute?.('data-theme')) {
+      return current
+    }
+    current = current.parentElement
+  }
+  if (document.body?.getAttribute('data-theme')) {
+    return document.body
+  }
+  if (document.documentElement?.getAttribute('data-theme')) {
+    return document.documentElement
+  }
+  return null
+}
+
 function detectTheme() {
-  const docTheme = document.documentElement.getAttribute('data-theme')
-  const bodyTheme = document.body?.getAttribute('data-theme')
-  const themeValue = bodyTheme || docTheme || ''
+  const themeNode = findThemeNode()
+  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
   const darkThemes = new Set(['dark', 'purple', 'transparent'])
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+}
+
+function bindThemeObserver() {
+  themeObserver?.disconnect()
+  themeObserver = new MutationObserver(() => {
+    const nextNode = findThemeNode()
+    if (nextNode && nextNode !== observedThemeNode) {
+      bindThemeObserver()
+      return
+    }
+    detectTheme()
+  })
+
+  observedThemeNode = findThemeNode()
+  if (observedThemeNode) {
+    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
+  }
+  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
+  }
 }
 
 function normalizeSeeds(items) {
@@ -319,12 +358,7 @@ onMounted(() => {
   detectTheme()
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
   mediaQuery?.addEventListener?.('change', detectTheme)
-
-  themeObserver = new MutationObserver(detectTheme)
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-  }
+  bindThemeObserver()
 
   loadConfig()
 })

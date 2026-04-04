@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_82a88e4d_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_20bd1a05_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-82a88e4d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-20bd1a05"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-hero-copy" }, [
@@ -103,6 +103,7 @@ const props = __props;
 
 
 const saving = ref(false);
+const rootEl = ref(null);
 const isDarkTheme = ref(false);
 const message = reactive({ text: '', type: 'success' });
 const seedOptions = ref(['西红柿']);
@@ -128,19 +129,57 @@ const config = reactive({
 
 let themeObserver = null;
 let mediaQuery = null;
+let observedThemeNode = null;
 
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
 }
 
+function findThemeNode() {
+  let current = rootEl.value;
+  while (current) {
+    if (current.getAttribute?.('data-theme')) {
+      return current
+    }
+    current = current.parentElement;
+  }
+  if (document.body?.getAttribute('data-theme')) {
+    return document.body
+  }
+  if (document.documentElement?.getAttribute('data-theme')) {
+    return document.documentElement
+  }
+  return null
+}
+
 function detectTheme() {
-  const docTheme = document.documentElement.getAttribute('data-theme');
-  const bodyTheme = document.body?.getAttribute('data-theme');
-  const themeValue = bodyTheme || docTheme || '';
+  const themeNode = findThemeNode();
+  const themeValue = themeNode?.getAttribute?.('data-theme') || '';
   const darkThemes = new Set(['dark', 'purple', 'transparent']);
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark);
+}
+
+function bindThemeObserver() {
+  themeObserver?.disconnect();
+  themeObserver = new MutationObserver(() => {
+    const nextNode = findThemeNode();
+    if (nextNode && nextNode !== observedThemeNode) {
+      bindThemeObserver();
+      return
+    }
+    detectTheme();
+  });
+
+  observedThemeNode = findThemeNode();
+  if (observedThemeNode) {
+    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
+  }
 }
 
 function normalizeSeeds(items) {
@@ -232,12 +271,7 @@ onMounted(() => {
   detectTheme();
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
   mediaQuery?.addEventListener?.('change', detectTheme);
-
-  themeObserver = new MutationObserver(detectTheme);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
-  }
+  bindThemeObserver();
 
   loadConfig();
 });
@@ -256,6 +290,8 @@ return (_ctx, _cache) => {
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", {
+    ref_key: "rootEl",
+    ref: rootEl,
     class: _normalizeClass(["sq-config", { 'is-dark-theme': isDarkTheme.value }])
   }, [
     _createElementVNode("div", _hoisted_1, [
@@ -498,6 +534,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-82a88e4d"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-20bd1a05"]]);
 
 export { ConfigView as default };
