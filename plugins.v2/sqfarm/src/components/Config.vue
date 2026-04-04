@@ -544,26 +544,6 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .sq-config {
-    --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
-    --sq-surface: rgba(24, 30, 29, 0.88);
-    --sq-surface-strong: rgba(28, 35, 33, 0.95);
-    --sq-border: rgba(133, 157, 123, 0.18);
-    --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
-    --sq-text: #edf3ea;
-    --sq-subtle: #b9c4b4;
-    --sq-soft: #8f9d91;
-    --sq-accent: #9dd37b;
-    --sq-accent-strong: #d1f0c2;
-    --sq-accent-soft: rgba(119, 176, 93, 0.18);
-  }
-
-  .sq-code {
-    background: rgba(34, 40, 39, 0.92);
-  }
-}
-
 [data-theme="dark"] .sq-config,
 [data-theme="purple"] .sq-config,
 [data-theme="transparent"] .sq-config {
