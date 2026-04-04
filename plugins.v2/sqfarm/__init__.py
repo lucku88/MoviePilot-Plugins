@@ -24,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.4"
+    plugin_version = "0.4.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -1161,10 +1161,10 @@ class SQFarm(_PluginBase):
                         "land_id": land_id,
                         "land_name": land_name,
                         "slot_index": slot_index,
-                        "state": "expand",
-                        "title": "扩展坑位",
-                        "icon": "🪴",
-                        "badge": "可扩展",
+                        "state": "locked",
+                        "title": "未解锁",
+                        "icon": "🔒",
+                        "badge": "未解锁",
                         "description": f"购买 {expand_cost}",
                         "remaining_label": "",
                         "reward_text": "",
@@ -1179,7 +1179,7 @@ class SQFarm(_PluginBase):
                         "title": "未解锁",
                         "icon": "🔒",
                         "badge": "未解锁",
-                        "description": "等待扩展",
+                        "description": "",
                         "remaining_label": "",
                         "reward_text": "",
                         "harvest_ts": 0,

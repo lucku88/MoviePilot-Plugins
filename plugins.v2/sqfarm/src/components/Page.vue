@@ -112,7 +112,6 @@
             <div class="sq-seed-icon">{{ seed.icon }}</div>
             <div class="sq-seed-name">{{ seed.name }}</div>
             <div class="sq-seed-line">消耗 {{ seed.cost }}</div>
-            <div class="sq-seed-line">收获 {{ seed.reward }}</div>
             <div class="sq-seed-line">生长 {{ seed.grow_text }}</div>
             <div class="sq-seed-note">
               {{ seed.unlocked ? (selectedSeed && Number(selectedSeed.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text }}
@@ -125,7 +124,7 @@
         <div class="sq-panel-head">
           <div>
             <div class="sq-panel-kicker">农场坑位</div>
-            <h2>点击成熟田收菜，点击空地种植</h2>
+            <h2>分组状态</h2>
           </div>
         </div>
         <div class="sq-land-stack">
@@ -155,7 +154,6 @@
                 </div>
                 <div class="sq-slot-icon">{{ slot.icon }}</div>
                 <div class="sq-slot-name">{{ slot.title }}</div>
-                <div class="sq-slot-desc">{{ slot.description }}</div>
                 <div class="sq-slot-time">{{ slotText(slot) }}</div>
               </button>
             </div>
