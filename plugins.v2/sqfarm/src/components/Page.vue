@@ -2,19 +2,23 @@
   <div class="sq-page">
     <div class="sq-toolbar">
       <div>
-        <h1 class="sq-title">{{ farm.title || '思齐种菜赚魔力' }}</h1>
-        <div class="sq-subtitle">最近执行 {{ status.last_run || '暂无' }} · 下次收菜 {{ farm.next_run_time || '待计算' }}</div>
+        <h1 class="sq-title">{{ farm.title || 'SQ农场' }}</h1>
+        <div class="sq-subtitle">
+          最近执行 {{ status.last_run || '暂无' }} · 下次可收 {{ farm.next_run_time || '待计算' }}
+        </div>
       </div>
       <div class="sq-actions">
         <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
         <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新</v-btn>
-        <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步Cookie</v-btn>
+        <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
         <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
         <v-btn variant="text" @click="closePlugin">关闭</v-btn>
       </div>
     </div>
 
-    <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">{{ message.text }}</v-alert>
+    <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">
+      {{ message.text }}
+    </v-alert>
 
     <div class="sq-stats">
       <div v-for="item in farm.overview || []" :key="item.label" class="sq-stat-card">
@@ -25,7 +29,18 @@
 
     <div class="sq-panel sq-panel-note">
       <div class="sq-note-title">执行说明</div>
-      <div class="sq-note-text">{{ farm.page_note || '插件会先动态识别最近收菜时间并记录下一次运行；如果当前还没有收菜时间，会自动运行一次获取农场信息。' }}</div>
+      <div class="sq-note-text">
+        {{ farm.page_note || '插件会先动态识别最近可收时间并记录下一次运行；如果当前还没有可收时间，会自动运行一次获取农场信息。' }}
+      </div>
+    </div>
+
+    <div v-if="summaryLines.length" class="sq-panel">
+      <div class="sq-panel-head">
+        <span>本次摘要</span>
+      </div>
+      <div class="sq-summary-list">
+        <div v-for="line in summaryLines" :key="line" class="sq-summary-line">{{ line }}</div>
+      </div>
     </div>
 
     <div class="sq-panel">
@@ -53,7 +68,7 @@
     <div class="sq-panel">
       <div class="sq-panel-head">
         <span>种子商店</span>
-        <div class="sq-submeta">计划触发 {{ farm.next_trigger_time || status.next_trigger_time || '等待轮询' }}</div>
+        <div class="sq-submeta">计划触发 {{ farm.next_trigger_time || status.next_trigger_time || '等待下一次运行' }}</div>
       </div>
       <div class="sq-seed-grid">
         <div
@@ -67,7 +82,9 @@
           <div class="sq-seed-line">消耗：{{ seed.cost }}</div>
           <div class="sq-seed-line">收获：{{ seed.reward }}</div>
           <div class="sq-seed-line">生长：{{ seed.grow_text }}</div>
-          <div class="sq-seed-note">{{ seed.unlocked ? (seed.preferred ? '当前优先种子' : '已解锁') : seed.unlock_text }}</div>
+          <div class="sq-seed-note">
+            {{ seed.unlocked ? (seed.preferred ? '当前优先种子' : '已解锁') : seed.unlock_text }}
+          </div>
         </div>
       </div>
     </div>
@@ -76,7 +93,12 @@
       <div v-for="group in farm.land_groups || []" :key="group.id" class="sq-land-group">
         <div class="sq-group-title">{{ group.name }} <span>{{ group.subtitle }}</span></div>
         <div class="sq-slot-grid">
-          <div v-for="slot in group.slots" :key="`${group.id}-${slot.slot_index}`" class="sq-slot" :class="`is-${slot.state}`">
+          <div
+            v-for="slot in group.slots"
+            :key="`${group.id}-${slot.slot_index}`"
+            class="sq-slot"
+            :class="`is-${slot.state}`"
+          >
             <div class="sq-slot-icon">{{ slot.icon }}</div>
             <div class="sq-slot-name">{{ slot.title }}</div>
             <div class="sq-slot-badge">{{ slot.badge }}</div>
@@ -88,7 +110,9 @@
     </div>
 
     <div class="sq-panel">
-      <div class="sq-panel-head"><span>最近记录</span></div>
+      <div class="sq-panel-head">
+        <span>最近记录</span>
+      </div>
       <div v-if="!historyItems.length" class="sq-empty">暂无执行记录</div>
       <div v-else class="sq-history-list">
         <div v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="sq-history-item">
@@ -106,7 +130,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-const props = defineProps({ api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } })
+const props = defineProps({
+  api: { type: Object, required: true },
+  initialConfig: { type: Object, default: () => ({}) },
+})
+
 const emit = defineEmits(['switch', 'close'])
 
 const loading = ref(false)
@@ -117,6 +145,7 @@ let timer = null
 
 const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
+const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean))
 
 function flash(text, type = 'success') {
   message.text = text
@@ -165,7 +194,7 @@ async function syncCookie() {
   loading.value = true
   try {
     const res = await props.api.get('/plugin/SQFarm/cookie')
-    flash(res.message || '已同步 Cookie')
+    flash(res.message || 'Cookie 已同步')
     await loadStatus()
   } catch (error) {
     flash(error?.message || '同步 Cookie 失败', 'error')
@@ -180,8 +209,8 @@ function formatRemain(seconds) {
   const hours = Math.floor(sec / 3600)
   const minutes = Math.floor((sec % 3600) / 60)
   const secs = sec % 60
-  if (hours) return `${hours}小时${minutes}分`
-  if (minutes) return `${minutes}分${secs}秒`
+  if (hours) return `${hours}小时${minutes}分钟`
+  if (minutes) return `${minutes}分钟${secs}秒`
   return `${secs}秒`
 }
 
@@ -228,6 +257,8 @@ onBeforeUnmount(() => {
 .sq-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 22px; font-weight: 800; }
 .sq-chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .sq-chip { padding: 6px 12px; border-radius: 999px; background: #f4efe3; color: #7d7259; font-size: 12px; }
+.sq-summary-list { display: flex; flex-direction: column; gap: 8px; }
+.sq-summary-line { padding: 12px 14px; border-radius: 16px; background: #f9f6ef; color: #5d584d; border: 1px solid #ece2cf; }
 .sq-empty { padding: 36px 0; text-align: center; color: #9e9a90; }
 .sq-bag-grid, .sq-seed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }
 .sq-bag-card, .sq-seed-card { padding: 18px 14px; border-radius: 20px; background: #fffaf0; border: 1px solid #f0ddaa; text-align: center; }
@@ -257,5 +288,7 @@ onBeforeUnmount(() => {
 .sq-history-item { padding: 14px 16px; background: #f8f5ef; border-radius: 18px; border: 1px solid #ebe3d2; }
 .sq-history-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .sq-history-top span, .sq-history-lines { color: #746f62; font-size: 13px; }
-@media (max-width: 900px) { .sq-toolbar, .sq-panel-head { flex-direction: column; align-items: stretch; } }
+@media (max-width: 900px) {
+  .sq-toolbar, .sq-panel-head { flex-direction: column; align-items: stretch; }
+}
 </style>

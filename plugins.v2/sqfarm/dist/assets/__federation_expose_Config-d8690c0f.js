@@ -1,17 +1,17 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_d2814122_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_b03f474b_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-d2814122"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-b03f474b"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-config" };
 const _hoisted_2 = { class: "sq-head" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("h1", { class: "sq-title" }, "SQFarm 配置"),
-  /*#__PURE__*/_createElementVNode("div", { class: "sq-tip" }, "支持站点 Cookie 同步、动态调度和 OCR 收菜。")
+  /*#__PURE__*/_createElementVNode("h1", { class: "sq-title" }, "SQ农场配置"),
+  /*#__PURE__*/_createElementVNode("div", { class: "sq-tip" }, "使用站点 Cookie、动态调度和 OCR 自动收菜。")
 ], -1));
 const _hoisted_4 = { class: "sq-actions" };
 const _hoisted_5 = { class: "sq-form-grid" };
@@ -19,23 +19,27 @@ const _hoisted_6 = { class: "sq-card" };
 const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "基础开关", -1));
 const _hoisted_8 = { class: "sq-switches" };
 const _hoisted_9 = { class: "sq-card" };
-const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "站点与调度", -1));
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "插件已取消固定轮询。保存配置或重启后会先运行一次获取农场信息，之后只按最近收菜时间自动运行。这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
-const _hoisted_12 = { class: "sq-card" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "网络与 OCR", -1));
-const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "种植与调度", -1));
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "插件不再固定轮询。启用或保存后会先获取一次农场信息，之后只在最近可收时间触发。", -1));
+const _hoisted_13 = { class: "sq-card" };
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "网络与 OCR", -1));
+const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
   /*#__PURE__*/_createTextVNode("推荐先部署 "),
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
-  /*#__PURE__*/_createTextVNode("，然后把 OCR 地址填成 "),
+  /*#__PURE__*/_createTextVNode("，再把 OCR 地址填成 "),
   /*#__PURE__*/_createElementVNode("code", null, "http://ip:8089/api/tr-run/"),
-  /*#__PURE__*/_createTextVNode("，其中 "),
-  /*#__PURE__*/_createElementVNode("code", null, "ip"),
-  /*#__PURE__*/_createTextVNode(" 替换为 Docker 宿主机 IP。")
+  /*#__PURE__*/_createTextVNode("。")
 ], -1));
-const _hoisted_16 = { class: "sq-card sq-card-wide" };
-const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "手动 Cookie", -1));
-const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "开启自动同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。这里仍可作为手动兜底。", -1));
+const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "容器安装参考如下：", -1));
+const _hoisted_18 = { class: "sq-card sq-card-wide" };
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "手动 Cookie", -1));
+const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+  /*#__PURE__*/_createTextVNode(" 开启站点 Cookie 后，插件会优先读取 MoviePilot 站点管理中的 "),
+  /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
+  /*#__PURE__*/_createTextVNode(" Cookie。 这里仍可作为手动兜底。 ")
+], -1));
 
 const {onMounted,reactive,ref} = await importShared('vue');
 
@@ -57,11 +61,15 @@ services:
 
 const _sfc_main = {
   __name: 'Config',
-  props: { api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } },
+  props: {
+  api: { type: Object, required: true },
+  initialConfig: { type: Object, default: () => ({}) },
+},
   emits: ['switch', 'close'],
   setup(__props, { emit }) {
 
 const props = __props;
+
 
 
 
@@ -74,10 +82,10 @@ const config = reactive({
   notify: true,
   onlyonce: false,
   auto_cookie: true,
+  enable_sell: true,
+  enable_plant: true,
   use_proxy: false,
   force_ipv4: true,
-  cron: '*/10 * * * *',
-  site_domain: 'si-qi.xyz',
   cookie: '',
   ocr_api_url: 'http://ip:8089/api/tr-run/',
   prefer_seed: '西红柿',
@@ -94,22 +102,26 @@ function flash(text, type = 'success') {
   message.type = type;
 }
 
-function applySeedOptions(items) {
+function normalizeSeeds(items) {
   const normalized = (items || [])
-    .map(item => typeof item === 'string' ? item : item?.value || item?.name || '')
+    .map((item) => (typeof item === 'string' ? item : item?.value || item?.name || ''))
     .filter(Boolean);
 
   if (config.prefer_seed && !normalized.includes(config.prefer_seed)) {
     normalized.unshift(config.prefer_seed);
   }
 
-  seedOptions.value = normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃'];
+  return normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃']
+}
+
+function applySeedOptions(items) {
+  seedOptions.value = normalizeSeeds(items);
 }
 
 function applyStatusSeedOptions(seedShop) {
   const unlocked = (seedShop || [])
-    .filter(seed => seed.unlocked && seed.name)
-    .map(seed => seed.name);
+    .filter((seed) => seed.unlocked && seed.name)
+    .map((seed) => seed.name);
   if (unlocked.length) {
     applySeedOptions(unlocked);
   }
@@ -120,7 +132,7 @@ async function loadStatusSeedOptions() {
     const res = await props.api.get('/plugin/SQFarm/status');
     applyStatusSeedOptions(res?.farm_status?.seed_shop);
   } catch (error) {
-    // 保留默认种子选项
+    // 保留当前种子选项
   }
 }
 
@@ -181,8 +193,8 @@ return (_ctx, _cache) => {
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
-  const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_select = _resolveComponent("v-select");
+  const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", _hoisted_1, [
@@ -205,7 +217,7 @@ return (_ctx, _cache) => {
           onClick: syncCookie
         }, {
           default: _withCtx(() => [
-            _createTextVNode("同步Cookie")
+            _createTextVNode("同步 Cookie")
           ]),
           _: 1
         }, 8, ["loading"]),
@@ -272,20 +284,34 @@ return (_ctx, _cache) => {
           _createVNode(_component_v_switch, {
             modelValue: config.auto_cookie,
             "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.auto_cookie) = $event)),
-            label: "自动同步站点 Cookie",
+            label: "优先使用站点 Cookie",
             color: "info",
             "hide-details": ""
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_switch, {
+            modelValue: config.enable_sell,
+            "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.enable_sell) = $event)),
+            label: "自动售出",
+            color: "secondary",
+            "hide-details": ""
+          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_switch, {
+            modelValue: config.enable_plant,
+            "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.enable_plant) = $event)),
+            label: "自动种植",
+            color: "secondary",
+            "hide-details": ""
+          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_switch, {
             modelValue: config.use_proxy,
-            "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.use_proxy) = $event)),
+            "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.use_proxy) = $event)),
             label: "使用系统代理",
             color: "info",
             "hide-details": ""
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_switch, {
             modelValue: config.force_ipv4,
-            "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.force_ipv4) = $event)),
+            "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.force_ipv4) = $event)),
             label: "优先 IPv4",
             color: "secondary",
             "hide-details": ""
@@ -294,28 +320,21 @@ return (_ctx, _cache) => {
       ]),
       _createElementVNode("div", _hoisted_9, [
         _hoisted_10,
-        _createVNode(_component_v_text_field, {
-          modelValue: config.site_domain,
-          "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.site_domain) = $event)),
-          label: "站点域名",
-          variant: "outlined",
-          density: "comfortable",
-          class: "mb-3"
-        }, null, 8, ["modelValue"]),
         _createVNode(_component_v_select, {
           modelValue: config.prefer_seed,
-          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.prefer_seed) = $event)),
+          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.prefer_seed) = $event)),
           items: seedOptions.value,
           label: "优先种植",
           variant: "outlined",
           density: "comfortable",
-          class: "mb-2",
+          class: "mb-3",
           "menu-props": { maxHeight: 280 }
         }, null, 8, ["modelValue", "items"]),
         _hoisted_11,
+        _hoisted_12,
         _createVNode(_component_v_text_field, {
           modelValue: config.schedule_buffer_seconds,
-          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.schedule_buffer_seconds) = $event)),
+          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.schedule_buffer_seconds) = $event)),
           label: "智能调度缓冲秒数",
           type: "number",
           variant: "outlined",
@@ -323,14 +342,14 @@ return (_ctx, _cache) => {
           class: "mt-3"
         }, null, 8, ["modelValue"])
       ]),
-      _createElementVNode("div", _hoisted_12, [
-        _hoisted_13,
+      _createElementVNode("div", _hoisted_13, [
+        _hoisted_14,
         _createVNode(_component_v_text_field, {
           modelValue: config.ocr_api_url,
-          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.ocr_api_url) = $event)),
+          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.ocr_api_url) = $event)),
           label: "OCR API 地址",
           placeholder: "http://ip:8089/api/tr-run/",
-          hint: "默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP",
+          hint: "默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。",
           "persistent-hint": "",
           variant: "outlined",
           density: "comfortable",
@@ -343,16 +362,17 @@ return (_ctx, _cache) => {
         }, {
           default: _withCtx(() => [
             _createTextVNode(" 自动收菜验证码依赖 "),
-            _hoisted_14,
-            _createTextVNode(" 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。 ")
+            _hoisted_15,
+            _createTextVNode(" 容器。未部署 OCR 时，插件仍可刷新状态，但自动收菜会失败。 ")
           ]),
           _: 1
         }),
-        _hoisted_15,
+        _hoisted_16,
+        _hoisted_17,
         _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample)),
         _createVNode(_component_v_text_field, {
           modelValue: config.random_delay_max_seconds,
-          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.random_delay_max_seconds) = $event)),
+          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.random_delay_max_seconds) = $event)),
           label: "随机延迟上限(秒)",
           type: "number",
           variant: "outlined",
@@ -361,7 +381,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_timeout,
-          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.http_timeout) = $event)),
+          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.http_timeout) = $event)),
           label: "HTTP 超时(秒)",
           type: "number",
           variant: "outlined",
@@ -370,7 +390,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_retry_times,
-          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.http_retry_times) = $event)),
+          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_retry_times) = $event)),
           label: "网络重试次数",
           type: "number",
           variant: "outlined",
@@ -379,7 +399,7 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.http_retry_delay,
-          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_retry_delay) = $event)),
+          "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.http_retry_delay) = $event)),
           label: "网络重试间隔(ms)",
           type: "number",
           variant: "outlined",
@@ -388,25 +408,25 @@ return (_ctx, _cache) => {
         }, null, 8, ["modelValue"]),
         _createVNode(_component_v_text_field, {
           modelValue: config.ocr_retry_times,
-          "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.ocr_retry_times) = $event)),
+          "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.ocr_retry_times) = $event)),
           label: "OCR 重试次数",
           type: "number",
           variant: "outlined",
           density: "comfortable"
         }, null, 8, ["modelValue"])
       ]),
-      _createElementVNode("div", _hoisted_16, [
-        _hoisted_17,
+      _createElementVNode("div", _hoisted_18, [
+        _hoisted_19,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.cookie) = $event)),
-          label: "SIQI Cookie",
+          "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.cookie) = $event)),
+          label: "SQ Cookie",
           rows: "7",
           variant: "outlined",
           density: "comfortable",
           placeholder: "例如 c_secure_pass=..."
         }, null, 8, ["modelValue"]),
-        _hoisted_18
+        _hoisted_20
       ])
     ])
   ]))
@@ -414,6 +434,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d2814122"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b03f474b"]]);
 
 export { ConfigView as default };

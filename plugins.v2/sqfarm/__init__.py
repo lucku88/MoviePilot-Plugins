@@ -21,10 +21,10 @@ from app.schemas import NotificationType
 
 
 class SQFarm(_PluginBase):
-    plugin_name = "SQ种菜"
-    plugin_desc = "思齐农场自动收菜、售卖、补种，支持 Vue 面板、动态调度和站点 Cookie 同步。"
+    plugin_name = "SQ农场"
+    plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.3.2"
+    plugin_version = "0.4.0"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -46,6 +46,8 @@ class SQFarm(_PluginBase):
     _notify: bool = True
     _onlyonce: bool = False
     _auto_cookie: bool = True
+    _enable_sell: bool = True
+    _enable_plant: bool = True
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cron: str = DEFAULT_CRON
@@ -121,11 +123,11 @@ class SQFarm(_PluginBase):
 
     def get_api(self) -> List[Dict[str, Any]]:
         return [
-            {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 SQFarm 配置"},
-            {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 SQFarm 配置"},
-            {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 SQFarm 状态"},
+            {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 SQ农场配置"},
+            {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 SQ农场配置"},
+            {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 SQ农场状态"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新农场数据"},
-            {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 SQFarm"},
+            {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 SQ农场"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -145,7 +147,7 @@ class SQFarm(_PluginBase):
             if next_run:
                 services.append({
                     "id": "SQFarm_auto",
-                    "name": "SQ种菜初始化" if self._bootstrap_pending else "SQ种菜智能调度",
+                    "name": "SQ农场初始化" if self._bootstrap_pending else "SQ农场智能调度",
                     "trigger": "date",
                     "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
                     "kwargs": {"run_date": next_run},
@@ -184,7 +186,7 @@ class SQFarm(_PluginBase):
                 time.sleep(rand_delay)
 
             if not force and self._should_skip_run():
-                logger.info("INFO 未到最近收菜时间，跳过本次轮询")
+                logger.info("INFO 未到最近收菜时间，跳过本次运行")
                 return {"success": True, "message": "未到最近收菜时间，已跳过", "status": self._build_status(auto_refresh=False)}
 
             session = self._build_session()
@@ -229,7 +231,7 @@ class SQFarm(_PluginBase):
                     ]
 
             inventory = data.get("inventory") or []
-            if inventory:
+            if self._enable_sell and inventory:
                 sell_amount_estimate = sum(
                     int(item.get("quantity") or 0) * int(item.get("unit_reward") or 0)
                     for item in inventory
@@ -251,17 +253,17 @@ class SQFarm(_PluginBase):
 
             empty_count = self._count_empty_plots(data)
             logger.info("INFO 空地数量：%s", empty_count)
-            if empty_count > 0:
+            if self._enable_plant and empty_count > 0:
                 best_seed = self._pick_seed(data)
                 if best_seed:
-                    logger.info("INFO 准备补种：%s", best_seed.get("name"))
+                    logger.info("INFO 准备种植：%s", best_seed.get("name"))
                     try:
                         result = self._post_action(session, "plant_fill_empty", {"seed_id": best_seed.get("id")}, retry_network=False)
                         if result and result.get("success", True):
                             action_plant = True
                             planted_seed_name = best_seed.get("name") or ""
                             plant_cost_estimate = int(best_seed.get("cost") or 0) * empty_count
-                            logger.info("INFO 补种完成：%s", best_seed.get("name"))
+                            logger.info("INFO 种植完成：%s", best_seed.get("name"))
                         data = self._fetch_state(session)
                     except Exception as err:
                         logger.warning("plant_fill_empty failed: %s", err)
@@ -297,16 +299,21 @@ class SQFarm(_PluginBase):
             self.save_data("last_run", self._format_time(self._aware_now()))
 
             if has_action_lines:
-                title = "🌱 SQ种菜报告"
+                title = "【🌱SQ农场】任务报告"
             elif has_warning_lines:
-                title = "⚠️ SQ种菜收菜失败"
+                title = "【⚠️SQ农场】收菜失败"
             else:
-                title = "ℹ️ SQ种菜无动作"
+                title = "【ℹ️SQ农场】无动作"
             self._append_history(title, msg_lines or ["本次无动作"])
 
             if self._notify and (has_action_lines or has_warning_lines):
-                notify_title = f"🌱 {self.plugin_name}报告" if has_action_lines else f"⚠️ {self.plugin_name}收菜失败"
-                self.post_message(mtype=NotificationType.Plugin, title=notify_title, text="\n".join(msg_lines))
+                if has_action_lines:
+                    notify_title = "【🌱SQ农场】 任务报告"
+                    notify_text = self._build_notify_text(msg_lines)
+                else:
+                    notify_title = "【⚠️SQ农场】 收菜失败"
+                    notify_text = "\n".join(msg_lines)
+                self.post_message(mtype=NotificationType.Plugin, title=notify_title, text=notify_text)
 
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
         except Exception as err:
@@ -314,7 +321,7 @@ class SQFarm(_PluginBase):
             logger.exception("%s 执行失败：%s", self.plugin_name, detail)
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
-                self.post_message(mtype=NotificationType.Plugin, title=f"❌ {self.plugin_name}异常", text=f"⚠️ {detail}")
+                self.post_message(mtype=NotificationType.Plugin, title=f"【❌{self.plugin_name}】 执行异常", text=f"⚠️ {detail}")
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
             cost_sec = max(1, round(time.time() - run_start))
@@ -396,10 +403,10 @@ class SQFarm(_PluginBase):
         return {
             "enabled": self._enabled,
             "notify": self._notify,
-            "cron": self._cron,
-            "site_domain": self._site_domain,
             "site_url": self._site_url,
             "auto_cookie": self._auto_cookie,
+            "enable_sell": self._enable_sell,
+            "enable_plant": self._enable_plant,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -415,10 +422,10 @@ class SQFarm(_PluginBase):
             "notify": self._notify,
             "onlyonce": self._onlyonce,
             "auto_cookie": self._auto_cookie,
+            "enable_sell": self._enable_sell,
+            "enable_plant": self._enable_plant,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
-            "cron": self._cron,
-            "site_domain": self._site_domain,
             "cookie": self._cookie,
             "ocr_api_url": self._ocr_api_url,
             "prefer_seed": self._prefer_seed,
@@ -459,10 +466,10 @@ class SQFarm(_PluginBase):
             "notify": True,
             "onlyonce": False,
             "auto_cookie": True,
+            "enable_sell": True,
+            "enable_plant": True,
             "use_proxy": False,
             "force_ipv4": True,
-            "cron": self.DEFAULT_CRON,
-            "site_domain": self.DEFAULT_SITE_DOMAIN,
             "cookie": "",
             "ocr_api_url": "http://ip:8089/api/tr-run/",
             "prefer_seed": "西红柿",
@@ -479,10 +486,12 @@ class SQFarm(_PluginBase):
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
         self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
+        self._enable_sell = self._to_bool(config.get("enable_sell", True))
+        self._enable_plant = self._to_bool(config.get("enable_plant", True))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
-        self._cron = (config.get("cron") or self.DEFAULT_CRON).strip()
-        self._site_domain = (config.get("site_domain") or self.DEFAULT_SITE_DOMAIN).strip() or self.DEFAULT_SITE_DOMAIN
+        self._cron = self.DEFAULT_CRON
+        self._site_domain = self.DEFAULT_SITE_DOMAIN
         self._cookie = (config.get("cookie") or "").strip()
         self._ocr_api_url = (config.get("ocr_api_url") or "").strip()
         self._prefer_seed = (config.get("prefer_seed") or "西红柿").strip() or "西红柿"
@@ -1015,13 +1024,13 @@ class SQFarm(_PluginBase):
         empty_count = self._count_empty_plots(data)
         growing_count = max(0, len(data.get("user_lands") or []) - ready_count)
         return {
-            "title": "思齐种菜赚魔力",
+            "title": "SQ农场",
             "last_updated": self._format_time(self._aware_now()),
             "summary": summary_lines,
             "next_run_time": self._format_ts(next_run) if next_run else "暂无成熟作物",
-            "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "等待下一次轮询",
+            "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "等待下一次运行",
             "cookie_source": self._cookie_source,
-            "page_note": "状态页仅展示当前农场信息。插件会先动态识别最近收菜时间并记录下一次运行；如果当前还没有收菜时间，会自动运行一次获取农场信息。",
+            "page_note": "状态页仅展示当前农场信息。插件会先动态识别最近可收时间并记录下一次运行；如果当前还没有可收时间，会自动运行一次获取农场信息。",
             "overview": [
                 {"label": "魔力值", "value": int(data.get("user_bonus") or 0), "accent": "amber"},
                 {"label": "总种植收获", "value": int(user_stats.get("total_harvest") or 0), "accent": "cyan"},
@@ -1228,14 +1237,27 @@ class SQFarm(_PluginBase):
             lines.append(f"🌱 种植：{join_summary(log_result.get('plant'))}")
         elif action_plant and planted_seed_name:
             lines.append(f"🌱 种植：{planted_seed_name}")
-        if sell_income > 0 or plant_cost > 0:
-            lines.append(f"💰 收益：{sell_income} - {plant_cost} = {sell_income - plant_cost} 魔力")
+        if action_sell or action_plant:
+            lines.append(f"💰 收益：{sell_income - plant_cost} 魔力")
         if harvest_failure_detail:
             lines.append(f"⚠️ 收菜失败：{harvest_failure_detail}")
         if not lines:
             lines.append("ℹ️ 本次没有可执行动作")
-        lines.append(f"⏰ 下次可收：{next_run_text}")
+        lines.append(f"⏰ 可收：{next_run_text}")
         return lines
+
+    @staticmethod
+    def _build_notify_text(lines: List[str]) -> str:
+        action_lines = [line for line in lines if line.startswith(("✅", "🧺", "🌱", "💰"))]
+        time_line = next((line for line in lines if line.startswith("⏰")), "")
+        chunks = ["━━━━━━━━━━━━━━"]
+        if action_lines:
+            chunks.extend(action_lines)
+            chunks.append("━━━━━━━━━━━━━━")
+        if time_line:
+            chunks.append(time_line)
+            chunks.append("━━━━━━━━━━━━━━")
+        return "\n".join(chunks)
 
     def _append_history(self, title: str, lines: List[str]):
         history = self.get_data("history") or []

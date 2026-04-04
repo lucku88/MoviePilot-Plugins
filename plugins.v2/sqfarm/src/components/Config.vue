@@ -2,18 +2,20 @@
   <div class="sq-config">
     <div class="sq-head">
       <div>
-        <h1 class="sq-title">SQFarm 配置</h1>
-        <div class="sq-tip">支持站点 Cookie 同步、动态调度和 OCR 收菜。</div>
+        <h1 class="sq-title">SQ农场配置</h1>
+        <div class="sq-tip">使用站点 Cookie、动态调度和 OCR 自动收菜。</div>
       </div>
       <div class="sq-actions">
         <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
-        <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步Cookie</v-btn>
+        <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
         <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
         <v-btn variant="text" @click="closePlugin">关闭</v-btn>
       </div>
     </div>
 
-    <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">{{ message.text }}</v-alert>
+    <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">
+      {{ message.text }}
+    </v-alert>
 
     <div class="sq-form-grid">
       <div class="sq-card">
@@ -22,26 +24,35 @@
           <v-switch v-model="config.enabled" label="启用插件" color="success" hide-details />
           <v-switch v-model="config.notify" label="发送通知" color="primary" hide-details />
           <v-switch v-model="config.onlyonce" label="保存后立即执行一次" color="warning" hide-details />
-          <v-switch v-model="config.auto_cookie" label="自动同步站点 Cookie" color="info" hide-details />
+          <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
+          <v-switch v-model="config.enable_sell" label="自动售出" color="secondary" hide-details />
+          <v-switch v-model="config.enable_plant" label="自动种植" color="secondary" hide-details />
           <v-switch v-model="config.use_proxy" label="使用系统代理" color="info" hide-details />
           <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
         </div>
       </div>
 
       <div class="sq-card">
-        <h3>站点与调度</h3>
-        <v-text-field v-model="config.site_domain" label="站点域名" variant="outlined" density="comfortable" class="mb-3" />
+        <h3>种植与调度</h3>
         <v-select
           v-model="config.prefer_seed"
           :items="seedOptions"
           label="优先种植"
           variant="outlined"
           density="comfortable"
-          class="mb-2"
+          class="mb-3"
           :menu-props="{ maxHeight: 280 }"
         />
-        <div class="sq-note">插件已取消固定轮询。保存配置或重启后会先运行一次获取农场信息，之后只按最近收菜时间自动运行。这里会优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
-        <v-text-field v-model="config.schedule_buffer_seconds" label="智能调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mt-3" />
+        <div class="sq-note">优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
+        <div class="sq-note">插件不再固定轮询。启用或保存后会先获取一次农场信息，之后只在最近可收时间触发。</div>
+        <v-text-field
+          v-model="config.schedule_buffer_seconds"
+          label="智能调度缓冲秒数"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+          class="mt-3"
+        />
       </div>
 
       <div class="sq-card">
@@ -50,28 +61,73 @@
           v-model="config.ocr_api_url"
           label="OCR API 地址"
           placeholder="http://ip:8089/api/tr-run/"
-          hint="默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP"
+          hint="默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。"
           persistent-hint
           variant="outlined"
           density="comfortable"
           class="mb-3"
         />
         <v-alert type="info" variant="tonal" class="mb-3">
-          自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件可以刷新状态，但自动收菜会失败。
+          自动收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件仍可刷新状态，但自动收菜会失败。
         </v-alert>
-        <div class="sq-note">推荐先部署 <code>trwebocr</code>，然后把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，其中 <code>ip</code> 替换为 Docker 宿主机 IP。</div>
+        <div class="sq-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
+        <div class="sq-note">容器安装参考如下：</div>
         <pre class="sq-code">{{ ocrComposeExample }}</pre>
-        <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" class="mb-3 mt-3" />
-        <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.http_retry_times" label="网络重试次数" type="number" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.http_retry_delay" label="网络重试间隔(ms)" type="number" variant="outlined" density="comfortable" class="mb-3" />
-        <v-text-field v-model="config.ocr_retry_times" label="OCR 重试次数" type="number" variant="outlined" density="comfortable" />
+        <v-text-field
+          v-model="config.random_delay_max_seconds"
+          label="随机延迟上限(秒)"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+          class="mb-3 mt-3"
+        />
+        <v-text-field
+          v-model="config.http_timeout"
+          label="HTTP 超时(秒)"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+          class="mb-3"
+        />
+        <v-text-field
+          v-model="config.http_retry_times"
+          label="网络重试次数"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+          class="mb-3"
+        />
+        <v-text-field
+          v-model="config.http_retry_delay"
+          label="网络重试间隔(ms)"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+          class="mb-3"
+        />
+        <v-text-field
+          v-model="config.ocr_retry_times"
+          label="OCR 重试次数"
+          type="number"
+          variant="outlined"
+          density="comfortable"
+        />
       </div>
 
       <div class="sq-card sq-card-wide">
         <h3>手动 Cookie</h3>
-        <v-textarea v-model="config.cookie" label="SIQI Cookie" rows="7" variant="outlined" density="comfortable" placeholder="例如 c_secure_pass=..." />
-        <div class="sq-note">开启自动同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。这里仍可作为手动兜底。</div>
+        <v-textarea
+          v-model="config.cookie"
+          label="SQ Cookie"
+          rows="7"
+          variant="outlined"
+          density="comfortable"
+          placeholder="例如 c_secure_pass=..."
+        />
+        <div class="sq-note">
+          开启站点 Cookie 后，插件会优先读取 MoviePilot 站点管理中的 <code>si-qi.xyz</code> Cookie。
+          这里仍可作为手动兜底。
+        </div>
       </div>
     </div>
   </div>
@@ -80,7 +136,11 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 
-const props = defineProps({ api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } })
+const props = defineProps({
+  api: { type: Object, required: true },
+  initialConfig: { type: Object, default: () => ({}) },
+})
+
 const emit = defineEmits(['switch', 'close'])
 
 const saving = ref(false)
@@ -91,10 +151,10 @@ const config = reactive({
   notify: true,
   onlyonce: false,
   auto_cookie: true,
+  enable_sell: true,
+  enable_plant: true,
   use_proxy: false,
   force_ipv4: true,
-  cron: '*/10 * * * *',
-  site_domain: 'si-qi.xyz',
   cookie: '',
   ocr_api_url: 'http://ip:8089/api/tr-run/',
   prefer_seed: '西红柿',
@@ -125,22 +185,26 @@ function flash(text, type = 'success') {
   message.type = type
 }
 
-function applySeedOptions(items) {
+function normalizeSeeds(items) {
   const normalized = (items || [])
-    .map(item => typeof item === 'string' ? item : item?.value || item?.name || '')
+    .map((item) => (typeof item === 'string' ? item : item?.value || item?.name || ''))
     .filter(Boolean)
 
   if (config.prefer_seed && !normalized.includes(config.prefer_seed)) {
     normalized.unshift(config.prefer_seed)
   }
 
-  seedOptions.value = normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃']
+  return normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃']
+}
+
+function applySeedOptions(items) {
+  seedOptions.value = normalizeSeeds(items)
 }
 
 function applyStatusSeedOptions(seedShop) {
   const unlocked = (seedShop || [])
-    .filter(seed => seed.unlocked && seed.name)
-    .map(seed => seed.name)
+    .filter((seed) => seed.unlocked && seed.name)
+    .map((seed) => seed.name)
   if (unlocked.length) {
     applySeedOptions(unlocked)
   }
@@ -151,7 +215,7 @@ async function loadStatusSeedOptions() {
     const res = await props.api.get('/plugin/SQFarm/status')
     applyStatusSeedOptions(res?.farm_status?.seed_shop)
   } catch (error) {
-    // 保留默认种子选项
+    // 保留当前种子选项
   }
 }
 
