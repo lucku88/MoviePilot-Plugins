@@ -3,11 +3,12 @@
     "name": "SQ农场",
     "description": "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。",
     "labels": "工具,自动化,农场",
-  "version": "0.4.5",
+  "version": "0.4.6",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+    "v0.4.6": "根据站点手动抓包改为真实单坑位收菜与种植，并恢复一键收获和一键种植空地的批量接口。",
     "v0.4.5": "简化状态页坑位文案与种子卡片显示，并统一扩展坑位为未解锁样式。",
     "v0.4.4": "修复配置页在浅色模式下仍强制显示深色样式的问题。",
     "v0.4.3": "修复配置页与状态页主题自动识别，并将状态页标题统一为“种菜赚魔力”。",

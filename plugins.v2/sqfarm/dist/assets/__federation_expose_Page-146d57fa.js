@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_aa88e565_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_647a2cd6_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-aa88e565"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-647a2cd6"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -328,8 +328,7 @@ async function harvestPlot(slot) {
 }
 
 async function plantAllEmpty() {
-  const firstEmpty = emptySlots.value[0];
-  if (!firstEmpty) {
+  if (!emptySlots.value.length) {
     flash('当前没有可种植空地', 'warning');
     return
   }
@@ -337,16 +336,35 @@ async function plantAllEmpty() {
     flash('请先选择种子', 'warning');
     return
   }
-  await plantPlot(firstEmpty, selectedSeed.value.id);
+  loading.value = true;
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plant-empty', {
+      seed_id: selectedSeed.value.id,
+    });
+    flash(res.message || '一键种植完成');
+    await loadStatus();
+  } catch (error) {
+    flash(error?.message || '一键种植失败', 'error');
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function harvestAllReady() {
-  const firstReady = readySlots.value[0];
-  if (!firstReady) {
+  if (!readySlots.value.length) {
     flash('当前没有可收获田块', 'warning');
     return
   }
-  await harvestPlot(firstReady);
+  loading.value = true;
+  try {
+    const res = await props.api.post('/plugin/SQFarm/harvest-all', {});
+    flash(res.message || '一键收获完成');
+    await loadStatus();
+  } catch (error) {
+    flash(error?.message || '一键收获失败', 'error');
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function handleSlotClick(slot) {
@@ -678,6 +696,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-aa88e565"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-647a2cd6"]]);
 
 export { PageView as default };

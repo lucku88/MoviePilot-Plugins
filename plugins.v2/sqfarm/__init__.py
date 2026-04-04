@@ -24,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.5"
+    plugin_version = "0.4.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -130,6 +130,8 @@ class SQFarm(_PluginBase):
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 SQ农场"},
             {"path": "/harvest-plot", "endpoint": self._harvest_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动收菜"},
             {"path": "/plant-plot", "endpoint": self._plant_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动种植"},
+            {"path": "/harvest-all", "endpoint": self._harvest_all_api, "methods": ["POST"], "auth": "bear", "summary": "一键收获"},
+            {"path": "/plant-empty", "endpoint": self._plant_empty_api, "methods": ["POST"], "auth": "bear", "summary": "一键种植空地"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -387,6 +389,36 @@ class SQFarm(_PluginBase):
         except Exception as err:
             detail = self._get_error_detail(err)
             logger.warning("%s 手动种植失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
+    def _harvest_all_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_harvest_all(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "一键收获完成",
+                "lines": result["lines"],
+                "farm_status": result["farm_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 一键收获失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
+    def _plant_empty_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_plant_empty(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "一键种植完成",
+                "lines": result["lines"],
+                "farm_status": result["farm_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 一键种植失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _get_status(self):
@@ -923,15 +955,25 @@ class SQFarm(_PluginBase):
         if not slot.get("ready"):
             raise ValueError("这块田还没成熟")
 
-        result = self._harvest_all(session)
-        if not result.get("success"):
-            raise ValueError(result.get("detail") or "收菜失败")
+        result = self._post_action(
+            session,
+            "harvest",
+            {"land_id": land_id, "plot_index": slot_index - 1},
+            retry_network=False,
+        )
+        if result and not result.get("success", True):
+            raise ValueError(result.get("msg") or "收菜失败")
 
         data = self._fetch_state(session)
+        inventory = result.get("inventory") or {}
+        reward = self._safe_int(result.get("reward"), 0)
+        seed_name = inventory.get("name") or (slot.get("seed") or {}).get("name") or "作物"
+        seed_icon = inventory.get("icon") or self._crop_icon.get(seed_name, "🌱")
         lines = [
-            f"✅ 手动收菜：{slot.get('land_name')} #{slot_index}",
-            "ℹ️ 当前站点接口仅支持一键收成熟田，本次已同步执行全部成熟地块。",
+            f"✅ 收菜：{seed_icon}{seed_name} -> {slot.get('land_name')} #{slot_index}",
         ]
+        if reward > 0:
+            lines.append(f"💰 获得：{reward} 魔力")
         farm_status = self._refresh_and_store_farm_state(data, "manual-plot-harvest", lines)
         self._append_history("🖱️ 手动收菜", lines)
         return {"farm_status": farm_status, "lines": lines}
@@ -960,17 +1002,81 @@ class SQFarm(_PluginBase):
         if not seed:
             raise ValueError("未找到可用种子")
 
-        result = self._post_action(session, "plant_fill_empty", {"seed_id": seed.get("id")}, retry_network=False)
+        result = self._post_action(
+            session,
+            "plant",
+            {
+                "land_id": land_id,
+                "plot_index": slot_index - 1,
+                "seed_id": seed.get("id"),
+            },
+            retry_network=False,
+        )
         if result and not result.get("success", True):
             raise ValueError(result.get("msg") or "种植失败")
 
         data = self._fetch_state(session)
         lines = [
             f"🌱 手动种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} -> {slot.get('land_name')} #{slot_index}",
-            "ℹ️ 当前站点接口仅支持一键种植空地，本次已按所选种子同步处理全部空地。",
         ]
         farm_status = self._refresh_and_store_farm_state(data, "manual-plot-plant", lines)
         self._append_history("🖱️ 手动种植", lines)
+        return {"farm_status": farm_status, "lines": lines}
+
+    def _manual_harvest_all(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+
+        session = self._build_session()
+        data = self._fetch_state(session)
+        now_sec = int(time.time())
+        ready_plots = [
+            plot for plot in (data.get("user_lands") or [])
+            if plot.get("seed_id") and (
+                plot.get("is_ready") == 1
+                or (plot.get("harvest_time") and int(plot.get("harvest_time") or 0) <= now_sec)
+            )
+        ]
+        if not ready_plots:
+            raise ValueError("当前没有可收获田块")
+
+        result = self._harvest_all(session)
+        if not result.get("success"):
+            raise ValueError(result.get("detail") or "收菜失败")
+
+        data = self._fetch_state(session)
+        lines = [f"✅ 一键收获：已处理 {len(ready_plots)} 块成熟田"]
+        farm_status = self._refresh_and_store_farm_state(data, "manual-harvest-all", lines)
+        self._append_history("🧺 一键收获", lines)
+        return {"farm_status": farm_status, "lines": lines}
+
+    def _manual_plant_empty(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+
+        seed_id = self._safe_int(payload.get("seed_id"), 0)
+        session = self._build_session()
+        data = self._fetch_state(session)
+        empty_count = self._count_empty_plots(data)
+        if empty_count <= 0:
+            raise ValueError("当前没有可种植空地")
+
+        seed = self._resolve_seed(data, seed_id=seed_id)
+        if not seed:
+            raise ValueError("未找到可用种子")
+
+        result = self._post_action(session, "plant_fill_empty", {"seed_id": seed.get("id")}, retry_network=False)
+        if result and not result.get("success", True):
+            raise ValueError(result.get("msg") or "种植失败")
+
+        data = self._fetch_state(session)
+        lines = [
+            f"🌱 一键种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} ×{empty_count}",
+        ]
+        farm_status = self._refresh_and_store_farm_state(data, "manual-plant-empty", lines)
+        self._append_history("🌱 一键种植", lines)
         return {"farm_status": farm_status, "lines": lines}
 
     def _compute_next_run(self, data: dict) -> Optional[int]:

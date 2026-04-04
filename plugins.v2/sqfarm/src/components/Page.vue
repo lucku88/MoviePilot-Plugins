@@ -395,8 +395,7 @@ async function harvestPlot(slot) {
 }
 
 async function plantAllEmpty() {
-  const firstEmpty = emptySlots.value[0]
-  if (!firstEmpty) {
+  if (!emptySlots.value.length) {
     flash('当前没有可种植空地', 'warning')
     return
   }
@@ -404,16 +403,35 @@ async function plantAllEmpty() {
     flash('请先选择种子', 'warning')
     return
   }
-  await plantPlot(firstEmpty, selectedSeed.value.id)
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plant-empty', {
+      seed_id: selectedSeed.value.id,
+    })
+    flash(res.message || '一键种植完成')
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '一键种植失败', 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 async function harvestAllReady() {
-  const firstReady = readySlots.value[0]
-  if (!firstReady) {
+  if (!readySlots.value.length) {
     flash('当前没有可收获田块', 'warning')
     return
   }
-  await harvestPlot(firstReady)
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/harvest-all', {})
+    flash(res.message || '一键收获完成')
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '一键收获失败', 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 async function handleSlotClick(slot) {
