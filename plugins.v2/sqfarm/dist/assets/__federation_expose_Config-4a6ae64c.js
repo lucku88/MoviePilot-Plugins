@@ -1,76 +1,75 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_6f3b853e_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_82a88e4d_lang = '';
 
-const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-6f3b853e"),n=n(),_popScopeId(),n);
-const _hoisted_1 = { class: "sq-config" };
-const _hoisted_2 = { class: "sq-shell" };
-const _hoisted_3 = { class: "sq-hero" };
-const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-hero-copy" }, [
+const _withScopeId = n => (_pushScopeId("data-v-82a88e4d"),n=n(),_popScopeId(),n);
+const _hoisted_1 = { class: "sq-shell" };
+const _hoisted_2 = { class: "sq-hero" };
+const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-hero-copy" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "sq-badge" }, "SQ农场"),
   /*#__PURE__*/_createElementVNode("h1", { class: "sq-title" }, "配置中心"),
   /*#__PURE__*/_createElementVNode("p", { class: "sq-subtitle" }, "使用站点 Cookie、动态调度和 OCR 自动收菜，售出与种植都可以单独开关。")
 ], -1));
-const _hoisted_5 = { class: "sq-actions" };
-const _hoisted_6 = { class: "sq-grid" };
-const _hoisted_7 = { class: "sq-panel" };
-const _hoisted_8 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_4 = { class: "sq-actions" };
+const _hoisted_5 = { class: "sq-grid" };
+const _hoisted_6 = { class: "sq-panel" };
+const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "基础开关"),
     /*#__PURE__*/_createElementVNode("h2", null, "运行控制")
   ])
 ], -1));
-const _hoisted_9 = { class: "sq-switch-grid" };
-const _hoisted_10 = { class: "sq-panel" };
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_8 = { class: "sq-switch-grid" };
+const _hoisted_9 = { class: "sq-panel" };
+const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "种植与调度"),
     /*#__PURE__*/_createElementVNode("h2", null, "策略配置")
   ])
 ], -1));
-const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "插件不再固定轮询。启用或保存后会先获取一次农场信息，之后只在最近可收时间触发。", -1));
-const _hoisted_14 = { class: "sq-panel" };
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。", -1));
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "插件不再固定轮询。启用或保存后会先获取一次农场信息，之后只在最近可收时间触发。", -1));
+const _hoisted_13 = { class: "sq-panel" };
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "网络与 OCR"),
     /*#__PURE__*/_createElementVNode("h2", null, "连接设置")
   ])
 ], -1));
-const _hoisted_16 = { class: "sq-panel" };
-const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_15 = { class: "sq-panel" };
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "OCR 说明"),
     /*#__PURE__*/_createElementVNode("h2", null, "trwebocr 容器")
   ])
 ], -1));
-const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("code", null, "trwebocr", -1));
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
   /*#__PURE__*/_createTextVNode("推荐先部署 "),
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
   /*#__PURE__*/_createTextVNode("，再把 OCR 地址填成 "),
   /*#__PURE__*/_createElementVNode("code", null, "http://ip:8089/api/tr-run/"),
   /*#__PURE__*/_createTextVNode("。")
 ], -1));
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "容器安装参考如下：", -1));
-const _hoisted_21 = { class: "sq-panel sq-panel-wide" };
-const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, "容器安装参考如下：", -1));
+const _hoisted_20 = { class: "sq-panel sq-panel-wide" };
+const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "兜底配置")
   ])
 ], -1));
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-note" }, [
   /*#__PURE__*/_createTextVNode(" 开启站点 Cookie 后，插件会优先读取 MoviePilot 站点管理中的 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode(" Cookie。 这里仍可作为手动兜底。 ")
 ], -1));
 
-const {onMounted,reactive,ref} = await importShared('vue');
+const {onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
 
 const ocrComposeExample = `version: '3.8'
@@ -104,6 +103,7 @@ const props = __props;
 
 
 const saving = ref(false);
+const isDarkTheme = ref(false);
 const message = reactive({ text: '', type: 'success' });
 const seedOptions = ref(['西红柿']);
 const config = reactive({
@@ -126,9 +126,21 @@ const config = reactive({
   ocr_retry_times: 2,
 });
 
+let themeObserver = null;
+let mediaQuery = null;
+
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
+}
+
+function detectTheme() {
+  const docTheme = document.documentElement.getAttribute('data-theme');
+  const bodyTheme = document.body?.getAttribute('data-theme');
+  const themeValue = bodyTheme || docTheme || '';
+  const darkThemes = new Set(['dark', 'purple', 'transparent']);
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark);
 }
 
 function normalizeSeeds(items) {
@@ -216,7 +228,24 @@ function closePlugin() {
   emit('close');
 }
 
-onMounted(loadConfig);
+onMounted(() => {
+  detectTheme();
+  mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+  mediaQuery?.addEventListener?.('change', detectTheme);
+
+  themeObserver = new MutationObserver(detectTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+
+  loadConfig();
+});
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect();
+  mediaQuery?.removeEventListener?.('change', detectTheme);
+});
 
 return (_ctx, _cache) => {
   const _component_v_btn = _resolveComponent("v-btn");
@@ -226,11 +255,13 @@ return (_ctx, _cache) => {
   const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
-  return (_openBlock(), _createElementBlock("div", _hoisted_1, [
-    _createElementVNode("div", _hoisted_2, [
-      _createElementVNode("section", _hoisted_3, [
-        _hoisted_4,
-        _createElementVNode("div", _hoisted_5, [
+  return (_openBlock(), _createElementBlock("div", {
+    class: _normalizeClass(["sq-config", { 'is-dark-theme': isDarkTheme.value }])
+  }, [
+    _createElementVNode("div", _hoisted_1, [
+      _createElementVNode("section", _hoisted_2, [
+        _hoisted_3,
+        _createElementVNode("div", _hoisted_4, [
           _createVNode(_component_v_btn, {
             variant: "text",
             onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
@@ -285,10 +316,10 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_6, [
-        _createElementVNode("article", _hoisted_7, [
-          _hoisted_8,
-          _createElementVNode("div", _hoisted_9, [
+      _createElementVNode("section", _hoisted_5, [
+        _createElementVNode("article", _hoisted_6, [
+          _hoisted_7,
+          _createElementVNode("div", _hoisted_8, [
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((config.enabled) = $event)),
@@ -347,8 +378,8 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"])
           ])
         ]),
-        _createElementVNode("article", _hoisted_10, [
-          _hoisted_11,
+        _createElementVNode("article", _hoisted_9, [
+          _hoisted_10,
           _createVNode(_component_v_select, {
             modelValue: config.prefer_seed,
             "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.prefer_seed) = $event)),
@@ -359,8 +390,8 @@ return (_ctx, _cache) => {
             class: "mb-3",
             "menu-props": { maxHeight: 280 }
           }, null, 8, ["modelValue", "items"]),
+          _hoisted_11,
           _hoisted_12,
-          _hoisted_13,
           _createVNode(_component_v_text_field, {
             modelValue: config.schedule_buffer_seconds,
             "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.schedule_buffer_seconds) = $event)),
@@ -371,8 +402,8 @@ return (_ctx, _cache) => {
             class: "mt-3"
           }, null, 8, ["modelValue"])
         ]),
-        _createElementVNode("article", _hoisted_14, [
-          _hoisted_15,
+        _createElementVNode("article", _hoisted_13, [
+          _hoisted_14,
           _createVNode(_component_v_text_field, {
             modelValue: config.ocr_api_url,
             "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.ocr_api_url) = $event)),
@@ -429,8 +460,8 @@ return (_ctx, _cache) => {
             density: "comfortable"
           }, null, 8, ["modelValue"])
         ]),
-        _createElementVNode("article", _hoisted_16, [
-          _hoisted_17,
+        _createElementVNode("article", _hoisted_15, [
+          _hoisted_16,
           _createVNode(_component_v_alert, {
             type: "info",
             variant: "tonal",
@@ -438,17 +469,17 @@ return (_ctx, _cache) => {
           }, {
             default: _withCtx(() => [
               _createTextVNode(" 自动收菜验证码依赖 "),
-              _hoisted_18,
+              _hoisted_17,
               _createTextVNode(" 容器。未部署 OCR 时，插件仍可刷新状态，但自动收菜会失败。 ")
             ]),
             _: 1
           }),
+          _hoisted_18,
           _hoisted_19,
-          _hoisted_20,
           _createElementVNode("pre", { class: "sq-code" }, _toDisplayString(ocrComposeExample))
         ]),
-        _createElementVNode("article", _hoisted_21, [
-          _hoisted_22,
+        _createElementVNode("article", _hoisted_20, [
+          _hoisted_21,
           _createVNode(_component_v_textarea, {
             modelValue: config.cookie,
             "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.cookie) = $event)),
@@ -458,15 +489,15 @@ return (_ctx, _cache) => {
             density: "comfortable",
             placeholder: "例如 c_secure_pass=..."
           }, null, 8, ["modelValue"]),
-          _hoisted_23
+          _hoisted_22
         ])
       ])
     ])
-  ]))
+  ], 2))
 }
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6f3b853e"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-82a88e4d"]]);
 
 export { ConfigView as default };

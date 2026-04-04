@@ -24,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.1"
+    plugin_version = "0.4.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -128,6 +128,8 @@ class SQFarm(_PluginBase):
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 SQ农场状态"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新农场数据"},
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 SQ农场"},
+            {"path": "/harvest-plot", "endpoint": self._harvest_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动收菜"},
+            {"path": "/plant-plot", "endpoint": self._plant_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动种植"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -545,7 +547,7 @@ class SQFarm(_PluginBase):
         max_total = int(max_counts.get(str(land_id)) or max_counts.get(land_id) or 0)
         effective_total = int(effective.get(str(land_id)) or effective.get(land_id) or 0)
         planted_max = max(plot_indexes) if plot_indexes else 0
-        total_slots = max(base_total, max_total, effective_total, planted_max)
+        total_slots = max(10, base_total, max_total, effective_total, planted_max)
         land_unlocked = (
             (idx < unlocked_count and total_harvest >= unlock_need)
             or effective_total > 0

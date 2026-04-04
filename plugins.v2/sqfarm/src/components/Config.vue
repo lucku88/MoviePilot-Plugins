@@ -1,5 +1,5 @@
 <template>
-  <div class="sq-config">
+  <div class="sq-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="sq-shell">
       <section class="sq-hero">
         <div class="sq-hero-copy">
@@ -166,7 +166,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -176,6 +176,7 @@ const props = defineProps({
 const emit = defineEmits(['switch', 'close'])
 
 const saving = ref(false)
+const isDarkTheme = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const seedOptions = ref(['西红柿'])
 const config = reactive({
@@ -212,9 +213,21 @@ services:
       - TZ=Asia/Shanghai
     network_mode: bridge`
 
+let themeObserver = null
+let mediaQuery = null
+
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function detectTheme() {
+  const docTheme = document.documentElement.getAttribute('data-theme')
+  const bodyTheme = document.body?.getAttribute('data-theme')
+  const themeValue = bodyTheme || docTheme || ''
+  const darkThemes = new Set(['dark', 'purple', 'transparent'])
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
 }
 
 function normalizeSeeds(items) {
@@ -302,7 +315,24 @@ function closePlugin() {
   emit('close')
 }
 
-onMounted(loadConfig)
+onMounted(() => {
+  detectTheme()
+  mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
+  mediaQuery?.addEventListener?.('change', detectTheme)
+
+  themeObserver = new MutationObserver(detectTheme)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
+  }
+
+  loadConfig()
+})
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  mediaQuery?.removeEventListener?.('change', detectTheme)
+})
 </script>
 
 <style scoped>
@@ -322,6 +352,20 @@ onMounted(loadConfig)
   padding: clamp(18px, 2.6vw, 30px);
   background: var(--sq-bg);
   color: var(--sq-text);
+}
+
+.sq-config.is-dark-theme {
+  --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
+  --sq-surface: rgba(24, 30, 29, 0.88);
+  --sq-surface-strong: rgba(28, 35, 33, 0.95);
+  --sq-border: rgba(133, 157, 123, 0.18);
+  --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
+  --sq-text: #edf3ea;
+  --sq-subtle: #b9c4b4;
+  --sq-soft: #8f9d91;
+  --sq-accent: #9dd37b;
+  --sq-accent-strong: #d1f0c2;
+  --sq-accent-soft: rgba(119, 176, 93, 0.18);
 }
 
 .sq-shell {
@@ -449,6 +493,10 @@ onMounted(loadConfig)
   font-size: 13px;
   line-height: 1.65;
   overflow-x: auto;
+}
+
+.sq-config.is-dark-theme .sq-code {
+  background: rgba(34, 40, 39, 0.92);
 }
 
 @media (max-width: 960px) {

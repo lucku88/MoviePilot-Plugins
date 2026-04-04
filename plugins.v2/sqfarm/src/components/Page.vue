@@ -1,12 +1,12 @@
 <template>
-  <div class="sq-page">
+  <div class="sq-page" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="sq-shell">
       <section class="sq-hero">
         <div class="sq-hero-copy">
           <div class="sq-badge">SQ农场</div>
           <h1 class="sq-title">{{ farm.title || 'SQ农场' }}</h1>
           <p class="sq-subtitle">
-            最近执行 {{ status.last_run || '暂无' }}，下次可收 {{ farm.next_run_time || '待识别' }}。
+            最近执行 {{ status.last_run || '暂无' }} · 下次可收 {{ farm.next_run_time || '待识别' }}
           </p>
         </div>
         <div class="sq-actions">
@@ -19,6 +19,8 @@
         <div class="sq-hero-meta">
           <div class="sq-meta-chip">计划触发 {{ farm.next_trigger_time || status.next_trigger_time || '等待下一次运行' }}</div>
           <div class="sq-meta-chip">Cookie {{ farm.cookie_source || status.cookie_source || '未同步' }}</div>
+          <div class="sq-meta-chip">成熟 {{ readySlots.length }} 块</div>
+          <div class="sq-meta-chip">空地 {{ emptySlots.length }} 块</div>
         </div>
       </section>
 
@@ -33,36 +35,16 @@
         </article>
       </section>
 
-      <section class="sq-grid sq-grid-top">
-        <article class="sq-panel">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">执行说明</div>
-              <h2>动态调度</h2>
-            </div>
+      <section v-if="summaryLines.length" class="sq-panel">
+        <div class="sq-panel-head">
+          <div>
+            <div class="sq-panel-kicker">本次摘要</div>
+            <h2>任务结果</h2>
           </div>
-          <p class="sq-panel-text">
-            {{ farm.page_note || '插件会先动态识别最近可收时间并记录下一次运行；如果当前还没有可收时间，会自动运行一次获取农场信息。' }}
-          </p>
-          <div class="sq-highlight-row">
-            <div class="sq-highlight-pill">成熟 {{ farm.highlights?.ready_count || 0 }}</div>
-            <div class="sq-highlight-pill">成长 {{ farm.highlights?.growing_count || 0 }}</div>
-            <div class="sq-highlight-pill">空地 {{ farm.highlights?.empty_count || 0 }}</div>
-            <div class="sq-highlight-pill">农场 {{ farm.highlights?.land_count || 0 }}</div>
-          </div>
-        </article>
-
-        <article class="sq-panel" v-if="summaryLines.length">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">本次摘要</div>
-              <h2>任务结果</h2>
-            </div>
-          </div>
-          <div class="sq-summary-list">
-            <div v-for="line in summaryLines" :key="line" class="sq-summary-line">{{ line }}</div>
-          </div>
-        </article>
+        </div>
+        <div class="sq-summary-list">
+          <div v-for="line in summaryLines" :key="line" class="sq-summary-line">{{ line }}</div>
+        </div>
       </section>
 
       <section class="sq-panel">
@@ -85,18 +67,47 @@
       </section>
 
       <section class="sq-panel">
-        <div class="sq-panel-head">
+        <div class="sq-panel-head sq-panel-head-wrap">
           <div>
             <div class="sq-panel-kicker">种子商店</div>
-            <h2>优先种植参考</h2>
+            <h2>选择种子后点击空地种植</h2>
+          </div>
+          <div class="sq-shop-actions">
+            <div class="sq-selected-seed">
+              当前种子：
+              <strong v-if="selectedSeed">{{ selectedSeed.icon }} {{ selectedSeed.name }}</strong>
+              <strong v-else>未选择</strong>
+            </div>
+            <v-btn
+              color="success"
+              variant="flat"
+              :disabled="!selectedSeed || !emptySlots.length || loading"
+              @click="plantAllEmpty"
+            >
+              一键种植空地
+            </v-btn>
+            <v-btn
+              color="warning"
+              variant="flat"
+              :disabled="!readySlots.length || loading"
+              @click="harvestAllReady"
+            >
+              一键收获
+            </v-btn>
           </div>
         </div>
         <div class="sq-seed-grid">
-          <article
+          <button
             v-for="seed in farm.seed_shop || []"
             :key="seed.id"
+            type="button"
             class="sq-seed-card"
-            :class="{ 'is-locked': !seed.unlocked, 'is-preferred': seed.preferred }"
+            :class="{
+              'is-locked': !seed.unlocked,
+              'is-selected': selectedSeed && Number(selectedSeed.id) === Number(seed.id),
+            }"
+            :disabled="!seed.unlocked || loading"
+            @click="selectSeed(seed)"
           >
             <div class="sq-seed-icon">{{ seed.icon }}</div>
             <div class="sq-seed-name">{{ seed.name }}</div>
@@ -104,9 +115,9 @@
             <div class="sq-seed-line">收获 {{ seed.reward }}</div>
             <div class="sq-seed-line">生长 {{ seed.grow_text }}</div>
             <div class="sq-seed-note">
-              {{ seed.unlocked ? (seed.preferred ? '当前优先种子' : '已解锁') : seed.unlock_text }}
+              {{ seed.unlocked ? (selectedSeed && Number(selectedSeed.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text }}
             </div>
-          </article>
+          </button>
         </div>
       </section>
 
@@ -114,28 +125,39 @@
         <div class="sq-panel-head">
           <div>
             <div class="sq-panel-kicker">农场坑位</div>
-            <h2>分组状态</h2>
+            <h2>点击成熟田收菜，点击空地种植</h2>
           </div>
         </div>
         <div class="sq-land-stack">
           <article v-for="group in farm.land_groups || []" :key="group.id" class="sq-land-group">
             <header class="sq-group-head">
-              <div class="sq-group-name">{{ group.name }}</div>
+              <div>
+                <div class="sq-group-name">{{ group.name }}</div>
+              </div>
               <div class="sq-group-subtitle">{{ group.subtitle }}</div>
             </header>
             <div class="sq-slot-grid">
-              <div
+              <button
                 v-for="slot in group.slots"
                 :key="`${group.id}-${slot.slot_index}`"
+                type="button"
                 class="sq-slot"
-                :class="`is-${slot.state}`"
+                :class="[
+                  `is-${slot.state}`,
+                  { 'is-clickable': isInteractiveSlot(slot), 'is-busy': actingSlotKey === slotKey(slot) }
+                ]"
+                :disabled="loading || actingSlotKey === slotKey(slot)"
+                @click="handleSlotClick(slot)"
               >
+                <div class="sq-slot-top">
+                  <span class="sq-slot-index">#{{ slot.slot_index }}</span>
+                  <span class="sq-slot-badge">{{ slot.badge }}</span>
+                </div>
                 <div class="sq-slot-icon">{{ slot.icon }}</div>
                 <div class="sq-slot-name">{{ slot.title }}</div>
-                <div class="sq-slot-badge">{{ slot.badge }}</div>
                 <div class="sq-slot-desc">{{ slot.description }}</div>
                 <div class="sq-slot-time">{{ slotText(slot) }}</div>
-              </div>
+              </button>
             </div>
           </article>
         </div>
@@ -164,7 +186,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -174,19 +196,62 @@ const props = defineProps({
 const emit = defineEmits(['switch', 'close'])
 
 const loading = ref(false)
+const actingSlotKey = ref('')
 const status = reactive({ farm_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
+const isDarkTheme = ref(false)
+const selectedSeedId = ref(null)
+
 let timer = null
+let themeObserver = null
+let mediaQuery = null
 
 const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
 const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean))
+const seedShop = computed(() => farm.value.seed_shop || [])
+const unlockedSeeds = computed(() => seedShop.value.filter((seed) => seed.unlocked))
+const selectedSeed = computed(() => {
+  return seedShop.value.find((seed) => Number(seed.id) === Number(selectedSeedId.value)) || null
+})
+const allSlots = computed(() => {
+  return (farm.value.land_groups || []).flatMap((group) => group.slots || [])
+})
+const readySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'ready'))
+const emptySlots = computed(() => allSlots.value.filter((slot) => slot.state === 'empty'))
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
 }
+
+function detectTheme() {
+  const docTheme = document.documentElement.getAttribute('data-theme')
+  const bodyTheme = document.body?.getAttribute('data-theme')
+  const themeValue = bodyTheme || docTheme || ''
+  const darkThemes = new Set(['dark', 'purple', 'transparent'])
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+}
+
+function syncSelectedSeed() {
+  const available = unlockedSeeds.value
+  if (!available.length) {
+    selectedSeedId.value = null
+    return
+  }
+
+  const current = available.find((seed) => Number(seed.id) === Number(selectedSeedId.value))
+  if (current) {
+    return
+  }
+
+  const preferred = available.find((seed) => seed.preferred)
+  selectedSeedId.value = Number((preferred || available[0]).id)
+}
+
+watch(seedShop, syncSelectedSeed, { immediate: true, deep: true })
 
 async function loadStatus() {
   loading.value = true
@@ -239,6 +304,115 @@ async function syncCookie() {
   }
 }
 
+function selectSeed(seed) {
+  if (!seed?.unlocked) {
+    return
+  }
+  selectedSeedId.value = Number(seed.id)
+  flash(`已选择 ${seed.icon} ${seed.name}`)
+}
+
+function slotKey(slot) {
+  return `${slot.land_id}-${slot.slot_index}`
+}
+
+function isInteractiveSlot(slot) {
+  return slot.state === 'ready' || slot.state === 'empty'
+}
+
+async function plantPlot(slot, seedId) {
+  actingSlotKey.value = slotKey(slot)
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/plant-plot', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+      seed_id: seedId,
+    })
+    flash(res.message || '种植完成')
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '种植失败', 'error')
+  } finally {
+    actingSlotKey.value = ''
+    loading.value = false
+  }
+}
+
+async function harvestPlot(slot) {
+  actingSlotKey.value = slotKey(slot)
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/harvest-plot', {
+      land_id: slot.land_id,
+      slot_index: slot.slot_index,
+    })
+    flash(res.message || '收菜完成')
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '收菜失败', 'error')
+  } finally {
+    actingSlotKey.value = ''
+    loading.value = false
+  }
+}
+
+async function plantAllEmpty() {
+  const firstEmpty = emptySlots.value[0]
+  if (!firstEmpty) {
+    flash('当前没有可种植空地', 'warning')
+    return
+  }
+  if (!selectedSeed.value) {
+    flash('请先选择种子', 'warning')
+    return
+  }
+  await plantPlot(firstEmpty, selectedSeed.value.id)
+}
+
+async function harvestAllReady() {
+  const firstReady = readySlots.value[0]
+  if (!firstReady) {
+    flash('当前没有可收获田块', 'warning')
+    return
+  }
+  await harvestPlot(firstReady)
+}
+
+async function handleSlotClick(slot) {
+  if (loading.value) {
+    return
+  }
+
+  if (slot.state === 'ready') {
+    await harvestPlot(slot)
+    return
+  }
+
+  if (slot.state === 'empty') {
+    if (!selectedSeed.value) {
+      flash('请先在种子商店选择一个种子', 'warning')
+      return
+    }
+    await plantPlot(slot, selectedSeed.value.id)
+    return
+  }
+
+  if (slot.state === 'growing') {
+    flash(`${slot.title} 还需 ${slot.remaining_label || slot.reward_text || '等待成长'}`, 'info')
+    return
+  }
+
+  if (slot.state === 'expand') {
+    flash(`${slot.land_name} 可扩展：${slot.description}`, 'info')
+    return
+  }
+
+  if (slot.state === 'locked') {
+    flash(`${slot.land_name} 这块田暂未解锁`, 'info')
+  }
+}
+
 function formatRemain(seconds) {
   const sec = Math.max(0, Number(seconds) || 0)
   if (!sec) return '现在可收'
@@ -264,6 +438,16 @@ function closePlugin() {
 }
 
 onMounted(async () => {
+  detectTheme()
+  mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
+  mediaQuery?.addEventListener?.('change', detectTheme)
+
+  themeObserver = new MutationObserver(detectTheme)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  if (document.body) {
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
+  }
+
   await loadStatus()
   timer = window.setInterval(() => {
     nowTs.value = Math.floor(Date.now() / 1000)
@@ -271,33 +455,55 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer)
+  if (timer) {
+    window.clearInterval(timer)
+  }
+  themeObserver?.disconnect()
+  mediaQuery?.removeEventListener?.('change', detectTheme)
 })
 </script>
 
 <style scoped>
 .sq-page {
-  --sq-bg: linear-gradient(180deg, #f5efe4 0%, #fbf8f2 45%, #f7f4ee 100%);
-  --sq-surface: rgba(255, 255, 255, 0.82);
-  --sq-surface-strong: rgba(255, 252, 246, 0.96);
-  --sq-muted-surface: rgba(247, 239, 224, 0.72);
-  --sq-border: rgba(169, 138, 81, 0.18);
-  --sq-shadow: 0 20px 45px rgba(97, 75, 34, 0.08);
-  --sq-text: #2f281d;
-  --sq-subtle: #726754;
-  --sq-soft: #8e846f;
-  --sq-accent: #77b05d;
-  --sq-accent-strong: #4f8d3a;
-  --sq-accent-soft: rgba(119, 176, 93, 0.14);
-  --sq-ready: linear-gradient(180deg, #d8ffd5 0%, #9fe0a5 100%);
-  --sq-growing: linear-gradient(180deg, #fff2c2 0%, #ffd96b 100%);
-  --sq-empty: linear-gradient(180deg, #eef8ea 0%, #e1f4db 100%);
-  --sq-expand: linear-gradient(180deg, #edf7ef 0%, #dcedd9 100%);
-  --sq-locked: linear-gradient(180deg, #eef1f4 0%, #e3e7eb 100%);
+  --sq-bg: linear-gradient(180deg, #f4efe7 0%, #fbfaf7 40%, #f3f5f4 100%);
+  --sq-surface: #ffffff;
+  --sq-surface-soft: #f8f6f1;
+  --sq-panel: rgba(255, 255, 255, 0.92);
+  --sq-border: rgba(157, 169, 176, 0.18);
+  --sq-shadow: 0 18px 40px rgba(74, 96, 117, 0.08);
+  --sq-text: #263238;
+  --sq-subtle: #66757f;
+  --sq-soft: #8a98a2;
+  --sq-accent: #66bb6a;
+  --sq-accent-soft: rgba(102, 187, 106, 0.12);
+  --sq-ready: linear-gradient(180deg, #ddf8d6 0%, #b5e59e 100%);
+  --sq-growing: linear-gradient(180deg, #ffe39a 0%, #f8c64f 100%);
+  --sq-empty: linear-gradient(180deg, #eef8ea 0%, #dbf1d3 100%);
+  --sq-expand: linear-gradient(180deg, #eef6f0 0%, #deecdf 100%);
+  --sq-locked: linear-gradient(180deg, #eff3f6 0%, #e4e9ee 100%);
   min-height: 100%;
-  padding: clamp(18px, 2.6vw, 30px);
+  padding: clamp(16px, 2vw, 24px);
   background: var(--sq-bg);
   color: var(--sq-text);
+}
+
+.sq-page.is-dark-theme {
+  --sq-bg: linear-gradient(180deg, #111616 0%, #151b1a 45%, #101515 100%);
+  --sq-surface: #1c2321;
+  --sq-surface-soft: #222b29;
+  --sq-panel: rgba(24, 31, 30, 0.92);
+  --sq-border: rgba(124, 148, 133, 0.22);
+  --sq-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+  --sq-text: #edf3f0;
+  --sq-subtle: #b7c5bd;
+  --sq-soft: #8fa096;
+  --sq-accent: #9bd48a;
+  --sq-accent-soft: rgba(120, 187, 110, 0.18);
+  --sq-ready: linear-gradient(180deg, #49754c 0%, #5a9a63 100%);
+  --sq-growing: linear-gradient(180deg, #8f6b2c 0%, #b18632 100%);
+  --sq-empty: linear-gradient(180deg, #304a35 0%, #36553d 100%);
+  --sq-expand: linear-gradient(180deg, #31433a 0%, #395047 100%);
+  --sq-locked: linear-gradient(180deg, #333d42 0%, #3f4b52 100%);
 }
 
 .sq-shell {
@@ -305,7 +511,7 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .sq-hero,
@@ -317,17 +523,15 @@ onBeforeUnmount(() => {
 }
 
 .sq-hero {
-  position: relative;
-  overflow: hidden;
-  padding: clamp(22px, 3vw, 34px);
-  border-radius: 30px;
+  padding: 24px;
+  border-radius: 28px;
   background:
-    radial-gradient(circle at top right, rgba(136, 202, 115, 0.2), transparent 32%),
-    radial-gradient(circle at bottom left, rgba(255, 208, 119, 0.18), transparent 28%),
-    var(--sq-surface-strong);
+    radial-gradient(circle at top right, rgba(115, 200, 111, 0.18), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(255, 193, 7, 0.14), transparent 26%),
+    var(--sq-panel);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px 24px;
+  gap: 16px 20px;
   align-items: start;
 }
 
@@ -337,7 +541,7 @@ onBeforeUnmount(() => {
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--sq-accent-soft);
-  color: var(--sq-accent-strong);
+  color: var(--sq-accent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -353,60 +557,51 @@ onBeforeUnmount(() => {
 
 .sq-subtitle {
   margin: 0;
-  max-width: 720px;
   color: var(--sq-subtle);
   line-height: 1.7;
   font-size: 14px;
 }
 
-.sq-actions {
+.sq-actions,
+.sq-hero-meta,
+.sq-shop-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.sq-actions {
   justify-content: flex-end;
 }
 
 .sq-hero-meta {
   grid-column: 1 / -1;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .sq-meta-chip,
-.sq-highlight-pill {
+.sq-selected-seed {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 38px;
   padding: 0 14px;
   border-radius: 16px;
-  background: var(--sq-muted-surface);
+  background: var(--sq-surface-soft);
   color: var(--sq-subtle);
-  border: 1px solid rgba(169, 138, 81, 0.12);
+  border: 1px solid var(--sq-border);
   font-size: 13px;
   font-weight: 600;
 }
 
-.sq-stat-grid,
-.sq-grid {
-  display: grid;
-  gap: 18px;
-}
-
 .sq-stat-grid {
+  display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.sq-grid-top {
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 12px;
 }
 
 .sq-stat-card {
-  border-radius: 24px;
-  padding: 20px;
-  background: var(--sq-surface);
-  backdrop-filter: blur(10px);
+  border-radius: 22px;
+  padding: 18px;
+  background: var(--sq-panel);
   text-align: center;
 }
 
@@ -417,23 +612,26 @@ onBeforeUnmount(() => {
 
 .sq-stat-value {
   margin-top: 8px;
-  font-size: clamp(28px, 3vw, 36px);
+  font-size: clamp(26px, 3vw, 34px);
   font-weight: 900;
 }
 
 .sq-panel {
-  border-radius: 28px;
-  padding: 22px;
-  background: var(--sq-surface);
-  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--sq-panel);
 }
 
 .sq-panel-head {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sq-panel-head-wrap {
+  flex-wrap: wrap;
 }
 
 .sq-panel-kicker {
@@ -447,80 +645,87 @@ onBeforeUnmount(() => {
 .sq-panel-head h2 {
   margin: 6px 0 0;
   font-size: 24px;
-  line-height: 1.1;
+  line-height: 1.15;
   font-weight: 800;
 }
 
-.sq-panel-text {
-  margin: 0;
-  color: var(--sq-subtle);
-  line-height: 1.8;
-}
-
-.sq-highlight-row,
 .sq-summary-list,
 .sq-history-list,
 .sq-land-stack {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.sq-summary-list,
-.sq-history-list,
-.sq-land-stack {
   flex-direction: column;
+  gap: 10px;
 }
 
-.sq-summary-line {
+.sq-summary-line,
+.sq-history-item {
   padding: 14px 16px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(246, 239, 224, 0.9));
-  border: 1px solid rgba(169, 138, 81, 0.12);
-  color: var(--sq-text);
-  font-weight: 600;
+  background: var(--sq-surface-soft);
+  border: 1px solid var(--sq-border);
 }
 
 .sq-empty {
-  padding: 42px 20px;
+  padding: 36px 18px;
   text-align: center;
   color: var(--sq-soft);
-  border-radius: 22px;
-  background: var(--sq-muted-surface);
-}
-
-.sq-bag-grid,
-.sq-seed-grid,
-.sq-slot-grid {
-  display: grid;
-  gap: 14px;
+  border-radius: 18px;
+  background: var(--sq-surface-soft);
 }
 
 .sq-bag-grid,
 .sq-seed-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.sq-bag-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.sq-seed-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .sq-bag-card,
 .sq-seed-card {
-  padding: 18px 16px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(251, 244, 228, 0.88));
-  border: 1px solid rgba(169, 138, 81, 0.16);
+  padding: 16px 14px;
+  border-radius: 18px;
+  background: var(--sq-surface-soft);
+  border: 1px solid var(--sq-border);
   text-align: center;
 }
 
+.sq-seed-card {
+  appearance: none;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sq-seed-card:hover:not(:disabled),
+.sq-slot.is-clickable:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.sq-seed-card.is-selected {
+  border-color: rgba(102, 187, 106, 0.56);
+  box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.14);
+}
+
+.sq-seed-card.is-locked {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
 .sq-bag-icon,
-.sq-seed-icon,
-.sq-slot-icon {
-  font-size: 30px;
-  line-height: 1;
+.sq-seed-icon {
+  font-size: 28px;
 }
 
 .sq-bag-name,
-.sq-seed-name,
-.sq-slot-name,
-.sq-group-name {
+.sq-seed-name {
+  margin-top: 8px;
   font-weight: 800;
 }
 
@@ -535,61 +740,66 @@ onBeforeUnmount(() => {
 .sq-history-top span,
 .sq-history-lines {
   color: var(--sq-subtle);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .sq-bag-total {
   margin-top: 8px;
-  color: #d88918;
+  color: #e39a2c;
   font-weight: 800;
 }
 
-.sq-seed-card.is-locked {
-  opacity: 0.56;
-  filter: grayscale(0.22);
-}
-
-.sq-seed-card.is-preferred {
-  background: linear-gradient(180deg, rgba(236, 251, 229, 0.98), rgba(225, 247, 215, 0.88));
-  border-color: rgba(92, 166, 93, 0.32);
-  box-shadow: inset 0 0 0 1px rgba(92, 166, 93, 0.08);
-}
-
 .sq-farm-panel {
-  padding: 24px;
+  padding: 16px;
 }
 
 .sq-land-group {
-  padding: 18px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(243, 238, 229, 0.82));
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--sq-surface);
 }
 
 .sq-group-head {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  align-items: baseline;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
-.sq-group-subtitle {
-  text-align: right;
+.sq-group-name {
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .sq-slot-grid {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .sq-slot {
-  min-height: 156px;
-  padding: 14px 12px;
-  border-radius: 22px;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  appearance: none;
+  width: 100%;
+  min-height: 132px;
+  padding: 10px 8px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
   text-align: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.sq-slot.is-clickable {
+  cursor: pointer;
+}
+
+.sq-slot.is-busy {
+  opacity: 0.72;
 }
 
 .sq-slot.is-growing { background: var(--sq-growing); }
@@ -598,38 +808,61 @@ onBeforeUnmount(() => {
 .sq-slot.is-expand { background: var(--sq-expand); }
 .sq-slot.is-locked { background: var(--sq-locked); }
 
+.sq-slot-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.sq-slot-index {
+  font-size: 11px;
+  color: var(--sq-soft);
+  font-weight: 700;
+}
+
 .sq-slot-badge {
   font-weight: 700;
 }
 
-.sq-slot-time {
-  font-weight: 800;
-  color: var(--sq-text);
+.sq-slot-icon {
+  font-size: 28px;
+  line-height: 1;
 }
 
-.sq-history-item {
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(246, 239, 224, 0.9));
-  border: 1px solid rgba(169, 138, 81, 0.12);
+.sq-slot-name {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.sq-slot-desc {
+  line-height: 1.35;
+}
+
+.sq-slot-time {
+  margin-top: auto;
+  font-weight: 800;
+  color: var(--sq-text);
 }
 
 .sq-history-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-@media (max-width: 1100px) {
-  .sq-stat-grid,
-  .sq-grid-top {
-    grid-template-columns: 1fr 1fr;
+@media (max-width: 1280px) {
+  .sq-slot-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 900px) {
-  .sq-hero {
+@media (max-width: 980px) {
+  .sq-hero,
+  .sq-stat-grid {
     grid-template-columns: 1fr;
   }
 
@@ -637,99 +870,20 @@ onBeforeUnmount(() => {
     justify-content: flex-start;
   }
 
-  .sq-stat-grid,
-  .sq-grid-top {
-    grid-template-columns: 1fr;
+  .sq-slot-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .sq-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sq-group-head,
-  .sq-panel-head {
+  .sq-panel-head,
+  .sq-group-head {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .sq-group-subtitle {
-    text-align: left;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .sq-page {
-    --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
-    --sq-surface: rgba(24, 30, 29, 0.88);
-    --sq-surface-strong: rgba(28, 35, 33, 0.95);
-    --sq-muted-surface: rgba(53, 63, 58, 0.68);
-    --sq-border: rgba(133, 157, 123, 0.18);
-    --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
-    --sq-text: #edf3ea;
-    --sq-subtle: #b9c4b4;
-    --sq-soft: #8f9d91;
-    --sq-accent: #9dd37b;
-    --sq-accent-strong: #d1f0c2;
-    --sq-accent-soft: rgba(119, 176, 93, 0.18);
-    --sq-ready: linear-gradient(180deg, rgba(73, 123, 79, 0.94), rgba(58, 102, 67, 0.98));
-    --sq-growing: linear-gradient(180deg, rgba(153, 116, 44, 0.96), rgba(122, 91, 30, 0.98));
-    --sq-empty: linear-gradient(180deg, rgba(47, 82, 55, 0.82), rgba(36, 67, 43, 0.9));
-    --sq-expand: linear-gradient(180deg, rgba(56, 76, 60, 0.86), rgba(39, 56, 44, 0.92));
-    --sq-locked: linear-gradient(180deg, rgba(63, 71, 72, 0.88), rgba(47, 54, 55, 0.94));
-  }
-
-  .sq-summary-line,
-  .sq-history-item,
-  .sq-bag-card,
-  .sq-seed-card,
-  .sq-land-group {
-    background: linear-gradient(180deg, rgba(28, 35, 33, 0.96), rgba(22, 27, 26, 0.92));
-  }
-
-  .sq-bag-total {
-    color: #f2bf65;
-  }
-}
-
-[data-theme="dark"] .sq-page,
-[data-theme="purple"] .sq-page,
-[data-theme="transparent"] .sq-page {
-  --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
-  --sq-surface: rgba(24, 30, 29, 0.88);
-  --sq-surface-strong: rgba(28, 35, 33, 0.95);
-  --sq-muted-surface: rgba(53, 63, 58, 0.68);
-  --sq-border: rgba(133, 157, 123, 0.18);
-  --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
-  --sq-text: #edf3ea;
-  --sq-subtle: #b9c4b4;
-  --sq-soft: #8f9d91;
-  --sq-accent: #9dd37b;
-  --sq-accent-strong: #d1f0c2;
-  --sq-accent-soft: rgba(119, 176, 93, 0.18);
-  --sq-ready: linear-gradient(180deg, rgba(73, 123, 79, 0.94), rgba(58, 102, 67, 0.98));
-  --sq-growing: linear-gradient(180deg, rgba(153, 116, 44, 0.96), rgba(122, 91, 30, 0.98));
-  --sq-empty: linear-gradient(180deg, rgba(47, 82, 55, 0.82), rgba(36, 67, 43, 0.9));
-  --sq-expand: linear-gradient(180deg, rgba(56, 76, 60, 0.86), rgba(39, 56, 44, 0.92));
-  --sq-locked: linear-gradient(180deg, rgba(63, 71, 72, 0.88), rgba(47, 54, 55, 0.94));
-}
-
-[data-theme="dark"] .sq-summary-line,
-[data-theme="dark"] .sq-history-item,
-[data-theme="dark"] .sq-bag-card,
-[data-theme="dark"] .sq-seed-card,
-[data-theme="dark"] .sq-land-group,
-[data-theme="purple"] .sq-summary-line,
-[data-theme="purple"] .sq-history-item,
-[data-theme="purple"] .sq-bag-card,
-[data-theme="purple"] .sq-seed-card,
-[data-theme="purple"] .sq-land-group,
-[data-theme="transparent"] .sq-summary-line,
-[data-theme="transparent"] .sq-history-item,
-[data-theme="transparent"] .sq-bag-card,
-[data-theme="transparent"] .sq-seed-card,
-[data-theme="transparent"] .sq-land-group {
-  background: linear-gradient(180deg, rgba(28, 35, 33, 0.96), rgba(22, 27, 26, 0.92));
-}
-
-[data-theme="dark"] .sq-bag-total,
-[data-theme="purple"] .sq-bag-total,
-[data-theme="transparent"] .sq-bag-total {
-  color: #f2bf65;
 }
 </style>
