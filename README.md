@@ -33,23 +33,6 @@ package.v2.json
 - `Cookie`
 - `OCR API 地址`
 
-自动收菜验证码依赖 trwebocr 容器。
-推荐先部署 trwebocr，再把 OCR 地址填成 http://ip:8089/api/tr-run/。
-容器安装参考如下：
-version: '3.8'
-services:
-  trwebocr:
-    image: mmmz/trwebocr:latest
-    container_name: trwebocr
-    ports:
-      - "8089:8089"
-    restart: always
-    volumes:
-      - ./data:/app/data
-    environment:
-      - TZ=Asia/Shanghai
-    network_mode: bridge
-
 ## 开发说明
 
 插件主文件：
