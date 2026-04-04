@@ -1,4 +1,4 @@
-# 🌾 MoviePilot-Plugins
+# MoviePilot-Plugins
 
 MoviePilot 第三方插件仓库，当前收录个人维护的 `SQFarm` 插件，后续新增插件也会继续放在这里统一维护。
 
