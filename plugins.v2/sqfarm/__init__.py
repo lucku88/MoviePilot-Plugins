@@ -1,4 +1,5 @@
-﻿import random
+import random
+import re
 import socket
 import time
 from datetime import datetime, timedelta
@@ -24,7 +25,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.9"
+    plugin_version = "0.4.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -69,6 +70,8 @@ class SQFarm(_PluginBase):
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
     _bootstrap_pending: bool = False
+    _page_stat_cache: Optional[Dict[str, int]] = None
+    _page_stat_cache_at: float = 0.0
 
     _crop_icon = {
         "萝卜": "🥕",
@@ -91,6 +94,8 @@ class SQFarm(_PluginBase):
             merged.update(config)
         self._apply_config(merged)
         self._resolve_site_profile()
+        self._page_stat_cache = None
+        self._page_stat_cache_at = 0.0
 
         if self._auto_cookie:
             self._sync_cookie_from_site(silent=True)
@@ -700,7 +705,82 @@ class SQFarm(_PluginBase):
             lambda: session.get(f"{self._site_url}/plant_game.php?action=fetch", timeout=(self._http_timeout, self._http_timeout)),
         )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return self._enrich_state_with_page_stats(session, data)
+
+    def _enrich_state_with_page_stats(self, session: requests.Session, data: dict) -> dict:
+        if not isinstance(data, dict):
+            return data
+        if self._has_stat_key(data, "user_steal_gain", "total_steal_gain", "total_steal", "steal_gain_total", "steal_gain") and self._has_stat_key(
+            data,
+            "farm_like_total",
+            "user_farm_like_total",
+            "farm_like_count",
+            "farm_likes",
+            "like_total",
+        ):
+            return data
+
+        try:
+            page_stats = self._fetch_page_stats(session)
+        except Exception as err:
+            logger.warning("%s 页面统计兜底失败：%s", self.plugin_name, err)
+            return data
+
+        if not page_stats:
+            return data
+
+        user_stats = data.setdefault("user_stats", {})
+        if "user_bonus" in page_stats and not data.get("user_bonus"):
+            data["user_bonus"] = page_stats["user_bonus"]
+        if "total_harvest" in page_stats and not user_stats.get("total_harvest"):
+            user_stats["total_harvest"] = page_stats["total_harvest"]
+        if "user_steal_gain" in page_stats:
+            data["user_steal_gain"] = page_stats["user_steal_gain"]
+            user_stats["total_steal_gain"] = page_stats["user_steal_gain"]
+        if "user_farm_like_total" in page_stats:
+            data["user_farm_like_total"] = page_stats["user_farm_like_total"]
+            user_stats["farm_like_total"] = page_stats["user_farm_like_total"]
+        return data
+
+    def _fetch_page_stats(self, session: requests.Session) -> Dict[str, int]:
+        now = time.time()
+        if self._page_stat_cache and (now - self._page_stat_cache_at) < 30:
+            return dict(self._page_stat_cache)
+
+        response = self._request_with_retry(
+            "fetchPageStats",
+            lambda: session.get(f"{self._site_url}/plant_game.php", timeout=(self._http_timeout, self._http_timeout)),
+        )
+        response.raise_for_status()
+        stats = self._parse_page_stats(response.text)
+        if stats:
+            self._page_stat_cache = dict(stats)
+            self._page_stat_cache_at = now
+        return stats
+
+    def _parse_page_stats(self, html: str) -> Dict[str, int]:
+        if not html:
+            return {}
+
+        def pick(stat_id: str) -> Optional[int]:
+            matched = re.search(rf'id="{re.escape(stat_id)}"[^>]*>\s*([\d,]+)\s*<', html, re.IGNORECASE)
+            if not matched:
+                return None
+            return self._safe_int(str(matched.group(1)).replace(",", ""), 0)
+
+        stats: Dict[str, int] = {}
+        mapping = {
+            "user-bonus": "user_bonus",
+            "user-harvest": "total_harvest",
+            "user-steal-gain": "user_steal_gain",
+            "user-farm-like-total": "user_farm_like_total",
+        }
+        for element_id, key in mapping.items():
+            value = pick(element_id)
+            if value is not None:
+                stats[key] = value
+        return stats
 
     def _post_action(self, session: requests.Session, action: str, payload: Optional[dict] = None, retry_network: bool = False) -> dict:
         body = dict(payload or {})
@@ -1663,6 +1743,19 @@ class SQFarm(_PluginBase):
                 if isinstance(source, dict) and key in source and source.get(key) is not None:
                     return self._safe_int(source.get(key), 0)
         return 0
+
+    def _has_stat_key(self, data: dict, *keys: str) -> bool:
+        sources = [
+            data.get("user_stats") or {},
+            data.get("user") or {},
+            data.get("profile") or {},
+            data,
+        ]
+        for key in keys:
+            for source in sources:
+                if isinstance(source, dict) and key in source and source.get(key) is not None:
+                    return True
+        return False
 
     @staticmethod
     def _to_bool(val: Any) -> bool:
