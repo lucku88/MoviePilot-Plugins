@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_46b53aed_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_cc49b936_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-46b53aed"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-cc49b936"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -26,34 +26,32 @@ const _hoisted_16 = {
   key: 1,
   class: "sq-panel"
 };
-const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
-  /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "本次摘要"),
-    /*#__PURE__*/_createElementVNode("h2", null, "任务结果")
-  ])
+const _hoisted_17 = { class: "sq-panel-head" };
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+  /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "本次摘要"),
+  /*#__PURE__*/_createElementVNode("h2", null, "任务结果")
 ], -1));
-const _hoisted_18 = { class: "sq-summary-list" };
-const _hoisted_19 = { class: "sq-panel" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_19 = { class: "sq-summary-list" };
+const _hoisted_20 = { class: "sq-panel" };
+const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "收获背包"),
     /*#__PURE__*/_createElementVNode("h2", null, "当前库存")
   ])
 ], -1));
-const _hoisted_21 = {
+const _hoisted_22 = {
   key: 0,
   class: "sq-empty"
 };
-const _hoisted_22 = {
+const _hoisted_23 = {
   key: 1,
   class: "sq-bag-grid"
 };
-const _hoisted_23 = { class: "sq-bag-icon" };
-const _hoisted_24 = { class: "sq-bag-name" };
-const _hoisted_25 = { class: "sq-bag-meta" };
+const _hoisted_24 = { class: "sq-bag-icon" };
+const _hoisted_25 = { class: "sq-bag-name" };
 const _hoisted_26 = { class: "sq-bag-meta" };
-const _hoisted_27 = { class: "sq-bag-bonus" };
-const _hoisted_28 = { class: "sq-bag-total" };
+const _hoisted_27 = { class: "sq-bag-meta" };
+const _hoisted_28 = { class: "sq-bag-bonus" };
 const _hoisted_29 = { class: "sq-bag-sell" };
 const _hoisted_30 = ["max", "value", "disabled", "onInput"];
 const _hoisted_31 = ["disabled", "onClick"];
@@ -142,6 +140,7 @@ const selectedSeedId = ref(null);
 const lastRunAutoRefreshTs = ref(0);
 const lastTriggerAutoRefreshTs = ref(0);
 const sellInputs = reactive({});
+const dismissedSummaryKey = ref('');
 
 let timer = null;
 let themeObserver = null;
@@ -151,6 +150,8 @@ let observedThemeNode = null;
 const farm = computed(() => status.farm_status || {});
 const historyItems = computed(() => status.history || farm.value.history || []);
 const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean));
+const summaryKey = computed(() => summaryLines.value.join('||'));
+const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value);
 const seedShop = computed(() => farm.value.seed_shop || []);
 const inventoryItems = computed(() => farm.value.inventory?.items || []);
 const unlockedSeeds = computed(() => seedShop.value.filter((seed) => seed.unlocked));
@@ -216,6 +217,26 @@ function detectTheme() {
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark);
 }
 
+function loadDismissedSummaryKey() {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    dismissedSummaryKey.value = '';
+    return
+  }
+  dismissedSummaryKey.value = window.sessionStorage.getItem('sqfarm-dismissed-summary') || '';
+}
+
+function dismissSummary() {
+  const key = summaryKey.value;
+  dismissedSummaryKey.value = key;
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (key) {
+      window.sessionStorage.setItem('sqfarm-dismissed-summary', key);
+    } else {
+      window.sessionStorage.removeItem('sqfarm-dismissed-summary');
+    }
+  }
+}
+
 function bindThemeObserver() {
   themeObserver?.disconnect();
   themeObserver = new MutationObserver(() => {
@@ -254,6 +275,10 @@ function syncSelectedSeed() {
 }
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true });
+
+watch(summaryKey, () => {
+  loadDismissedSummaryKey();
+});
 
 watch(
   inventoryItems,
@@ -550,10 +575,14 @@ function slotText(slot) {
 }
 
 function closePlugin() {
+  if (showSummary.value) {
+    dismissSummary();
+  }
   emit('close');
 }
 
 onMounted(async () => {
+  loadDismissedSummaryKey();
   detectTheme();
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
   mediaQuery?.addEventListener?.('change', detectTheme);
@@ -673,10 +702,22 @@ return (_ctx, _cache) => {
           ]))
         }), 128))
       ]),
-      (summaryLines.value.length)
+      (showSummary.value)
         ? (_openBlock(), _createElementBlock("section", _hoisted_16, [
-            _hoisted_17,
-            _createElementVNode("div", _hoisted_18, [
+            _createElementVNode("div", _hoisted_17, [
+              _hoisted_18,
+              _createVNode(_component_v_btn, {
+                variant: "text",
+                size: "small",
+                onClick: dismissSummary
+              }, {
+                default: _withCtx(() => [
+                  _createTextVNode("关闭")
+                ]),
+                _: 1
+              })
+            ]),
+            _createElementVNode("div", _hoisted_19, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(summaryLines.value, (line) => {
                 return (_openBlock(), _createElementBlock("div", {
                   key: line,
@@ -686,24 +727,23 @@ return (_ctx, _cache) => {
             ])
           ]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_19, [
-        _hoisted_20,
+      _createElementVNode("section", _hoisted_20, [
+        _hoisted_21,
         (farm.value.inventory?.empty)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_21, _toDisplayString(farm.value.inventory?.empty_text), 1))
-          : (_openBlock(), _createElementBlock("div", _hoisted_22, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_22, _toDisplayString(farm.value.inventory?.empty_text), 1))
+          : (_openBlock(), _createElementBlock("div", _hoisted_23, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: item.seed_id || item.name,
                   class: "sq-bag-card"
                 }, [
-                  _createElementVNode("div", _hoisted_23, _toDisplayString(item.icon), 1),
-                  _createElementVNode("div", _hoisted_24, _toDisplayString(item.name), 1),
-                  _createElementVNode("div", _hoisted_25, "数量 " + _toDisplayString(item.quantity), 1),
-                  _createElementVNode("div", _hoisted_26, [
+                  _createElementVNode("div", _hoisted_24, _toDisplayString(item.icon), 1),
+                  _createElementVNode("div", _hoisted_25, _toDisplayString(item.name), 1),
+                  _createElementVNode("div", _hoisted_26, "数量 " + _toDisplayString(item.quantity), 1),
+                  _createElementVNode("div", _hoisted_27, [
                     _createTextVNode(" 售：" + _toDisplayString(item.unit_reward) + " 魔力/份 ", 1),
-                    _createElementVNode("span", _hoisted_27, "+" + _toDisplayString(item.sell_bonus_percent || 0) + "%", 1)
+                    _createElementVNode("span", _hoisted_28, "+" + _toDisplayString(item.sell_bonus_percent || 0) + "%", 1)
                   ]),
-                  _createElementVNode("div", _hoisted_28, "+" + _toDisplayString(item.total_reward) + " 魔力", 1),
                   _createElementVNode("div", _hoisted_29, [
                     _createElementVNode("input", {
                       class: "sq-bag-input",
@@ -846,6 +886,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-46b53aed"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cc49b936"]]);
 
 export { PageView as default };

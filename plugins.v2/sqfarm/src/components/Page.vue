@@ -35,12 +35,13 @@
         </article>
       </section>
 
-      <section v-if="summaryLines.length" class="sq-panel">
+      <section v-if="showSummary" class="sq-panel">
         <div class="sq-panel-head">
           <div>
             <div class="sq-panel-kicker">本次摘要</div>
             <h2>任务结果</h2>
           </div>
+          <v-btn variant="text" size="small" @click="dismissSummary">关闭</v-btn>
         </div>
         <div class="sq-summary-list">
           <div v-for="line in summaryLines" :key="line" class="sq-summary-line">{{ line }}</div>
@@ -64,7 +65,6 @@
               售：{{ item.unit_reward }} 魔力/份
               <span class="sq-bag-bonus">+{{ item.sell_bonus_percent || 0 }}%</span>
             </div>
-            <div class="sq-bag-total">+{{ item.total_reward }} 魔力</div>
             <div class="sq-bag-sell">
               <input
                 class="sq-bag-input"
@@ -228,6 +228,7 @@ const selectedSeedId = ref(null)
 const lastRunAutoRefreshTs = ref(0)
 const lastTriggerAutoRefreshTs = ref(0)
 const sellInputs = reactive({})
+const dismissedSummaryKey = ref('')
 
 let timer = null
 let themeObserver = null
@@ -237,6 +238,8 @@ let observedThemeNode = null
 const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
 const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean))
+const summaryKey = computed(() => summaryLines.value.join('||'))
+const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
 const seedShop = computed(() => farm.value.seed_shop || [])
 const inventoryItems = computed(() => farm.value.inventory?.items || [])
 const unlockedSeeds = computed(() => seedShop.value.filter((seed) => seed.unlocked))
@@ -302,6 +305,26 @@ function detectTheme() {
   isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
 }
 
+function loadDismissedSummaryKey() {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    dismissedSummaryKey.value = ''
+    return
+  }
+  dismissedSummaryKey.value = window.sessionStorage.getItem('sqfarm-dismissed-summary') || ''
+}
+
+function dismissSummary() {
+  const key = summaryKey.value
+  dismissedSummaryKey.value = key
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (key) {
+      window.sessionStorage.setItem('sqfarm-dismissed-summary', key)
+    } else {
+      window.sessionStorage.removeItem('sqfarm-dismissed-summary')
+    }
+  }
+}
+
 function bindThemeObserver() {
   themeObserver?.disconnect()
   themeObserver = new MutationObserver(() => {
@@ -340,6 +363,10 @@ function syncSelectedSeed() {
 }
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true })
+
+watch(summaryKey, () => {
+  loadDismissedSummaryKey()
+})
 
 watch(
   inventoryItems,
@@ -636,10 +663,14 @@ function slotText(slot) {
 }
 
 function closePlugin() {
+  if (showSummary.value) {
+    dismissSummary()
+  }
   emit('close')
 }
 
 onMounted(async () => {
+  loadDismissedSummaryKey()
   detectTheme()
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
   mediaQuery?.addEventListener?.('change', detectTheme)
@@ -928,7 +959,6 @@ onBeforeUnmount(() => {
 }
 
 .sq-bag-meta,
-.sq-bag-total,
 .sq-seed-line,
 .sq-seed-note,
 .sq-slot-badge,
@@ -939,12 +969,6 @@ onBeforeUnmount(() => {
 .sq-history-lines {
   color: var(--sq-subtle);
   font-size: 12px;
-}
-
-.sq-bag-total {
-  margin-top: 8px;
-  color: #e39a2c;
-  font-weight: 800;
 }
 
 .sq-bag-bonus {

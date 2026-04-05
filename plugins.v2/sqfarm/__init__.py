@@ -24,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.8"
+    plugin_version = "0.4.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -446,7 +446,8 @@ class SQFarm(_PluginBase):
 
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         farm_status = self.get_data("farm_status") or {}
-        if auto_refresh and self._enabled and not farm_status:
+        needs_refresh = not farm_status or farm_status.get("schema_version") != self.plugin_version
+        if auto_refresh and self._enabled and needs_refresh:
             try:
                 farm_status = self._refresh_state(reason="status-init")
             except Exception as err:
@@ -1018,7 +1019,7 @@ class SQFarm(_PluginBase):
         return unlocked[0]
 
     def _get_unlocked_seeds(self, data: dict) -> List[dict]:
-        total_harvest = int((data.get("user_stats") or {}).get("total_harvest") or 0)
+        total_harvest = self._get_stat_number(data, "total_harvest")
         return [seed for seed in (data.get("seeds") or []) if total_harvest >= int(seed.get("unlock_harvest") or 0)]
 
     def _find_slot_context(self, data: dict, land_id: int, slot_index: int) -> Dict[str, Any]:
@@ -1291,6 +1292,23 @@ class SQFarm(_PluginBase):
 
     def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> dict:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
+        total_harvest = self._get_stat_number(data, "total_harvest")
+        total_steal_gain = self._get_stat_number(
+            data,
+            "total_steal_gain",
+            "user_steal_gain",
+            "total_steal",
+            "steal_gain_total",
+            "steal_gain",
+        )
+        farm_like_total = self._get_stat_number(
+            data,
+            "farm_like_total",
+            "user_farm_like_total",
+            "farm_like_count",
+            "farm_likes",
+            "like_total",
+        )
         return {
             "time": self._format_time(self._aware_now()),
             "next_run_ts": int(next_run or 0),
@@ -1300,9 +1318,9 @@ class SQFarm(_PluginBase):
             "summary": summary_lines,
             "user": {
                 "bonus": data.get("user_bonus"),
-                "total_harvest": (data.get("user_stats") or {}).get("total_harvest"),
-                "total_steal": (data.get("user_stats") or {}).get("total_steal_gain"),
-                "farm_likes": (data.get("user_stats") or {}).get("farm_like_total"),
+                "total_harvest": total_harvest,
+                "total_steal": total_steal_gain,
+                "farm_likes": farm_like_total,
             },
             "plots": [
                 {
@@ -1325,11 +1343,30 @@ class SQFarm(_PluginBase):
 
     def _build_ui_state(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
         user_stats = data.get("user_stats") or {}
+        total_harvest = self._get_stat_number(data, "total_harvest")
+        total_steal_gain = self._get_stat_number(
+            data,
+            "total_steal_gain",
+            "user_steal_gain",
+            "total_steal",
+            "steal_gain_total",
+            "steal_gain",
+        )
+        farm_like_total = self._get_stat_number(
+            data,
+            "farm_like_total",
+            "user_farm_like_total",
+            "farm_like_count",
+            "farm_likes",
+            "like_total",
+        )
+        unlocked_land_count = self._get_stat_number(data, "unlocked_land_count")
         ready_count = len(self._collect_ready_plots(data))
         empty_count = self._count_empty_plots(data)
         growing_count = max(0, len(data.get("user_lands") or []) - ready_count)
         return {
             "title": "种菜赚魔力",
+            "schema_version": self.plugin_version,
             "last_updated": self._format_time(self._aware_now()),
             "summary": summary_lines,
             "next_run_ts": int(next_run or 0),
@@ -1340,15 +1377,15 @@ class SQFarm(_PluginBase):
             "page_note": "状态页仅展示当前农场信息。插件会先动态识别最近可收时间并记录下一次运行；如果当前还没有可收时间，会自动运行一次获取农场信息。",
             "overview": [
                 {"label": "魔力值", "value": int(data.get("user_bonus") or 0), "accent": "amber"},
-                {"label": "总种植收获", "value": int(user_stats.get("total_harvest") or 0), "accent": "cyan"},
-                {"label": "总偷菜收益", "value": int(user_stats.get("total_steal_gain") or 0), "accent": "green"},
-                {"label": "农场被点赞", "value": int(user_stats.get("farm_like_total") or 0), "accent": "indigo"},
+                {"label": "总种植收获", "value": total_harvest, "accent": "cyan"},
+                {"label": "总偷菜收益", "value": total_steal_gain, "accent": "green"},
+                {"label": "农场被点赞", "value": farm_like_total, "accent": "indigo"},
             ],
             "highlights": {
                 "ready_count": ready_count,
                 "growing_count": growing_count,
                 "empty_count": empty_count,
-                "land_count": int(user_stats.get("unlocked_land_count") or 0),
+                "land_count": unlocked_land_count,
             },
             "inventory": self._build_inventory_cards(data.get("inventory") or []),
             "seed_shop": self._build_seed_shop(data),
@@ -1375,12 +1412,11 @@ class SQFarm(_PluginBase):
                 "base_unit_reward": base_unit_reward,
                 "unit_reward": unit_reward,
                 "sell_bonus_percent": sell_bonus_percent,
-                "total_reward": quantity * unit_reward,
             })
         return {"empty": not cards, "items": cards, "empty_text": "背包空空如也，快去收菜吧。"}
 
     def _build_seed_shop(self, data: dict) -> List[Dict[str, Any]]:
-        total_harvest = int((data.get("user_stats") or {}).get("total_harvest") or 0)
+        total_harvest = self._get_stat_number(data, "total_harvest")
         cards = []
         for seed in sorted(data.get("seeds") or [], key=lambda item: int(item.get("unlock_harvest") or 0)):
             grow_time = int(seed.get("grow_time") or 0)
@@ -1614,6 +1650,19 @@ class SQFarm(_PluginBase):
                 result["plant"][key] = result["plant"].get(key, 0) + qty
                 result["plant_cost"] += qty * seed_cost_map.get(name, 0)
         return result
+
+    def _get_stat_number(self, data: dict, *keys: str) -> int:
+        sources = [
+            data.get("user_stats") or {},
+            data.get("user") or {},
+            data.get("profile") or {},
+            data,
+        ]
+        for key in keys:
+            for source in sources:
+                if isinstance(source, dict) and key in source and source.get(key) is not None:
+                    return self._safe_int(source.get(key), 0)
+        return 0
 
     @staticmethod
     def _to_bool(val: Any) -> bool:
