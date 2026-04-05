@@ -56,12 +56,35 @@
         </div>
         <div v-if="farm.inventory?.empty" class="sq-empty">{{ farm.inventory?.empty_text }}</div>
         <div v-else class="sq-bag-grid">
-          <article v-for="item in farm.inventory?.items || []" :key="item.name" class="sq-bag-card">
+          <article v-for="item in inventoryItems" :key="item.seed_id || item.name" class="sq-bag-card">
             <div class="sq-bag-icon">{{ item.icon }}</div>
             <div class="sq-bag-name">{{ item.name }}</div>
             <div class="sq-bag-meta">数量 {{ item.quantity }}</div>
-            <div class="sq-bag-meta">单价 {{ item.unit_reward }}</div>
+            <div class="sq-bag-meta">
+              售：{{ item.unit_reward }} 魔力/份
+              <span class="sq-bag-bonus">+{{ item.sell_bonus_percent || 0 }}%</span>
+            </div>
             <div class="sq-bag-total">+{{ item.total_reward }} 魔力</div>
+            <div class="sq-bag-sell">
+              <input
+                class="sq-bag-input"
+                type="number"
+                min="1"
+                :max="item.quantity"
+                :value="getSellQuantity(item)"
+                :disabled="loading || sellingSeedId === item.seed_id"
+                @click.stop
+                @input="updateSellQuantity(item, $event)"
+              >
+              <button
+                type="button"
+                class="sq-bag-button"
+                :disabled="loading || !item.quantity || sellingSeedId === item.seed_id"
+                @click.stop="sellInventory(item)"
+              >
+                {{ sellingSeedId === item.seed_id ? '售出中' : '售出' }}
+              </button>
+            </div>
           </article>
         </div>
       </section>
@@ -195,6 +218,7 @@ const emit = defineEmits(['switch', 'close'])
 
 const loading = ref(false)
 const actingSlotKey = ref('')
+const sellingSeedId = ref(0)
 const rootEl = ref(null)
 const status = reactive({ farm_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
@@ -203,6 +227,7 @@ const isDarkTheme = ref(false)
 const selectedSeedId = ref(null)
 const lastRunAutoRefreshTs = ref(0)
 const lastTriggerAutoRefreshTs = ref(0)
+const sellInputs = reactive({})
 
 let timer = null
 let themeObserver = null
@@ -213,6 +238,7 @@ const farm = computed(() => status.farm_status || {})
 const historyItems = computed(() => status.history || farm.value.history || [])
 const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean))
 const seedShop = computed(() => farm.value.seed_shop || [])
+const inventoryItems = computed(() => farm.value.inventory?.items || [])
 const unlockedSeeds = computed(() => seedShop.value.filter((seed) => seed.unlocked))
 const selectedSeed = computed(() => {
   return seedShop.value.find((seed) => Number(seed.id) === Number(selectedSeedId.value)) || null
@@ -315,6 +341,25 @@ function syncSelectedSeed() {
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true })
 
+watch(
+  inventoryItems,
+  (items) => {
+    const activeKeys = new Set()
+    for (const item of items) {
+      const key = String(item.seed_id || item.name)
+      activeKeys.add(key)
+      const current = Number(sellInputs[key])
+      sellInputs[key] = current > 0 ? Math.min(current, Number(item.quantity || 1)) : 1
+    }
+    for (const key of Object.keys(sellInputs)) {
+      if (!activeKeys.has(key)) {
+        delete sellInputs[key]
+      }
+    }
+  },
+  { immediate: true, deep: true },
+)
+
 watch(nextRunTs, (value) => {
   if (!value || value > nowTs.value) {
     lastRunAutoRefreshTs.value = 0
@@ -415,6 +460,25 @@ function isInteractiveSlot(slot) {
   return slot.state === 'ready' || slot.state === 'empty'
 }
 
+function inventoryKey(item) {
+  return String(item.seed_id || item.name)
+}
+
+function getSellQuantity(item) {
+  const key = inventoryKey(item)
+  const current = Number(sellInputs[key])
+  if (!current || current < 1) {
+    return 1
+  }
+  return Math.min(current, Number(item.quantity || 1))
+}
+
+function updateSellQuantity(item, event) {
+  const raw = Number(event?.target?.value || 1)
+  const safe = Math.min(Math.max(1, raw || 1), Number(item.quantity || 1))
+  sellInputs[inventoryKey(item)] = safe
+}
+
 async function plantPlot(slot, seedId) {
   actingSlotKey.value = slotKey(slot)
   loading.value = true
@@ -448,6 +512,31 @@ async function harvestPlot(slot) {
     flash(error?.message || '收菜失败', 'error')
   } finally {
     actingSlotKey.value = ''
+    loading.value = false
+  }
+}
+
+async function sellInventory(item) {
+  const seedId = Number(item.seed_id || 0)
+  const quantity = getSellQuantity(item)
+  if (!seedId || quantity <= 0) {
+    flash('售出参数无效', 'warning')
+    return
+  }
+
+  sellingSeedId.value = seedId
+  loading.value = true
+  try {
+    const res = await props.api.post('/plugin/SQFarm/sell-inventory', {
+      seed_id: seedId,
+      quantity,
+    })
+    flash(res.message || '售出完成')
+    await loadStatus()
+  } catch (error) {
+    flash(error?.message || '售出失败', 'error')
+  } finally {
+    sellingSeedId.value = 0
     loading.value = false
   }
 }
@@ -856,6 +945,54 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   color: #e39a2c;
   font-weight: 800;
+}
+
+.sq-bag-bonus {
+  margin-left: 4px;
+  color: #e67e22;
+  font-weight: 800;
+}
+
+.sq-bag-sell {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sq-bag-input {
+  width: 60px;
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--sq-border);
+  background: var(--sq-surface);
+  color: var(--sq-text);
+  text-align: center;
+  outline: none;
+}
+
+.sq-bag-button {
+  border: none;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  background: linear-gradient(180deg, #ffb341 0%, #ff9800 100%);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.sq-bag-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.sq-bag-button:disabled,
+.sq-bag-input:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
 }
 
 .sq-farm-panel {

@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_2162caff_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_46b53aed_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-2162caff"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-46b53aed"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -52,60 +52,64 @@ const _hoisted_23 = { class: "sq-bag-icon" };
 const _hoisted_24 = { class: "sq-bag-name" };
 const _hoisted_25 = { class: "sq-bag-meta" };
 const _hoisted_26 = { class: "sq-bag-meta" };
-const _hoisted_27 = { class: "sq-bag-total" };
-const _hoisted_28 = { class: "sq-panel" };
-const _hoisted_29 = { class: "sq-panel-head sq-panel-head-wrap" };
-const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_27 = { class: "sq-bag-bonus" };
+const _hoisted_28 = { class: "sq-bag-total" };
+const _hoisted_29 = { class: "sq-bag-sell" };
+const _hoisted_30 = ["max", "value", "disabled", "onInput"];
+const _hoisted_31 = ["disabled", "onClick"];
+const _hoisted_32 = { class: "sq-panel" };
+const _hoisted_33 = { class: "sq-panel-head sq-panel-head-wrap" };
+const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "种子商店"),
   /*#__PURE__*/_createElementVNode("h2", null, "选择种子后点击空地种植")
 ], -1));
-const _hoisted_31 = { class: "sq-shop-actions" };
-const _hoisted_32 = { class: "sq-selected-seed" };
-const _hoisted_33 = { key: 0 };
-const _hoisted_34 = { key: 1 };
-const _hoisted_35 = { class: "sq-seed-grid" };
-const _hoisted_36 = ["disabled", "onClick"];
-const _hoisted_37 = { class: "sq-seed-icon" };
-const _hoisted_38 = { class: "sq-seed-name" };
-const _hoisted_39 = { class: "sq-seed-line" };
-const _hoisted_40 = { class: "sq-seed-line" };
-const _hoisted_41 = { class: "sq-seed-note" };
-const _hoisted_42 = { class: "sq-panel sq-farm-panel" };
-const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_35 = { class: "sq-shop-actions" };
+const _hoisted_36 = { class: "sq-selected-seed" };
+const _hoisted_37 = { key: 0 };
+const _hoisted_38 = { key: 1 };
+const _hoisted_39 = { class: "sq-seed-grid" };
+const _hoisted_40 = ["disabled", "onClick"];
+const _hoisted_41 = { class: "sq-seed-icon" };
+const _hoisted_42 = { class: "sq-seed-name" };
+const _hoisted_43 = { class: "sq-seed-line" };
+const _hoisted_44 = { class: "sq-seed-line" };
+const _hoisted_45 = { class: "sq-seed-note" };
+const _hoisted_46 = { class: "sq-panel sq-farm-panel" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "农场坑位"),
     /*#__PURE__*/_createElementVNode("h2", null, "分组状态")
   ])
 ], -1));
-const _hoisted_44 = { class: "sq-land-stack" };
-const _hoisted_45 = { class: "sq-group-head" };
-const _hoisted_46 = { class: "sq-group-name" };
-const _hoisted_47 = { class: "sq-group-subtitle" };
-const _hoisted_48 = { class: "sq-slot-grid" };
-const _hoisted_49 = ["disabled", "onClick"];
-const _hoisted_50 = { class: "sq-slot-top" };
-const _hoisted_51 = { class: "sq-slot-index" };
-const _hoisted_52 = { class: "sq-slot-badge" };
-const _hoisted_53 = { class: "sq-slot-icon" };
-const _hoisted_54 = { class: "sq-slot-name" };
-const _hoisted_55 = { class: "sq-slot-time" };
-const _hoisted_56 = { class: "sq-panel" };
-const _hoisted_57 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_48 = { class: "sq-land-stack" };
+const _hoisted_49 = { class: "sq-group-head" };
+const _hoisted_50 = { class: "sq-group-name" };
+const _hoisted_51 = { class: "sq-group-subtitle" };
+const _hoisted_52 = { class: "sq-slot-grid" };
+const _hoisted_53 = ["disabled", "onClick"];
+const _hoisted_54 = { class: "sq-slot-top" };
+const _hoisted_55 = { class: "sq-slot-index" };
+const _hoisted_56 = { class: "sq-slot-badge" };
+const _hoisted_57 = { class: "sq-slot-icon" };
+const _hoisted_58 = { class: "sq-slot-name" };
+const _hoisted_59 = { class: "sq-slot-time" };
+const _hoisted_60 = { class: "sq-panel" };
+const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
 ], -1));
-const _hoisted_58 = {
+const _hoisted_62 = {
   key: 0,
   class: "sq-empty"
 };
-const _hoisted_59 = {
+const _hoisted_63 = {
   key: 1,
   class: "sq-history-list"
 };
-const _hoisted_60 = { class: "sq-history-top" };
-const _hoisted_61 = { class: "sq-history-lines" };
+const _hoisted_64 = { class: "sq-history-top" };
+const _hoisted_65 = { class: "sq-history-lines" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -128,6 +132,7 @@ const props = __props;
 
 const loading = ref(false);
 const actingSlotKey = ref('');
+const sellingSeedId = ref(0);
 const rootEl = ref(null);
 const status = reactive({ farm_status: {}, history: [] });
 const message = reactive({ text: '', type: 'success' });
@@ -136,6 +141,7 @@ const isDarkTheme = ref(false);
 const selectedSeedId = ref(null);
 const lastRunAutoRefreshTs = ref(0);
 const lastTriggerAutoRefreshTs = ref(0);
+const sellInputs = reactive({});
 
 let timer = null;
 let themeObserver = null;
@@ -146,6 +152,7 @@ const farm = computed(() => status.farm_status || {});
 const historyItems = computed(() => status.history || farm.value.history || []);
 const summaryLines = computed(() => (farm.value.summary || []).filter(Boolean));
 const seedShop = computed(() => farm.value.seed_shop || []);
+const inventoryItems = computed(() => farm.value.inventory?.items || []);
 const unlockedSeeds = computed(() => seedShop.value.filter((seed) => seed.unlocked));
 const selectedSeed = computed(() => {
   return seedShop.value.find((seed) => Number(seed.id) === Number(selectedSeedId.value)) || null
@@ -248,6 +255,25 @@ function syncSelectedSeed() {
 
 watch(seedShop, syncSelectedSeed, { immediate: true, deep: true });
 
+watch(
+  inventoryItems,
+  (items) => {
+    const activeKeys = new Set();
+    for (const item of items) {
+      const key = String(item.seed_id || item.name);
+      activeKeys.add(key);
+      const current = Number(sellInputs[key]);
+      sellInputs[key] = current > 0 ? Math.min(current, Number(item.quantity || 1)) : 1;
+    }
+    for (const key of Object.keys(sellInputs)) {
+      if (!activeKeys.has(key)) {
+        delete sellInputs[key];
+      }
+    }
+  },
+  { immediate: true, deep: true },
+);
+
 watch(nextRunTs, (value) => {
   if (!value || value > nowTs.value) {
     lastRunAutoRefreshTs.value = 0;
@@ -348,6 +374,25 @@ function isInteractiveSlot(slot) {
   return slot.state === 'ready' || slot.state === 'empty'
 }
 
+function inventoryKey(item) {
+  return String(item.seed_id || item.name)
+}
+
+function getSellQuantity(item) {
+  const key = inventoryKey(item);
+  const current = Number(sellInputs[key]);
+  if (!current || current < 1) {
+    return 1
+  }
+  return Math.min(current, Number(item.quantity || 1))
+}
+
+function updateSellQuantity(item, event) {
+  const raw = Number(event?.target?.value || 1);
+  const safe = Math.min(Math.max(1, raw || 1), Number(item.quantity || 1));
+  sellInputs[inventoryKey(item)] = safe;
+}
+
 async function plantPlot(slot, seedId) {
   actingSlotKey.value = slotKey(slot);
   loading.value = true;
@@ -381,6 +426,31 @@ async function harvestPlot(slot) {
     flash(error?.message || '收菜失败', 'error');
   } finally {
     actingSlotKey.value = '';
+    loading.value = false;
+  }
+}
+
+async function sellInventory(item) {
+  const seedId = Number(item.seed_id || 0);
+  const quantity = getSellQuantity(item);
+  if (!seedId || quantity <= 0) {
+    flash('售出参数无效', 'warning');
+    return
+  }
+
+  sellingSeedId.value = seedId;
+  loading.value = true;
+  try {
+    const res = await props.api.post('/plugin/SQFarm/sell-inventory', {
+      seed_id: seedId,
+      quantity,
+    });
+    flash(res.message || '售出完成');
+    await loadStatus();
+  } catch (error) {
+    flash(error?.message || '售出失败', 'error');
+  } finally {
+    sellingSeedId.value = 0;
     loading.value = false;
   }
 }
@@ -621,29 +691,50 @@ return (_ctx, _cache) => {
         (farm.value.inventory?.empty)
           ? (_openBlock(), _createElementBlock("div", _hoisted_21, _toDisplayString(farm.value.inventory?.empty_text), 1))
           : (_openBlock(), _createElementBlock("div", _hoisted_22, [
-              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.inventory?.items || [], (item) => {
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
-                  key: item.name,
+                  key: item.seed_id || item.name,
                   class: "sq-bag-card"
                 }, [
                   _createElementVNode("div", _hoisted_23, _toDisplayString(item.icon), 1),
                   _createElementVNode("div", _hoisted_24, _toDisplayString(item.name), 1),
                   _createElementVNode("div", _hoisted_25, "数量 " + _toDisplayString(item.quantity), 1),
-                  _createElementVNode("div", _hoisted_26, "单价 " + _toDisplayString(item.unit_reward), 1),
-                  _createElementVNode("div", _hoisted_27, "+" + _toDisplayString(item.total_reward) + " 魔力", 1)
+                  _createElementVNode("div", _hoisted_26, [
+                    _createTextVNode(" 售：" + _toDisplayString(item.unit_reward) + " 魔力/份 ", 1),
+                    _createElementVNode("span", _hoisted_27, "+" + _toDisplayString(item.sell_bonus_percent || 0) + "%", 1)
+                  ]),
+                  _createElementVNode("div", _hoisted_28, "+" + _toDisplayString(item.total_reward) + " 魔力", 1),
+                  _createElementVNode("div", _hoisted_29, [
+                    _createElementVNode("input", {
+                      class: "sq-bag-input",
+                      type: "number",
+                      min: "1",
+                      max: item.quantity,
+                      value: getSellQuantity(item),
+                      disabled: loading.value || sellingSeedId.value === item.seed_id,
+                      onClick: _cache[1] || (_cache[1] = _withModifiers(() => {}, ["stop"])),
+                      onInput: $event => (updateSellQuantity(item, $event))
+                    }, null, 40, _hoisted_30),
+                    _createElementVNode("button", {
+                      type: "button",
+                      class: "sq-bag-button",
+                      disabled: loading.value || !item.quantity || sellingSeedId.value === item.seed_id,
+                      onClick: _withModifiers($event => (sellInventory(item)), ["stop"])
+                    }, _toDisplayString(sellingSeedId.value === item.seed_id ? '售出中' : '售出'), 9, _hoisted_31)
+                  ])
                 ]))
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_28, [
-        _createElementVNode("div", _hoisted_29, [
-          _hoisted_30,
-          _createElementVNode("div", _hoisted_31, [
-            _createElementVNode("div", _hoisted_32, [
+      _createElementVNode("section", _hoisted_32, [
+        _createElementVNode("div", _hoisted_33, [
+          _hoisted_34,
+          _createElementVNode("div", _hoisted_35, [
+            _createElementVNode("div", _hoisted_36, [
               _createTextVNode(" 当前种子： "),
               (selectedSeed.value)
-                ? (_openBlock(), _createElementBlock("strong", _hoisted_33, _toDisplayString(selectedSeed.value.icon) + " " + _toDisplayString(selectedSeed.value.name), 1))
-                : (_openBlock(), _createElementBlock("strong", _hoisted_34, "未选择"))
+                ? (_openBlock(), _createElementBlock("strong", _hoisted_37, _toDisplayString(selectedSeed.value.icon) + " " + _toDisplayString(selectedSeed.value.name), 1))
+                : (_openBlock(), _createElementBlock("strong", _hoisted_38, "未选择"))
             ]),
             _createVNode(_component_v_btn, {
               color: "success",
@@ -669,7 +760,7 @@ return (_ctx, _cache) => {
             }, 8, ["disabled"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_35, [
+        _createElementVNode("div", _hoisted_39, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.seed_shop || [], (seed) => {
             return (_openBlock(), _createElementBlock("button", {
               key: seed.id,
@@ -681,30 +772,30 @@ return (_ctx, _cache) => {
               disabled: !seed.unlocked || loading.value,
               onClick: $event => (selectSeed(seed))
             }, [
-              _createElementVNode("div", _hoisted_37, _toDisplayString(seed.icon), 1),
-              _createElementVNode("div", _hoisted_38, _toDisplayString(seed.name), 1),
-              _createElementVNode("div", _hoisted_39, "消耗 " + _toDisplayString(seed.cost), 1),
-              _createElementVNode("div", _hoisted_40, "生长 " + _toDisplayString(seed.grow_text), 1),
-              _createElementVNode("div", _hoisted_41, _toDisplayString(seed.unlocked ? (selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text), 1)
-            ], 10, _hoisted_36))
+              _createElementVNode("div", _hoisted_41, _toDisplayString(seed.icon), 1),
+              _createElementVNode("div", _hoisted_42, _toDisplayString(seed.name), 1),
+              _createElementVNode("div", _hoisted_43, "消耗 " + _toDisplayString(seed.cost), 1),
+              _createElementVNode("div", _hoisted_44, "生长 " + _toDisplayString(seed.grow_text), 1),
+              _createElementVNode("div", _hoisted_45, _toDisplayString(seed.unlocked ? (selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text), 1)
+            ], 10, _hoisted_40))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_42, [
-        _hoisted_43,
-        _createElementVNode("div", _hoisted_44, [
+      _createElementVNode("section", _hoisted_46, [
+        _hoisted_47,
+        _createElementVNode("div", _hoisted_48, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.land_groups || [], (group) => {
             return (_openBlock(), _createElementBlock("article", {
               key: group.id,
               class: "sq-land-group"
             }, [
-              _createElementVNode("header", _hoisted_45, [
+              _createElementVNode("header", _hoisted_49, [
                 _createElementVNode("div", null, [
-                  _createElementVNode("div", _hoisted_46, _toDisplayString(group.name), 1)
+                  _createElementVNode("div", _hoisted_50, _toDisplayString(group.name), 1)
                 ]),
-                _createElementVNode("div", _hoisted_47, _toDisplayString(group.subtitle), 1)
+                _createElementVNode("div", _hoisted_51, _toDisplayString(group.subtitle), 1)
               ]),
-              _createElementVNode("div", _hoisted_48, [
+              _createElementVNode("div", _hoisted_52, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(group.slots, (slot) => {
                   return (_openBlock(), _createElementBlock("button", {
                     key: `${group.id}-${slot.slot_index}`,
@@ -716,35 +807,35 @@ return (_ctx, _cache) => {
                     disabled: loading.value || actingSlotKey.value === slotKey(slot),
                     onClick: $event => (handleSlotClick(slot))
                   }, [
-                    _createElementVNode("div", _hoisted_50, [
-                      _createElementVNode("span", _hoisted_51, "#" + _toDisplayString(slot.slot_index), 1),
-                      _createElementVNode("span", _hoisted_52, _toDisplayString(slot.badge), 1)
+                    _createElementVNode("div", _hoisted_54, [
+                      _createElementVNode("span", _hoisted_55, "#" + _toDisplayString(slot.slot_index), 1),
+                      _createElementVNode("span", _hoisted_56, _toDisplayString(slot.badge), 1)
                     ]),
-                    _createElementVNode("div", _hoisted_53, _toDisplayString(slot.icon), 1),
-                    _createElementVNode("div", _hoisted_54, _toDisplayString(slot.title), 1),
-                    _createElementVNode("div", _hoisted_55, _toDisplayString(slotText(slot)), 1)
-                  ], 10, _hoisted_49))
+                    _createElementVNode("div", _hoisted_57, _toDisplayString(slot.icon), 1),
+                    _createElementVNode("div", _hoisted_58, _toDisplayString(slot.title), 1),
+                    _createElementVNode("div", _hoisted_59, _toDisplayString(slotText(slot)), 1)
+                  ], 10, _hoisted_53))
                 }), 128))
               ])
             ]))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_56, [
-        _hoisted_57,
+      _createElementVNode("section", _hoisted_60, [
+        _hoisted_61,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_58, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_59, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_62, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_63, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "sq-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_60, [
+                  _createElementVNode("div", _hoisted_64, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_61, _toDisplayString((item.lines || []).join(' / ')), 1)
+                  _createElementVNode("div", _hoisted_65, _toDisplayString((item.lines || []).join(' / ')), 1)
                 ]))
               }), 128))
             ]))
@@ -755,6 +846,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-2162caff"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-46b53aed"]]);
 
 export { PageView as default };

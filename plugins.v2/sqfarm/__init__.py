@@ -24,7 +24,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.7"
+    plugin_version = "0.4.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -132,6 +132,7 @@ class SQFarm(_PluginBase):
             {"path": "/plant-plot", "endpoint": self._plant_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动种植"},
             {"path": "/harvest-all", "endpoint": self._harvest_all_api, "methods": ["POST"], "auth": "bear", "summary": "一键收获"},
             {"path": "/plant-empty", "endpoint": self._plant_empty_api, "methods": ["POST"], "auth": "bear", "summary": "一键种植空地"},
+            {"path": "/sell-inventory", "endpoint": self._sell_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "售出背包作物"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -208,26 +209,21 @@ class SQFarm(_PluginBase):
             planted_seed_name = ""
             harvest_failure_detail = ""
             harvest_note_detail = ""
+            harvest_success_count = 0
             harvest_snapshot: List[Dict[str, Any]] = []
             sell_amount_estimate = 0
             plant_cost_estimate = 0
+            plant_next_run_fallback = 0
 
             if ready_plots:
                 harvest_result = self._harvest_ready_plots(session, data)
                 action_harvest = bool(harvest_result.get("success"))
                 harvest_failure_detail = harvest_result.get("detail") or ""
                 harvest_note_detail = harvest_result.get("note") or ""
+                harvest_success_count = int(harvest_result.get("harvested_count") or 0)
                 data = harvest_result.get("data") or self._fetch_state(session)
                 if action_harvest:
-                    harvest_snapshot = [
-                        {
-                            "name": item.get("name"),
-                            "qty": int(item.get("quantity") or 0),
-                            "unit": int(item.get("unit_reward") or 0),
-                            "icon": self._crop_icon.get(item.get("name"), "🌱"),
-                        }
-                        for item in (data.get("inventory") or [])
-                    ]
+                    harvest_snapshot = list(harvest_result.get("harvest_items") or [])
 
             inventory = data.get("inventory") or []
             if self._enable_sell and inventory:
@@ -262,12 +258,21 @@ class SQFarm(_PluginBase):
                             action_plant = True
                             planted_seed_name = best_seed.get("name") or ""
                             plant_cost_estimate = int(best_seed.get("cost") or 0) * empty_count
+                            plant_next_run_fallback = int(time.time()) + int(best_seed.get("grow_time") or 0)
                             logger.info("INFO 种植完成：%s", best_seed.get("name"))
-                        data = self._fetch_state(session)
+                        data = self._refetch_state_until(
+                            session,
+                            predicate=lambda latest: bool(self._compute_next_run(latest)),
+                            attempts=3,
+                            delay_seconds=1.0,
+                            default=data,
+                        )
                     except Exception as err:
                         logger.warning("plant_fill_empty failed: %s", err)
 
             next_run = self._compute_next_run(data)
+            if action_plant and plant_next_run_fallback and not next_run:
+                next_run = plant_next_run_fallback
             remaining_ready_plots = self._collect_ready_plots(data)
             if remaining_ready_plots:
                 retry_at = int(time.time()) + max(30, self._ready_retry_seconds)
@@ -285,6 +290,7 @@ class SQFarm(_PluginBase):
                 harvest_snapshot,
                 log_result,
                 next_run_text,
+                harvest_success_count=harvest_success_count,
                 sell_success_count=sell_success_count,
                 planted_seed_name=planted_seed_name,
                 harvest_failure_detail=harvest_failure_detail,
@@ -418,6 +424,21 @@ class SQFarm(_PluginBase):
         except Exception as err:
             detail = self._get_error_detail(err)
             logger.warning("%s 一键种植失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
+    def _sell_inventory_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_sell_inventory(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "售出完成",
+                "lines": result["lines"],
+                "farm_status": result["farm_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 手动售出失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _get_status(self):
@@ -802,6 +823,28 @@ class SQFarm(_PluginBase):
                 ready_plots.append(plot)
         return ready_plots
 
+    def _refetch_state_until(
+        self,
+        session: requests.Session,
+        predicate=None,
+        attempts: int = 3,
+        delay_seconds: float = 1.0,
+        default: Optional[dict] = None,
+    ) -> Optional[dict]:
+        latest = default
+        total_attempts = max(1, attempts)
+        for idx in range(total_attempts):
+            try:
+                data = self._fetch_state(session)
+                latest = data
+                if predicate is None or predicate(data):
+                    return data
+            except Exception as err:
+                logger.warning("state refetch %s/%s failed: %s", idx + 1, total_attempts, err)
+            if idx < total_attempts - 1:
+                time.sleep(max(0.1, delay_seconds))
+        return latest
+
     def _harvest_single_plot(self, session: requests.Session, land_id: int, plot_index: int) -> Dict[str, Any]:
         result = self._post_action(
             session,
@@ -816,11 +859,12 @@ class SQFarm(_PluginBase):
     def _harvest_ready_plots(self, session: requests.Session, data: dict) -> Dict[str, Any]:
         ready_before = self._collect_ready_plots(data)
         if not ready_before:
-            return {"success": False, "detail": "当前没有可收获田块", "note": "", "data": data, "harvested_count": 0}
+            return {"success": False, "detail": "当前没有可收获田块", "note": "", "data": data, "harvested_count": 0, "harvest_items": []}
 
         batch_result = self._harvest_all(session)
-        latest_data = self._fetch_state(session)
+        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.6, default=data) or data
         remaining_ready = self._collect_ready_plots(latest_data)
+        harvested_items: List[Dict[str, Any]] = []
 
         if batch_result.get("success") and not remaining_ready:
             return {
@@ -829,6 +873,7 @@ class SQFarm(_PluginBase):
                 "note": "",
                 "data": latest_data,
                 "harvested_count": len(ready_before),
+                "harvest_items": harvested_items,
             }
 
         fallback_success = 0
@@ -841,6 +886,14 @@ class SQFarm(_PluginBase):
                     single_result = self._harvest_single_plot(session, land_id, plot_index)
                     if single_result.get("success"):
                         fallback_success += 1
+                        inventory = (single_result.get("result") or {}).get("inventory") or {}
+                        name = inventory.get("name") or "作物"
+                        harvested_items.append({
+                            "name": name,
+                            "qty": int(inventory.get("quantity") or 1),
+                            "unit": int(inventory.get("unit_reward") or 0),
+                            "icon": inventory.get("icon") or self._crop_icon.get(name, "🌱"),
+                        })
                     else:
                         fallback_failures.append(
                             f"{land_id}-{plot_index + 1}:{single_result.get('detail') or '收菜失败'}"
@@ -848,7 +901,7 @@ class SQFarm(_PluginBase):
                 except Exception as err:
                     fallback_failures.append(f"{land_id}-{plot_index + 1}:{self._get_error_detail(err)}")
 
-        latest_data = self._fetch_state(session)
+        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.6, default=latest_data) or latest_data
         remaining_after = self._collect_ready_plots(latest_data)
         harvested_count = max(0, len(ready_before) - len(remaining_after))
 
@@ -878,6 +931,7 @@ class SQFarm(_PluginBase):
             "note": note,
             "data": latest_data,
             "harvested_count": harvested_count,
+            "harvest_items": harvested_items,
         }
 
     def _should_skip_run(self) -> bool:
@@ -1100,7 +1154,13 @@ class SQFarm(_PluginBase):
         if result and not result.get("success", True):
             raise ValueError(result.get("msg") or "种植失败")
 
-        data = self._fetch_state(session)
+        data = self._refetch_state_until(
+            session,
+            predicate=lambda latest: bool(self._compute_next_run(latest)),
+            attempts=3,
+            delay_seconds=1.0,
+            default=data,
+        ) or data
         lines = [
             f"🌱 手动种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} -> {slot.get('land_name')} #{slot_index}",
         ]
@@ -1154,12 +1214,64 @@ class SQFarm(_PluginBase):
         if result and not result.get("success", True):
             raise ValueError(result.get("msg") or "种植失败")
 
-        data = self._fetch_state(session)
+        data = self._refetch_state_until(
+            session,
+            predicate=lambda latest: bool(self._compute_next_run(latest)),
+            attempts=3,
+            delay_seconds=1.0,
+            default=data,
+        ) or data
         lines = [
             f"🌱 一键种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} ×{empty_count}",
         ]
         farm_status = self._refresh_and_store_farm_state(data, "manual-plant-empty", lines)
         self._append_history("🌱 一键种植", lines)
+        return {"farm_status": farm_status, "lines": lines}
+
+    def _manual_sell_inventory(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+
+        seed_id = self._safe_int(payload.get("seed_id"), 0)
+        quantity = self._safe_int(payload.get("quantity"), 0)
+        if seed_id <= 0 or quantity <= 0:
+            raise ValueError("售出参数不完整")
+
+        session = self._build_session()
+        data = self._fetch_state(session)
+        inventory_item = next(
+            (
+                item for item in (data.get("inventory") or [])
+                if int(item.get("seed_id") or 0) == seed_id and int(item.get("quantity") or 0) > 0
+            ),
+            None,
+        )
+        if not inventory_item:
+            raise ValueError("背包中没有该作物")
+
+        available_quantity = int(inventory_item.get("quantity") or 0)
+        sell_quantity = min(max(1, quantity), available_quantity)
+        result = self._post_action(
+            session,
+            "sell_inventory",
+            {"seed_id": seed_id, "quantity": sell_quantity},
+            retry_network=False,
+        )
+        if result and not result.get("success", True):
+            raise ValueError(result.get("msg") or "售出失败")
+
+        inventory = result.get("inventory") or {}
+        seed_name = inventory.get("name") or inventory_item.get("name") or "作物"
+        seed_icon = inventory.get("icon") or self._crop_icon.get(seed_name, "🌱")
+        gain = self._safe_int(result.get("gain"), sell_quantity * self._safe_int(inventory_item.get("unit_reward"), 0))
+        data = self._refetch_state_until(session, attempts=2, delay_seconds=0.5, default=data) or data
+        lines = [
+            f"🧺 售出：{seed_icon}{seed_name}×{sell_quantity}",
+            f"💰 获得：{gain} 魔力",
+        ]
+        farm_status = self._refresh_and_store_farm_state(data, "manual-sell-inventory", lines)
+        self._append_history("🧺 手动售出", lines)
         return {"farm_status": farm_status, "lines": lines}
 
     def _compute_next_run(self, data: dict) -> Optional[int]:
@@ -1247,14 +1359,22 @@ class SQFarm(_PluginBase):
     def _build_inventory_cards(self, inventory: List[dict]) -> Dict[str, Any]:
         cards = []
         for item in inventory:
+            seed_id = int(item.get("seed_id") or 0)
             quantity = int(item.get("quantity") or 0)
             unit_reward = int(item.get("unit_reward") or 0)
+            base_unit_reward = int(item.get("base_unit_reward") or unit_reward or 0)
             name = item.get("name") or "未知作物"
+            sell_bonus_percent = 0
+            if base_unit_reward > 0:
+                sell_bonus_percent = round((unit_reward - base_unit_reward) * 100 / base_unit_reward)
             cards.append({
+                "seed_id": seed_id,
                 "name": name,
                 "icon": self._crop_icon.get(name, "🌱"),
                 "quantity": quantity,
+                "base_unit_reward": base_unit_reward,
                 "unit_reward": unit_reward,
+                "sell_bonus_percent": sell_bonus_percent,
                 "total_reward": quantity * unit_reward,
             })
         return {"empty": not cards, "items": cards, "empty_text": "背包空空如也，快去收菜吧。"}
@@ -1404,6 +1524,7 @@ class SQFarm(_PluginBase):
         harvest_snapshot: List[dict],
         log_result: dict,
         next_run_text: str,
+        harvest_success_count: int = 0,
         sell_success_count: int = 0,
         planted_seed_name: str = "",
         harvest_failure_detail: str = "",
@@ -1423,8 +1544,12 @@ class SQFarm(_PluginBase):
         plant_cost = int(log_result.get("plant_cost") or 0) or int(plant_cost_fallback or 0)
 
         lines: List[str] = []
-        if action_harvest and harvest_map:
+        if action_harvest and log_result.get("harvest"):
+            lines.append(f"✅ 收菜：{join_summary(log_result.get('harvest'))}")
+        elif action_harvest and harvest_map:
             lines.append(f"✅ 收菜：{join_summary(harvest_map)}")
+        elif action_harvest and harvest_success_count > 0:
+            lines.append(f"✅ 收菜：已处理 {harvest_success_count} 块成熟田")
         if action_sell and log_result.get("sell"):
             lines.append(f"🧺 售出：{join_summary(log_result.get('sell'))}")
         elif action_sell and sell_success_count > 0:
@@ -1464,7 +1589,7 @@ class SQFarm(_PluginBase):
 
     def _parse_logs(self, logs: List[dict], since_time: float, seeds: Optional[List[dict]] = None) -> dict:
         seed_cost_map = {str(seed.get("name") or ""): int(seed.get("cost") or 0) for seed in (seeds or [])}
-        result = {"sell": {}, "plant": {}, "sell_income": 0, "plant_cost": 0}
+        result = {"harvest": {}, "sell": {}, "plant": {}, "harvest_income": 0, "sell_income": 0, "plant_cost": 0}
         for item in logs:
             created_at = item.get("created_at")
             if not created_at:
@@ -1479,7 +1604,10 @@ class SQFarm(_PluginBase):
             name = item.get("seed_name") or ""
             qty = int(item.get("quantity") or 1)
             key = f"{icon}{name}"
-            if item.get("action") == "sell":
+            if item.get("action") == "harvest":
+                result["harvest"][key] = result["harvest"].get(key, 0) + qty
+                result["harvest_income"] += int(item.get("value") or 0)
+            elif item.get("action") == "sell":
                 result["sell"][key] = result["sell"].get(key, 0) + qty
                 result["sell_income"] += int(item.get("value") or 0)
             elif item.get("action") == "plant":
