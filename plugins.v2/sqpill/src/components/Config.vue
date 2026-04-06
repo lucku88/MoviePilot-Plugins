@@ -46,10 +46,18 @@
               <h2>时间配置</h2>
             </div>
           </div>
+          <v-text-field
+            v-model="config.brick_cron"
+            label="搬砖执行周期 (CRON)"
+            variant="outlined"
+            density="comfortable"
+            class="mb-3"
+            placeholder="例如 5 0 * * *"
+          />
           <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.ready_retry_seconds" label="失败后快速重试秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <div class="pill-note">
-            插件不走固定轮询。它会根据搬砖重置时间和沙滩冷却时间动态登记下一次运行。
+            搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。
           </div>
         </article>
 
@@ -60,9 +68,11 @@
               <h2>动作配置</h2>
             </div>
           </div>
-          <v-text-field v-model="config.move_max_loops" label="单次搬砖最大循环" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.move_delay_min_ms" label="搬砖间隔最小毫秒" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.move_delay_max_ms" label="搬砖间隔最大毫秒" type="number" variant="outlined" density="comfortable" />
+          <div class="pill-note">
+            每天搬砖次数固定按 50 次处理，不再需要手动配置循环次数。
+          </div>
         </article>
 
         <article class="pill-panel">
@@ -130,6 +140,7 @@ const emit = defineEmits(['switch', 'close'])
 const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
+const pluginBase = '/plugin/SQPill'
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -141,12 +152,12 @@ const config = reactive({
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
+  brick_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 3,
   http_timeout: 12,
   http_retry_times: 3,
   http_retry_delay: 1500,
-  move_max_loops: 80,
   move_delay_min_ms: 30,
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
@@ -173,14 +184,14 @@ function applyConfig(data = {}) {
 }
 
 async function loadConfig() {
-  const data = await props.api.get('/config')
+  const data = await props.api.get(`${pluginBase}/config`)
   applyConfig(data || {})
 }
 
 async function saveConfig() {
   saving.value = true
   try {
-    const result = await props.api.post('/config', { ...config })
+    const result = await props.api.post(`${pluginBase}/config`, { ...config })
     applyConfig(result?.config || {})
     flash(result?.message || '配置已保存')
   } catch (error) {
@@ -193,7 +204,7 @@ async function saveConfig() {
 async function syncCookie() {
   saving.value = true
   try {
-    const result = await props.api.get('/cookie')
+    const result = await props.api.get(`${pluginBase}/cookie`)
     applyConfig(result?.config || {})
     flash(result?.message || 'Cookie 已同步')
   } catch (error) {
@@ -269,6 +280,12 @@ onBeforeUnmount(() => {
   padding: 20px 0 32px;
   background: var(--pill-bg);
   color: var(--pill-text);
+  overflow-x: hidden;
+}
+
+.pill-config,
+.pill-config * {
+  box-sizing: border-box;
 }
 
 .pill-config.is-dark-theme {
@@ -284,7 +301,10 @@ onBeforeUnmount(() => {
 }
 
 .pill-shell {
-  width: min(1380px, calc(100vw - 32px));
+  width: 100%;
+  max-width: 1180px;
+  min-width: 0;
+  padding: 0 12px;
   margin: 0 auto;
   display: grid;
   gap: 20px;
@@ -336,7 +356,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-actions {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
 }
 
 .pill-grid {
@@ -376,7 +396,7 @@ onBeforeUnmount(() => {
   }
 
   .pill-shell {
-    width: min(100vw - 16px, 100%);
+    padding: 0 8px;
   }
 
   .pill-hero,

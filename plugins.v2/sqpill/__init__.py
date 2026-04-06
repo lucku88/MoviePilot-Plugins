@@ -10,6 +10,7 @@ import pytz
 import requests
 import urllib3.util.connection as urllib3_connection
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
@@ -25,7 +26,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -34,6 +35,7 @@ class SQPill(_PluginBase):
 
     DEFAULT_SITE_URL = "https://si-qi.xyz"
     DEFAULT_SITE_DOMAIN = "si-qi.xyz"
+    DEFAULT_BRICK_CRON = "5 0 * * *"
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -73,6 +75,7 @@ class SQPill(_PluginBase):
     _site_domain: str = DEFAULT_SITE_DOMAIN
     _site_url: str = DEFAULT_SITE_URL
     _user_agent: str = DEFAULT_USER_AGENT
+    _brick_cron: str = DEFAULT_BRICK_CRON
     _schedule_buffer_seconds: int = 5
     _random_delay_max_seconds: int = 3
     _http_timeout: int = 12
@@ -207,7 +210,7 @@ class SQPill(_PluginBase):
             beach_result: Dict[str, Any] = {}
 
             if self._enable_brick and page.get("brick", {}).get("ready"):
-                brick_result = self._run_brick_flow(session)
+                brick_result = self._run_brick_flow(session, page.get("brick") or {})
             elif self._enable_brick:
                 brick_result = {"message": page.get("brick", {}).get("status_text") or "今日搬砖已满"}
 
@@ -224,6 +227,15 @@ class SQPill(_PluginBase):
                 next_run = min(next_run, retry_ts) if next_run else retry_ts
 
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result)
+            if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
+                remaining = max(
+                    0,
+                    self._safe_int((final_page.get("brick") or {}).get("daily_limit"), 50)
+                    - self._safe_int((final_page.get("brick") or {}).get("daily_bricks"), 0),
+                )
+                if remaining > 0:
+                    lines.append(f"⏳ 搬砖剩余：{remaining} 次，60秒后重试")
+                    has_warning = True
             if not has_action and not has_warning:
                 lines = ["ℹ️ 本次无可执行动作"]
 
@@ -365,12 +377,12 @@ class SQPill(_PluginBase):
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
+            "brick_cron": self._brick_cron,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
             "http_timeout": self._http_timeout,
             "http_retry_times": self._http_retry_times,
             "http_retry_delay": self._http_retry_delay,
-            "move_max_loops": self._move_max_loops,
             "move_delay_min_ms": self._move_delay_min_ms,
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
@@ -410,12 +422,12 @@ class SQPill(_PluginBase):
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
+            "brick_cron": self.DEFAULT_BRICK_CRON,
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 3,
             "http_timeout": 12,
             "http_retry_times": 3,
             "http_retry_delay": 1500,
-            "move_max_loops": 80,
             "move_delay_min_ms": 30,
             "move_delay_max_ms": 80,
             "ready_retry_seconds": 60,
@@ -431,12 +443,12 @@ class SQPill(_PluginBase):
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
+        self._brick_cron = (config.get("brick_cron") or self.DEFAULT_BRICK_CRON).strip() or self.DEFAULT_BRICK_CRON
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 3))
         self._http_timeout = max(5, self._safe_int(config.get("http_timeout"), 12))
         self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), 3))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
-        self._move_max_loops = max(1, self._safe_int(config.get("move_max_loops"), 80))
         self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
         self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
         self._ready_retry_seconds = max(10, self._safe_int(config.get("ready_retry_seconds"), 60))
@@ -710,12 +722,19 @@ class SQPill(_PluginBase):
         retryable = {"ETIMEDOUT", "ECONNRESET", "ECONNABORTED", "EAI_AGAIN", "ENOTFOUND", "EHOSTUNREACH", "ECONNREFUSED"}
         return code in retryable or (status is not None and 500 <= int(status) < 600)
 
-    def _run_brick_flow(self, session: requests.Session) -> Dict[str, Any]:
+    def _run_brick_flow(self, session: requests.Session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         total_moved = 0
         last_message = ""
         warning = ""
         next_reset_ts = 0
-        for _ in range(self._move_max_loops):
+        attempted = False
+        brick_state = brick_state or {}
+        daily_limit = max(1, self._safe_int(brick_state.get("daily_limit"), 50))
+        daily_bricks = max(0, self._safe_int(brick_state.get("daily_bricks"), 0))
+        max_loops = max(0, min(50, daily_limit - daily_bricks))
+
+        for _ in range(max_loops):
+            attempted = True
             try:
                 result = self._post_action(session, "move_brick", retry_network=False)
             except Exception as err:
@@ -740,6 +759,7 @@ class SQPill(_PluginBase):
             "message": last_message,
             "warning": warning,
             "next_reset_ts": next_reset_ts,
+            "attempted": attempted,
         }
 
     def _run_beach_flow(self, session: requests.Session) -> Dict[str, Any]:
@@ -778,10 +798,10 @@ class SQPill(_PluginBase):
             pill_status = self._refresh_and_store_status(page, next_run, lines)
             return {"pill_status": pill_status, "lines": lines}
 
-        result = self._run_brick_flow(session)
+        result = self._run_brick_flow(session, page.get("brick") or {})
         page = self._fetch_page_state(session)
         next_run = self._compute_next_run(page)
-        if page.get("brick", {}).get("ready") and result.get("warning"):
+        if page.get("brick", {}).get("ready") and (result.get("warning") or result.get("attempted")):
             retry_ts = int(time.time()) + self._ready_retry_seconds
             next_run = min(next_run, retry_ts) if next_run else retry_ts
         self._schedule_next_run(next_run, "manual-move")
@@ -793,6 +813,14 @@ class SQPill(_PluginBase):
             lines.append(f"⚠️ 搬砖失败：{result.get('warning')}")
         elif result.get("message") and not result.get("moved"):
             lines.append(f"ℹ️ 搬砖：{result.get('message')}")
+        if result.get("attempted") and page.get("brick", {}).get("ready"):
+            remaining = max(
+                0,
+                self._safe_int((page.get("brick") or {}).get("daily_limit"), 50)
+                - self._safe_int((page.get("brick") or {}).get("daily_bricks"), 0),
+            )
+            if remaining > 0:
+                lines.append(f"⏳ 搬砖剩余：{remaining} 次，60秒后重试")
         if not lines:
             lines.append("ℹ️ 本次无可执行动作")
 
@@ -901,7 +929,7 @@ class SQPill(_PluginBase):
         return items
 
     def _needs_retry_soon(self, page: Dict[str, Any], brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> bool:
-        brick_retry = bool(brick_result.get("warning")) and page.get("brick", {}).get("ready")
+        brick_retry = page.get("brick", {}).get("ready") and bool(brick_result.get("warning") or brick_result.get("attempted"))
         beach_retry = bool(beach_result.get("warning")) and page.get("beach", {}).get("ready")
         return brick_retry or beach_retry
 
@@ -965,14 +993,29 @@ class SQPill(_PluginBase):
     def _compute_next_run(self, data: dict) -> Optional[int]:
         candidates: List[int] = []
         if self._enable_brick:
-            brick_next = self._safe_int((data.get("brick") or {}).get("next_reset_ts"), 0)
-            if brick_next > int(time.time()):
+            brick_next = self._get_cron_next_ts(self._brick_cron, data.get("server_now"))
+            if brick_next:
                 candidates.append(brick_next)
         if self._enable_beach:
             beach_next = self._safe_int((data.get("beach") or {}).get("next_ready_ts"), 0)
             if beach_next > int(time.time()):
                 candidates.append(beach_next)
         return min(candidates) if candidates else None
+
+    def _get_cron_next_ts(self, cron_expr: str, server_now: Optional[Any] = None) -> Optional[int]:
+        expr = (cron_expr or "").strip()
+        if not expr:
+            return None
+        try:
+            timezone = pytz.timezone(settings.TZ)
+            now_ts = self._safe_int(server_now, int(time.time()))
+            now_dt = self._aware_from_timestamp(now_ts)
+            trigger = CronTrigger.from_crontab(expr, timezone=timezone)
+            next_fire = trigger.get_next_fire_time(None, now_dt)
+            return int(next_fire.timestamp()) if next_fire else None
+        except Exception as err:
+            logger.warning("%s CRON 表达式无效：%s | %s", self.plugin_name, expr, err)
+            return None
 
     def _refresh_and_store_status(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
         lines = list(summary_lines or [])
@@ -1012,7 +1055,7 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": "已接入自动搬砖、自动清沙滩和手动兑换魔力；炼造工坊动作待补抓包后继续接入。",
+            "page_note": f"已接入自动搬砖、自动清沙滩和手动兑换魔力；搬砖按 CRON {self._brick_cron} 调度，若未搬满 50 次会在 60 秒后自动重试。",
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},

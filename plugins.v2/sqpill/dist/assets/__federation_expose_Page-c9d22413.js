@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_4981b67a_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_f5067d47_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-4981b67a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-f5067d47"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = { class: "pill-copy" };
@@ -147,6 +147,8 @@ const _hoisted_76 = { class: "pill-history-lines" };
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
 
+const pluginBase = '/plugin/SQPill';
+
 
 const _sfc_main = {
   __name: 'Page',
@@ -172,7 +174,6 @@ const isDarkTheme = ref(false);
 const dismissedSummaryKey = ref('');
 const lastRunAutoRefreshTs = ref(0);
 const lastTriggerAutoRefreshTs = ref(0);
-
 let timer = null;
 let themeObserver = null;
 let mediaQuery = null;
@@ -234,7 +235,7 @@ function dismissSummary() {
 }
 
 async function loadStatus() {
-  const data = await props.api.get('/status');
+  const data = await props.api.get(`${pluginBase}/status`);
   status.pill_status = data.pill_status || data.farm_status || {};
   status.history = data.history || [];
 }
@@ -260,23 +261,23 @@ async function doAction(action) {
 }
 
 async function refreshData() {
-  await doAction(() => props.api.post('/refresh'));
+  await doAction(() => props.api.post(`${pluginBase}/refresh`));
 }
 
 async function runNow() {
-  await doAction(() => props.api.post('/run'));
+  await doAction(() => props.api.post(`${pluginBase}/run`));
 }
 
 async function syncCookie() {
-  await doAction(() => props.api.get('/cookie'));
+  await doAction(() => props.api.get(`${pluginBase}/cookie`));
 }
 
 async function moveBricks() {
-  await doAction(() => props.api.post('/move-bricks'));
+  await doAction(() => props.api.post(`${pluginBase}/move-bricks`));
 }
 
 async function cleanBeach() {
-  await doAction(() => props.api.post('/clean-beach'));
+  await doAction(() => props.api.post(`${pluginBase}/clean-beach`));
 }
 
 async function exchangePoints() {
@@ -287,7 +288,7 @@ async function exchangePoints() {
   const limit = Math.max(normalizePositiveInt(exchange.value.max_count, 1), 1);
   const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit);
   exchangeQuantity.value = String(quantity);
-  await doAction(() => props.api.post('/exchange-points', { quantity }));
+  await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }));
 }
 
 function findThemeNode() {
@@ -679,6 +680,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4981b67a"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f5067d47"]]);
 
 export { PageView as default };

@@ -241,6 +241,7 @@ const isDarkTheme = ref(false)
 const dismissedSummaryKey = ref('')
 const lastRunAutoRefreshTs = ref(0)
 const lastTriggerAutoRefreshTs = ref(0)
+const pluginBase = '/plugin/SQPill'
 
 let timer = null
 let themeObserver = null
@@ -303,7 +304,7 @@ function dismissSummary() {
 }
 
 async function loadStatus() {
-  const data = await props.api.get('/status')
+  const data = await props.api.get(`${pluginBase}/status`)
   status.pill_status = data.pill_status || data.farm_status || {}
   status.history = data.history || []
 }
@@ -329,23 +330,23 @@ async function doAction(action) {
 }
 
 async function refreshData() {
-  await doAction(() => props.api.post('/refresh'))
+  await doAction(() => props.api.post(`${pluginBase}/refresh`))
 }
 
 async function runNow() {
-  await doAction(() => props.api.post('/run'))
+  await doAction(() => props.api.post(`${pluginBase}/run`))
 }
 
 async function syncCookie() {
-  await doAction(() => props.api.get('/cookie'))
+  await doAction(() => props.api.get(`${pluginBase}/cookie`))
 }
 
 async function moveBricks() {
-  await doAction(() => props.api.post('/move-bricks'))
+  await doAction(() => props.api.post(`${pluginBase}/move-bricks`))
 }
 
 async function cleanBeach() {
-  await doAction(() => props.api.post('/clean-beach'))
+  await doAction(() => props.api.post(`${pluginBase}/clean-beach`))
 }
 
 async function exchangePoints() {
@@ -356,7 +357,7 @@ async function exchangePoints() {
   const limit = Math.max(normalizePositiveInt(exchange.value.max_count, 1), 1)
   const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit)
   exchangeQuantity.value = String(quantity)
-  await doAction(() => props.api.post('/exchange-points', { quantity }))
+  await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }))
 }
 
 function findThemeNode() {
@@ -439,6 +440,12 @@ onBeforeUnmount(() => {
   padding: 20px 0 32px;
   background: var(--pill-bg);
   color: var(--pill-text);
+  overflow-x: hidden;
+}
+
+.pill-page,
+.pill-page * {
+  box-sizing: border-box;
 }
 
 .pill-page.is-dark-theme {
@@ -454,7 +461,10 @@ onBeforeUnmount(() => {
 }
 
 .pill-shell {
-  width: min(1500px, calc(100vw - 32px));
+  width: 100%;
+  max-width: 1240px;
+  min-width: 0;
+  padding: 0 12px;
   margin: 0 auto;
   display: grid;
   gap: 20px;
@@ -522,11 +532,11 @@ onBeforeUnmount(() => {
 }
 
 .pill-actions {
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
 }
 
 .pill-stat-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
 }
 
 .pill-stat-card,
@@ -584,7 +594,7 @@ onBeforeUnmount(() => {
 
 .pill-exchange {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 14px;
 }
 
@@ -629,7 +639,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-action-grid {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
 }
 
 .pill-status-chip {
@@ -667,9 +677,14 @@ onBeforeUnmount(() => {
   color: var(--pill-accent);
 }
 
+.pill-mini-note.ready {
+  background: rgba(47, 193, 120, 0.16);
+  color: #1d8c57;
+}
+
 .pill-inventory-grid,
 .pill-recipe-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
 }
 
 .pill-inventory-card,
@@ -740,7 +755,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 720px) {
   .pill-shell {
-    width: min(100vw - 16px, 100%);
+    padding: 0 8px;
   }
 
   .pill-hero,
