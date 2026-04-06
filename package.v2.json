@@ -3,11 +3,12 @@
     "name": "SQ农场",
     "description": "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。",
     "labels": "工具,自动化,农场",
-    "version": "0.4.10",
+    "version": "0.4.11",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.4.11": "收菜汇总改为优先使用 harvest_all 接口返回的 inventory 明细，避免最近日志条数不足导致通知不准确。",
       "v0.4.10": "为农场统计补充页面 HTML 兜底解析，修复总偷菜收益与农场被点赞不显示的问题。",
       "v0.4.9": "补齐总偷菜收益与农场点赞统计显示，移除背包总价行，并支持关闭本次摘要后本会话内不再重复显示。",
       "v0.4.8": "新增背包单项售出交互，收菜通知优先按日志与真实返回汇总，并补强种植后下次可收时间兜底。",

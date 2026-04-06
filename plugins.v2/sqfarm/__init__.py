@@ -25,7 +25,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.10"
+    plugin_version = "0.4.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -880,7 +880,12 @@ class SQFarm(_PluginBase):
                 }, retry_network=False)
                 if harvest_res and harvest_res.get("success"):
                     logger.info("Harvest completed")
-                    return {"success": True, "detail": ""}
+                    return {
+                        "success": True,
+                        "detail": "",
+                        "reward": self._safe_int(harvest_res.get("reward"), 0),
+                        "items": self._normalize_harvest_items(harvest_res.get("inventory")),
+                    }
                 last_detail = f"提交收菜失败：{(harvest_res or {}).get('msg', 'UNKNOWN')}"
                 logger.warning("harvest_all failed: %s", (harvest_res or {}).get("msg", "UNKNOWN"))
                 if not (harvest_res or {}).get("captcha_required"):
@@ -889,7 +894,7 @@ class SQFarm(_PluginBase):
                 last_detail = self._get_error_detail(err)
                 logger.warning("harvest flow failed: %s", err)
         logger.warning("harvest not completed after retries")
-        return {"success": False, "detail": last_detail}
+        return {"success": False, "detail": last_detail, "reward": 0, "items": []}
 
     def _collect_ready_plots(self, data: dict) -> List[dict]:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -934,7 +939,11 @@ class SQFarm(_PluginBase):
             retry_network=False,
         )
         if result and result.get("success", True):
-            return {"success": True, "result": result}
+            return {
+                "success": True,
+                "result": result,
+                "items": self._normalize_harvest_items((result or {}).get("inventory"), default_added=1),
+            }
         return {"success": False, "detail": (result or {}).get("msg") or "收菜失败", "result": result or {}}
 
     def _harvest_ready_plots(self, session: requests.Session, data: dict) -> Dict[str, Any]:
@@ -945,7 +954,7 @@ class SQFarm(_PluginBase):
         batch_result = self._harvest_all(session)
         latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.6, default=data) or data
         remaining_ready = self._collect_ready_plots(latest_data)
-        harvested_items: List[Dict[str, Any]] = []
+        harvested_items: List[Dict[str, Any]] = list(batch_result.get("items") or [])
 
         if batch_result.get("success") and not remaining_ready:
             return {
@@ -953,7 +962,7 @@ class SQFarm(_PluginBase):
                 "detail": "",
                 "note": "",
                 "data": latest_data,
-                "harvested_count": len(ready_before),
+                "harvested_count": sum(int(item.get("qty") or 0) for item in harvested_items) or len(ready_before),
                 "harvest_items": harvested_items,
             }
 
@@ -967,14 +976,7 @@ class SQFarm(_PluginBase):
                     single_result = self._harvest_single_plot(session, land_id, plot_index)
                     if single_result.get("success"):
                         fallback_success += 1
-                        inventory = (single_result.get("result") or {}).get("inventory") or {}
-                        name = inventory.get("name") or "作物"
-                        harvested_items.append({
-                            "name": name,
-                            "qty": int(inventory.get("quantity") or 1),
-                            "unit": int(inventory.get("unit_reward") or 0),
-                            "icon": inventory.get("icon") or self._crop_icon.get(name, "🌱"),
-                        })
+                        harvested_items.extend(single_result.get("items") or [])
                     else:
                         fallback_failures.append(
                             f"{land_id}-{plot_index + 1}:{single_result.get('detail') or '收菜失败'}"
@@ -1660,10 +1662,10 @@ class SQFarm(_PluginBase):
         plant_cost = int(log_result.get("plant_cost") or 0) or int(plant_cost_fallback or 0)
 
         lines: List[str] = []
-        if action_harvest and log_result.get("harvest"):
-            lines.append(f"✅ 收菜：{join_summary(log_result.get('harvest'))}")
-        elif action_harvest and harvest_map:
+        if action_harvest and harvest_map:
             lines.append(f"✅ 收菜：{join_summary(harvest_map)}")
+        elif action_harvest and log_result.get("harvest"):
+            lines.append(f"✅ 收菜：{join_summary(log_result.get('harvest'))}")
         elif action_harvest and harvest_success_count > 0:
             lines.append(f"✅ 收菜：已处理 {harvest_success_count} 块成熟田")
         if action_sell and log_result.get("sell"):
@@ -1684,6 +1686,26 @@ class SQFarm(_PluginBase):
             lines.append("ℹ️ 本次没有可执行动作")
         lines.append(f"⏰ 可收：{next_run_text}")
         return lines
+
+    def _normalize_harvest_items(self, inventory: Any, default_added: int = 0) -> List[Dict[str, Any]]:
+        if not inventory:
+            return []
+        items = inventory if isinstance(inventory, list) else [inventory]
+        normalized: List[Dict[str, Any]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "作物")
+            added = self._safe_int(item.get("added"), 0)
+            if added <= 0:
+                added = self._safe_int(item.get("quantity"), 0) or default_added or 1
+            normalized.append({
+                "name": name,
+                "qty": added,
+                "unit": self._safe_int(item.get("unit_reward"), 0),
+                "icon": item.get("icon") or self._crop_icon.get(name, "🌱"),
+            })
+        return normalized
 
     @staticmethod
     def _build_notify_text(lines: List[str]) -> str:
