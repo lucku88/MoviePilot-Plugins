@@ -26,7 +26,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"

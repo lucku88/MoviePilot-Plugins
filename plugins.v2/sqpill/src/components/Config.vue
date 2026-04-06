@@ -46,49 +46,55 @@
               <h2>时间配置</h2>
             </div>
           </div>
-          <v-menu v-model="cronMenu" :close-on-content-click="false" location="bottom start" max-width="440">
-            <template #activator="{ props: menuProps }">
-              <v-text-field
-                v-bind="menuProps"
-                v-model="config.brick_cron"
-                label="执行周期(cron)"
-                variant="outlined"
-                density="comfortable"
-                class="mb-3"
-                readonly
-                append-inner-icon="mdi-clock-edit-outline"
-                @click="openCronMenu"
-              />
-            </template>
-            <div class="pill-cron-menu">
-              <div class="pill-cron-group">
-                <div class="pill-cron-label">周期</div>
-                <div class="pill-cron-chip-row">
-                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'daily' }" @click="cronDraft.mode = 'daily'">每日</button>
-                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekdays' }" @click="cronDraft.mode = 'weekdays'">工作日</button>
-                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekly' }" @click="cronDraft.mode = 'weekly'">每周</button>
+          <v-text-field
+            v-model="config.brick_cron"
+            label="执行周期(cron)"
+            variant="outlined"
+            density="comfortable"
+            class="mb-3"
+            readonly
+            append-inner-icon="mdi-clock-edit-outline"
+            @click="openCronDialog"
+          />
+          <v-dialog v-model="cronDialog" max-width="520">
+            <v-card class="pill-cron-dialog">
+              <div class="pill-cron-menu">
+                <div class="pill-cron-group">
+                  <div class="pill-cron-label">周期</div>
+                  <div class="pill-cron-chip-row">
+                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'daily' }" @click="cronDraft.mode = 'daily'">每日</button>
+                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekdays' }" @click="cronDraft.mode = 'weekdays'">工作日</button>
+                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekly' }" @click="cronDraft.mode = 'weekly'">每周</button>
+                  </div>
+                </div>
+                <div class="pill-cron-selects">
+                  <label class="pill-native-field">
+                    <span>时</span>
+                    <select v-model="cronDraft.hour" class="pill-native-select">
+                      <option v-for="item in hourItems" :key="item.value" :value="item.value">{{ item.title }}</option>
+                    </select>
+                  </label>
+                  <label class="pill-native-field">
+                    <span>分</span>
+                    <select v-model="cronDraft.minute" class="pill-native-select">
+                      <option v-for="item in minuteItems" :key="item.value" :value="item.value">{{ item.title }}</option>
+                    </select>
+                  </label>
+                  <label v-if="cronDraft.mode === 'weekly'" class="pill-native-field">
+                    <span>星期</span>
+                    <select v-model="cronDraft.weekday" class="pill-native-select">
+                      <option v-for="item in weekdayItems" :key="item.value" :value="item.value">{{ item.title }}</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="pill-cron-preview">将生成：{{ cronPreview }}</div>
+                <div class="pill-cron-actions">
+                  <v-btn variant="text" @click="cronDialog = false">取消</v-btn>
+                  <v-btn color="primary" variant="flat" @click="applyCronDraft">应用</v-btn>
                 </div>
               </div>
-              <div class="pill-cron-selects">
-                <v-select v-model="cronDraft.hour" :items="hourItems" label="时" variant="outlined" density="comfortable" hide-details />
-                <v-select v-model="cronDraft.minute" :items="minuteItems" label="分" variant="outlined" density="comfortable" hide-details />
-                <v-select
-                  v-if="cronDraft.mode === 'weekly'"
-                  v-model="cronDraft.weekday"
-                  :items="weekdayItems"
-                  label="星期"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                />
-              </div>
-              <div class="pill-cron-preview">将生成：{{ cronPreview }}</div>
-              <div class="pill-cron-actions">
-                <v-btn variant="text" @click="cronMenu = false">取消</v-btn>
-                <v-btn color="primary" variant="flat" @click="applyCronDraft">应用</v-btn>
-              </div>
-            </div>
-          </v-menu>
+            </v-card>
+          </v-dialog>
           <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.ready_retry_seconds" label="失败后快速重试秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <div class="pill-note">
@@ -173,7 +179,7 @@ const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
 const pluginBase = '/plugin/SQPill'
-const cronMenu = ref(false)
+const cronDialog = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -266,14 +272,14 @@ function buildCronPreview() {
 
 const cronPreview = computed(() => buildCronPreview())
 
-function openCronMenu() {
+function openCronDialog() {
   syncCronDraft(config.brick_cron)
-  cronMenu.value = true
+  cronDialog.value = true
 }
 
 function applyCronDraft() {
   config.brick_cron = cronPreview.value
-  cronMenu.value = false
+  cronDialog.value = false
 }
 
 async function loadConfig() {
@@ -493,6 +499,14 @@ onBeforeUnmount(() => {
   gap: 14px;
 }
 
+.pill-cron-dialog {
+  border-radius: 24px !important;
+  background: var(--pill-card) !important;
+  color: var(--pill-text) !important;
+  border: 1px solid var(--pill-border);
+  box-shadow: var(--pill-shadow);
+}
+
 .pill-cron-group {
   display: grid;
   gap: 10px;
@@ -532,6 +546,29 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
+}
+
+.pill-native-field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pill-muted);
+}
+
+.pill-native-select {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-card-strong);
+  color: var(--pill-text);
+  padding: 0 12px;
+  outline: none;
+}
+
+.pill-native-select:focus {
+  border-color: rgba(255, 143, 61, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
 }
 
 @media (max-width: 880px) {

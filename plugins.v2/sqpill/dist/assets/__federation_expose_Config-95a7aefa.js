@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_056961b3_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_c7df8e6d_lang = '';
 
-const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,mergeProps:_mergeProps,normalizeClass:_normalizeClass,unref:_unref,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,unref:_unref,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelSelect:_vModelSelect,withDirectives:_withDirectives,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-056961b3"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-c7df8e6d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -36,37 +36,49 @@ const _hoisted_12 = { class: "pill-cron-group" };
 const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-cron-label" }, "周期", -1));
 const _hoisted_14 = { class: "pill-cron-chip-row" };
 const _hoisted_15 = { class: "pill-cron-selects" };
-const _hoisted_16 = { class: "pill-cron-preview" };
-const _hoisted_17 = { class: "pill-cron-actions" };
-const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。 ", -1));
-const _hoisted_19 = { class: "pill-panel" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_16 = { class: "pill-native-field" };
+const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "时", -1));
+const _hoisted_18 = ["value"];
+const _hoisted_19 = { class: "pill-native-field" };
+const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "分", -1));
+const _hoisted_21 = ["value"];
+const _hoisted_22 = {
+  key: 0,
+  class: "pill-native-field"
+};
+const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "星期", -1));
+const _hoisted_24 = ["value"];
+const _hoisted_25 = { class: "pill-cron-preview" };
+const _hoisted_26 = { class: "pill-cron-actions" };
+const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。 ", -1));
+const _hoisted_28 = { class: "pill-panel" };
+const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "搬砖节奏"),
     /*#__PURE__*/_createElementVNode("h2", null, "动作配置")
   ])
 ], -1));
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 每天搬砖次数固定按 50 次处理，不再需要手动配置循环次数。 ", -1));
-const _hoisted_22 = { class: "pill-panel" };
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 每天搬砖次数固定按 50 次处理，不再需要手动配置循环次数。 ", -1));
+const _hoisted_31 = { class: "pill-panel" };
+const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "网络设置"),
     /*#__PURE__*/_createElementVNode("h2", null, "连接参数")
   ])
 ], -1));
-const _hoisted_24 = { class: "pill-panel pill-panel-wide" };
-const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_33 = { class: "pill-panel pill-panel-wide" };
+const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "兜底配置")
   ])
 ], -1));
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, [
+const _hoisted_35 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, [
   /*#__PURE__*/_createTextVNode(" 默认站点固定为 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode("。开启站点 Cookie 同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。 ")
 ], -1));
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("article", { class: "pill-panel pill-panel-wide" }, [
+const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("article", { class: "pill-panel pill-panel-wide" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
     /*#__PURE__*/_createElementVNode("div", null, [
       /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "当前说明"),
@@ -99,7 +111,7 @@ const props = __props;
 const saving = ref(false);
 const rootEl = ref(null);
 const isDarkTheme = ref(false);
-const cronMenu = ref(false);
+const cronDialog = ref(false);
 const message = reactive({ text: '', type: 'success' });
 const config = reactive({
   enabled: false,
@@ -192,14 +204,14 @@ function buildCronPreview() {
 
 const cronPreview = computed(() => buildCronPreview());
 
-function openCronMenu() {
+function openCronDialog() {
   syncCronDraft(config.brick_cron);
-  cronMenu.value = true;
+  cronDialog.value = true;
 }
 
 function applyCronDraft() {
   config.brick_cron = cronPreview.value;
-  cronMenu.value = false;
+  cronDialog.value = false;
 }
 
 async function loadConfig() {
@@ -288,8 +300,8 @@ return (_ctx, _cache) => {
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
   const _component_v_text_field = _resolveComponent("v-text-field");
-  const _component_v_select = _resolveComponent("v-select");
-  const _component_v_menu = _resolveComponent("v-menu");
+  const _component_v_card = _resolveComponent("v-card");
+  const _component_v_dialog = _resolveComponent("v-dialog");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", {
@@ -420,103 +432,124 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("article", _hoisted_9, [
           _hoisted_10,
-          _createVNode(_component_v_menu, {
-            modelValue: cronMenu.value,
-            "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((cronMenu).value = $event)),
-            "close-on-content-click": false,
-            location: "bottom start",
-            "max-width": "440"
+          _createVNode(_component_v_text_field, {
+            modelValue: config.brick_cron,
+            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.brick_cron) = $event)),
+            label: "执行周期(cron)",
+            variant: "outlined",
+            density: "comfortable",
+            class: "mb-3",
+            readonly: "",
+            "append-inner-icon": "mdi-clock-edit-outline",
+            onClick: openCronDialog
+          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_dialog, {
+            modelValue: cronDialog.value,
+            "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((cronDialog).value = $event)),
+            "max-width": "520"
           }, {
-            activator: _withCtx(({ props: menuProps }) => [
-              _createVNode(_component_v_text_field, _mergeProps(menuProps, {
-                modelValue: config.brick_cron,
-                "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.brick_cron) = $event)),
-                label: "执行周期(cron)",
-                variant: "outlined",
-                density: "comfortable",
-                class: "mb-3",
-                readonly: "",
-                "append-inner-icon": "mdi-clock-edit-outline",
-                onClick: openCronMenu
-              }), null, 16, ["modelValue"])
-            ]),
             default: _withCtx(() => [
-              _createElementVNode("div", _hoisted_11, [
-                _createElementVNode("div", _hoisted_12, [
-                  _hoisted_13,
-                  _createElementVNode("div", _hoisted_14, [
-                    _createElementVNode("button", {
-                      type: "button",
-                      class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'daily' }]),
-                      onClick: _cache[11] || (_cache[11] = $event => (cronDraft.mode = 'daily'))
-                    }, "每日", 2),
-                    _createElementVNode("button", {
-                      type: "button",
-                      class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'weekdays' }]),
-                      onClick: _cache[12] || (_cache[12] = $event => (cronDraft.mode = 'weekdays'))
-                    }, "工作日", 2),
-                    _createElementVNode("button", {
-                      type: "button",
-                      class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'weekly' }]),
-                      onClick: _cache[13] || (_cache[13] = $event => (cronDraft.mode = 'weekly'))
-                    }, "每周", 2)
+              _createVNode(_component_v_card, { class: "pill-cron-dialog" }, {
+                default: _withCtx(() => [
+                  _createElementVNode("div", _hoisted_11, [
+                    _createElementVNode("div", _hoisted_12, [
+                      _hoisted_13,
+                      _createElementVNode("div", _hoisted_14, [
+                        _createElementVNode("button", {
+                          type: "button",
+                          class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'daily' }]),
+                          onClick: _cache[11] || (_cache[11] = $event => (cronDraft.mode = 'daily'))
+                        }, "每日", 2),
+                        _createElementVNode("button", {
+                          type: "button",
+                          class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'weekdays' }]),
+                          onClick: _cache[12] || (_cache[12] = $event => (cronDraft.mode = 'weekdays'))
+                        }, "工作日", 2),
+                        _createElementVNode("button", {
+                          type: "button",
+                          class: _normalizeClass(["pill-cron-chip", { active: cronDraft.mode === 'weekly' }]),
+                          onClick: _cache[13] || (_cache[13] = $event => (cronDraft.mode = 'weekly'))
+                        }, "每周", 2)
+                      ])
+                    ]),
+                    _createElementVNode("div", _hoisted_15, [
+                      _createElementVNode("label", _hoisted_16, [
+                        _hoisted_17,
+                        _withDirectives(_createElementVNode("select", {
+                          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((cronDraft.hour) = $event)),
+                          class: "pill-native-select"
+                        }, [
+                          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_unref(hourItems), (item) => {
+                            return (_openBlock(), _createElementBlock("option", {
+                              key: item.value,
+                              value: item.value
+                            }, _toDisplayString(item.title), 9, _hoisted_18))
+                          }), 128))
+                        ], 512), [
+                          [_vModelSelect, cronDraft.hour]
+                        ])
+                      ]),
+                      _createElementVNode("label", _hoisted_19, [
+                        _hoisted_20,
+                        _withDirectives(_createElementVNode("select", {
+                          "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((cronDraft.minute) = $event)),
+                          class: "pill-native-select"
+                        }, [
+                          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_unref(minuteItems), (item) => {
+                            return (_openBlock(), _createElementBlock("option", {
+                              key: item.value,
+                              value: item.value
+                            }, _toDisplayString(item.title), 9, _hoisted_21))
+                          }), 128))
+                        ], 512), [
+                          [_vModelSelect, cronDraft.minute]
+                        ])
+                      ]),
+                      (cronDraft.mode === 'weekly')
+                        ? (_openBlock(), _createElementBlock("label", _hoisted_22, [
+                            _hoisted_23,
+                            _withDirectives(_createElementVNode("select", {
+                              "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((cronDraft.weekday) = $event)),
+                              class: "pill-native-select"
+                            }, [
+                              (_openBlock(), _createElementBlock(_Fragment, null, _renderList(weekdayItems, (item) => {
+                                return _createElementVNode("option", {
+                                  key: item.value,
+                                  value: item.value
+                                }, _toDisplayString(item.title), 9, _hoisted_24)
+                              }), 64))
+                            ], 512), [
+                              [_vModelSelect, cronDraft.weekday]
+                            ])
+                          ]))
+                        : _createCommentVNode("", true)
+                    ]),
+                    _createElementVNode("div", _hoisted_25, "将生成：" + _toDisplayString(cronPreview.value), 1),
+                    _createElementVNode("div", _hoisted_26, [
+                      _createVNode(_component_v_btn, {
+                        variant: "text",
+                        onClick: _cache[17] || (_cache[17] = $event => (cronDialog.value = false))
+                      }, {
+                        default: _withCtx(() => [
+                          _createTextVNode("取消")
+                        ]),
+                        _: 1
+                      }),
+                      _createVNode(_component_v_btn, {
+                        color: "primary",
+                        variant: "flat",
+                        onClick: applyCronDraft
+                      }, {
+                        default: _withCtx(() => [
+                          _createTextVNode("应用")
+                        ]),
+                        _: 1
+                      })
+                    ])
                   ])
                 ]),
-                _createElementVNode("div", _hoisted_15, [
-                  _createVNode(_component_v_select, {
-                    modelValue: cronDraft.hour,
-                    "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((cronDraft.hour) = $event)),
-                    items: _unref(hourItems),
-                    label: "时",
-                    variant: "outlined",
-                    density: "comfortable",
-                    "hide-details": ""
-                  }, null, 8, ["modelValue", "items"]),
-                  _createVNode(_component_v_select, {
-                    modelValue: cronDraft.minute,
-                    "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((cronDraft.minute) = $event)),
-                    items: _unref(minuteItems),
-                    label: "分",
-                    variant: "outlined",
-                    density: "comfortable",
-                    "hide-details": ""
-                  }, null, 8, ["modelValue", "items"]),
-                  (cronDraft.mode === 'weekly')
-                    ? (_openBlock(), _createBlock(_component_v_select, {
-                        key: 0,
-                        modelValue: cronDraft.weekday,
-                        "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((cronDraft.weekday) = $event)),
-                        items: weekdayItems,
-                        label: "星期",
-                        variant: "outlined",
-                        density: "comfortable",
-                        "hide-details": ""
-                      }, null, 8, ["modelValue"]))
-                    : _createCommentVNode("", true)
-                ]),
-                _createElementVNode("div", _hoisted_16, "将生成：" + _toDisplayString(cronPreview.value), 1),
-                _createElementVNode("div", _hoisted_17, [
-                  _createVNode(_component_v_btn, {
-                    variant: "text",
-                    onClick: _cache[17] || (_cache[17] = $event => (cronMenu.value = false))
-                  }, {
-                    default: _withCtx(() => [
-                      _createTextVNode("取消")
-                    ]),
-                    _: 1
-                  }),
-                  _createVNode(_component_v_btn, {
-                    color: "primary",
-                    variant: "flat",
-                    onClick: applyCronDraft
-                  }, {
-                    default: _withCtx(() => [
-                      _createTextVNode("应用")
-                    ]),
-                    _: 1
-                  })
-                ])
-              ])
+                _: 1
+              })
             ]),
             _: 1
           }, 8, ["modelValue"]),
@@ -538,10 +571,10 @@ return (_ctx, _cache) => {
             density: "comfortable",
             class: "mb-3"
           }, null, 8, ["modelValue"]),
-          _hoisted_18
+          _hoisted_27
         ]),
-        _createElementVNode("article", _hoisted_19, [
-          _hoisted_20,
+        _createElementVNode("article", _hoisted_28, [
+          _hoisted_29,
           _createVNode(_component_v_text_field, {
             modelValue: config.move_delay_min_ms,
             "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.move_delay_min_ms) = $event)),
@@ -559,10 +592,10 @@ return (_ctx, _cache) => {
             variant: "outlined",
             density: "comfortable"
           }, null, 8, ["modelValue"]),
-          _hoisted_21
+          _hoisted_30
         ]),
-        _createElementVNode("article", _hoisted_22, [
-          _hoisted_23,
+        _createElementVNode("article", _hoisted_31, [
+          _hoisted_32,
           _createVNode(_component_v_text_field, {
             modelValue: config.random_delay_max_seconds,
             "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => ((config.random_delay_max_seconds) = $event)),
@@ -599,8 +632,8 @@ return (_ctx, _cache) => {
             density: "comfortable"
           }, null, 8, ["modelValue"])
         ]),
-        _createElementVNode("article", _hoisted_24, [
-          _hoisted_25,
+        _createElementVNode("article", _hoisted_33, [
+          _hoisted_34,
           _createVNode(_component_v_textarea, {
             modelValue: config.cookie,
             "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => ((config.cookie) = $event)),
@@ -610,9 +643,9 @@ return (_ctx, _cache) => {
             density: "comfortable",
             placeholder: "例如 c_secure_pass=..."
           }, null, 8, ["modelValue"]),
-          _hoisted_26
+          _hoisted_35
         ]),
-        _hoisted_27
+        _hoisted_36
       ])
     ])
   ], 2))
@@ -620,6 +653,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-056961b3"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c7df8e6d"]]);
 
 export { ConfigView as default };
