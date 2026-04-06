@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_140afa1a_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_c62c646d_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-140afa1a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-c62c646d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -24,7 +24,7 @@ const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
   ])
 ], -1));
 const _hoisted_8 = { class: "pill-switch-grid" };
-const _hoisted_9 = { class: "pill-panel" };
+const _hoisted_9 = { class: "pill-panel pill-panel-wide" };
 const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "调度策略"),
@@ -216,7 +216,9 @@ return (_ctx, _cache) => {
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
   const _component_VCronField = _resolveComponent("VCronField");
+  const _component_v_col = _resolveComponent("v-col");
   const _component_v_text_field = _resolveComponent("v-text-field");
+  const _component_v_row = _resolveComponent("v-row");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", {
@@ -347,33 +349,59 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("article", _hoisted_9, [
           _hoisted_10,
-          _createVNode(_component_VCronField, {
-            modelValue: config.brick_cron,
-            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.brick_cron) = $event)),
-            label: "执行周期(cron)",
-            hint: "例如：5 0 * * *",
-            "persistent-hint": "",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.schedule_buffer_seconds,
-            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.schedule_buffer_seconds) = $event)),
-            label: "调度缓冲秒数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.ready_retry_seconds,
-            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.ready_retry_seconds) = $event)),
-            label: "失败后快速重试秒数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_row, null, {
+            default: _withCtx(() => [
+              _createVNode(_component_v_col, {
+                cols: "12",
+                md: "7"
+              }, {
+                default: _withCtx(() => [
+                  _createVNode(_component_VCronField, {
+                    modelValue: config.brick_cron,
+                    "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.brick_cron) = $event)),
+                    label: "执行周期(cron)",
+                    hint: "例如：5 0 * * *",
+                    "persistent-hint": "",
+                    density: "compact"
+                  }, null, 8, ["modelValue"])
+                ]),
+                _: 1
+              }),
+              _createVNode(_component_v_col, {
+                cols: "12",
+                md: "3"
+              }, {
+                default: _withCtx(() => [
+                  _createVNode(_component_v_text_field, {
+                    modelValue: config.schedule_buffer_seconds,
+                    "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.schedule_buffer_seconds) = $event)),
+                    label: "调度缓冲秒数",
+                    type: "number",
+                    variant: "outlined",
+                    density: "compact"
+                  }, null, 8, ["modelValue"])
+                ]),
+                _: 1
+              }),
+              _createVNode(_component_v_col, {
+                cols: "12",
+                md: "2"
+              }, {
+                default: _withCtx(() => [
+                  _createVNode(_component_v_text_field, {
+                    modelValue: config.ready_retry_seconds,
+                    "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.ready_retry_seconds) = $event)),
+                    label: "快速重试秒数",
+                    type: "number",
+                    variant: "outlined",
+                    density: "compact"
+                  }, null, 8, ["modelValue"])
+                ]),
+                _: 1
+              })
+            ]),
+            _: 1
+          }),
           _hoisted_11
         ]),
         _createElementVNode("article", _hoisted_12, [
@@ -456,6 +484,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-140afa1a"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c62c646d"]]);
 
 export { ConfigView as default };

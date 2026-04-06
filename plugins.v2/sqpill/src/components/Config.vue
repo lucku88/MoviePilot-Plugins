@@ -39,23 +39,30 @@
           </div>
         </article>
 
-        <article class="pill-panel">
+        <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">调度策略</div>
               <h2>时间配置</h2>
             </div>
           </div>
-          <VCronField
-            v-model="config.brick_cron"
-            label="执行周期(cron)"
-            hint="例如：5 0 * * *"
-            persistent-hint
-            density="comfortable"
-            class="mb-3"
-          ></VCronField>
-          <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
-          <v-text-field v-model="config.ready_retry_seconds" label="失败后快速重试秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
+          <v-row>
+            <v-col cols="12" md="7">
+              <VCronField
+                v-model="config.brick_cron"
+                label="执行周期(cron)"
+                hint="例如：5 0 * * *"
+                persistent-hint
+                density="compact"
+              ></VCronField>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="compact" />
+            </v-col>
+            <v-col cols="12" md="2">
+              <v-text-field v-model="config.ready_retry_seconds" label="快速重试秒数" type="number" variant="outlined" density="compact" />
+            </v-col>
+          </v-row>
           <div class="pill-note">
             搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。
           </div>

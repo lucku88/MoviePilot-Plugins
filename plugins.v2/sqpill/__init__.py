@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
-    plugin_desc = "SQ魔丸自动搬砖、清理沙滩与一键炼造魔丸，支持 Vue 面板、动态调度和站点 Cookie 同步。"
+    plugin_desc = "SQ魔丸自动搬砖、清理沙滩与一键炼造魔丸，搬砖按 CRON 调度，沙滩按冷却时间动态调度。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -230,7 +230,12 @@ class SQPill(_PluginBase):
             elif self._enable_beach:
                 beach_result = {"message": page.get("beach", {}).get("status_text") or "沙滩冷却中"}
 
-            final_page = self._fetch_page_state(session)
+            final_page = self._fetch_stable_page_state(
+                session,
+                previous_page=page,
+                expect_brick_update=self._safe_int(brick_result.get("moved"), 0) > 0,
+                expect_beach_cooldown=bool(beach_result.get("done")),
+            )
             retry_due_now = self._needs_retry_soon(final_page, brick_result, beach_result)
             next_run = self._compute_next_run(final_page)
             if retry_due_now:
@@ -584,7 +589,12 @@ class SQPill(_PluginBase):
     def _fetch_page_state(self, session: requests.Session) -> Dict[str, Any]:
         response = self._request_with_retry(
             "fetchMowanPage",
-            lambda: session.get(f"{self._site_url}/mowan.php", timeout=(self._http_timeout, self._http_timeout)),
+            lambda: session.get(
+                f"{self._site_url}/mowan.php",
+                params={"_": int(time.time() * 1000)},
+                headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+                timeout=(self._http_timeout, self._http_timeout),
+            ),
         )
         response.raise_for_status()
         html = response.text
@@ -592,6 +602,41 @@ class SQPill(_PluginBase):
         if not data.get("title") and not data.get("stats"):
             raise ValueError("获取魔丸页面失败，Cookie 可能失效")
         return data
+
+    def _fetch_stable_page_state(
+        self,
+        session: requests.Session,
+        previous_page: Optional[Dict[str, Any]] = None,
+        expect_brick_update: bool = False,
+        expect_beach_cooldown: bool = False,
+    ) -> Dict[str, Any]:
+        page = self._fetch_page_state(session)
+        prev_brick = (previous_page or {}).get("brick") or {}
+        prev_beach = (previous_page or {}).get("beach") or {}
+        prev_daily = self._safe_int(prev_brick.get("daily_bricks"), 0)
+        prev_bag = self._safe_int(prev_brick.get("bag_count"), 0)
+
+        for wait_seconds in (0.6, 1.2):
+            brick = page.get("brick") or {}
+            beach = page.get("beach") or {}
+            brick_stale = (
+                expect_brick_update
+                and self._safe_int(brick.get("daily_bricks"), 0) <= prev_daily
+                and self._safe_int(brick.get("bag_count"), 0) <= prev_bag
+                and bool(brick.get("ready")) == bool(prev_brick.get("ready"))
+            )
+            beach_stale = (
+                expect_beach_cooldown
+                and bool(beach.get("ready"))
+                and not self._safe_int(beach.get("next_ready_ts"), 0)
+                and bool(prev_beach.get("ready"))
+            )
+            if not brick_stale and not beach_stale:
+                break
+            time.sleep(wait_seconds)
+            page = self._fetch_page_state(session)
+
+        return page
 
     def _parse_page_state(self, html: str) -> Dict[str, Any]:
         stats = {
@@ -610,15 +655,27 @@ class SQPill(_PluginBase):
         magic_pills2 = self._extract_id_int(html, "magicPills2", stats["magic_pills"])
         pill_price = self._extract_int(self._first_match(html, r"魔丸限时价格：\s*<b>\s*([\d,]+)\s*魔力/颗"), 0)
 
-        server_offset = self._extract_int(self._first_match(html, r"serverTimeOffset:\s*([-\d]+)"), 0)
-        server_now = int(time.time()) + server_offset
-        next_brick_reset_ts = self._extract_int(self._first_match(html, r"nextBrickResetTs:\s*(\d+)"), 0)
-        last_beach_time = self._extract_int(self._first_match(html, r"lastBeachTime:\s*(\d+)"), 0)
+        server_marker = (
+            self._first_match(html, r"server_now\s*[:=]\s*(\d+)")
+            or self._first_match(html, r"serverNow\s*[:=]\s*(\d+)")
+            or self._first_match(html, r"serverTimeOffset:\s*([-\d]+)")
+        )
+        server_now = self._resolve_server_now(server_marker)
+        next_brick_reset_ts = self._normalize_timestamp(
+            self._first_match(html, r"next_brick_reset_ts\s*[:=]\s*(\d+)")
+            or self._first_match(html, r"nextBrickResetTs:\s*(\d+)"),
+            0,
+        )
+        last_beach_time = self._normalize_timestamp(
+            self._first_match(html, r"last_beach_time\s*[:=]\s*(\d+)")
+            or self._first_match(html, r"lastBeachTime:\s*(\d+)"),
+            0,
+        )
         beach_interval = self._extract_int(self._first_match(html, r"beachInterval:\s*(\d+)"), 7200)
 
         brick_ready = stats["daily_bricks"] < daily_limit
-        brick_next_ts = next_brick_reset_ts if (not brick_ready and next_brick_reset_ts > server_now) else 0
-        beach_next_ts = last_beach_time + beach_interval if last_beach_time and (last_beach_time + beach_interval > server_now) else 0
+        brick_next_ts = next_brick_reset_ts if (not brick_ready and self._is_reasonable_future_ts(next_brick_reset_ts, server_now)) else 0
+        beach_next_ts = last_beach_time + beach_interval if last_beach_time and self._is_reasonable_future_ts(last_beach_time + beach_interval, server_now) else 0
         beach_ready = not beach_next_ts
 
         brick = {
@@ -808,24 +865,25 @@ class SQPill(_PluginBase):
         try:
             enter = self._post_action(session, "enter_beach", retry_network=False)
         except Exception as err:
-            return {"items": [], "message": "", "warning": self._get_error_detail(err)}
+            return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
 
         if not enter or not enter.get("success", False):
             message = (enter or {}).get("message") or (enter or {}).get("msg") or "沙滩冷却中"
-            return {"items": [], "message": message, "warning": ""}
+            return {"items": [], "message": message, "warning": "", "done": False}
 
         try:
             result = self._post_action(session, "collect_all_trash", retry_network=False)
         except Exception as err:
-            return {"items": [], "message": "", "warning": self._get_error_detail(err)}
+            return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
 
         if result and result.get("success", False):
             items = self._normalize_collected_items(result)
-            return {"items": items, "message": (result.get("message") or "").strip(), "warning": ""}
+            return {"items": items, "message": (result.get("message") or "").strip(), "warning": "", "done": True}
         return {
             "items": [],
             "message": (result or {}).get("message") or (result or {}).get("msg") or "一键收集失败",
             "warning": "",
+            "done": False,
         }
 
     def _manual_move_bricks(self) -> Dict[str, Any]:
@@ -841,7 +899,11 @@ class SQPill(_PluginBase):
             return {"pill_status": pill_status, "lines": lines}
 
         result = self._run_brick_flow(session, page.get("brick") or {})
-        page = self._fetch_page_state(session)
+        page = self._fetch_stable_page_state(
+            session,
+            previous_page=page,
+            expect_brick_update=self._safe_int(result.get("moved"), 0) > 0,
+        )
         next_run = self._compute_next_run(page)
         if page.get("brick", {}).get("ready") and (result.get("warning") or result.get("attempted")):
             retry_ts = int(time.time()) + self._ready_retry_seconds
@@ -883,7 +945,11 @@ class SQPill(_PluginBase):
             return {"pill_status": pill_status, "lines": lines}
 
         result = self._run_beach_flow(session)
-        page = self._fetch_page_state(session)
+        page = self._fetch_stable_page_state(
+            session,
+            previous_page=page,
+            expect_beach_cooldown=bool(result.get("done")),
+        )
         next_run = self._compute_next_run(page)
         if page.get("beach", {}).get("ready") and result.get("warning"):
             retry_ts = int(time.time()) + self._ready_retry_seconds
@@ -1152,6 +1218,9 @@ class SQPill(_PluginBase):
         return self._load_saved_next_trigger()
 
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
+        next_run_ts = self._normalize_timestamp(next_run_ts, 0)
+        if next_run_ts and not self._is_reasonable_future_ts(next_run_ts, int(time.time()) - 1):
+            next_run_ts = 0
         if next_run_ts and next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
             next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
@@ -1199,13 +1268,14 @@ class SQPill(_PluginBase):
 
     def _compute_next_run(self, data: dict) -> Optional[int]:
         candidates: List[int] = []
+        server_now = self._resolve_server_now(data.get("server_now"))
         if self._enable_brick:
-            brick_next = self._get_cron_next_ts(self._brick_cron, data.get("server_now"))
-            if brick_next:
+            brick_next = self._get_cron_next_ts(self._brick_cron, server_now)
+            if self._is_reasonable_future_ts(brick_next, server_now):
                 candidates.append(brick_next)
         if self._enable_beach:
-            beach_next = self._safe_int((data.get("beach") or {}).get("next_ready_ts"), 0)
-            if beach_next > int(time.time()):
+            beach_next = self._normalize_timestamp((data.get("beach") or {}).get("next_ready_ts"), 0)
+            if self._is_reasonable_future_ts(beach_next, server_now):
                 candidates.append(beach_next)
         return min(candidates) if candidates else None
 
@@ -1215,8 +1285,8 @@ class SQPill(_PluginBase):
             return None
         try:
             timezone = pytz.timezone(settings.TZ)
-            now_ts = self._safe_int(server_now, int(time.time()))
-            now_dt = self._aware_from_timestamp(now_ts)
+            now_ts = self._resolve_server_now(server_now)
+            now_dt = self._aware_from_timestamp(now_ts) + timedelta(seconds=1)
             trigger = CronTrigger.from_crontab(expr, timezone=timezone)
             next_fire = trigger.get_next_fire_time(None, now_dt)
             return int(next_fire.timestamp()) if next_fire else None
@@ -1264,7 +1334,7 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与一键炼造魔丸；搬砖按 CRON {self._brick_cron} 调度，未搬满 50 次会在 60 秒后自动重试。",
+            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与一键炼造魔丸；搬砖按 CRON {self._brick_cron} 调度，沙滩按冷却时间动态调度，未搬满 50 次会在 60 秒后自动重试。",
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},
@@ -1394,6 +1464,28 @@ class SQPill(_PluginBase):
     def _extract_int(self, value: Any, default: int = 0) -> int:
         return self._safe_int(value, default)
 
+    def _normalize_timestamp(self, value: Any, default: int = 0) -> int:
+        ts = self._safe_int(value, default)
+        if ts <= 0:
+            return default
+        if ts > 10_000_000_000:
+            ts //= 1000
+        return ts
+
+    def _resolve_server_now(self, raw_value: Any) -> int:
+        raw = self._safe_int(raw_value, 0)
+        current = int(time.time())
+        if raw == 0:
+            return current
+        if abs(raw) <= 14 * 24 * 3600:
+            return current + raw
+        return self._normalize_timestamp(raw, current)
+
+    def _is_reasonable_future_ts(self, ts: Any, base_ts: Optional[Any] = None, max_days: int = 400) -> bool:
+        value = self._normalize_timestamp(ts, 0)
+        base = self._resolve_server_now(base_ts)
+        return value > base and value <= base + max_days * 24 * 3600
+
     def _format_item_lines(self, items: List[Dict[str, Any]]) -> str:
         return "  ".join(
             f"{item.get('icon') or self.ITEM_ICON_MAP.get(item.get('name') or '', '📦')}{item.get('name')}×{self._safe_int(item.get('count'), 0)}"
@@ -1421,7 +1513,7 @@ class SQPill(_PluginBase):
         return datetime.now(tz=pytz.timezone(settings.TZ))
 
     def _aware_from_timestamp(self, timestamp: int) -> datetime:
-        return datetime.fromtimestamp(timestamp, tz=pytz.timezone(settings.TZ))
+        return datetime.fromtimestamp(self._normalize_timestamp(timestamp, int(time.time())), tz=pytz.timezone(settings.TZ))
 
     def _parse_datetime(self, raw: Any) -> Optional[datetime]:
         if not raw:

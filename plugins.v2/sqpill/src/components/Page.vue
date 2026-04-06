@@ -113,13 +113,22 @@
             </span>
           </div>
           <div class="pill-card-body">
-            <div class="pill-big-number">{{ brick.available_count || 0 }}</div>
+            <div class="pill-action-number">{{ brick.available_count || 0 }}</div>
             <div class="pill-card-label">当前可搬砖块</div>
             <div class="pill-card-meta">{{ brick.status_text || '等待刷新' }}</div>
-            <div class="pill-chip-row">
-              <span class="pill-chip">口袋 {{ brick.bag_count || 0 }} 块</span>
-              <span class="pill-chip">今日 {{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</span>
-              <span class="pill-chip" v-if="brick.next_reset_time">重置 {{ brick.next_reset_time }}</span>
+            <div class="pill-metric-grid">
+              <div class="pill-metric-item">
+                <span>口袋</span>
+                <strong>{{ brick.bag_count || 0 }} 块</strong>
+              </div>
+              <div class="pill-metric-item">
+                <span>今日</span>
+                <strong>{{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</strong>
+              </div>
+              <div v-if="brick.next_reset_time" class="pill-metric-item pill-metric-item-wide">
+                <span>重置</span>
+                <strong>{{ brick.next_reset_time }}</strong>
+              </div>
             </div>
           </div>
         </article>
@@ -135,12 +144,21 @@
             </span>
           </div>
           <div class="pill-card-body">
-            <div class="pill-big-number pill-big-word">{{ beach.ready ? '可清理' : '等待' }}</div>
+            <div class="pill-action-word">{{ beach.ready ? '可清理' : '等待' }}</div>
             <div class="pill-card-label">{{ beach.status_text || '等待刷新' }}</div>
-            <div class="pill-chip-row">
-              <span class="pill-chip" v-if="beach.level_text">等级 {{ beach.level_text }}</span>
-              <span class="pill-chip" v-if="beach.hnr_text">HNR {{ beach.hnr_text }}</span>
-              <span class="pill-chip" v-if="beach.next_ready_time">下次 {{ beach.next_ready_time }}</span>
+            <div class="pill-metric-grid">
+              <div v-if="beach.level_text" class="pill-metric-item">
+                <span>等级</span>
+                <strong>{{ beach.level_text }}</strong>
+              </div>
+              <div v-if="beach.hnr_text" class="pill-metric-item">
+                <span>HNR</span>
+                <strong>{{ beach.hnr_text }}</strong>
+              </div>
+              <div v-if="beach.next_ready_time" class="pill-metric-item pill-metric-item-wide">
+                <span>下次</span>
+                <strong>{{ beach.next_ready_time }}</strong>
+              </div>
             </div>
           </div>
         </article>
@@ -344,25 +362,51 @@ function loadDismissedSummaryKey() {
 
 async function loadStatus() {
   const data = await props.api.get(`${pluginBase}/status`)
-  status.pill_status = data.pill_status || data.farm_status || {}
-  status.history = data.history || []
+  applyStatusPayload(data)
 }
 
-async function doAction(action) {
+function applyStatusPayload(payload = {}) {
+  const nextStatus = payload?.status?.pill_status || payload?.pill_status || payload?.farm_status || payload?.status?.farm_status || {}
+  if (Object.keys(nextStatus).length) {
+    status.pill_status = nextStatus
+  }
+  if (Array.isArray(payload?.history)) {
+    status.history = payload.history
+  } else if (Array.isArray(payload?.status?.history)) {
+    status.history = payload.status.history
+  }
+
+  const runTs = Number(status.pill_status?.next_run_ts || 0) || parseDateTime(status.pill_status?.next_run_time)
+  const triggerTs = Number(status.pill_status?.next_trigger_ts || 0) || parseDateTime(status.pill_status?.next_trigger_time)
+  if (runTs && nowTs.value >= runTs) {
+    lastRunAutoRefreshTs.value = runTs
+  }
+  if (triggerTs && nowTs.value >= triggerTs) {
+    lastTriggerAutoRefreshTs.value = triggerTs
+  }
+}
+
+async function silentRefreshStatus() {
+  try {
+    await loadStatus()
+  } catch (error) {
+    console.warn('[SQPill] silent refresh failed', error)
+  }
+}
+
+async function doAction(action, { silent = false } = {}) {
   loading.value = true
   try {
     const result = await action()
-    if (result?.status?.pill_status) {
-      status.pill_status = result.status.pill_status
-      status.history = result.status.history || status.history
-    } else if (result?.pill_status) {
-      status.pill_status = result.pill_status
-    } else {
-      await loadStatus()
+    applyStatusPayload(result)
+    await silentRefreshStatus()
+    if (!silent) {
+      flash(result?.message || '操作完成')
     }
-    flash(result?.message || '操作完成')
   } catch (error) {
-    flash(error?.message || '操作失败', 'error')
+    if (!silent) {
+      flash(error?.message || '操作失败', 'error')
+    }
   } finally {
     loading.value = false
   }
@@ -455,11 +499,11 @@ function tick() {
   nowTs.value = Math.floor(Date.now() / 1000)
   if (nextRunTs.value && nowTs.value >= nextRunTs.value && lastRunAutoRefreshTs.value !== nextRunTs.value) {
     lastRunAutoRefreshTs.value = nextRunTs.value
-    refreshData()
+    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
   }
   if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && lastTriggerAutoRefreshTs.value !== nextTriggerTs.value) {
     lastTriggerAutoRefreshTs.value = nextTriggerTs.value
-    refreshData()
+    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
   }
 }
 
@@ -714,11 +758,11 @@ onBeforeUnmount(() => {
 }
 
 .pill-action-card {
-  padding: 18px;
+  padding: 16px;
 }
 
 .pill-status-chip {
-  padding: 7px 12px;
+  padding: 6px 10px;
   color: #88612b;
   background: rgba(255, 179, 76, 0.16);
 }
@@ -730,12 +774,59 @@ onBeforeUnmount(() => {
 
 .pill-card-body {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .pill-card-meta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--pill-muted);
+}
+
+.pill-action-number {
+  margin-top: 2px;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pill-action-word {
+  margin-top: 2px;
+  font-size: clamp(24px, 3.2vw, 32px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.pill-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pill-metric-item {
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-card-strong);
+  display: grid;
+  gap: 4px;
+}
+
+.pill-metric-item span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pill-muted);
+}
+
+.pill-metric-item strong {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.pill-metric-item-wide {
+  grid-column: 1 / -1;
 }
 
 .pill-chip-row {
@@ -759,14 +850,14 @@ onBeforeUnmount(() => {
 
 .pill-inventory-grid,
 .pill-recipe-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(96px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(82px, 100%), 1fr));
 }
 
 .pill-inventory-card,
 .pill-recipe-card {
-  padding: 10px;
+  padding: 8px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   text-align: center;
 }
 
@@ -777,16 +868,16 @@ onBeforeUnmount(() => {
 }
 
 .pill-item-icon {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .pill-item-name {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .pill-item-count {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -908,6 +999,10 @@ onBeforeUnmount(() => {
   .pill-recipe-action {
     width: 100%;
     justify-content: stretch;
+  }
+
+  .pill-metric-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
