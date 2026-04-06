@@ -27,5 +27,17 @@
       "v0.2.0": "升级为 Vue 面板，新增动态最近可收调度、站点 Cookie 同步和农场仪表盘。",
       "v0.1.0": "首版发布，支持 MoviePilot V2 定时执行 SQ农场收菜、售卖和种植。"
     }
+  },
+  "SQPill": {
+    "name": "SQ魔丸",
+    "description": "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。",
+    "labels": "工具,自动化,魔丸",
+    "version": "0.1.0",
+    "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
+    "author": "lucku88",
+    "level": 1,
+    "history": {
+      "v0.1.0": "首版发布，整合搬砖工坊与沙滩捡破烂，支持状态页、手动动作、动态调度和站点 Cookie 同步。"
+    }
   }
 }
