@@ -216,6 +216,8 @@ class SQFarm(_PluginBase):
             harvest_note_detail = ""
             harvest_success_count = 0
             harvest_snapshot: List[Dict[str, Any]] = []
+            sell_snapshot: List[Dict[str, Any]] = []
+            sell_income_actual = 0
             sell_amount_estimate = 0
             plant_cost_estimate = 0
             plant_next_run_fallback = 0
@@ -245,6 +247,12 @@ class SQFarm(_PluginBase):
                         }, retry_network=False)
                         if not result or result.get("success", True):
                             sell_success_count += 1
+                            sell_qty = self._safe_int(item.get("quantity"), 0)
+                            sell_income_actual += self._safe_int(
+                                (result or {}).get("gain"),
+                                sell_qty * self._safe_int(item.get("unit_reward"), 0),
+                            )
+                            sell_snapshot.append(self._normalize_sell_item(result or {}, item, sell_qty))
                     except Exception as err:
                         logger.warning("sell_inventory failed: %s", err)
                 action_sell = sell_success_count > 0
@@ -293,6 +301,7 @@ class SQFarm(_PluginBase):
                 action_sell,
                 action_plant,
                 harvest_snapshot,
+                sell_snapshot,
                 log_result,
                 next_run_text,
                 harvest_success_count=harvest_success_count,
@@ -300,6 +309,7 @@ class SQFarm(_PluginBase):
                 planted_seed_name=planted_seed_name,
                 harvest_failure_detail=harvest_failure_detail,
                 harvest_note_detail=harvest_note_detail,
+                sell_income_actual=sell_income_actual,
                 sell_amount_fallback=sell_amount_estimate,
                 plant_cost_fallback=plant_cost_estimate,
             )
@@ -1640,6 +1650,7 @@ class SQFarm(_PluginBase):
         action_sell: bool,
         action_plant: bool,
         harvest_snapshot: List[dict],
+        sell_snapshot: List[dict],
         log_result: dict,
         next_run_text: str,
         harvest_success_count: int = 0,
@@ -1647,6 +1658,7 @@ class SQFarm(_PluginBase):
         planted_seed_name: str = "",
         harvest_failure_detail: str = "",
         harvest_note_detail: str = "",
+        sell_income_actual: int = 0,
         sell_amount_fallback: int = 0,
         plant_cost_fallback: int = 0,
     ) -> List[str]:
@@ -1658,7 +1670,12 @@ class SQFarm(_PluginBase):
             key = f"{item.get('icon', '')}{item.get('name', '')}"
             harvest_map[key] = harvest_map.get(key, 0) + int(item.get("qty") or 0)
 
-        sell_income = int(log_result.get("sell_income") or 0) or int(sell_amount_fallback or 0)
+        sell_map: Dict[str, int] = {}
+        for item in sell_snapshot:
+            key = f"{item.get('icon', '')}{item.get('name', '')}"
+            sell_map[key] = sell_map.get(key, 0) + int(item.get("qty") or 0)
+
+        sell_income = int(sell_income_actual or 0) or int(log_result.get("sell_income") or 0) or int(sell_amount_fallback or 0)
         plant_cost = int(log_result.get("plant_cost") or 0) or int(plant_cost_fallback or 0)
 
         lines: List[str] = []
@@ -1668,7 +1685,9 @@ class SQFarm(_PluginBase):
             lines.append(f"✅ 收菜：{join_summary(log_result.get('harvest'))}")
         elif action_harvest and harvest_success_count > 0:
             lines.append(f"✅ 收菜：已处理 {harvest_success_count} 块成熟田")
-        if action_sell and log_result.get("sell"):
+        if action_sell and sell_map:
+            lines.append(f"🧺 售出：{join_summary(sell_map)}")
+        elif action_sell and log_result.get("sell"):
             lines.append(f"🧺 售出：{join_summary(log_result.get('sell'))}")
         elif action_sell and sell_success_count > 0:
             lines.append(f"🧺 售出：已处理 {sell_success_count} 类作物")
@@ -1706,6 +1725,16 @@ class SQFarm(_PluginBase):
                 "icon": item.get("icon") or self._crop_icon.get(name, "🌱"),
             })
         return normalized
+
+    def _normalize_sell_item(self, result: Dict[str, Any], fallback_item: Dict[str, Any], sold_quantity: int) -> Dict[str, Any]:
+        inventory = (result or {}).get("inventory") or {}
+        name = inventory.get("name") or fallback_item.get("name") or "作物"
+        return {
+            "name": name,
+            "qty": max(1, self._safe_int(sold_quantity, 1)),
+            "unit": self._safe_int(inventory.get("unit_reward"), self._safe_int(fallback_item.get("unit_reward"), 0)),
+            "icon": inventory.get("icon") or fallback_item.get("icon") or self._crop_icon.get(name, "🌱"),
+        }
 
     @staticmethod
     def _build_notify_text(lines: List[str]) -> str:
