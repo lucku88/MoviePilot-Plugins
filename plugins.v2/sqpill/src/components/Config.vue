@@ -109,7 +109,7 @@
             <div v-for="tip in captureTips" :key="tip" class="pill-tip-item">{{ tip }}</div>
           </div>
           <div class="pill-note">
-            当前首版已经能自动搬砖、自动清沙滩并展示物品栏/炼造工坊状态。你后面把这三类动作的抓包发我，我就能继续补兑换、炼造和赠送交互。
+            当前版本已经支持自动搬砖、自动清沙滩和手动兑换魔力。后面只需要补上炼造 craft(id) 的抓包，我就能继续把炼造工坊交互接进去。
           </div>
         </article>
       </section>
@@ -152,9 +152,7 @@ const config = reactive({
   ready_retry_seconds: 60,
 })
 const captureTips = ref([
-  '兑换魔力接口抓包',
   '炼造 craft(id) 接口抓包',
-  '赠送 gift 接口抓包',
 ])
 
 let themeObserver = null

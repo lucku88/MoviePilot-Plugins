@@ -1,11 +1,11 @@
 {
   "name": "sqpill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs=require('fs');const src='dist/assets/style.css';const dest='dist/assets/assets/style.css';if(fs.existsSync(src)){fs.mkdirSync('dist/assets/assets',{recursive:true});fs.copyFileSync(src,dest);}\"",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -32,11 +32,12 @@
     "name": "SQ魔丸",
     "description": "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。",
     "labels": "工具,自动化,魔丸",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.1": "修复 MoviePilot 中状态页和配置页空白的问题，补上手动兑换魔力交互，简化物品栏显示，并移除赠送抓包依赖提示。",
       "v0.1.0": "首版发布，整合搬砖工坊与沙滩捡破烂，支持状态页、手动动作、动态调度和站点 Cookie 同步。"
     }
   }

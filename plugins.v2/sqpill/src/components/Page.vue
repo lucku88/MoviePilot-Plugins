@@ -55,7 +55,9 @@
             <div class="pill-panel-kicker">兑换中心</div>
             <h2>魔力兑换</h2>
           </div>
-          <div class="pill-mini-note">动作待补抓包</div>
+          <div class="pill-mini-note" :class="{ ready: exchange.action_ready }">
+            {{ exchange.action_ready ? '可兑换' : '暂不可兑换' }}
+          </div>
         </div>
         <div class="pill-exchange">
           <div class="pill-exchange-line">
@@ -75,7 +77,28 @@
             <strong>{{ exchange.max_count || 0 }}</strong>
           </div>
         </div>
-        <div class="pill-panel-note">{{ exchange.note || '兑换接口抓包后可接入状态页交互。' }}</div>
+        <div class="pill-exchange-actions">
+          <label class="pill-exchange-control">
+            <span>兑换数量</span>
+            <input
+              v-model="exchangeQuantity"
+              class="pill-number-input"
+              type="number"
+              min="1"
+              :max="Math.max(Number(exchange.max_count || 0), 1)"
+            />
+          </label>
+          <v-btn
+            color="amber-darken-2"
+            variant="flat"
+            :loading="loading"
+            :disabled="loading || !exchange.action_ready"
+            @click="exchangePoints"
+          >
+            兑换魔力
+          </v-btn>
+        </div>
+        <div class="pill-panel-note">{{ exchange.note || '支持手动兑换魔力。' }}</div>
       </section>
 
       <section class="pill-action-grid">
@@ -136,7 +159,6 @@
             <div class="pill-item-icon">{{ item.icon }}</div>
             <div class="pill-item-name">{{ item.name }}</div>
             <div class="pill-item-count">{{ item.count }}</div>
-            <div class="pill-item-note">{{ item.giftable ? '可赠送' : '只读展示' }}</div>
           </article>
         </div>
       </section>
@@ -238,12 +260,27 @@ const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
 const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time))
 const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time))
+const exchangeQuantity = ref('1')
+
+function normalizePositiveInt(value, fallback = 1) {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
 
 watch(summaryKey, (nextKey, prevKey) => {
   if (nextKey && nextKey !== prevKey) {
     dismissedSummaryKey.value = ''
   }
 })
+
+watch(
+  () => exchange.value.max_count,
+  (maxCount) => {
+    const limit = Math.max(normalizePositiveInt(maxCount, 1), 1)
+    exchangeQuantity.value = String(Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit))
+  },
+  { immediate: true },
+)
 
 function flash(text, type = 'success') {
   message.text = text
@@ -309,6 +346,17 @@ async function moveBricks() {
 
 async function cleanBeach() {
   await doAction(() => props.api.post('/clean-beach'))
+}
+
+async function exchangePoints() {
+  if (!exchange.value.action_ready) {
+    flash('当前没有可兑换的魔丸', 'warning')
+    return
+  }
+  const limit = Math.max(normalizePositiveInt(exchange.value.max_count, 1), 1)
+  const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit)
+  exchangeQuantity.value = String(quantity)
+  await doAction(() => props.api.post('/exchange-points', { quantity }))
 }
 
 function findThemeNode() {
@@ -453,8 +501,7 @@ onBeforeUnmount(() => {
 
 .pill-subtitle,
 .pill-panel-note,
-.pill-history-lines,
-.pill-item-note {
+.pill-history-lines {
   color: var(--pill-muted);
 }
 
@@ -541,6 +588,22 @@ onBeforeUnmount(() => {
   gap: 14px;
 }
 
+.pill-exchange-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.pill-exchange-control {
+  min-width: 180px;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pill-muted);
+}
+
 .pill-exchange-line {
   display: grid;
   gap: 6px;
@@ -548,6 +611,21 @@ onBeforeUnmount(() => {
   border-radius: 20px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
+}
+
+.pill-number-input {
+  width: 100%;
+  border: 1px solid var(--pill-border);
+  border-radius: 14px;
+  background: var(--pill-card-strong);
+  color: var(--pill-text);
+  padding: 12px 14px;
+  outline: none;
+}
+
+.pill-number-input:focus {
+  border-color: rgba(255, 143, 61, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
 }
 
 .pill-action-grid {

@@ -25,7 +25,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -138,6 +138,7 @@ class SQPill(_PluginBase):
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行 SQ魔丸"},
             {"path": "/move-bricks", "endpoint": self._move_bricks_api, "methods": ["POST"], "auth": "bear", "summary": "立即搬砖"},
             {"path": "/clean-beach", "endpoint": self._clean_beach_api, "methods": ["POST"], "auth": "bear", "summary": "立即清理沙滩"},
+            {"path": "/exchange-points", "endpoint": self._exchange_points_api, "methods": ["POST"], "auth": "bear", "summary": "兑换魔力"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -309,6 +310,21 @@ class SQPill(_PluginBase):
             logger.warning("%s 手动清理沙滩失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    def _exchange_points_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_exchange_points(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "兑换完成",
+                "lines": result["lines"],
+                "pill_status": result["pill_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 兑换魔力失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
@@ -359,9 +375,7 @@ class SQPill(_PluginBase):
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
             "capture_tips": [
-                "兑换魔力接口抓包",
                 "炼造 craft(id) 接口抓包",
-                "赠送 gift 接口抓包",
             ] if include_options else None,
         }
 
@@ -587,8 +601,8 @@ class SQPill(_PluginBase):
             "points": points2,
             "max_count": self._extract_int(self._first_match(html, r'id="exchangeCount"[^>]*max="(\d+)"'), 0),
             "enabled": self._button_enabled(html, "exchangeBtn"),
-            "action_ready": False,
-            "note": "兑换动作待补抓包后接入，当前仅展示状态。",
+            "action_ready": self._button_enabled(html, "exchangeBtn") and magic_pills2 > 0,
+            "note": "支持手动兑换魔力，炼造工坊动作仍待补抓包。",
         }
 
         inventory = self._parse_inventory(self._extract_div_inner(html, "inventoryGrid"))
@@ -821,6 +835,44 @@ class SQPill(_PluginBase):
         self._append_history("🏖️ 手动清沙滩", lines)
         return {"pill_status": pill_status, "lines": lines}
 
+    def _manual_exchange_points(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+        session = self._build_session()
+        page = self._fetch_page_state(session)
+        exchange = page.get("exchange") or {}
+        max_count = self._safe_int(exchange.get("max_count"), 0)
+        magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
+        if max_count <= 0 or magic_pills <= 0 or not exchange.get("enabled"):
+            raise ValueError("当前没有可兑换的魔丸")
+
+        quantity = self._safe_int(payload.get("quantity"), 0)
+        exchange_quantity = min(max(1, quantity or 1), max_count, magic_pills)
+        result = self._post_action(
+            session,
+            "exchange_points",
+            {"quantity": exchange_quantity},
+            retry_network=False,
+        )
+        if result and not result.get("success", True):
+            raise ValueError(result.get("message") or result.get("msg") or "兑换失败")
+
+        page = self._fetch_page_state(session)
+        next_run = self._compute_next_run(page)
+        self._schedule_next_run(next_run, "manual-exchange")
+
+        gained = self._safe_int((result or {}).get("points_gained"), 0)
+        lines = [f"💰 兑换：魔丸×{exchange_quantity}"]
+        if gained > 0:
+            lines.append(f"✨ 获得：{gained} 魔力")
+        elif (result or {}).get("message"):
+            lines.append(f"ℹ️ {(result or {}).get('message')}")
+
+        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        self._append_history("💰 手动兑换", lines)
+        return {"pill_status": pill_status, "lines": lines}
+
     def _normalize_collected_items(self, result: Dict[str, Any]) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
         collected = result.get("collected_items") or result.get("items") or {}
@@ -960,7 +1012,7 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": "首版已接入自动搬砖与清理沙滩；兑换魔力、炼造工坊、赠送动作待补抓包后继续接入。",
+            "page_note": "已接入自动搬砖、自动清沙滩和手动兑换魔力；炼造工坊动作待补抓包后继续接入。",
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},
@@ -979,9 +1031,7 @@ class SQPill(_PluginBase):
             "summary": summary_lines,
             "history": (self.get_data("history") or [])[:10],
             "capture_tips": [
-                "兑换魔力接口抓包",
                 "炼造 craft(id) 接口抓包",
-                "赠送 gift 接口抓包",
             ],
         }
 
