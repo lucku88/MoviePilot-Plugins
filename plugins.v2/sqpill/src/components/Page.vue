@@ -135,7 +135,7 @@
             </span>
           </div>
           <div class="pill-card-body">
-            <div class="pill-big-number">{{ beach.ready ? 'READY' : 'WAIT' }}</div>
+            <div class="pill-big-number pill-big-word">{{ beach.ready ? '可清理' : '等待' }}</div>
             <div class="pill-card-label">{{ beach.status_text || '等待刷新' }}</div>
             <div class="pill-chip-row">
               <span class="pill-chip" v-if="beach.level_text">等级 {{ beach.level_text }}</span>
@@ -200,7 +200,7 @@
         <div class="pill-panel-head">
           <div>
             <div class="pill-panel-kicker">后续补充</div>
-            <h2>还缺的抓包</h2>
+            <h2>后续扩展</h2>
           </div>
         </div>
         <div class="pill-tip-list">
@@ -523,18 +523,18 @@ onBeforeUnmount(() => {
 
 .pill-shell {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1120px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .pill-hero,
 .pill-panel {
   border-radius: 28px;
-  padding: 24px;
+  padding: 20px;
   background: var(--pill-card);
   border: 1px solid var(--pill-border);
   box-shadow: var(--pill-shadow);
@@ -542,7 +542,7 @@ onBeforeUnmount(() => {
 
 .pill-hero {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .pill-badge,
@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
 
 .pill-title {
   margin: 10px 0 6px;
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: clamp(24px, 3.4vw, 36px);
   line-height: 1.05;
 }
 
@@ -589,15 +589,15 @@ onBeforeUnmount(() => {
 
 .pill-hero-meta {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .pill-actions {
-  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr));
 }
 
 .pill-stat-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
 }
 
 .pill-stat-card,
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-stat-card {
-  padding: 22px;
+  padding: 18px;
 }
 
 .pill-stat-label,
@@ -622,11 +622,20 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.pill-stat-value,
-.pill-big-number {
+.pill-stat-value {
   margin-top: 10px;
-  font-size: clamp(30px, 5vw, 46px);
+  font-size: clamp(26px, 4vw, 38px);
   font-weight: 900;
+}
+
+.pill-big-number {
+  margin-top: 4px;
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 900;
+}
+
+.pill-big-word {
+  font-size: clamp(22px, 3vw, 28px);
 }
 
 .pill-panel-head {
@@ -639,7 +648,7 @@ onBeforeUnmount(() => {
 
 .pill-panel-head h2 {
   margin: 6px 0 0;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .pill-summary-list,
@@ -656,7 +665,7 @@ onBeforeUnmount(() => {
 .pill-exchange {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .pill-exchange-actions {
@@ -678,7 +687,7 @@ onBeforeUnmount(() => {
 .pill-exchange-line {
   display: grid;
   gap: 6px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-radius: 20px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
@@ -700,7 +709,12 @@ onBeforeUnmount(() => {
 }
 
 .pill-action-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.pill-action-card {
+  padding: 18px;
 }
 
 .pill-status-chip {
@@ -716,11 +730,11 @@ onBeforeUnmount(() => {
 
 .pill-card-body {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pill-card-meta {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--pill-muted);
 }
 
@@ -733,7 +747,7 @@ onBeforeUnmount(() => {
 .pill-chip,
 .pill-tip-item,
 .pill-mini-note {
-  padding: 8px 12px;
+  padding: 7px 11px;
   background: var(--pill-accent-soft);
   color: var(--pill-accent);
 }
@@ -745,14 +759,14 @@ onBeforeUnmount(() => {
 
 .pill-inventory-grid,
 .pill-recipe-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(96px, 100%), 1fr));
 }
 
 .pill-inventory-card,
 .pill-recipe-card {
-  padding: 12px;
+  padding: 10px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   text-align: center;
 }
 
@@ -763,22 +777,22 @@ onBeforeUnmount(() => {
 }
 
 .pill-item-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .pill-item-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .pill-item-count {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
 }
 
 .pill-pillcraft {
   margin-bottom: 16px;
-  padding: 18px;
+  padding: 14px 16px;
   border-radius: 22px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
@@ -793,7 +807,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-pillcraft-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -802,7 +816,7 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px 14px;
   color: var(--pill-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .pill-inline-field {
@@ -873,6 +887,10 @@ onBeforeUnmount(() => {
 @media (max-width: 720px) {
   .pill-shell {
     padding: 0 8px;
+  }
+
+  .pill-action-grid {
+    grid-template-columns: 1fr;
   }
 
   .pill-hero,

@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
-    plugin_desc = "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。"
+    plugin_desc = "SQ魔丸自动搬砖、清理沙滩与一键炼造魔丸，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -653,7 +653,7 @@ class SQPill(_PluginBase):
             "max_count": self._extract_int(self._first_match(html, r'id="exchangeCount"[^>]*max="(\d+)"'), 0),
             "enabled": self._button_enabled(html, "exchangeBtn"),
             "action_ready": self._button_enabled(html, "exchangeBtn") and magic_pills2 > 0,
-            "note": "支持手动兑换魔力，炼造工坊动作仍待补抓包。",
+            "note": "支持手动兑换魔力；一键炼造魔丸已整合到物品栏。",
         }
 
         inventory = self._parse_inventory(self._extract_div_inner(html, "inventoryGrid"))
@@ -1264,7 +1264,7 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与炼造；搬砖按 CRON {self._brick_cron} 调度，若未搬满 50 次会在 60 秒后自动重试。",
+            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与一键炼造魔丸；搬砖按 CRON {self._brick_cron} 调度，未搬满 50 次会在 60 秒后自动重试。",
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},
@@ -1313,12 +1313,14 @@ class SQPill(_PluginBase):
         return lines, has_action, has_warning
 
     def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        text_lines = [self.SUMMARY_LINE]
-        text_lines.extend(lines)
-        text_lines.append(self.SUMMARY_LINE)
-        text_lines.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
-        text_lines.append(self.SUMMARY_LINE)
-        return "\n".join(text_lines)
+        content_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "💊", "⚠️", "ℹ️"))]
+        chunks = [self.SUMMARY_LINE]
+        if content_lines:
+            chunks.extend(content_lines)
+            chunks.append(self.SUMMARY_LINE)
+        chunks.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
+        chunks.append(self.SUMMARY_LINE)
+        return "\n".join(chunks)
 
     def _append_history(self, title: str, lines: List[str]):
         history = self.get_data("history") or []

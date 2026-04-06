@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ac65e672_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_a967bf4f_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ac65e672"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a967bf4f"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = { class: "pill-copy" };
@@ -73,7 +73,7 @@ const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
   /*#__PURE__*/_createElementVNode("h2", null, "沙滩状态")
 ], -1));
 const _hoisted_48 = { class: "pill-card-body" };
-const _hoisted_49 = { class: "pill-big-number" };
+const _hoisted_49 = { class: "pill-big-number pill-big-word" };
 const _hoisted_50 = { class: "pill-card-label" };
 const _hoisted_51 = { class: "pill-chip-row" };
 const _hoisted_52 = {
@@ -123,7 +123,7 @@ const _hoisted_72 = {
 const _hoisted_73 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "后续补充"),
-    /*#__PURE__*/_createElementVNode("h2", null, "还缺的抓包")
+    /*#__PURE__*/_createElementVNode("h2", null, "后续扩展")
   ])
 ], -1));
 const _hoisted_74 = { class: "pill-tip-list" };
@@ -637,7 +637,7 @@ return (_ctx, _cache) => {
             }, _toDisplayString(beach.value.ready ? '可清理' : '冷却中'), 3)
           ]),
           _createElementVNode("div", _hoisted_48, [
-            _createElementVNode("div", _hoisted_49, _toDisplayString(beach.value.ready ? 'READY' : 'WAIT'), 1),
+            _createElementVNode("div", _hoisted_49, _toDisplayString(beach.value.ready ? '可清理' : '等待'), 1),
             _createElementVNode("div", _hoisted_50, _toDisplayString(beach.value.status_text || '等待刷新'), 1),
             _createElementVNode("div", _hoisted_51, [
               (beach.value.level_text)
@@ -757,6 +757,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ac65e672"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a967bf4f"]]);
 
 export { PageView as default };

@@ -46,55 +46,14 @@
               <h2>时间配置</h2>
             </div>
           </div>
-          <v-text-field
+          <VCronField
             v-model="config.brick_cron"
             label="执行周期(cron)"
-            variant="outlined"
+            hint="例如：5 0 * * *"
+            persistent-hint
             density="comfortable"
             class="mb-3"
-            readonly
-            append-inner-icon="mdi-clock-edit-outline"
-            @click="openCronDialog"
-          />
-          <v-dialog v-model="cronDialog" max-width="520">
-            <v-card class="pill-cron-dialog">
-              <div class="pill-cron-menu">
-                <div class="pill-cron-group">
-                  <div class="pill-cron-label">周期</div>
-                  <div class="pill-cron-chip-row">
-                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'daily' }" @click="cronDraft.mode = 'daily'">每日</button>
-                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekdays' }" @click="cronDraft.mode = 'weekdays'">工作日</button>
-                    <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekly' }" @click="cronDraft.mode = 'weekly'">每周</button>
-                  </div>
-                </div>
-                <div class="pill-cron-selects">
-                  <label class="pill-native-field">
-                    <span>时</span>
-                    <select v-model="cronDraft.hour" class="pill-native-select">
-                      <option v-for="item in hourItems" :key="item.value" :value="item.value">{{ item.title }}</option>
-                    </select>
-                  </label>
-                  <label class="pill-native-field">
-                    <span>分</span>
-                    <select v-model="cronDraft.minute" class="pill-native-select">
-                      <option v-for="item in minuteItems" :key="item.value" :value="item.value">{{ item.title }}</option>
-                    </select>
-                  </label>
-                  <label v-if="cronDraft.mode === 'weekly'" class="pill-native-field">
-                    <span>星期</span>
-                    <select v-model="cronDraft.weekday" class="pill-native-select">
-                      <option v-for="item in weekdayItems" :key="item.value" :value="item.value">{{ item.title }}</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="pill-cron-preview">将生成：{{ cronPreview }}</div>
-                <div class="pill-cron-actions">
-                  <v-btn variant="text" @click="cronDialog = false">取消</v-btn>
-                  <v-btn color="primary" variant="flat" @click="applyCronDraft">应用</v-btn>
-                </div>
-              </div>
-            </v-card>
-          </v-dialog>
+          ></VCronField>
           <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.ready_retry_seconds" label="失败后快速重试秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <div class="pill-note">
@@ -157,7 +116,7 @@
             </div>
           </div>
           <div class="pill-note">
-            当前版本已经支持自动搬砖、自动清沙滩、手动兑换魔力和炼造工坊交互。赠送按钮暂时不接入，物品栏只展示当前数量。
+            当前版本已经支持自动搬砖、自动清沙滩、手动兑换魔力和一键炼造魔丸。赠送按钮暂时不接入，物品栏仅展示当前数量。
           </div>
         </article>
       </section>
@@ -166,7 +125,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -179,7 +138,6 @@ const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
 const pluginBase = '/plugin/SQPill'
-const cronDialog = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -201,23 +159,6 @@ const config = reactive({
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
 })
-const cronDraft = reactive({
-  mode: 'daily',
-  hour: '00',
-  minute: '05',
-  weekday: '1',
-})
-const hourItems = Array.from({ length: 24 }, (_, i) => ({ title: String(i).padStart(2, '0'), value: String(i).padStart(2, '0') }))
-const minuteItems = Array.from({ length: 60 }, (_, i) => ({ title: String(i).padStart(2, '0'), value: String(i).padStart(2, '0') }))
-const weekdayItems = [
-  { title: '周一', value: '1' },
-  { title: '周二', value: '2' },
-  { title: '周三', value: '3' },
-  { title: '周四', value: '4' },
-  { title: '周五', value: '5' },
-  { title: '周六', value: '6' },
-  { title: '周日', value: '0' },
-]
 
 let themeObserver = null
 let mediaQuery = null
@@ -233,53 +174,6 @@ function applyConfig(data = {}) {
     ...config,
     ...data,
   })
-  syncCronDraft(config.brick_cron)
-}
-
-function syncCronDraft(expr) {
-  const raw = String(expr || '').trim()
-  const parts = raw.split(/\s+/)
-  if (parts.length !== 5) {
-    return
-  }
-  cronDraft.minute = String(parts[0]).padStart(2, '0')
-  cronDraft.hour = String(parts[1]).padStart(2, '0')
-  if (parts[2] === '*' && parts[3] === '*' && parts[4] === '*') {
-    cronDraft.mode = 'daily'
-    cronDraft.weekday = '1'
-    return
-  }
-  if (parts[2] === '*' && parts[3] === '*' && parts[4] === '1-5') {
-    cronDraft.mode = 'weekdays'
-    cronDraft.weekday = '1'
-    return
-  }
-  if (parts[2] === '*' && parts[3] === '*' && weekdayItems.some((item) => item.value === parts[4])) {
-    cronDraft.mode = 'weekly'
-    cronDraft.weekday = parts[4]
-  }
-}
-
-function buildCronPreview() {
-  if (cronDraft.mode === 'weekdays') {
-    return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * 1-5`
-  }
-  if (cronDraft.mode === 'weekly') {
-    return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * ${cronDraft.weekday}`
-  }
-  return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * *`
-}
-
-const cronPreview = computed(() => buildCronPreview())
-
-function openCronDialog() {
-  syncCronDraft(config.brick_cron)
-  cronDialog.value = true
-}
-
-function applyCronDraft() {
-  config.brick_cron = cronPreview.value
-  cronDialog.value = false
 }
 
 async function loadConfig() {
@@ -401,7 +295,7 @@ onBeforeUnmount(() => {
 
 .pill-shell {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1120px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
@@ -487,88 +381,6 @@ onBeforeUnmount(() => {
 
 .pill-tip-list {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.pill-cron-menu {
-  padding: 16px;
-  border-radius: 20px;
-  background: var(--pill-card-strong);
-  border: 1px solid var(--pill-border);
-  box-shadow: var(--pill-shadow);
-  display: grid;
-  gap: 14px;
-}
-
-.pill-cron-dialog {
-  border-radius: 24px !important;
-  background: var(--pill-card) !important;
-  color: var(--pill-text) !important;
-  border: 1px solid var(--pill-border);
-  box-shadow: var(--pill-shadow);
-}
-
-.pill-cron-group {
-  display: grid;
-  gap: 10px;
-}
-
-.pill-cron-label,
-.pill-cron-preview {
-  font-size: 13px;
-  color: var(--pill-muted);
-}
-
-.pill-cron-chip-row,
-.pill-cron-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pill-cron-chip {
-  border: 1px solid var(--pill-border);
-  border-radius: 999px;
-  background: var(--pill-card);
-  color: var(--pill-text);
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pill-cron-chip.active {
-  background: var(--pill-accent-soft);
-  color: var(--pill-accent);
-  border-color: rgba(255, 143, 61, 0.4);
-}
-
-.pill-cron-selects {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
-}
-
-.pill-native-field {
-  display: grid;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--pill-muted);
-}
-
-.pill-native-select {
-  width: 100%;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
-  color: var(--pill-text);
-  padding: 0 12px;
-  outline: none;
-}
-
-.pill-native-select:focus {
-  border-color: rgba(255, 143, 61, 0.45);
-  box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
 }
 
 @media (max-width: 880px) {
