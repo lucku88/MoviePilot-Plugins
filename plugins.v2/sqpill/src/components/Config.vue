@@ -46,14 +46,49 @@
               <h2>时间配置</h2>
             </div>
           </div>
-          <v-text-field
-            v-model="config.brick_cron"
-            label="搬砖执行周期 (CRON)"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-            placeholder="例如 5 0 * * *"
-          />
+          <v-menu v-model="cronMenu" :close-on-content-click="false" location="bottom start" max-width="440">
+            <template #activator="{ props: menuProps }">
+              <v-text-field
+                v-bind="menuProps"
+                v-model="config.brick_cron"
+                label="执行周期(cron)"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+                readonly
+                append-inner-icon="mdi-clock-edit-outline"
+                @click="openCronMenu"
+              />
+            </template>
+            <div class="pill-cron-menu">
+              <div class="pill-cron-group">
+                <div class="pill-cron-label">周期</div>
+                <div class="pill-cron-chip-row">
+                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'daily' }" @click="cronDraft.mode = 'daily'">每日</button>
+                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekdays' }" @click="cronDraft.mode = 'weekdays'">工作日</button>
+                  <button type="button" class="pill-cron-chip" :class="{ active: cronDraft.mode === 'weekly' }" @click="cronDraft.mode = 'weekly'">每周</button>
+                </div>
+              </div>
+              <div class="pill-cron-selects">
+                <v-select v-model="cronDraft.hour" :items="hourItems" label="时" variant="outlined" density="comfortable" hide-details />
+                <v-select v-model="cronDraft.minute" :items="minuteItems" label="分" variant="outlined" density="comfortable" hide-details />
+                <v-select
+                  v-if="cronDraft.mode === 'weekly'"
+                  v-model="cronDraft.weekday"
+                  :items="weekdayItems"
+                  label="星期"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                />
+              </div>
+              <div class="pill-cron-preview">将生成：{{ cronPreview }}</div>
+              <div class="pill-cron-actions">
+                <v-btn variant="text" @click="cronMenu = false">取消</v-btn>
+                <v-btn color="primary" variant="flat" @click="applyCronDraft">应用</v-btn>
+              </div>
+            </div>
+          </v-menu>
           <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <v-text-field v-model="config.ready_retry_seconds" label="失败后快速重试秒数" type="number" variant="outlined" density="comfortable" class="mb-3" />
           <div class="pill-note">
@@ -111,15 +146,12 @@
         <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
-              <div class="pill-panel-kicker">后续需要</div>
-              <h2>待补抓包</h2>
+              <div class="pill-panel-kicker">当前说明</div>
+              <h2>功能状态</h2>
             </div>
           </div>
-          <div class="pill-tip-list">
-            <div v-for="tip in captureTips" :key="tip" class="pill-tip-item">{{ tip }}</div>
-          </div>
           <div class="pill-note">
-            当前版本已经支持自动搬砖、自动清沙滩和手动兑换魔力。后面只需要补上炼造 craft(id) 的抓包，我就能继续把炼造工坊交互接进去。
+            当前版本已经支持自动搬砖、自动清沙滩、手动兑换魔力和炼造工坊交互。赠送按钮暂时不接入，物品栏只展示当前数量。
           </div>
         </article>
       </section>
@@ -128,7 +160,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -141,6 +173,7 @@ const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
 const pluginBase = '/plugin/SQPill'
+const cronMenu = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -162,9 +195,23 @@ const config = reactive({
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
 })
-const captureTips = ref([
-  '炼造 craft(id) 接口抓包',
-])
+const cronDraft = reactive({
+  mode: 'daily',
+  hour: '00',
+  minute: '05',
+  weekday: '1',
+})
+const hourItems = Array.from({ length: 24 }, (_, i) => ({ title: String(i).padStart(2, '0'), value: String(i).padStart(2, '0') }))
+const minuteItems = Array.from({ length: 60 }, (_, i) => ({ title: String(i).padStart(2, '0'), value: String(i).padStart(2, '0') }))
+const weekdayItems = [
+  { title: '周一', value: '1' },
+  { title: '周二', value: '2' },
+  { title: '周三', value: '3' },
+  { title: '周四', value: '4' },
+  { title: '周五', value: '5' },
+  { title: '周六', value: '6' },
+  { title: '周日', value: '0' },
+]
 
 let themeObserver = null
 let mediaQuery = null
@@ -180,7 +227,53 @@ function applyConfig(data = {}) {
     ...config,
     ...data,
   })
-  captureTips.value = data.capture_tips || captureTips.value
+  syncCronDraft(config.brick_cron)
+}
+
+function syncCronDraft(expr) {
+  const raw = String(expr || '').trim()
+  const parts = raw.split(/\s+/)
+  if (parts.length !== 5) {
+    return
+  }
+  cronDraft.minute = String(parts[0]).padStart(2, '0')
+  cronDraft.hour = String(parts[1]).padStart(2, '0')
+  if (parts[2] === '*' && parts[3] === '*' && parts[4] === '*') {
+    cronDraft.mode = 'daily'
+    cronDraft.weekday = '1'
+    return
+  }
+  if (parts[2] === '*' && parts[3] === '*' && parts[4] === '1-5') {
+    cronDraft.mode = 'weekdays'
+    cronDraft.weekday = '1'
+    return
+  }
+  if (parts[2] === '*' && parts[3] === '*' && weekdayItems.some((item) => item.value === parts[4])) {
+    cronDraft.mode = 'weekly'
+    cronDraft.weekday = parts[4]
+  }
+}
+
+function buildCronPreview() {
+  if (cronDraft.mode === 'weekdays') {
+    return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * 1-5`
+  }
+  if (cronDraft.mode === 'weekly') {
+    return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * ${cronDraft.weekday}`
+  }
+  return `${Number(cronDraft.minute)} ${Number(cronDraft.hour)} * * *`
+}
+
+const cronPreview = computed(() => buildCronPreview())
+
+function openCronMenu() {
+  syncCronDraft(config.brick_cron)
+  cronMenu.value = true
+}
+
+function applyCronDraft() {
+  config.brick_cron = cronPreview.value
+  cronMenu.value = false
 }
 
 async function loadConfig() {
@@ -388,6 +481,57 @@ onBeforeUnmount(() => {
 
 .pill-tip-list {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.pill-cron-menu {
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--pill-card-strong);
+  border: 1px solid var(--pill-border);
+  box-shadow: var(--pill-shadow);
+  display: grid;
+  gap: 14px;
+}
+
+.pill-cron-group {
+  display: grid;
+  gap: 10px;
+}
+
+.pill-cron-label,
+.pill-cron-preview {
+  font-size: 13px;
+  color: var(--pill-muted);
+}
+
+.pill-cron-chip-row,
+.pill-cron-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill-cron-chip {
+  border: 1px solid var(--pill-border);
+  border-radius: 999px;
+  background: var(--pill-card);
+  color: var(--pill-text);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pill-cron-chip.active {
+  background: var(--pill-accent-soft);
+  color: var(--pill-accent);
+  border-color: rgba(255, 143, 61, 0.4);
+}
+
+.pill-cron-selects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
 }
 
 @media (max-width: 880px) {

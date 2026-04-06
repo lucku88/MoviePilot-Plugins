@@ -169,12 +169,52 @@
             <div class="pill-panel-kicker">炼造工坊</div>
             <h2>配方状态</h2>
           </div>
-          <div class="pill-mini-note">动作待补抓包</div>
+          <div class="pill-mini-note" :class="{ ready: magicPillMax > 0 }">
+            {{ magicPillMax > 0 ? `最多可炼造 ${magicPillMax} 颗魔丸` : '材料不足' }}
+          </div>
+        </div>
+        <div class="pill-pillcraft">
+          <div class="pill-pillcraft-copy">
+            <div class="pill-pillcraft-title">⚗️ 一键炼造魔丸</div>
+            <div class="pill-pillcraft-meta">
+              <span>当前最大可炼造：{{ magicPillMax }} 颗</span>
+              <span v-if="magicPillRecipe?.materials?.length">配方：{{ magicPillRecipe.materials.join(' / ') }}</span>
+            </div>
+            <div class="pill-pillcraft-need">
+              <span v-for="(count, name) in magicPillRequirements" :key="name" class="pill-material-chip">
+                {{ itemIcon(name) }}{{ name }}: {{ count }}
+              </span>
+            </div>
+          </div>
+          <div class="pill-pillcraft-actions">
+            <label class="pill-exchange-control">
+              <span>炼造数量</span>
+              <input
+                v-model="pillCraftQuantity"
+                class="pill-number-input"
+                type="number"
+                min="1"
+                :max="Math.max(magicPillMax, 1)"
+              />
+            </label>
+            <div class="pill-pillcraft-btns">
+              <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
+              <v-btn
+                color="deep-purple-accent-3"
+                variant="flat"
+                :loading="loading"
+                :disabled="loading || !magicPillMax"
+                @click="craftMagicPill"
+              >
+                一键炼造魔丸
+              </v-btn>
+            </div>
+          </div>
         </div>
         <div class="pill-recipe-grid">
           <article v-for="recipe in recipes" :key="recipe.craft_id || recipe.title" class="pill-recipe-card" :class="{ craftable: recipe.can_craft }">
             <div class="pill-recipe-head">
-              <strong>{{ recipe.title }}</strong>
+              <strong>{{ recipe.icon }} {{ recipe.title }}</strong>
               <span>{{ recipe.status || (recipe.can_craft ? `最多可制作 ${recipe.max_count}` : '材料不足') }}</span>
             </div>
             <div class="pill-recipe-materials">
@@ -182,13 +222,31 @@
             </div>
             <div class="pill-recipe-foot">
               <span>上限 {{ recipe.max_count || 0 }}</span>
-              <span>{{ recipe.supported ? '已接入' : '待补抓包' }}</span>
+              <span>{{ recipe.supported ? '可炼造' : '未接入' }}</span>
+            </div>
+            <div class="pill-recipe-action" v-if="recipe.supported">
+              <input
+                v-model="craftInputs[recipeInputKey(recipe)]"
+                class="pill-number-input"
+                type="number"
+                min="1"
+                :max="Math.max(Number(recipe.max_count || 0), 1)"
+              />
+              <v-btn
+                color="success"
+                variant="flat"
+                :loading="loading"
+                :disabled="loading || !recipe.enabled || !Number(recipe.max_count || 0)"
+                @click="craftRecipe(recipe)"
+              >
+                炼造
+              </v-btn>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="pill-panel">
+      <section v-if="(pill.capture_tips || []).length" class="pill-panel">
         <div class="pill-panel-head">
           <div>
             <div class="pill-panel-kicker">后续补充</div>
@@ -255,6 +313,10 @@ const brick = computed(() => pill.value.brick || {})
 const beach = computed(() => pill.value.beach || {})
 const inventoryItems = computed(() => pill.value.inventory?.items || [])
 const recipes = computed(() => pill.value.recipes || [])
+const crafting = computed(() => pill.value.crafting || {})
+const magicPillMax = computed(() => Number(crafting.value.magic_pill_max || 0))
+const magicPillRecipe = computed(() => crafting.value.magic_pill_recipe || {})
+const magicPillRequirements = computed(() => crafting.value.magic_pill_requirements || {})
 const historyItems = computed(() => status.history || pill.value.history || [])
 const summaryLines = computed(() => (pill.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
@@ -262,6 +324,8 @@ const showSummary = computed(() => !!summaryLines.value.length && dismissedSumma
 const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time))
 const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time))
 const exchangeQuantity = ref('1')
+const pillCraftQuantity = ref('1')
+const craftInputs = reactive({})
 
 function normalizePositiveInt(value, fallback = 1) {
   const parsed = Number.parseInt(value, 10)
@@ -283,6 +347,27 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => magicPillMax.value,
+  (maxCount) => {
+    const limit = Math.max(normalizePositiveInt(maxCount, 1), 1)
+    pillCraftQuantity.value = String(Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), limit))
+  },
+  { immediate: true },
+)
+
+watch(
+  () => recipes.value,
+  (nextRecipes) => {
+    for (const recipe of nextRecipes) {
+      const key = recipeInputKey(recipe)
+      const maxCount = Math.max(normalizePositiveInt(recipe.max_count, 1), 1)
+      craftInputs[key] = String(Math.min(normalizePositiveInt(craftInputs[key], 1), maxCount))
+    }
+  },
+  { immediate: true, deep: true },
+)
+
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
@@ -293,6 +378,25 @@ function parseDateTime(value) {
   const safe = value.replace(/-/g, '/')
   const parsed = Date.parse(safe)
   return Number.isNaN(parsed) ? 0 : Math.floor(parsed / 1000)
+}
+
+function itemIcon(name) {
+  return {
+    砖块: '🧱',
+    木材: '🪵',
+    塑料袋: '🛍️',
+    瓶子: '🧴',
+    螺丝: '🔩',
+    旧电池: '🔋',
+    破铜片: '🪙',
+    木工件: '🪚',
+    塑料件: '🪣',
+    简易工具: '🛠️',
+    能量碎片: '⚡',
+    魔丸胚胎: '🥚',
+    魔丸: '⚗️',
+    蚯蚓: '🪱',
+  }[name] || '📦'
 }
 
 function closePlugin() {
@@ -358,6 +462,35 @@ async function exchangePoints() {
   const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit)
   exchangeQuantity.value = String(quantity)
   await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }))
+}
+
+function recipeInputKey(recipe) {
+  return String(recipe?.craft_id || recipe?.title || '')
+}
+
+function setPillCraftMax() {
+  if (!magicPillMax.value) {
+    return
+  }
+  pillCraftQuantity.value = String(magicPillMax.value)
+}
+
+async function craftRecipe(recipe) {
+  const limit = Math.max(normalizePositiveInt(recipe.max_count, 1), 1)
+  const key = recipeInputKey(recipe)
+  const quantity = Math.min(normalizePositiveInt(craftInputs[key], 1), limit)
+  craftInputs[key] = String(quantity)
+  await doAction(() => props.api.post(`${pluginBase}/craft-item`, { recipe_id: recipe.craft_id, quantity }))
+}
+
+async function craftMagicPill() {
+  if (!magicPillMax.value) {
+    flash('当前材料不足，无法炼造魔丸', 'warning')
+    return
+  }
+  const quantity = Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), magicPillMax.value)
+  pillCraftQuantity.value = String(quantity)
+  await doAction(() => props.api.post(`${pluginBase}/craft-max-pill`, { quantity }))
 }
 
 function findThemeNode() {
@@ -684,12 +817,12 @@ onBeforeUnmount(() => {
 
 .pill-inventory-grid,
 .pill-recipe-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
 }
 
 .pill-inventory-card,
 .pill-recipe-card {
-  padding: 18px;
+  padding: 16px;
   display: grid;
   gap: 8px;
   text-align: center;
@@ -702,16 +835,62 @@ onBeforeUnmount(() => {
 }
 
 .pill-item-icon {
-  font-size: 32px;
+  font-size: 24px;
 }
 
 .pill-item-name {
+  font-size: 14px;
   font-weight: 800;
 }
 
 .pill-item-count {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 900;
+}
+
+.pill-pillcraft {
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-card-strong);
+  display: grid;
+  gap: 14px;
+}
+
+.pill-pillcraft-title {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.pill-pillcraft-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--pill-muted);
+  font-size: 13px;
+}
+
+.pill-pillcraft-need {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pill-pillcraft-actions,
+.pill-recipe-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.pill-pillcraft-btns {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .pill-recipe-head {
@@ -766,6 +945,13 @@ onBeforeUnmount(() => {
 
   .pill-panel-head {
     flex-direction: column;
+  }
+
+  .pill-pillcraft-actions,
+  .pill-pillcraft-btns,
+  .pill-recipe-action {
+    width: 100%;
+    justify-content: stretch;
   }
 }
 </style>

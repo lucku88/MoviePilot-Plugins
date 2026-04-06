@@ -26,7 +26,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖与清理沙滩，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -57,6 +57,15 @@ class SQPill(_PluginBase):
         "魔丸胚胎": "🥚",
         "魔丸": "⚗️",
         "蚯蚓": "🪱",
+    }
+
+    RECIPE_DEFINITIONS = {
+        1: {"name": "木工件", "output_item": "木工件", "ingredients": {"砖块": 5, "木材": 1, "塑料袋": 1}},
+        2: {"name": "塑料件", "output_item": "塑料件", "ingredients": {"砖块": 5, "塑料袋": 1, "瓶子": 1}},
+        3: {"name": "简易工具", "output_item": "简易工具", "ingredients": {"螺丝": 2, "木工件": 2}},
+        4: {"name": "能量碎片", "output_item": "能量碎片", "ingredients": {"旧电池": 1, "塑料件": 2}},
+        5: {"name": "魔丸胚胎", "output_item": "魔丸胚胎", "ingredients": {"破铜片": 1, "简易工具": 1, "能量碎片": 1}},
+        6: {"name": "魔丸", "output_item": "魔丸", "ingredients": {"砖块": 10, "魔丸胚胎": 2}},
     }
 
     _scheduler: Optional[BackgroundScheduler] = None
@@ -142,6 +151,8 @@ class SQPill(_PluginBase):
             {"path": "/move-bricks", "endpoint": self._move_bricks_api, "methods": ["POST"], "auth": "bear", "summary": "立即搬砖"},
             {"path": "/clean-beach", "endpoint": self._clean_beach_api, "methods": ["POST"], "auth": "bear", "summary": "立即清理沙滩"},
             {"path": "/exchange-points", "endpoint": self._exchange_points_api, "methods": ["POST"], "auth": "bear", "summary": "兑换魔力"},
+            {"path": "/craft-item", "endpoint": self._craft_item_api, "methods": ["POST"], "auth": "bear", "summary": "炼造指定配方"},
+            {"path": "/craft-max-pill", "endpoint": self._craft_max_pill_api, "methods": ["POST"], "auth": "bear", "summary": "一键炼造魔丸"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
         ]
 
@@ -337,6 +348,36 @@ class SQPill(_PluginBase):
             logger.warning("%s 兑换魔力失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    def _craft_item_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_craft_item(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "炼造完成",
+                "lines": result["lines"],
+                "pill_status": result["pill_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 炼造配方失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
+    def _craft_max_pill_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_craft_max_pill(payload or {})
+            return {
+                "success": True,
+                "message": result["lines"][0] if result["lines"] else "魔丸炼造完成",
+                "lines": result["lines"],
+                "pill_status": result["pill_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 一键炼造魔丸失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
@@ -386,9 +427,7 @@ class SQPill(_PluginBase):
             "move_delay_min_ms": self._move_delay_min_ms,
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
-            "capture_tips": [
-                "炼造 craft(id) 接口抓包",
-            ] if include_options else None,
+            "capture_tips": [] if include_options else None,
         }
 
     def _save_config(self, config_payload: dict):
@@ -662,15 +701,18 @@ class SQPill(_PluginBase):
             if not title_text:
                 continue
             materials = [self._clean_html(val) for val in re.findall(r'class="material-item"[^>]*>(.*?)</span>', block, re.S)]
+            craft_id = self._extract_int(self._first_match(block, r"craft\((\d+)\)"), 0)
+            recipe_def = self.RECIPE_DEFINITIONS.get(craft_id, {})
             recipes.append({
                 "title": re.sub(r"\s*\([^)]*\)\s*$", "", title_text),
                 "status": self._clean_html(self._first_match(title_html, r"<span[^>]*>(.*?)</span>")),
                 "materials": [item for item in materials if item],
                 "can_craft": "can-craft" in block and "disabled" not in block,
                 "max_count": self._extract_int(self._first_match(block, r'class="craft-input"[^>]*max="(\d+)"'), 0),
-                "craft_id": self._extract_int(self._first_match(block, r"craft\((\d+)\)"), 0),
+                "craft_id": craft_id,
                 "enabled": "disabled" not in block,
-                "supported": False,
+                "supported": bool(recipe_def),
+                "icon": self.ITEM_ICON_MAP.get(recipe_def.get("output_item") or re.sub(r"\s*\([^)]*\)\s*$", "", title_text), "📦"),
             })
         return recipes
 
@@ -901,6 +943,171 @@ class SQPill(_PluginBase):
         self._append_history("💰 手动兑换", lines)
         return {"pill_status": pill_status, "lines": lines}
 
+    def _manual_craft_item(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+        recipe_id = self._safe_int(payload.get("recipe_id"), 0)
+        recipe_def = self.RECIPE_DEFINITIONS.get(recipe_id)
+        if not recipe_def:
+            raise ValueError("不支持的炼造配方")
+
+        session = self._build_session()
+        page = self._fetch_page_state(session)
+        recipe = next((item for item in (page.get("recipes") or []) if self._safe_int(item.get("craft_id"), 0) == recipe_id), None)
+        if not recipe:
+            raise ValueError("未识别到对应配方")
+
+        max_count = max(0, self._safe_int(recipe.get("max_count"), 0))
+        if max_count <= 0 or not recipe.get("enabled"):
+            raise ValueError(f"{recipe_def['name']} 当前无法炼造")
+
+        quantity = min(max(1, self._safe_int(payload.get("quantity"), 1)), max_count)
+        result = self._post_action(
+            session,
+            "craft_item",
+            {"recipe_id": recipe_id, "quantity": quantity},
+            retry_network=False,
+        )
+        if result and not result.get("success", True):
+            raise ValueError(result.get("message") or result.get("msg") or "炼造失败")
+
+        page = self._fetch_page_state(session)
+        next_run = self._compute_next_run(page)
+        self._schedule_next_run(next_run, "manual-craft")
+
+        output_item = recipe_def["output_item"]
+        icon = self.ITEM_ICON_MAP.get(output_item, "📦")
+        lines = [f"⚒️ 炼造：{icon}{output_item}×{quantity}"]
+        if (result or {}).get("message"):
+            lines.append(f"ℹ️ {(result or {}).get('message')}")
+
+        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        self._append_history("⚒️ 手动炼造", lines)
+        return {"pill_status": pill_status, "lines": lines}
+
+    def _manual_craft_max_pill(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self._ensure_cookie()
+        if self._force_ipv4:
+            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+        session = self._build_session()
+        page = self._fetch_page_state(session)
+        plan_info = self._compute_magic_pill_plan(page.get("inventory") or [])
+        max_count = self._safe_int(plan_info.get("max_count"), 0)
+        if max_count <= 0:
+            raise ValueError("当前材料不足，无法炼造魔丸")
+
+        quantity = min(max(1, self._safe_int(payload.get("quantity"), max_count)), max_count)
+        if quantity != max_count:
+            plan_info = self._compute_magic_pill_plan(page.get("inventory") or [], quantity)
+
+        craft_plan = plan_info.get("plan") or {}
+        if not craft_plan or self._safe_int(craft_plan.get(6), 0) <= 0:
+            raise ValueError("未生成有效的魔丸炼造计划")
+
+        executed_steps: List[str] = []
+        for recipe_id in [1, 2, 3, 4, 5, 6]:
+            craft_qty = self._safe_int(craft_plan.get(recipe_id), 0)
+            if craft_qty <= 0:
+                continue
+            recipe_def = self.RECIPE_DEFINITIONS[recipe_id]
+            result = self._post_action(
+                session,
+                "craft_item",
+                {"recipe_id": recipe_id, "quantity": craft_qty},
+                retry_network=False,
+            )
+            if result and not result.get("success", True):
+                raise ValueError(result.get("message") or result.get("msg") or f"{recipe_def['name']} 炼造失败")
+            executed_steps.append(
+                f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
+            )
+
+        page = self._fetch_page_state(session)
+        next_run = self._compute_next_run(page)
+        self._schedule_next_run(next_run, "manual-craft-pill")
+
+        lines = [f"⚗️ 一键炼造魔丸：{quantity}颗"]
+        if executed_steps:
+            lines.append(f"🧪 步骤：{'  '.join(executed_steps)}")
+
+        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        self._append_history("⚗️ 一键炼造魔丸", lines)
+        return {"pill_status": pill_status, "lines": lines}
+
+    def _compute_magic_pill_plan(self, inventory_items: List[Dict[str, Any]], target: Optional[int] = None) -> Dict[str, Any]:
+        inventory_map = self._inventory_to_map(inventory_items)
+        upper = max(0, sum(max(0, self._safe_int(val, 0)) for val in inventory_map.values()))
+        upper = max(upper, inventory_map.get("砖块", 0) // 10, inventory_map.get("魔丸胚胎", 0) // 2)
+
+        if target is not None:
+            plan = self._plan_craft_for_item("魔丸", target, inventory_map)
+            return {"max_count": target if plan else 0, "plan": plan or {}}
+
+        best_count = 0
+        best_plan: Dict[int, int] = {}
+        left, right = 0, upper
+        while left <= right:
+            mid = (left + right) // 2
+            plan = self._plan_craft_for_item("魔丸", mid, inventory_map)
+            if plan is not None:
+                best_count = mid
+                best_plan = plan
+                left = mid + 1
+            else:
+                right = mid - 1
+        return {"max_count": best_count, "plan": best_plan}
+
+    def _plan_craft_for_item(self, item_name: str, quantity: int, inventory_map: Dict[str, int]) -> Optional[Dict[int, int]]:
+        target = max(0, self._safe_int(quantity, 0))
+        if target <= 0:
+            return {}
+        stock = {name: max(0, self._safe_int(count, 0)) for name, count in inventory_map.items()}
+        stock["魔丸"] = 0
+        plan: Dict[int, int] = {}
+        if self._ensure_item_for_plan(item_name, target, stock, plan):
+            return plan
+        return None
+
+    def _ensure_item_for_plan(self, item_name: str, quantity: int, stock: Dict[str, int], plan: Dict[int, int]) -> bool:
+        need = max(0, self._safe_int(quantity, 0))
+        if need <= 0:
+            return True
+
+        available = max(0, self._safe_int(stock.get(item_name), 0))
+        if available >= need:
+            stock[item_name] = available - need
+            return True
+        if available > 0:
+            need -= available
+            stock[item_name] = 0
+
+        recipe_id, recipe_def = self._get_recipe_by_output(item_name)
+        if not recipe_def:
+            return False
+
+        for material_name, material_count in recipe_def["ingredients"].items():
+            if not self._ensure_item_for_plan(material_name, material_count * need, stock, plan):
+                return False
+
+        plan[recipe_id] = self._safe_int(plan.get(recipe_id), 0) + need
+        return True
+
+    def _get_recipe_by_output(self, item_name: str) -> Tuple[int, Optional[Dict[str, Any]]]:
+        for recipe_id, recipe_def in self.RECIPE_DEFINITIONS.items():
+            if recipe_def["output_item"] == item_name:
+                return recipe_id, recipe_def
+        return 0, None
+
+    def _inventory_to_map(self, inventory_items: List[Dict[str, Any]]) -> Dict[str, int]:
+        data: Dict[str, int] = {}
+        for item in inventory_items or []:
+            name = str(item.get("name") or "").strip()
+            if not name:
+                continue
+            data[name] = max(0, self._safe_int(item.get("count"), 0))
+        return data
+
     def _normalize_collected_items(self, result: Dict[str, Any]) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
         collected = result.get("collected_items") or result.get("items") or {}
@@ -1045,6 +1252,8 @@ class SQPill(_PluginBase):
         inventory = data.get("inventory") or []
         recipes = data.get("recipes") or []
         next_trigger = self._load_saved_next_trigger()
+        pill_plan = self._compute_magic_pill_plan(inventory)
+        pill_recipe = next((recipe for recipe in recipes if self._safe_int(recipe.get("craft_id"), 0) == 6), {})
 
         return {
             "schema_version": self.plugin_version,
@@ -1055,7 +1264,7 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": f"已接入自动搬砖、自动清沙滩和手动兑换魔力；搬砖按 CRON {self._brick_cron} 调度，若未搬满 50 次会在 60 秒后自动重试。",
+            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与炼造；搬砖按 CRON {self._brick_cron} 调度，若未搬满 50 次会在 60 秒后自动重试。",
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},
@@ -1070,12 +1279,15 @@ class SQPill(_PluginBase):
                 "empty": not inventory,
                 "empty_text": "物品栏暂无可显示内容",
             },
+            "crafting": {
+                "magic_pill_max": self._safe_int(pill_plan.get("max_count"), 0),
+                "magic_pill_recipe": pill_recipe,
+                "magic_pill_requirements": self.RECIPE_DEFINITIONS[6]["ingredients"],
+            },
             "recipes": recipes,
             "summary": summary_lines,
             "history": (self.get_data("history") or [])[:10],
-            "capture_tips": [
-                "炼造 craft(id) 接口抓包",
-            ],
+            "capture_tips": [],
         }
 
     def _build_result_lines(self, brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> Tuple[List[str], bool, bool]:

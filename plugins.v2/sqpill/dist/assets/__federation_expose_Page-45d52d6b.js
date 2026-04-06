@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_f5067d47_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_8e7b857d_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-f5067d47"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-8e7b857d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = { class: "pill-copy" };
@@ -107,42 +107,59 @@ const _hoisted_59 = { class: "pill-item-icon" };
 const _hoisted_60 = { class: "pill-item-name" };
 const _hoisted_61 = { class: "pill-item-count" };
 const _hoisted_62 = { class: "pill-panel" };
-const _hoisted_63 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
-  /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "炼造工坊"),
-    /*#__PURE__*/_createElementVNode("h2", null, "配方状态")
-  ]),
-  /*#__PURE__*/_createElementVNode("div", { class: "pill-mini-note" }, "动作待补抓包")
+const _hoisted_63 = { class: "pill-panel-head" };
+const _hoisted_64 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+  /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "炼造工坊"),
+  /*#__PURE__*/_createElementVNode("h2", null, "配方状态")
 ], -1));
-const _hoisted_64 = { class: "pill-recipe-grid" };
-const _hoisted_65 = { class: "pill-recipe-head" };
-const _hoisted_66 = { class: "pill-recipe-materials" };
-const _hoisted_67 = { class: "pill-recipe-foot" };
-const _hoisted_68 = { class: "pill-panel" };
-const _hoisted_69 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_65 = { class: "pill-pillcraft" };
+const _hoisted_66 = { class: "pill-pillcraft-copy" };
+const _hoisted_67 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-pillcraft-title" }, "⚗️ 一键炼造魔丸", -1));
+const _hoisted_68 = { class: "pill-pillcraft-meta" };
+const _hoisted_69 = { key: 0 };
+const _hoisted_70 = { class: "pill-pillcraft-need" };
+const _hoisted_71 = { class: "pill-pillcraft-actions" };
+const _hoisted_72 = { class: "pill-exchange-control" };
+const _hoisted_73 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "炼造数量", -1));
+const _hoisted_74 = ["max"];
+const _hoisted_75 = { class: "pill-pillcraft-btns" };
+const _hoisted_76 = { class: "pill-recipe-grid" };
+const _hoisted_77 = { class: "pill-recipe-head" };
+const _hoisted_78 = { class: "pill-recipe-materials" };
+const _hoisted_79 = { class: "pill-recipe-foot" };
+const _hoisted_80 = {
+  key: 0,
+  class: "pill-recipe-action"
+};
+const _hoisted_81 = ["onUpdate:modelValue", "max"];
+const _hoisted_82 = {
+  key: 2,
+  class: "pill-panel"
+};
+const _hoisted_83 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "后续补充"),
     /*#__PURE__*/_createElementVNode("h2", null, "还缺的抓包")
   ])
 ], -1));
-const _hoisted_70 = { class: "pill-tip-list" };
-const _hoisted_71 = { class: "pill-panel" };
-const _hoisted_72 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_84 = { class: "pill-tip-list" };
+const _hoisted_85 = { class: "pill-panel" };
+const _hoisted_86 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
 ], -1));
-const _hoisted_73 = {
+const _hoisted_87 = {
   key: 0,
   class: "pill-empty"
 };
-const _hoisted_74 = {
+const _hoisted_88 = {
   key: 1,
   class: "pill-history-list"
 };
-const _hoisted_75 = { class: "pill-history-top" };
-const _hoisted_76 = { class: "pill-history-lines" };
+const _hoisted_89 = { class: "pill-history-top" };
+const _hoisted_90 = { class: "pill-history-lines" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -186,6 +203,10 @@ const brick = computed(() => pill.value.brick || {});
 const beach = computed(() => pill.value.beach || {});
 const inventoryItems = computed(() => pill.value.inventory?.items || []);
 const recipes = computed(() => pill.value.recipes || []);
+const crafting = computed(() => pill.value.crafting || {});
+const magicPillMax = computed(() => Number(crafting.value.magic_pill_max || 0));
+const magicPillRecipe = computed(() => crafting.value.magic_pill_recipe || {});
+const magicPillRequirements = computed(() => crafting.value.magic_pill_requirements || {});
 const historyItems = computed(() => status.history || pill.value.history || []);
 const summaryLines = computed(() => (pill.value.summary || []).filter(Boolean));
 const summaryKey = computed(() => summaryLines.value.join('||'));
@@ -193,6 +214,8 @@ const showSummary = computed(() => !!summaryLines.value.length && dismissedSumma
 const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time));
 const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time));
 const exchangeQuantity = ref('1');
+const pillCraftQuantity = ref('1');
+const craftInputs = reactive({});
 
 function normalizePositiveInt(value, fallback = 1) {
   const parsed = Number.parseInt(value, 10);
@@ -214,6 +237,27 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => magicPillMax.value,
+  (maxCount) => {
+    const limit = Math.max(normalizePositiveInt(maxCount, 1), 1);
+    pillCraftQuantity.value = String(Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), limit));
+  },
+  { immediate: true },
+);
+
+watch(
+  () => recipes.value,
+  (nextRecipes) => {
+    for (const recipe of nextRecipes) {
+      const key = recipeInputKey(recipe);
+      const maxCount = Math.max(normalizePositiveInt(recipe.max_count, 1), 1);
+      craftInputs[key] = String(Math.min(normalizePositiveInt(craftInputs[key], 1), maxCount));
+    }
+  },
+  { immediate: true, deep: true },
+);
+
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
@@ -224,6 +268,25 @@ function parseDateTime(value) {
   const safe = value.replace(/-/g, '/');
   const parsed = Date.parse(safe);
   return Number.isNaN(parsed) ? 0 : Math.floor(parsed / 1000)
+}
+
+function itemIcon(name) {
+  return {
+    砖块: '🧱',
+    木材: '🪵',
+    塑料袋: '🛍️',
+    瓶子: '🧴',
+    螺丝: '🔩',
+    旧电池: '🔋',
+    破铜片: '🪙',
+    木工件: '🪚',
+    塑料件: '🪣',
+    简易工具: '🛠️',
+    能量碎片: '⚡',
+    魔丸胚胎: '🥚',
+    魔丸: '⚗️',
+    蚯蚓: '🪱',
+  }[name] || '📦'
 }
 
 function closePlugin() {
@@ -289,6 +352,35 @@ async function exchangePoints() {
   const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit);
   exchangeQuantity.value = String(quantity);
   await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }));
+}
+
+function recipeInputKey(recipe) {
+  return String(recipe?.craft_id || recipe?.title || '')
+}
+
+function setPillCraftMax() {
+  if (!magicPillMax.value) {
+    return
+  }
+  pillCraftQuantity.value = String(magicPillMax.value);
+}
+
+async function craftRecipe(recipe) {
+  const limit = Math.max(normalizePositiveInt(recipe.max_count, 1), 1);
+  const key = recipeInputKey(recipe);
+  const quantity = Math.min(normalizePositiveInt(craftInputs[key], 1), limit);
+  craftInputs[key] = String(quantity);
+  await doAction(() => props.api.post(`${pluginBase}/craft-item`, { recipe_id: recipe.craft_id, quantity }));
+}
+
+async function craftMagicPill() {
+  if (!magicPillMax.value) {
+    flash('当前材料不足，无法炼造魔丸', 'warning');
+    return
+  }
+  const quantity = Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), magicPillMax.value);
+  pillCraftQuantity.value = String(quantity);
+  await doAction(() => props.api.post(`${pluginBase}/craft-max-pill`, { quantity }));
 }
 
 function findThemeNode() {
@@ -617,18 +709,80 @@ return (_ctx, _cache) => {
             ]))
       ]),
       _createElementVNode("section", _hoisted_62, [
-        _hoisted_63,
-        _createElementVNode("div", _hoisted_64, [
+        _createElementVNode("div", _hoisted_63, [
+          _hoisted_64,
+          _createElementVNode("div", {
+            class: _normalizeClass(["pill-mini-note", { ready: magicPillMax.value > 0 }])
+          }, _toDisplayString(magicPillMax.value > 0 ? `最多可炼造 ${magicPillMax.value} 颗魔丸` : '材料不足'), 3)
+        ]),
+        _createElementVNode("div", _hoisted_65, [
+          _createElementVNode("div", _hoisted_66, [
+            _hoisted_67,
+            _createElementVNode("div", _hoisted_68, [
+              _createElementVNode("span", null, "当前最大可炼造：" + _toDisplayString(magicPillMax.value) + " 颗", 1),
+              (magicPillRecipe.value?.materials?.length)
+                ? (_openBlock(), _createElementBlock("span", _hoisted_69, "配方：" + _toDisplayString(magicPillRecipe.value.materials.join(' / ')), 1))
+                : _createCommentVNode("", true)
+            ]),
+            _createElementVNode("div", _hoisted_70, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(magicPillRequirements.value, (count, name) => {
+                return (_openBlock(), _createElementBlock("span", {
+                  key: name,
+                  class: "pill-material-chip"
+                }, _toDisplayString(itemIcon(name)) + _toDisplayString(name) + ": " + _toDisplayString(count), 1))
+              }), 128))
+            ])
+          ]),
+          _createElementVNode("div", _hoisted_71, [
+            _createElementVNode("label", _hoisted_72, [
+              _hoisted_73,
+              _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((pillCraftQuantity).value = $event)),
+                class: "pill-number-input",
+                type: "number",
+                min: "1",
+                max: Math.max(magicPillMax.value, 1)
+              }, null, 8, _hoisted_74), [
+                [_vModelText, pillCraftQuantity.value]
+              ])
+            ]),
+            _createElementVNode("div", _hoisted_75, [
+              _createVNode(_component_v_btn, {
+                variant: "text",
+                disabled: !magicPillMax.value,
+                onClick: setPillCraftMax
+              }, {
+                default: _withCtx(() => [
+                  _createTextVNode("最大")
+                ]),
+                _: 1
+              }, 8, ["disabled"]),
+              _createVNode(_component_v_btn, {
+                color: "deep-purple-accent-3",
+                variant: "flat",
+                loading: loading.value,
+                disabled: loading.value || !magicPillMax.value,
+                onClick: craftMagicPill
+              }, {
+                default: _withCtx(() => [
+                  _createTextVNode(" 一键炼造魔丸 ")
+                ]),
+                _: 1
+              }, 8, ["loading", "disabled"])
+            ])
+          ])
+        ]),
+        _createElementVNode("div", _hoisted_76, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipes.value, (recipe) => {
             return (_openBlock(), _createElementBlock("article", {
               key: recipe.craft_id || recipe.title,
               class: _normalizeClass(["pill-recipe-card", { craftable: recipe.can_craft }])
             }, [
-              _createElementVNode("div", _hoisted_65, [
-                _createElementVNode("strong", null, _toDisplayString(recipe.title), 1),
+              _createElementVNode("div", _hoisted_77, [
+                _createElementVNode("strong", null, _toDisplayString(recipe.icon) + " " + _toDisplayString(recipe.title), 1),
                 _createElementVNode("span", null, _toDisplayString(recipe.status || (recipe.can_craft ? `最多可制作 ${recipe.max_count}` : '材料不足')), 1)
               ]),
-              _createElementVNode("div", _hoisted_66, [
+              _createElementVNode("div", _hoisted_78, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipe.materials, (material) => {
                   return (_openBlock(), _createElementBlock("span", {
                     key: `${recipe.title}-${material}`,
@@ -636,40 +790,67 @@ return (_ctx, _cache) => {
                   }, _toDisplayString(material), 1))
                 }), 128))
               ]),
-              _createElementVNode("div", _hoisted_67, [
+              _createElementVNode("div", _hoisted_79, [
                 _createElementVNode("span", null, "上限 " + _toDisplayString(recipe.max_count || 0), 1),
-                _createElementVNode("span", null, _toDisplayString(recipe.supported ? '已接入' : '待补抓包'), 1)
-              ])
+                _createElementVNode("span", null, _toDisplayString(recipe.supported ? '可炼造' : '未接入'), 1)
+              ]),
+              (recipe.supported)
+                ? (_openBlock(), _createElementBlock("div", _hoisted_80, [
+                    _withDirectives(_createElementVNode("input", {
+                      "onUpdate:modelValue": $event => ((craftInputs[recipeInputKey(recipe)]) = $event),
+                      class: "pill-number-input",
+                      type: "number",
+                      min: "1",
+                      max: Math.max(Number(recipe.max_count || 0), 1)
+                    }, null, 8, _hoisted_81), [
+                      [_vModelText, craftInputs[recipeInputKey(recipe)]]
+                    ]),
+                    _createVNode(_component_v_btn, {
+                      color: "success",
+                      variant: "flat",
+                      loading: loading.value,
+                      disabled: loading.value || !recipe.enabled || !Number(recipe.max_count || 0),
+                      onClick: $event => (craftRecipe(recipe))
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode(" 炼造 ")
+                      ]),
+                      _: 2
+                    }, 1032, ["loading", "disabled", "onClick"])
+                  ]))
+                : _createCommentVNode("", true)
             ], 2))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_68, [
-        _hoisted_69,
-        _createElementVNode("div", _hoisted_70, [
-          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(pill.value.capture_tips || [], (tip) => {
-            return (_openBlock(), _createElementBlock("div", {
-              key: tip,
-              class: "pill-tip-item"
-            }, _toDisplayString(tip), 1))
-          }), 128))
-        ])
-      ]),
-      _createElementVNode("section", _hoisted_71, [
-        _hoisted_72,
+      ((pill.value.capture_tips || []).length)
+        ? (_openBlock(), _createElementBlock("section", _hoisted_82, [
+            _hoisted_83,
+            _createElementVNode("div", _hoisted_84, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(pill.value.capture_tips || [], (tip) => {
+                return (_openBlock(), _createElementBlock("div", {
+                  key: tip,
+                  class: "pill-tip-item"
+                }, _toDisplayString(tip), 1))
+              }), 128))
+            ])
+          ]))
+        : _createCommentVNode("", true),
+      _createElementVNode("section", _hoisted_85, [
+        _hoisted_86,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_73, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_74, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_87, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_88, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "pill-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_75, [
+                  _createElementVNode("div", _hoisted_89, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_76, _toDisplayString((item.lines || []).join(' / ')), 1)
+                  _createElementVNode("div", _hoisted_90, _toDisplayString((item.lines || []).join(' / ')), 1)
                 ]))
               }), 128))
             ]))
@@ -680,6 +861,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f5067d47"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8e7b857d"]]);
 
 export { PageView as default };
