@@ -2,6 +2,7 @@ import random
 import re
 import socket
 import time
+import traceback
 from datetime import datetime, timedelta
 from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
@@ -26,7 +27,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖、清理沙滩，并支持清沙滩后自动炼造魔丸和自动兑换魔力。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -283,7 +284,8 @@ class SQPill(_PluginBase):
             }
         except Exception as err:
             detail = self._get_error_detail(err)
-            logger.exception("%s 执行失败：%s", self.plugin_name, detail)
+            logger.error("%s 执行失败：%s", self.plugin_name, detail)
+            logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
                 self.post_message(mtype=NotificationType.Plugin, title=f"【⚠️{self.plugin_name}】 执行异常", text=f"⚠️ {detail}")
@@ -831,6 +833,14 @@ class SQPill(_PluginBase):
                 if not self._is_retryable_network_error(err) or idx == self._http_retry_times:
                     raise
                 wait_ms = self._http_retry_delay * idx + random.randint(0, 500)
+                logger.info(
+                    "%s %s 将在 %.1f 秒后自动重试（%s/%s）",
+                    self.plugin_name,
+                    label,
+                    wait_ms / 1000.0,
+                    idx + 1,
+                    self._http_retry_times,
+                )
                 time.sleep(wait_ms / 1000.0)
         raise last_err
 
@@ -839,7 +849,22 @@ class SQPill(_PluginBase):
         code = getattr(err, "code", None) or getattr(getattr(err, "cause", None), "code", None)
         status = getattr(getattr(err, "response", None), "status_code", None)
         retryable = {"ETIMEDOUT", "ECONNRESET", "ECONNABORTED", "EAI_AGAIN", "ENOTFOUND", "EHOSTUNREACH", "ECONNREFUSED"}
-        return code in retryable or (status is not None and 500 <= int(status) < 600)
+        if code in retryable or (status is not None and 500 <= int(status) < 600):
+            return True
+        if isinstance(err, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+            return True
+        message = str(err).lower()
+        return any(
+            token in message
+            for token in (
+                "read timed out",
+                "connect timeout",
+                "connection timed out",
+                "connection aborted",
+                "temporarily unavailable",
+                "remote disconnected",
+            )
+        )
 
     def _run_brick_flow(self, session: requests.Session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         total_moved = 0
