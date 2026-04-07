@@ -26,7 +26,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -1043,7 +1043,8 @@ class SQToy(_PluginBase):
         target_panel: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         parsed = self._parse_page_html(html)
-        doll_map = parsed.get("doll_map") or {}
+        shop_boxes = self._build_shop_boxes(state, parsed.get("shop_boxes") or [])
+        doll_map = self._build_doll_map(state, parsed.get("doll_map") or {})
         return {
             "schema_version": self.plugin_version,
             "title": "玩偶抢曝光",
@@ -1055,14 +1056,57 @@ class SQToy(_PluginBase):
             "next_trigger_time": self._format_time(self._load_saved_next_trigger()),
             "next_trigger_ts": int(self._load_saved_next_trigger().timestamp()) if self._load_saved_next_trigger() else 0,
             "overview": self._build_overview(state),
-            "shop_boxes": parsed.get("shop_boxes") or [],
-            "my_boxes": self._build_box_inventory(state, parsed.get("shop_boxes") or [], parsed.get("my_boxes") or []),
+            "shop_boxes": shop_boxes,
+            "my_boxes": self._build_box_inventory(state, shop_boxes, parsed.get("my_boxes") or []),
             "cabinet": self._build_cabinet_cards(state, doll_map),
             "personal_slots": self._build_personal_slots(state, doll_map),
             "target_panel": target_panel or {},
             "remote_records": self._build_remote_records(state, doll_map),
             "history_logs": self._build_activity_logs(state),
         }
+
+    def _build_shop_boxes(self, state: Dict[str, Any], parsed_boxes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        catalog = state.get("catalog") or []
+        if isinstance(catalog, list) and catalog:
+            exposure = self._safe_int((state.get("profile") or {}).get("exposure"), 0)
+            boxes: List[Dict[str, Any]] = []
+            for item in catalog:
+                box_key = str(item.get("key") or item.get("box_key") or "").strip()
+                unlock_exposure = self._safe_int(item.get("unlock_exposure"), 0)
+                locked = exposure < unlock_exposure
+                desc = f"售价 {self._safe_int(item.get('price'), 0)} 魔力"
+                if unlock_exposure > 0:
+                    desc += f" · 解锁需曝光值 {unlock_exposure}"
+                boxes.append({
+                    "box_key": box_key,
+                    "name": str(item.get("name") or box_key),
+                    "image": self._absolute_url(item.get("icon") or item.get("image") or ""),
+                    "desc": desc,
+                    "lock_text": f"购买需要曝光值达 {unlock_exposure}" if locked and unlock_exposure > 0 else "",
+                    "locked": locked,
+                    "buy_enabled": not locked,
+                    "default_quantity": 1,
+                })
+            return boxes
+        return parsed_boxes
+
+    def _build_doll_map(self, state: Dict[str, Any], parsed_map: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        result = dict(parsed_map or {})
+        for box in state.get("catalog") or []:
+            box_name = str(box.get("name") or "")
+            for doll in (box.get("dolls") or {}).values():
+                name = str(doll.get("name") or "").strip()
+                if not name:
+                    continue
+                result[name] = {
+                    **result.get(name, {}),
+                    "image": self._absolute_url(doll.get("icon") or result.get(name, {}).get("image") or ""),
+                    "quality": str(doll.get("quality") or result.get(name, {}).get("quality") or ""),
+                    "display_text": result.get(name, {}).get("display_text") or f"展出{max(0, round(self._safe_int(doll.get('display_seconds'), 0) / 3600))}小时",
+                    "reward_text": result.get(name, {}).get("reward_text") or f"曝光+{self._safe_int(doll.get('exposure_reward'), 0)} 魔力+{self._safe_int(doll.get('magic_reward'), 0)}",
+                    "origin": box_name or result.get(name, {}).get("origin") or "",
+                }
+        return result
 
     def _build_overview(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         user = state.get("user") or {}
@@ -1119,8 +1163,8 @@ class SQToy(_PluginBase):
             cards.append({
                 "doll_key": item.get("doll_key") or "",
                 "name": name,
-                "image": meta.get("image") or "",
-                "origin": meta.get("origin") or "",
+                "image": self._absolute_url(item.get("icon") or meta.get("image") or ""),
+                "origin": item.get("origin_label") or item.get("box_name") or meta.get("origin") or "",
                 "quality": item.get("quality") or meta.get("quality") or "",
                 "quality_rank": self.QUALITY_ORDER.get(str(item.get("quality") or meta.get("quality") or ""), 0),
                 "display_text": f"展出{max(0, round(self._safe_int(item.get('display_seconds'), 0) / 3600))}小时 · 守候{max(0, round(self._safe_int(item.get('wait_seconds'), 0) / 60))}分钟",
@@ -1147,7 +1191,7 @@ class SQToy(_PluginBase):
                 "empty": not bool(occupant),
                 "status": str(occupant.get("status") or slot.get("state") or ""),
                 "doll_name": name,
-                "image": meta.get("image") or "",
+                "image": self._absolute_url(occupant.get("doll_icon") or meta.get("image") or ""),
                 "quality": occupant.get("quality") or meta.get("quality") or "",
                 "owner_name": self._strip_html(state.get("user", {}).get("username") or ""),
                 "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else "已可回收",
@@ -1171,6 +1215,8 @@ class SQToy(_PluginBase):
                 "empty": not bool(occupant),
                 "cooldown_active": bool(slot.get("cooldown_active")),
                 "doll_name": occupant.get("doll_name") or "",
+                "image": self._absolute_url(occupant.get("doll_icon") or ""),
+                "quality": occupant.get("quality") or "",
                 "viewer_is_occupant": bool(occupant.get("viewer_is_occupant")),
                 "can_collect": bool(occupant.get("viewer_is_occupant")) and (remaining <= 0 or self._safe_int(occupant.get("elapsed_seconds"), 0) >= self._safe_int(occupant.get("display_seconds"), 0)),
                 "remaining_text": self._format_duration(remaining) if remaining > 0 else "空位可抢",
@@ -1194,7 +1240,7 @@ class SQToy(_PluginBase):
                 "owner_name": self._strip_html(item.get("owner_name") or ""),
                 "slot_index": self._safe_int(item.get("slot_index"), 0),
                 "doll_name": name,
-                "image": meta.get("image") or "",
+                "image": self._absolute_url(item.get("doll_icon") or meta.get("image") or ""),
                 "status": item.get("status") or "",
                 "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else "已可回收",
                 "remaining": remaining if remaining is not None else 10**9,

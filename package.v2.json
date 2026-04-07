@@ -53,11 +53,12 @@
     "name": "SQ玩偶",
     "description": "SQ玩偶自动回收、展出与外展，支持 Vue 状态页、动态调度和站点 Cookie 同步。",
     "labels": "工具,自动化,玩偶",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "商店与玩偶图片改为优先读取真实状态字段，修复盲盒商店空白和柜子/展柜占位图问题。",
       "v0.1.1": "补齐盲盒购买、盲盒开启和按用户名搜索目标展台，盲盒库存改为优先读取真实状态字段。",
       "v0.1.0": "首版发布，接入玩偶状态页、自动回收、自展位放置、随机外展、目标展台查看与站点 Cookie 同步。"
     }

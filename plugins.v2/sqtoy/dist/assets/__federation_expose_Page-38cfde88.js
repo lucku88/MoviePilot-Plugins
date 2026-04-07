@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_e7950159_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_517b783a_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-e7950159"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-517b783a"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -43,156 +43,163 @@ const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
     /*#__PURE__*/_createElementVNode("h2", null, "玩偶盲盒商店")
   ])
 ], -1));
-const _hoisted_20 = { class: "toy-box-grid" };
-const _hoisted_21 = ["src", "alt"];
-const _hoisted_22 = { class: "toy-box-name" };
-const _hoisted_23 = { class: "toy-box-desc" };
-const _hoisted_24 = {
+const _hoisted_20 = {
+  key: 0,
+  class: "toy-empty"
+};
+const _hoisted_21 = {
+  key: 1,
+  class: "toy-box-grid"
+};
+const _hoisted_22 = ["src", "alt"];
+const _hoisted_23 = { class: "toy-box-name" };
+const _hoisted_24 = { class: "toy-box-desc" };
+const _hoisted_25 = {
   key: 1,
   class: "toy-box-lock"
 };
-const _hoisted_25 = { class: "toy-box-actions" };
-const _hoisted_26 = ["onUpdate:modelValue"];
-const _hoisted_27 = { class: "toy-panel" };
-const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_26 = { class: "toy-box-actions" };
+const _hoisted_27 = ["onUpdate:modelValue"];
+const _hoisted_28 = { class: "toy-panel" };
+const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "我的盲盒"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的盲盒")
   ])
 ], -1));
-const _hoisted_29 = {
+const _hoisted_30 = {
   key: 0,
   class: "toy-empty"
 };
-const _hoisted_30 = {
+const _hoisted_31 = {
   key: 1,
   class: "toy-box-grid"
 };
-const _hoisted_31 = ["src", "alt"];
-const _hoisted_32 = { class: "toy-box-name" };
-const _hoisted_33 = { class: "toy-box-desc" };
-const _hoisted_34 = { class: "toy-box-actions" };
-const _hoisted_35 = ["onUpdate:modelValue", "max"];
-const _hoisted_36 = { class: "toy-panel" };
-const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_32 = ["src", "alt"];
+const _hoisted_33 = { class: "toy-box-name" };
+const _hoisted_34 = { class: "toy-box-desc" };
+const _hoisted_35 = { class: "toy-box-actions" };
+const _hoisted_36 = ["onUpdate:modelValue", "max"];
+const _hoisted_37 = { class: "toy-panel" };
+const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "玩偶柜子"),
     /*#__PURE__*/_createElementVNode("h2", null, "玩偶柜子")
   ])
 ], -1));
-const _hoisted_38 = { class: "toy-toolbar" };
-const _hoisted_39 = { class: "toy-sort-group" };
-const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按级别", -1));
-const _hoisted_41 = { class: "toy-sort-group" };
-const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按可用数量", -1));
-const _hoisted_43 = { class: "toy-sort-group" };
-const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按最快冷却", -1));
-const _hoisted_45 = { class: "toy-selected-bar" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "当前选中：", -1));
-const _hoisted_47 = { key: 0 };
-const _hoisted_48 = {
+const _hoisted_39 = { class: "toy-toolbar" };
+const _hoisted_40 = { class: "toy-sort-group" };
+const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按级别", -1));
+const _hoisted_42 = { class: "toy-sort-group" };
+const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按可用数量", -1));
+const _hoisted_44 = { class: "toy-sort-group" };
+const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "按最快冷却", -1));
+const _hoisted_46 = { class: "toy-selected-bar" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "当前选中：", -1));
+const _hoisted_48 = { key: 0 };
+const _hoisted_49 = {
   key: 0,
   class: "toy-empty"
 };
-const _hoisted_49 = {
+const _hoisted_50 = {
   key: 1,
   class: "toy-cabinet-grid"
 };
-const _hoisted_50 = ["onClick"];
-const _hoisted_51 = ["src", "alt"];
-const _hoisted_52 = {
+const _hoisted_51 = ["onClick"];
+const _hoisted_52 = ["src", "alt"];
+const _hoisted_53 = {
   key: 1,
   class: "toy-doll-placeholder"
 };
-const _hoisted_53 = { class: "toy-doll-quality" };
-const _hoisted_54 = { class: "toy-doll-name" };
-const _hoisted_55 = { class: "toy-doll-meta" };
+const _hoisted_54 = { class: "toy-doll-quality" };
+const _hoisted_55 = { class: "toy-doll-name" };
 const _hoisted_56 = { class: "toy-doll-meta" };
 const _hoisted_57 = { class: "toy-doll-meta" };
-const _hoisted_58 = { class: "toy-doll-count" };
+const _hoisted_58 = { class: "toy-doll-meta" };
 const _hoisted_59 = { class: "toy-doll-count" };
-const _hoisted_60 = {
+const _hoisted_60 = { class: "toy-doll-count" };
+const _hoisted_61 = {
   key: 2,
   class: "toy-doll-cooldown"
 };
-const _hoisted_61 = { class: "toy-panel" };
-const _hoisted_62 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_62 = { class: "toy-panel" };
+const _hoisted_63 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "我的展柜"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的展柜")
   ])
 ], -1));
-const _hoisted_63 = { class: "toy-slot-grid" };
-const _hoisted_64 = { class: "toy-slot-index" };
-const _hoisted_65 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-slot-empty" }, "空展位", -1));
-const _hoisted_66 = { class: "toy-slot-tip" };
-const _hoisted_67 = ["src", "alt"];
-const _hoisted_68 = { class: "toy-slot-name" };
-const _hoisted_69 = { class: "toy-slot-meta" };
+const _hoisted_64 = { class: "toy-slot-grid" };
+const _hoisted_65 = { class: "toy-slot-index" };
+const _hoisted_66 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-slot-empty" }, "空展位", -1));
+const _hoisted_67 = { class: "toy-slot-tip" };
+const _hoisted_68 = ["src", "alt"];
+const _hoisted_69 = { class: "toy-slot-name" };
 const _hoisted_70 = { class: "toy-slot-meta" };
-const _hoisted_71 = { class: "toy-slot-progress" };
-const _hoisted_72 = { class: "toy-panel" };
-const _hoisted_73 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_71 = { class: "toy-slot-meta" };
+const _hoisted_72 = { class: "toy-slot-progress" };
+const _hoisted_73 = { class: "toy-panel" };
+const _hoisted_74 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "外展抢位"),
     /*#__PURE__*/_createElementVNode("h2", null, "抢占他人展位")
   ])
 ], -1));
-const _hoisted_74 = { class: "toy-target-controls" };
-const _hoisted_75 = { class: "toy-search" };
-const _hoisted_76 = {
+const _hoisted_75 = { class: "toy-target-controls" };
+const _hoisted_76 = { class: "toy-search" };
+const _hoisted_77 = {
   key: 0,
   class: "toy-empty"
 };
-const _hoisted_77 = {
+const _hoisted_78 = {
   key: 1,
   class: "toy-target-panel"
 };
-const _hoisted_78 = { class: "toy-target-head" };
-const _hoisted_79 = { class: "toy-slot-grid" };
-const _hoisted_80 = { class: "toy-slot-index" };
-const _hoisted_81 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-slot-empty" }, "空位可抢", -1));
-const _hoisted_82 = { class: "toy-slot-tip" };
-const _hoisted_83 = { class: "toy-slot-name" };
-const _hoisted_84 = { class: "toy-slot-meta" };
+const _hoisted_79 = { class: "toy-target-head" };
+const _hoisted_80 = { class: "toy-slot-grid" };
+const _hoisted_81 = { class: "toy-slot-index" };
+const _hoisted_82 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-slot-empty" }, "空位可抢", -1));
+const _hoisted_83 = { class: "toy-slot-tip" };
+const _hoisted_84 = { class: "toy-slot-name" };
 const _hoisted_85 = { class: "toy-slot-meta" };
-const _hoisted_86 = { class: "toy-panel" };
-const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_86 = { class: "toy-slot-meta" };
+const _hoisted_87 = { class: "toy-panel" };
+const _hoisted_88 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "外展记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的外展记录")
   ])
 ], -1));
-const _hoisted_88 = {
+const _hoisted_89 = {
   key: 0,
   class: "toy-empty"
 };
-const _hoisted_89 = {
+const _hoisted_90 = {
   key: 1,
   class: "toy-remote-grid"
 };
-const _hoisted_90 = ["src", "alt"];
-const _hoisted_91 = { class: "toy-remote-owner" };
-const _hoisted_92 = { class: "toy-remote-meta" };
+const _hoisted_91 = ["src", "alt"];
+const _hoisted_92 = { class: "toy-remote-owner" };
 const _hoisted_93 = { class: "toy-remote-meta" };
 const _hoisted_94 = { class: "toy-remote-meta" };
-const _hoisted_95 = { class: "toy-panel" };
-const _hoisted_96 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
+const _hoisted_95 = { class: "toy-remote-meta" };
+const _hoisted_96 = { class: "toy-panel" };
+const _hoisted_97 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
 ], -1));
-const _hoisted_97 = {
+const _hoisted_98 = {
   key: 0,
   class: "toy-empty"
 };
-const _hoisted_98 = {
+const _hoisted_99 = {
   key: 1,
   class: "toy-history-list"
 };
-const _hoisted_99 = { class: "toy-history-message" };
-const _hoisted_100 = { class: "toy-history-time" };
+const _hoisted_100 = { class: "toy-history-message" };
+const _hoisted_101 = { class: "toy-history-time" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -594,56 +601,58 @@ return (_ctx, _cache) => {
         : _createCommentVNode("", true),
       _createElementVNode("section", _hoisted_18, [
         _hoisted_19,
-        _createElementVNode("div", _hoisted_20, [
-          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(shopBoxes.value, (box) => {
-            return (_openBlock(), _createElementBlock("article", {
-              key: box.box_key || box.name,
-              class: _normalizeClass(["toy-box-card", { locked: box.locked }])
-            }, [
-              (box.image)
-                ? (_openBlock(), _createElementBlock("img", {
-                    key: 0,
-                    class: "toy-box-image",
-                    src: box.image,
-                    alt: box.name
-                  }, null, 8, _hoisted_21))
-                : _createCommentVNode("", true),
-              _createElementVNode("div", _hoisted_22, _toDisplayString(box.name), 1),
-              _createElementVNode("div", _hoisted_23, _toDisplayString(box.desc), 1),
-              (box.lock_text)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_24, _toDisplayString(box.lock_text), 1))
-                : _createCommentVNode("", true),
-              _createElementVNode("div", _hoisted_25, [
-                _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((buyQuantities[box.box_key]) = $event),
-                  class: "toy-number-input",
-                  type: "number",
-                  min: "1"
-                }, null, 8, _hoisted_26), [
-                  [_vModelText, buyQuantities[box.box_key]]
-                ]),
-                _createVNode(_component_v_btn, {
-                  color: "deep-orange",
-                  variant: "flat",
-                  loading: loading.value,
-                  disabled: loading.value || box.buy_enabled === false,
-                  onClick: $event => (buyBox(box))
-                }, {
-                  default: _withCtx(() => [
-                    _createTextVNode(" 购买 ")
-                  ]),
-                  _: 2
-                }, 1032, ["loading", "disabled", "onClick"])
-              ])
-            ], 2))
-          }), 128))
-        ])
+        (!shopBoxes.value.length)
+          ? (_openBlock(), _createElementBlock("div", _hoisted_20, "暂未获取到盲盒商店数据"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_21, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(shopBoxes.value, (box) => {
+                return (_openBlock(), _createElementBlock("article", {
+                  key: box.box_key || box.name,
+                  class: _normalizeClass(["toy-box-card", { locked: box.locked }])
+                }, [
+                  (box.image)
+                    ? (_openBlock(), _createElementBlock("img", {
+                        key: 0,
+                        class: "toy-box-image",
+                        src: box.image,
+                        alt: box.name
+                      }, null, 8, _hoisted_22))
+                    : _createCommentVNode("", true),
+                  _createElementVNode("div", _hoisted_23, _toDisplayString(box.name), 1),
+                  _createElementVNode("div", _hoisted_24, _toDisplayString(box.desc), 1),
+                  (box.lock_text)
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_25, _toDisplayString(box.lock_text), 1))
+                    : _createCommentVNode("", true),
+                  _createElementVNode("div", _hoisted_26, [
+                    _withDirectives(_createElementVNode("input", {
+                      "onUpdate:modelValue": $event => ((buyQuantities[box.box_key]) = $event),
+                      class: "toy-number-input",
+                      type: "number",
+                      min: "1"
+                    }, null, 8, _hoisted_27), [
+                      [_vModelText, buyQuantities[box.box_key]]
+                    ]),
+                    _createVNode(_component_v_btn, {
+                      color: "deep-orange",
+                      variant: "flat",
+                      loading: loading.value,
+                      disabled: loading.value || box.buy_enabled === false,
+                      onClick: $event => (buyBox(box))
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode(" 购买 ")
+                      ]),
+                      _: 2
+                    }, 1032, ["loading", "disabled", "onClick"])
+                  ])
+                ], 2))
+              }), 128))
+            ]))
       ]),
-      _createElementVNode("section", _hoisted_27, [
-        _hoisted_28,
+      _createElementVNode("section", _hoisted_28, [
+        _hoisted_29,
         (!myBoxes.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_29, "暂无盲盒，去商店看看吧"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_30, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_30, "暂无盲盒，去商店看看吧"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_31, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(myBoxes.value, (box) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `owned-${box.box_key || box.name}`,
@@ -655,18 +664,18 @@ return (_ctx, _cache) => {
                         class: "toy-box-image small",
                         src: box.image,
                         alt: box.name
-                      }, null, 8, _hoisted_31))
+                      }, null, 8, _hoisted_32))
                     : _createCommentVNode("", true),
-                  _createElementVNode("div", _hoisted_32, _toDisplayString(box.name), 1),
-                  _createElementVNode("div", _hoisted_33, "拥有 " + _toDisplayString(box.count) + " 个", 1),
-                  _createElementVNode("div", _hoisted_34, [
+                  _createElementVNode("div", _hoisted_33, _toDisplayString(box.name), 1),
+                  _createElementVNode("div", _hoisted_34, "拥有 " + _toDisplayString(box.count) + " 个", 1),
+                  _createElementVNode("div", _hoisted_35, [
                     _withDirectives(_createElementVNode("input", {
                       "onUpdate:modelValue": $event => ((openQuantities[box.box_key || box.name]) = $event),
                       class: "toy-number-input",
                       type: "number",
                       min: "1",
                       max: Math.max(Number(box.count || 0), 1)
-                    }, null, 8, _hoisted_35), [
+                    }, null, 8, _hoisted_36), [
                       [_vModelText, openQuantities[box.box_key || box.name]]
                     ]),
                     _createVNode(_component_v_btn, {
@@ -686,11 +695,11 @@ return (_ctx, _cache) => {
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_36, [
-        _hoisted_37,
-        _createElementVNode("div", _hoisted_38, [
-          _createElementVNode("div", _hoisted_39, [
-            _hoisted_40,
+      _createElementVNode("section", _hoisted_37, [
+        _hoisted_38,
+        _createElementVNode("div", _hoisted_39, [
+          _createElementVNode("div", _hoisted_40, [
+            _hoisted_41,
             _createElementVNode("button", {
               type: "button",
               class: "toy-chip",
@@ -702,8 +711,8 @@ return (_ctx, _cache) => {
               onClick: _cache[2] || (_cache[2] = $event => (setSort('quality_rank', 'asc')))
             }, "低→高")
           ]),
-          _createElementVNode("div", _hoisted_41, [
-            _hoisted_42,
+          _createElementVNode("div", _hoisted_42, [
+            _hoisted_43,
             _createElementVNode("button", {
               type: "button",
               class: "toy-chip",
@@ -715,8 +724,8 @@ return (_ctx, _cache) => {
               onClick: _cache[4] || (_cache[4] = $event => (setSort('available', 'asc')))
             }, "少→多")
           ]),
-          _createElementVNode("div", _hoisted_43, [
-            _hoisted_44,
+          _createElementVNode("div", _hoisted_44, [
+            _hoisted_45,
             _createElementVNode("button", {
               type: "button",
               class: "toy-chip",
@@ -729,16 +738,16 @@ return (_ctx, _cache) => {
             }, "长→短")
           ])
         ]),
-        _createElementVNode("div", _hoisted_45, [
-          _hoisted_46,
+        _createElementVNode("div", _hoisted_46, [
+          _hoisted_47,
           _createElementVNode("strong", null, _toDisplayString(selectedDoll.value ? selectedDoll.value.name : '未选择玩偶'), 1),
           (selectedDoll.value)
-            ? (_openBlock(), _createElementBlock("span", _hoisted_47, "，点击空展位或目标空位即可上架"))
+            ? (_openBlock(), _createElementBlock("span", _hoisted_48, "，点击空展位或目标空位即可上架"))
             : _createCommentVNode("", true)
         ]),
         (!cabinetCards.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_48, "暂无可用空位或玩偶，稍后再试"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_49, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_49, "暂无可用空位或玩偶，稍后再试"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_50, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cabinetCards.value, (doll) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: doll.doll_key || doll.name,
@@ -751,17 +760,17 @@ return (_ctx, _cache) => {
                         class: "toy-doll-image",
                         src: doll.image,
                         alt: doll.name
-                      }, null, 8, _hoisted_51))
-                    : (_openBlock(), _createElementBlock("div", _hoisted_52, "🧸")),
-                  _createElementVNode("div", _hoisted_53, _toDisplayString(doll.quality || '未识别'), 1),
-                  _createElementVNode("div", _hoisted_54, _toDisplayString(doll.name), 1),
-                  _createElementVNode("div", _hoisted_55, _toDisplayString(doll.display_text), 1),
-                  _createElementVNode("div", _hoisted_56, _toDisplayString(doll.reward_text), 1),
-                  _createElementVNode("div", _hoisted_57, _toDisplayString(doll.origin), 1),
-                  _createElementVNode("div", _hoisted_58, "可用/总数 " + _toDisplayString(doll.available) + " / " + _toDisplayString(doll.total), 1),
-                  _createElementVNode("div", _hoisted_59, "展出" + _toDisplayString(doll.display_count) + " · 冷却" + _toDisplayString(doll.cooling_count), 1),
+                      }, null, 8, _hoisted_52))
+                    : (_openBlock(), _createElementBlock("div", _hoisted_53, "🧸")),
+                  _createElementVNode("div", _hoisted_54, _toDisplayString(doll.quality || '未识别'), 1),
+                  _createElementVNode("div", _hoisted_55, _toDisplayString(doll.name), 1),
+                  _createElementVNode("div", _hoisted_56, _toDisplayString(doll.display_text), 1),
+                  _createElementVNode("div", _hoisted_57, _toDisplayString(doll.reward_text), 1),
+                  _createElementVNode("div", _hoisted_58, _toDisplayString(doll.origin), 1),
+                  _createElementVNode("div", _hoisted_59, "可用/总数 " + _toDisplayString(doll.available) + " / " + _toDisplayString(doll.total), 1),
+                  _createElementVNode("div", _hoisted_60, "展出" + _toDisplayString(doll.display_count) + " · 冷却" + _toDisplayString(doll.cooling_count), 1),
                   (doll.cooldown_text)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_60, _toDisplayString(doll.cooldown_text), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_61, _toDisplayString(doll.cooldown_text), 1))
                     : _createCommentVNode("", true),
                   _createVNode(_component_v_btn, {
                     block: "",
@@ -776,23 +785,23 @@ return (_ctx, _cache) => {
                     ]),
                     _: 2
                   }, 1032, ["disabled"])
-                ], 10, _hoisted_50))
+                ], 10, _hoisted_51))
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_61, [
-        _hoisted_62,
-        _createElementVNode("div", _hoisted_63, [
+      _createElementVNode("section", _hoisted_62, [
+        _hoisted_63,
+        _createElementVNode("div", _hoisted_64, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(personalSlots.value, (slot) => {
             return (_openBlock(), _createElementBlock("article", {
               key: `personal-${slot.slot_index}`,
               class: _normalizeClass(["toy-slot-card", { empty: slot.empty }])
             }, [
-              _createElementVNode("div", _hoisted_64, "展位 " + _toDisplayString(slot.slot_index), 1),
+              _createElementVNode("div", _hoisted_65, "展位 " + _toDisplayString(slot.slot_index), 1),
               (slot.empty)
                 ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
-                    _hoisted_65,
-                    _createElementVNode("div", _hoisted_66, _toDisplayString(selectedDoll.value ? `可上架 ${selectedDoll.value.name}` : '先从玩偶柜子选择玩偶'), 1),
+                    _hoisted_66,
+                    _createElementVNode("div", _hoisted_67, _toDisplayString(selectedDoll.value ? `可上架 ${selectedDoll.value.name}` : '先从玩偶柜子选择玩偶'), 1),
                     _createVNode(_component_v_btn, {
                       color: "deep-orange",
                       variant: "flat",
@@ -812,12 +821,12 @@ return (_ctx, _cache) => {
                           class: "toy-slot-image",
                           src: slot.image,
                           alt: slot.doll_name
-                        }, null, 8, _hoisted_67))
+                        }, null, 8, _hoisted_68))
                       : _createCommentVNode("", true),
-                    _createElementVNode("div", _hoisted_68, _toDisplayString(slot.doll_name), 1),
-                    _createElementVNode("div", _hoisted_69, _toDisplayString(slot.remaining_text), 1),
-                    _createElementVNode("div", _hoisted_70, _toDisplayString(slot.reward_text), 1),
-                    _createElementVNode("div", _hoisted_71, [
+                    _createElementVNode("div", _hoisted_69, _toDisplayString(slot.doll_name), 1),
+                    _createElementVNode("div", _hoisted_70, _toDisplayString(slot.remaining_text), 1),
+                    _createElementVNode("div", _hoisted_71, _toDisplayString(slot.reward_text), 1),
+                    _createElementVNode("div", _hoisted_72, [
                       _createElementVNode("div", {
                         class: "toy-slot-progress-bar",
                         style: _normalizeStyle({ width: `${slot.progress}%` })
@@ -839,9 +848,9 @@ return (_ctx, _cache) => {
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_72, [
-        _hoisted_73,
-        _createElementVNode("div", _hoisted_74, [
+      _createElementVNode("section", _hoisted_73, [
+        _hoisted_74,
+        _createElementVNode("div", _hoisted_75, [
           _createVNode(_component_v_btn, {
             color: "deep-orange",
             variant: "flat",
@@ -853,7 +862,7 @@ return (_ctx, _cache) => {
             ]),
             _: 1
           }, 8, ["loading"]),
-          _createElementVNode("div", _hoisted_75, [
+          _createElementVNode("div", _hoisted_76, [
             _withDirectives(_createElementVNode("input", {
               "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((targetKeyword).value = $event)),
               class: "toy-text-input",
@@ -875,20 +884,20 @@ return (_ctx, _cache) => {
           ])
         ]),
         (!targetPanel.value.slots?.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_76, "尚未选择目标"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_77, [
-              _createElementVNode("div", _hoisted_78, _toDisplayString(targetPanel.value.username) + " · " + _toDisplayString(targetPanel.value.slot_count) + " 个展位", 1),
-              _createElementVNode("div", _hoisted_79, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_77, "尚未选择目标"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_78, [
+              _createElementVNode("div", _hoisted_79, _toDisplayString(targetPanel.value.username) + " · " + _toDisplayString(targetPanel.value.slot_count) + " 个展位", 1),
+              _createElementVNode("div", _hoisted_80, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(targetPanel.value.slots, (slot) => {
                   return (_openBlock(), _createElementBlock("article", {
                     key: `target-${slot.owner_id}-${slot.slot_index}`,
                     class: _normalizeClass(["toy-slot-card", { empty: slot.empty }])
                   }, [
-                    _createElementVNode("div", _hoisted_80, "展位 " + _toDisplayString(slot.slot_index), 1),
+                    _createElementVNode("div", _hoisted_81, "展位 " + _toDisplayString(slot.slot_index), 1),
                     (slot.empty && !slot.cooldown_active)
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
-                          _hoisted_81,
-                          _createElementVNode("div", _hoisted_82, _toDisplayString(selectedDoll.value ? `抢占为 ${selectedDoll.value.name}` : '先选择玩偶'), 1),
+                          _hoisted_82,
+                          _createElementVNode("div", _hoisted_83, _toDisplayString(selectedDoll.value ? `抢占为 ${selectedDoll.value.name}` : '先选择玩偶'), 1),
                           _createVNode(_component_v_btn, {
                             color: "deep-orange",
                             variant: "flat",
@@ -902,9 +911,9 @@ return (_ctx, _cache) => {
                           }, 1032, ["disabled", "onClick"])
                         ], 64))
                       : (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
-                          _createElementVNode("div", _hoisted_83, _toDisplayString(slot.doll_name || slot.state_text), 1),
-                          _createElementVNode("div", _hoisted_84, _toDisplayString(slot.remaining_text), 1),
-                          _createElementVNode("div", _hoisted_85, _toDisplayString(slot.state_text), 1),
+                          _createElementVNode("div", _hoisted_84, _toDisplayString(slot.doll_name || slot.state_text), 1),
+                          _createElementVNode("div", _hoisted_85, _toDisplayString(slot.remaining_text), 1),
+                          _createElementVNode("div", _hoisted_86, _toDisplayString(slot.state_text), 1),
                           (slot.viewer_is_occupant)
                             ? (_openBlock(), _createBlock(_component_v_btn, {
                                 key: 0,
@@ -925,11 +934,11 @@ return (_ctx, _cache) => {
               ])
             ]))
       ]),
-      _createElementVNode("section", _hoisted_86, [
-        _hoisted_87,
+      _createElementVNode("section", _hoisted_87, [
+        _hoisted_88,
         (!remoteRecords.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_88, "暂无外展记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_89, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_89, "暂无外展记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_90, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(remoteRecords.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.owner_id}-${item.slot_index}`,
@@ -941,12 +950,12 @@ return (_ctx, _cache) => {
                         class: "toy-remote-image",
                         src: item.image,
                         alt: item.doll_name
-                      }, null, 8, _hoisted_90))
+                      }, null, 8, _hoisted_91))
                     : _createCommentVNode("", true),
-                  _createElementVNode("div", _hoisted_91, _toDisplayString(item.owner_name), 1),
-                  _createElementVNode("div", _hoisted_92, "展位 " + _toDisplayString(item.slot_index), 1),
-                  _createElementVNode("div", _hoisted_93, _toDisplayString(item.doll_name), 1),
-                  _createElementVNode("div", _hoisted_94, _toDisplayString(item.remaining_text), 1),
+                  _createElementVNode("div", _hoisted_92, _toDisplayString(item.owner_name), 1),
+                  _createElementVNode("div", _hoisted_93, "展位 " + _toDisplayString(item.slot_index), 1),
+                  _createElementVNode("div", _hoisted_94, _toDisplayString(item.doll_name), 1),
+                  _createElementVNode("div", _hoisted_95, _toDisplayString(item.remaining_text), 1),
                   _createVNode(_component_v_btn, {
                     size: "small",
                     variant: "flat",
@@ -963,18 +972,18 @@ return (_ctx, _cache) => {
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_95, [
-        _hoisted_96,
+      _createElementVNode("section", _hoisted_96, [
+        _hoisted_97,
         (!historyLogs.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_97, "暂无执行历史"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_98, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_98, "暂无执行历史"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_99, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyLogs.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.message}`,
                   class: "toy-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_99, _toDisplayString(item.message), 1),
-                  _createElementVNode("div", _hoisted_100, _toDisplayString(item.time), 1)
+                  _createElementVNode("div", _hoisted_100, _toDisplayString(item.message), 1),
+                  _createElementVNode("div", _hoisted_101, _toDisplayString(item.time), 1)
                 ]))
               }), 128))
             ]))
@@ -985,6 +994,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e7950159"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-517b783a"]]);
 
 export { PageView as default };

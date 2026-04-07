@@ -54,7 +54,8 @@
             <h2>玩偶盲盒商店</h2>
           </div>
         </div>
-        <div class="toy-box-grid">
+        <div v-if="!shopBoxes.length" class="toy-empty">暂未获取到盲盒商店数据</div>
+        <div v-else class="toy-box-grid">
           <article v-for="box in shopBoxes" :key="box.box_key || box.name" class="toy-box-card" :class="{ locked: box.locked }">
             <img v-if="box.image" class="toy-box-image" :src="box.image" :alt="box.name" />
             <div class="toy-box-name">{{ box.name }}</div>
