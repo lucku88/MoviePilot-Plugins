@@ -26,7 +26,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "SQ魔丸自动搬砖、清理沙滩，并支持清沙滩后自动炼造魔丸和自动兑换魔力。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -267,8 +267,8 @@ class SQPill(_PluginBase):
             pill_status = self._refresh_and_store_status(final_page, next_run, lines)
             self._append_history("⚗️ SQ魔丸运行", lines)
 
-            if self._notify and (has_action or has_warning):
-                title = "【⚗️SQ魔丸】 任务报告" if has_action else "【⚠️SQ魔丸】 执行异常"
+            if self._notify and has_action:
+                title = "【⚗️SQ魔丸】 任务报告"
                 self.post_message(
                     mtype=NotificationType.Plugin,
                     title=title,
@@ -1190,9 +1190,7 @@ class SQPill(_PluginBase):
                 f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
             )
 
-        lines = [f"⚗️ 炼造：魔丸×{max_count}"]
-        if executed_steps:
-            lines.append(f"📦 步骤：{'  '.join(executed_steps)}")
+        lines = [f"⚗️ 炼造：⚗️魔丸×{max_count}"]
         return {"crafted": max_count, "craft_steps": executed_steps, "lines": lines}
 
     def _auto_exchange_points(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
@@ -1213,7 +1211,7 @@ class SQPill(_PluginBase):
             return {"warning": result.get("message") or result.get("msg") or "兑换失败"}
 
         gained = self._safe_int((result or {}).get("points_gained"), 0)
-        lines = [f"💰 兑换：魔丸×{exchangeable}"]
+        lines = [f"💰 兑换：⚗️魔丸×{exchangeable}"]
         if gained > 0:
             lines.append(f"✨ 获得：{gained} 魔力")
         return {"exchanged": exchangeable, "points": gained, "lines": lines}
@@ -1510,7 +1508,7 @@ class SQPill(_PluginBase):
         has_warning = False
 
         if self._safe_int(brick_result.get("moved"), 0) > 0:
-            lines.append(f"🧱 搬砖：{self._safe_int(brick_result.get('moved'), 0)}块")
+            lines.append(f"🧱 搬砖：🧱砖块×{self._safe_int(brick_result.get('moved'), 0)}")
             has_action = True
         elif brick_result.get("warning"):
             lines.append(f"⚠️ 搬砖失败：{brick_result.get('warning')}")
@@ -1518,7 +1516,7 @@ class SQPill(_PluginBase):
 
         beach_items = beach_result.get("items") or []
         if beach_items:
-            lines.append(f"🏖️ 清沙滩：{self._format_item_lines(beach_items)}")
+            lines.append(f"🏖️ 沙滩：{self._format_item_lines(beach_items)}")
             has_action = True
         elif beach_result.get("warning"):
             lines.append(f"⚠️ 清沙滩失败：{beach_result.get('warning')}")
@@ -1534,10 +1532,16 @@ class SQPill(_PluginBase):
         return lines, has_action, has_warning
 
     def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        content_lines = [line for line in lines if line]
+        primary_lines = [line for line in lines if line.startswith(("🧱", "🏖️"))]
+        secondary_lines = [line for line in lines if line.startswith(("⚗️", "💰", "✨"))]
+        warning_lines = [line for line in lines if line.startswith(("⚠️", "ℹ️"))]
         chunks = [self.SUMMARY_LINE]
-        if content_lines:
-            chunks.extend(content_lines)
+        if primary_lines:
+            chunks.extend(primary_lines)
+            chunks.append(self.SUMMARY_LINE)
+        if secondary_lines or warning_lines:
+            chunks.extend(secondary_lines)
+            chunks.extend(warning_lines)
             chunks.append(self.SUMMARY_LINE)
         chunks.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
         chunks.append(self.SUMMARY_LINE)
