@@ -258,11 +258,11 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">执行历史</div>
-            <h2>最新操作记录</h2>
+            <div class="toy-panel-kicker">最近记录</div>
+            <h2>执行历史</h2>
           </div>
         </div>
-        <div v-if="!historyLogs.length" class="toy-empty">暂无最近操作记录</div>
+        <div v-if="!historyLogs.length" class="toy-empty">暂无执行历史</div>
         <div v-else class="toy-history-list">
           <article v-for="item in historyLogs" :key="`${item.time}-${item.message}`" class="toy-history-item">
             <div class="toy-history-message">{{ item.message }}</div>

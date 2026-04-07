@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_7f0e16e0_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_e7950159_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-7f0e16e0"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-e7950159"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -179,8 +179,8 @@ const _hoisted_94 = { class: "toy-remote-meta" };
 const _hoisted_95 = { class: "toy-panel" };
 const _hoisted_96 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "执行历史"),
-    /*#__PURE__*/_createElementVNode("h2", null, "最新操作记录")
+    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "最近记录"),
+    /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
 ], -1));
 const _hoisted_97 = {
@@ -966,7 +966,7 @@ return (_ctx, _cache) => {
       _createElementVNode("section", _hoisted_95, [
         _hoisted_96,
         (!historyLogs.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_97, "暂无最近操作记录"))
+          ? (_openBlock(), _createElementBlock("div", _hoisted_97, "暂无执行历史"))
           : (_openBlock(), _createElementBlock("div", _hoisted_98, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyLogs.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
@@ -985,6 +985,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-7f0e16e0"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e7950159"]]);
 
 export { PageView as default };
