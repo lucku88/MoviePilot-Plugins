@@ -2,6 +2,7 @@ import random
 import re
 import socket
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin
@@ -25,7 +26,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.11"
+    plugin_version = "0.4.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -351,10 +352,24 @@ class SQFarm(_PluginBase):
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
         except Exception as err:
             detail = self._get_error_detail(err)
-            logger.exception("%s 执行失败：%s", self.plugin_name, detail)
+            retry_scheduled = False
+            if self._enabled and reason in {"smart", "bootstrap", "onlyonce"}:
+                retry_delay = max(30, self._ready_retry_seconds)
+                retry_at = int(time.time()) + retry_delay
+                try:
+                    self._schedule_next_run(retry_at, f"{reason}-error-retry")
+                    retry_scheduled = True
+                    logger.warning("%s 本次执行异常，已安排 %s 秒后自动重试：%s", self.plugin_name, retry_delay, self._format_ts(retry_at))
+                except Exception as schedule_err:
+                    logger.warning("%s 异常后补重试失败：%s", self.plugin_name, schedule_err)
+            logger.error("%s 执行失败：%s", self.plugin_name, detail)
+            logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
-                self.post_message(mtype=NotificationType.Plugin, title=f"【❌{self.plugin_name}】 执行异常", text=f"⚠️ {detail}")
+                text = f"⚠️ {detail}"
+                if retry_scheduled:
+                    text += "\n⏰ 已安排稍后自动重试"
+                self.post_message(mtype=NotificationType.Plugin, title=f"【❌{self.plugin_name}】 执行异常", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
             cost_sec = max(1, round(time.time() - run_start))
@@ -825,18 +840,38 @@ class SQFarm(_PluginBase):
                 return func()
             except Exception as err:
                 last_err = err
+                detail = self._get_error_detail(err)
                 if not self._is_retryable_network_error(err) or idx == self._http_retry_times:
                     raise
                 wait_ms = self._http_retry_delay * idx + random.randint(0, 500)
-                logger.warning("%s failed %s/%s: %s", label, idx, self._http_retry_times, err)
+                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, idx, self._http_retry_times, detail)
+                logger.info("%s %s 将在 %.1f 秒后自动重试（%s/%s）", self.plugin_name, label, wait_ms / 1000.0, idx + 1, self._http_retry_times)
                 time.sleep(wait_ms / 1000.0)
         raise last_err
 
     @staticmethod
     def _is_retryable_network_error(err: Exception) -> bool:
+        status = getattr(getattr(err, "response", None), "status_code", None)
+        if status is not None and 500 <= int(status) < 600:
+            return True
+        if isinstance(err, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+            return True
         detail = str(err).upper()
         codes = ["ETIMEDOUT", "ECONNRESET", "ECONNABORTED", "EAI_AGAIN", "ENOTFOUND", "EHOSTUNREACH", "ECONNREFUSED"]
-        return any(code in detail for code in codes)
+        if any(code in detail for code in codes):
+            return True
+        detail_lower = str(err).lower()
+        return any(
+            token in detail_lower
+            for token in (
+                "read timed out",
+                "connect timeout",
+                "connection timed out",
+                "connection aborted",
+                "temporarily unavailable",
+                "remote disconnected",
+            )
+        )
 
     def _recognize_captcha(self, session: requests.Session, image_content: bytes) -> str:
         if not self._ocr_api_url:
