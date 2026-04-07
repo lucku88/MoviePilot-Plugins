@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.7"
+    plugin_version = "0.1.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -1146,7 +1146,7 @@ class SQToy(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_time": self._format_time(self._load_saved_next_trigger()),
             "next_trigger_ts": int(self._load_saved_next_trigger().timestamp()) if self._load_saved_next_trigger() else 0,
-            "overview": self._build_overview(state),
+            "overview": self._merge_overview(self._build_overview(state), parsed),
             "shop_boxes": shop_boxes,
             "my_boxes": self._build_box_inventory(state, shop_boxes, parsed.get("my_boxes") or []),
             "cabinet": self._build_cabinet_cards(state, doll_map),
@@ -1367,10 +1367,35 @@ class SQToy(_PluginBase):
         inventory_inner = self._extract_div_inner_by_id(html, "toyBoxInventory")
         shop_boxes, doll_map = self._parse_shop_boxes(shop_inner)
         return {
+            "overview": self._parse_overview_meta(html),
             "shop_boxes": shop_boxes,
             "doll_map": doll_map,
             "my_boxes": self._parse_box_inventory(inventory_inner, shop_boxes),
         }
+
+    def _parse_overview_meta(self, html: str) -> Dict[str, str]:
+        return {
+            "booth_value": self._extract_text_by_id(html, "toyBoothValue"),
+            "booth_cap_desc": self._extract_text_by_id(html, "toyBoothCapDesc"),
+            "booth_bonus_desc": self._extract_text_by_id(html, "toyBoothBonusDesc"),
+        }
+
+    def _merge_overview(self, overview: List[Dict[str, Any]], parsed: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        result = [dict(item) for item in (overview or [])]
+        parsed_overview = parsed.get("overview") if isinstance(parsed, dict) else {}
+        if len(result) < 4 or not isinstance(parsed_overview, dict):
+            return result
+        booth_card = dict(result[3])
+        booth_value = self._safe_int(parsed_overview.get("booth_value"), self._safe_int(booth_card.get("value"), 0))
+        booth_cap_desc = str(parsed_overview.get("booth_cap_desc") or "").strip()
+        booth_bonus_desc = str(parsed_overview.get("booth_bonus_desc") or "").strip()
+        if booth_cap_desc:
+            booth_card["desc"] = booth_cap_desc
+            booth_card["value"] = booth_value
+        if booth_bonus_desc:
+            booth_card["extra"] = booth_bonus_desc
+        result[3] = booth_card
+        return result
 
     def _parse_shop_boxes(self, html: str) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
         boxes: List[Dict[str, Any]] = []
@@ -1446,6 +1471,14 @@ class SQToy(_PluginBase):
     def _extract_div_inner_by_id(self, html: str, element_id: str) -> str:
         matched = re.search(rf'<div\b[^>]*id="{re.escape(element_id)}"[^>]*>', html, flags=re.I)
         return self._extract_div_inner_from_match(html, matched)
+
+    def _extract_text_by_id(self, html: str, element_id: str) -> str:
+        matched = re.search(
+            rf'<(?P<tag>[a-z0-9]+)\b[^>]*id="{re.escape(element_id)}"[^>]*>(?P<inner>.*?)</(?P=tag)>',
+            html,
+            flags=re.I | re.S,
+        )
+        return self._strip_html(matched.group("inner")) if matched else ""
 
     def _extract_div_inner_from_match(self, html: str, matched: Optional[re.Match]) -> str:
         if not matched:
