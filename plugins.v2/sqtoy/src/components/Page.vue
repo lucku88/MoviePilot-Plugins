@@ -71,7 +71,7 @@
                 color="deep-orange"
                 variant="flat"
                 :loading="loading"
-                :disabled="loading"
+                :disabled="loading || box.buy_enabled === false"
                 @click="buyBox(box)"
               >
                 购买
@@ -102,7 +102,7 @@
                 min="1"
                 :max="Math.max(Number(box.count || 0), 1)"
               />
-              <v-btn color="pink" variant="flat" :loading="loading" :disabled="loading" @click="openBox(box)">开启</v-btn>
+              <v-btn color="pink" variant="flat" :loading="loading" :disabled="loading || !Number(box.count || 0)" @click="openBox(box)">开启</v-btn>
             </div>
           </article>
         </div>
@@ -207,7 +207,7 @@
         <div class="toy-target-controls">
           <v-btn color="deep-orange" variant="flat" :loading="loading" @click="randomTarget">随机匹配</v-btn>
           <div class="toy-search">
-            <input v-model="targetKeyword" class="toy-text-input" placeholder="输入用户 ID（用户名待补抓包）" />
+            <input v-model="targetKeyword" class="toy-text-input" placeholder="输入用户名或用户 ID" />
             <v-btn variant="flat" color="primary" :loading="loading" @click="viewTarget()">前往展台</v-btn>
           </div>
         </div>
@@ -404,7 +404,7 @@ function buyBox(box) {
         box_key: box.box_key,
         quantity: Number(buyQuantities[box.box_key] || 1),
       }),
-    '盲盒操作已提交',
+    '购买成功',
   )
 }
 
@@ -416,7 +416,7 @@ function openBox(box) {
         box_key: box.box_key,
         quantity: Number(openQuantities[key] || 1),
       }),
-    '盲盒开启已提交',
+    '开启完成',
   )
 }
 

@@ -15,6 +15,8 @@ dist/
 !plugins.v2/sqfarm/dist/**
 !plugins.v2/sqpill/dist/
 !plugins.v2/sqpill/dist/**
+!plugins.v2/sqtoy/dist/
+!plugins.v2/sqtoy/dist/**
 downloads/
 eggs/
 .eggs/

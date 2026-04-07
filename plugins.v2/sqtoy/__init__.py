@@ -26,7 +26,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -314,10 +314,32 @@ class SQToy(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _buy_box_api(self, payload: Optional[dict] = None):
-        return {"success": False, "message": "盲盒购买动作还缺少抓包，当前版本仅展示商店信息", "status": self._build_status(auto_refresh=False)}
+        try:
+            result = self._manual_buy_box(payload or {})
+            return {
+                "success": True,
+                "message": result["message"],
+                "toy_status": result["toy_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 购买盲盒失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _open_box_api(self, payload: Optional[dict] = None):
-        return {"success": False, "message": "开启盲盒动作还缺少抓包，当前版本仅展示我的盲盒", "status": self._build_status(auto_refresh=False)}
+        try:
+            result = self._manual_open_box(payload or {})
+            return {
+                "success": True,
+                "message": result["message"],
+                "toy_status": result["toy_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 开启盲盒失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _get_status(self):
         return self._build_status(auto_refresh=True)
@@ -600,11 +622,12 @@ class SQToy(_PluginBase):
     def _manual_view_target(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         raw_target = str(payload.get("target_id") or payload.get("owner_id") or payload.get("keyword") or "").strip()
         if not raw_target:
-            raise ValueError("请输入目标用户 ID，或使用随机匹配")
-        if not raw_target.isdigit():
-            raise ValueError("当前仅支持输入用户 ID；用户名搜索还缺少抓包")
+            raise ValueError("请输入用户名或用户 ID，或使用随机匹配")
         session = self._build_session()
-        result = self._post_action(session, "view_target", {"target_id": int(raw_target)}, retry_network=True)
+        if raw_target.isdigit():
+            result = self._post_action(session, "view_target", {"target_id": int(raw_target)}, retry_network=True)
+        else:
+            result = self._post_action(session, "search_target", {"username": raw_target}, retry_network=True)
         target = result.get("target") or {}
         if not result.get("success") or not target:
             raise ValueError(result.get("message") or "进入目标展台失败")
@@ -626,6 +649,40 @@ class SQToy(_PluginBase):
         panel = self._build_target_panel(refreshed.get("target") or {})
         toy_status = self._refresh_state(reason="manual-place-target", target_panel=panel, summary_lines=[f"🎯 展出：{doll_name or doll_key}"])
         return {"message": "抢占成功", "target_panel": toy_status.get("target_panel") or panel, "toy_status": toy_status}
+
+    def _manual_buy_box(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        box_key = str(payload.get("box_key") or "").strip()
+        quantity = max(1, self._safe_int(payload.get("quantity"), 1))
+        if not box_key:
+            raise ValueError("缺少盲盒信息")
+        session = self._build_session()
+        state = self._fetch_bundle(session)["state"]
+        box_name = self._resolve_box_name(state, box_key)
+        result = self._post_action(session, "purchase_box", {"box_key": box_key, "quantity": quantity})
+        if not result.get("success"):
+            raise ValueError(result.get("message") or "盲盒购买失败")
+        summary_lines = [f"📦 购买盲盒：{box_name}×{quantity}"]
+        toy_status = self._refresh_state(reason="manual-buy-box", summary_lines=summary_lines)
+        return {"message": result.get("message") or "购买成功", "toy_status": toy_status}
+
+    def _manual_open_box(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        box_key = str(payload.get("box_key") or "").strip()
+        quantity = max(1, self._safe_int(payload.get("quantity"), 1))
+        if not box_key:
+            raise ValueError("缺少盲盒信息")
+        session = self._build_session()
+        state = self._fetch_bundle(session)["state"]
+        box_name = self._resolve_box_name(state, box_key)
+        result = self._post_action(session, "open_box", {"box_key": box_key, "quantity": quantity})
+        if not result.get("success"):
+            raise ValueError(result.get("message") or "开启盲盒失败")
+        summary_lines = [f"🎁 开盒：{box_name}×{quantity}"]
+        drop_text = self._count_items(result.get("drops") or [], name_keys=("name", "doll_name"), qty_keys=("quantity", "count", "added"))
+        if drop_text:
+            summary_lines.append(f"🪆 获得：{drop_text}")
+        toy_status = self._refresh_state(reason="manual-open-box", summary_lines=summary_lines)
+        message = result.get("message") or (summary_lines[-1] if len(summary_lines) > 1 else "开启成功")
+        return {"message": message, "toy_status": toy_status}
 
     def _post_action(
         self,
@@ -1028,26 +1085,27 @@ class SQToy(_PluginBase):
         shop_boxes: List[Dict[str, Any]],
         parsed_boxes: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        if parsed_boxes:
-            return parsed_boxes
         known_map = {str(item.get("box_key") or ""): item for item in shop_boxes}
         for key in ("box_inventory", "my_boxes", "blind_box_inventory", "owned_boxes"):
-            if not isinstance(state.get(key), list):
+            inventory = state.get(key)
+            if not isinstance(inventory, list) or not inventory:
                 continue
             result: List[Dict[str, Any]] = []
-            for item in state.get(key) or []:
+            for item in inventory:
                 box_key = str(item.get("box_key") or item.get("key") or "")
                 meta = known_map.get(box_key, {})
                 result.append({
                     "box_key": box_key,
                     "name": item.get("name") or meta.get("name") or box_key,
-                    "image": item.get("image") or meta.get("image") or "",
+                    "image": self._absolute_url(item.get("icon") or item.get("image") or meta.get("image") or ""),
                     "count": self._safe_int(item.get("quantity") or item.get("count"), 0),
                     "default_quantity": 1,
-                    "open_enabled": False,
-                    "open_tip": "开启盲盒动作还缺少抓包",
+                    "open_enabled": self._safe_int(item.get("quantity") or item.get("count"), 0) > 0,
+                    "open_tip": "",
                 })
             return result
+        if parsed_boxes:
+            return parsed_boxes
         return []
 
     def _build_cabinet_cards(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1351,6 +1409,41 @@ class SQToy(_PluginBase):
         for name in names:
             counted[name] = counted.get(name, 0) + 1
         return "  ".join(f"{key}×{value}" for key, value in counted.items())
+
+    def _count_items(
+        self,
+        items: List[Dict[str, Any]],
+        name_keys: Tuple[str, ...] = ("name",),
+        qty_keys: Tuple[str, ...] = ("quantity", "count"),
+    ) -> str:
+        counted: Dict[str, int] = {}
+        for item in items or []:
+            name = ""
+            for key in name_keys:
+                name = str(item.get(key) or "").strip()
+                if name:
+                    break
+            if not name:
+                continue
+            quantity = 0
+            for key in qty_keys:
+                quantity = self._safe_int(item.get(key), 0)
+                if quantity > 0:
+                    break
+            counted[name] = counted.get(name, 0) + max(1, quantity)
+        return "  ".join(f"{key}×{value}" for key, value in counted.items())
+
+    def _resolve_box_name(self, state: Dict[str, Any], box_key: str) -> str:
+        box_key = str(box_key or "").strip()
+        if not box_key:
+            return "未知盲盒"
+        for item in state.get("catalog") or []:
+            if str(item.get("key") or item.get("box_key") or "").strip() == box_key:
+                return str(item.get("name") or box_key)
+        for item in state.get("box_inventory") or []:
+            if str(item.get("box_key") or item.get("key") or "").strip() == box_key:
+                return str(item.get("name") or box_key)
+        return box_key
 
     def _absolute_url(self, url: str) -> str:
         if not url:
