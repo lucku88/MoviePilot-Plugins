@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -419,9 +419,6 @@ class SQToy(_PluginBase):
 
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
-        target_panel = self.get_data("target_panel") or toy_status.get("target_panel") or {}
-        if target_panel and "target_panel" not in toy_status:
-            toy_status["target_panel"] = target_panel
         return {
             "enabled": self._enabled,
             "notify": self._notify,
@@ -989,11 +986,10 @@ class SQToy(_PluginBase):
         target_panel: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         self._schedule_next_run(next_run, reason="refresh-state")
-        saved_target = target_panel or self.get_data("target_panel") or {}
-        if target_panel is not None:
-            self.save_data("target_panel", target_panel)
-        toy_status = self._build_ui_state(state, html, next_run, summary_lines, saved_target)
-        self.save_data("toy_status", toy_status)
+        toy_status = self._build_ui_state(state, html, next_run, summary_lines, target_panel or {})
+        stored_status = dict(toy_status)
+        stored_status["target_panel"] = {}
+        self.save_data("toy_status", stored_status)
         self.save_data("state", self._build_state_record(state, next_run, summary_lines))
         self.save_data("last_run", self._format_time(self._aware_now()))
         self._append_history(summary_lines, next_run)

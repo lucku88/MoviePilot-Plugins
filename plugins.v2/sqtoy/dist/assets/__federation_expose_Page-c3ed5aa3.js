@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_b76b557e_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_3b496dbc_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-b76b557e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3b496dbc"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -231,6 +231,7 @@ const sortField = ref('cooling_count');
 const sortDirection = ref('asc');
 const buyQuantities = reactive({});
 const openQuantities = reactive({});
+const transientTargetPanel = ref({});
 const isDarkTheme = ref(false);
 const dismissedSummaryKey = ref('');
 const nowTs = ref(Math.floor(Date.now() / 1000));
@@ -247,7 +248,13 @@ const overview = computed(() => toy.value.overview || []);
 const shopBoxes = computed(() => toy.value.shop_boxes || []);
 const myBoxes = computed(() => toy.value.my_boxes || []);
 const personalSlots = computed(() => toy.value.personal_slots || []);
-const targetPanel = computed(() => toy.value.target_panel || {});
+const targetPanel = computed(() => {
+  const panel = transientTargetPanel.value || {};
+  if (panel.slots?.length) {
+    return panel
+  }
+  return toy.value.target_panel || {}
+});
 const remoteRecords = computed(() => toy.value.remote_records || []);
 const historyItems = computed(() => status.history || toy.value.history || []);
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean));
@@ -326,7 +333,10 @@ function applyPayload(payload = {}) {
     status.toy_status = payload.toy_status;
   }
   if (payload.target_panel && status.toy_status) {
-    status.toy_status.target_panel = payload.target_panel;
+    transientTargetPanel.value = payload.target_panel;
+  }
+  if (payload.target_panel && !status.toy_status) {
+    transientTargetPanel.value = payload.target_panel;
   }
 }
 
@@ -394,6 +404,12 @@ async function withAction(action, fallback) {
     const result = await action();
     applyPayload(result || {});
     await loadStatus(false);
+    window.setTimeout(() => {
+      void loadStatus(false);
+    }, 1200);
+    window.setTimeout(() => {
+      void loadStatus(false);
+    }, 3000);
     flash(result?.message || fallback);
   } catch (error) {
     flash(error?.message || fallback, 'error');
@@ -511,6 +527,8 @@ function closePlugin() {
   if (showSummary.value) {
     dismissSummary();
   }
+  transientTargetPanel.value = {};
+  targetKeyword.value = '';
   emit('close');
 }
 
@@ -1192,6 +1210,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b76b557e"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3b496dbc"]]);
 
 export { PageView as default };

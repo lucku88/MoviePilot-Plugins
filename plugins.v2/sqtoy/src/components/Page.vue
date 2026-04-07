@@ -299,6 +299,7 @@ const sortField = ref('cooling_count')
 const sortDirection = ref('asc')
 const buyQuantities = reactive({})
 const openQuantities = reactive({})
+const transientTargetPanel = ref({})
 const isDarkTheme = ref(false)
 const dismissedSummaryKey = ref('')
 const nowTs = ref(Math.floor(Date.now() / 1000))
@@ -315,7 +316,13 @@ const overview = computed(() => toy.value.overview || [])
 const shopBoxes = computed(() => toy.value.shop_boxes || [])
 const myBoxes = computed(() => toy.value.my_boxes || [])
 const personalSlots = computed(() => toy.value.personal_slots || [])
-const targetPanel = computed(() => toy.value.target_panel || {})
+const targetPanel = computed(() => {
+  const panel = transientTargetPanel.value || {}
+  if (panel.slots?.length) {
+    return panel
+  }
+  return toy.value.target_panel || {}
+})
 const remoteRecords = computed(() => toy.value.remote_records || [])
 const historyItems = computed(() => status.history || toy.value.history || [])
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean))
@@ -394,7 +401,10 @@ function applyPayload(payload = {}) {
     status.toy_status = payload.toy_status
   }
   if (payload.target_panel && status.toy_status) {
-    status.toy_status.target_panel = payload.target_panel
+    transientTargetPanel.value = payload.target_panel
+  }
+  if (payload.target_panel && !status.toy_status) {
+    transientTargetPanel.value = payload.target_panel
   }
 }
 
@@ -462,6 +472,12 @@ async function withAction(action, fallback) {
     const result = await action()
     applyPayload(result || {})
     await loadStatus(false)
+    window.setTimeout(() => {
+      void loadStatus(false)
+    }, 1200)
+    window.setTimeout(() => {
+      void loadStatus(false)
+    }, 3000)
     flash(result?.message || fallback)
   } catch (error) {
     flash(error?.message || fallback, 'error')
@@ -579,6 +595,8 @@ function closePlugin() {
   if (showSummary.value) {
     dismissSummary()
   }
+  transientTargetPanel.value = {}
+  targetKeyword.value = ''
   emit('close')
 }
 
