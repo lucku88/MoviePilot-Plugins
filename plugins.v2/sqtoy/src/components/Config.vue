@@ -67,7 +67,6 @@
             <v-text-field v-model="config.place_loop_limit" label="单轮放置循环上限" type="number" variant="outlined" density="comfortable" />
             <v-text-field v-model="config.place_retry_delay" label="放置循环间隔(ms)" type="number" variant="outlined" density="comfortable" />
             <v-text-field v-model="config.max_target_try" label="随机目标尝试次数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.max_target_place" label="单目标最多放置数" type="number" variant="outlined" density="comfortable" />
           </div>
         </article>
 
@@ -158,7 +157,6 @@ const config = reactive({
   self_wait_window_seconds: 60,
   remote_wait_window_seconds: 60,
   max_target_try: 3,
-  max_target_place: 3,
 })
 
 let themeObserver = null

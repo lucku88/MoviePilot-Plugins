@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -72,7 +72,6 @@ class SQToy(_PluginBase):
     _self_wait_window_seconds: int = 60
     _remote_wait_window_seconds: int = 60
     _max_target_try: int = 3
-    _max_target_place: int = 3
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -460,7 +459,6 @@ class SQToy(_PluginBase):
             "self_wait_window_seconds": self._self_wait_window_seconds,
             "remote_wait_window_seconds": self._remote_wait_window_seconds,
             "max_target_try": self._max_target_try,
-            "max_target_place": self._max_target_place,
             "capture_tips": [] if include_options else None,
         }
 
@@ -507,7 +505,6 @@ class SQToy(_PluginBase):
             "self_wait_window_seconds": 60,
             "remote_wait_window_seconds": 60,
             "max_target_try": 3,
-            "max_target_place": 3,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -532,7 +529,6 @@ class SQToy(_PluginBase):
         self._self_wait_window_seconds = max(0, self._safe_int(config.get("self_wait_window_seconds"), 60))
         self._remote_wait_window_seconds = max(0, self._safe_int(config.get("remote_wait_window_seconds"), 60))
         self._max_target_try = max(1, self._safe_int(config.get("max_target_try"), 3))
-        self._max_target_place = max(1, self._safe_int(config.get("max_target_place"), 3))
 
     def _update_config(self):
         self.update_config({
@@ -557,7 +553,6 @@ class SQToy(_PluginBase):
             "self_wait_window_seconds": self._self_wait_window_seconds,
             "remote_wait_window_seconds": self._remote_wait_window_seconds,
             "max_target_try": self._max_target_try,
-            "max_target_place": self._max_target_place,
         })
 
     def _resolve_site_profile(self):
@@ -576,7 +571,7 @@ class SQToy(_PluginBase):
             if not cookie:
                 return {"success": False, "message": f"站点 {self._site_domain} 未配置 Cookie"}
             self._cookie = cookie
-            self._cookie_source = f"站点 Cookie · {self._site_domain}"
+            self._cookie_source = f"站点同步：{self._site_domain}"
             if save_config:
                 self._update_config()
             if not silent:

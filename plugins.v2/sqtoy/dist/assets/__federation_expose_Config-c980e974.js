@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_28fe8944_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_029119e2_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-28fe8944"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-029119e2"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -123,7 +123,6 @@ const config = reactive({
   self_wait_window_seconds: 60,
   remote_wait_window_seconds: 60,
   max_target_try: 3,
-  max_target_place: 3,
 });
 
 let themeObserver = null;
@@ -464,14 +463,6 @@ return (_ctx, _cache) => {
               type: "number",
               variant: "outlined",
               density: "comfortable"
-            }, null, 8, ["modelValue"]),
-            _createVNode(_component_v_text_field, {
-              modelValue: config.max_target_place,
-              "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.max_target_place) = $event)),
-              label: "单目标最多放置数",
-              type: "number",
-              variant: "outlined",
-              density: "comfortable"
             }, null, 8, ["modelValue"])
           ])
         ]),
@@ -480,7 +471,7 @@ return (_ctx, _cache) => {
           _createElementVNode("div", _hoisted_18, [
             _createVNode(_component_v_text_field, {
               modelValue: config.random_delay_max_seconds,
-              "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.random_delay_max_seconds) = $event)),
+              "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.random_delay_max_seconds) = $event)),
               label: "随机延迟上限(秒)",
               type: "number",
               variant: "outlined",
@@ -488,7 +479,7 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"]),
             _createVNode(_component_v_text_field, {
               modelValue: config.http_timeout,
-              "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((config.http_timeout) = $event)),
+              "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.http_timeout) = $event)),
               label: "HTTP 超时(秒)",
               type: "number",
               variant: "outlined",
@@ -496,7 +487,7 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"]),
             _createVNode(_component_v_text_field, {
               modelValue: config.http_retry_times,
-              "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.http_retry_times) = $event)),
+              "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((config.http_retry_times) = $event)),
               label: "GET 重试次数",
               type: "number",
               variant: "outlined",
@@ -504,7 +495,7 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"]),
             _createVNode(_component_v_text_field, {
               modelValue: config.http_retry_delay,
-              "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((config.http_retry_delay) = $event)),
+              "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.http_retry_delay) = $event)),
               label: "GET 重试间隔(ms)",
               type: "number",
               variant: "outlined",
@@ -516,7 +507,7 @@ return (_ctx, _cache) => {
           _hoisted_20,
           _createVNode(_component_v_textarea, {
             modelValue: config.cookie,
-            "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => ((config.cookie) = $event)),
+            "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((config.cookie) = $event)),
             label: "SQ Cookie",
             rows: "6",
             variant: "outlined",
@@ -533,6 +524,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-28fe8944"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-029119e2"]]);
 
 export { ConfigView as default };
