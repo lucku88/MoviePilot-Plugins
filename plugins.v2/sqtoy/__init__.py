@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -1206,15 +1206,21 @@ class SQToy(_PluginBase):
     def _build_overview(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         user = state.get("user") or {}
         profile = state.get("profile") or {}
+        constants = state.get("constants") or {}
+        booth_count = self._safe_int(profile.get("booth_count"), 0)
+        booth_cap = self._safe_int(profile.get("booth_cap"), booth_count)
+        max_booths = self._safe_int(constants.get("max_booths"), booth_cap or booth_count)
+        reward_multiplier = float(profile.get("booth_reward_multiplier") or 1)
+        total_bonus = max(0, round((reward_multiplier - 1) * 100))
         return [
             {"label": "当前魔力", "value": self._safe_int(user.get("magic"), 0)},
             {"label": "累计曝光值", "value": self._safe_int(profile.get("exposure"), 0)},
             {"label": "累计收获魔力值", "value": self._safe_int(profile.get("earned_magic"), 0)},
             {
                 "label": "我的展柜",
-                "value": self._safe_int(profile.get("booth_count"), 0),
-                "desc": f"上限 {self._safe_int(profile.get('booth_count'), 0)}/{self._safe_int(profile.get('booth_cap'), self._safe_int(profile.get('booth_count'), 0))}",
-                "extra": f"玩偶奖励（曝光+魔力）加成：+{self._safe_int(profile.get('booth_bonus_percent'), 0)}%",
+                "value": booth_count,
+                "desc": f"上限 {booth_cap}/{max_booths}（不超过100%）",
+                "extra": f"玩偶奖励（曝光+魔力）加成： +{total_bonus}%",
             },
         ]
 
