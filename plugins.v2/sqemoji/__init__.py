@@ -28,7 +28,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -914,7 +914,12 @@ class SQEmoji(_PluginBase):
         return {"message": result.get("message") or "已收回演出", "emoji_status": emoji_status}
 
     def _send_report(self, lines: List[str], next_run: Optional[int]):
-        action_lines = [line for line in lines if str(line or "").strip() and not str(line).startswith("⏰ ")]
+        action_lines = [
+            line for line in lines
+            if str(line or "").strip()
+            and not str(line).startswith("⏰ ")
+            and not str(line).startswith("📥 收下：")
+        ]
         if not action_lines:
             return
         chunks = [
