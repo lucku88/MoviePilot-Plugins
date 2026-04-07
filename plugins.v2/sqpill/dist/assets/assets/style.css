@@ -15559,7 +15559,7 @@ html.overflow-y-hidden {
     float: right !important;
   }
 }
-.pill-page[data-v-14cdfaf3] {
+.pill-page[data-v-3af5b54f] {
   --pill-bg: linear-gradient(180deg, #f7f2e8 0%, #f0ece2 100%);
   --pill-card: rgba(255, 255, 255, 0.88);
   --pill-card-strong: #ffffff;
@@ -15575,11 +15575,11 @@ html.overflow-y-hidden {
   color: var(--pill-text);
   overflow-x: hidden;
 }
-.pill-page[data-v-14cdfaf3],
-.pill-page *[data-v-14cdfaf3] {
+.pill-page[data-v-3af5b54f],
+.pill-page *[data-v-3af5b54f] {
   box-sizing: border-box;
 }
-.pill-page.is-dark-theme[data-v-14cdfaf3] {
+.pill-page.is-dark-theme[data-v-3af5b54f] {
   --pill-bg: linear-gradient(180deg, #151b1b 0%, #101515 100%);
   --pill-card: rgba(26, 34, 34, 0.92);
   --pill-card-strong: #1f2727;
@@ -15590,154 +15590,196 @@ html.overflow-y-hidden {
   --pill-accent: #ffb24c;
   --pill-accent-soft: rgba(255, 178, 76, 0.18);
 }
-.pill-shell[data-v-14cdfaf3] {
+.pill-shell[data-v-3af5b54f] {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1080px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
   display: grid;
   gap: 16px;
 }
-.pill-hero[data-v-14cdfaf3],
-.pill-panel[data-v-14cdfaf3] {
+.pill-hero[data-v-3af5b54f],
+.pill-panel[data-v-3af5b54f] {
   border-radius: 28px;
   padding: 20px;
   background: var(--pill-card);
   border: 1px solid var(--pill-border);
   box-shadow: var(--pill-shadow);
 }
-.pill-hero[data-v-14cdfaf3] {
+.pill-hero[data-v-3af5b54f] {
   display: grid;
   gap: 14px;
 }
-.pill-badge[data-v-14cdfaf3],
-.pill-mini-note[data-v-14cdfaf3],
-.pill-status-chip[data-v-14cdfaf3],
-.pill-chip[data-v-14cdfaf3],
-.pill-tip-item[data-v-14cdfaf3] {
+.pill-badge[data-v-3af5b54f],
+.pill-status-chip[data-v-3af5b54f] {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
+  padding: 7px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
 }
-.pill-badge[data-v-14cdfaf3] {
-  width: fit-content;
-  padding: 8px 14px;
+.pill-badge[data-v-3af5b54f] {
   background: var(--pill-accent-soft);
   color: var(--pill-accent);
 }
-.pill-title[data-v-14cdfaf3] {
+.pill-title[data-v-3af5b54f] {
   margin: 10px 0 6px;
   font-size: clamp(24px, 3.4vw, 36px);
   line-height: 1.05;
 }
-.pill-subtitle[data-v-14cdfaf3],
-.pill-panel-note[data-v-14cdfaf3],
-.pill-history-lines[data-v-14cdfaf3] {
+.pill-subtitle[data-v-3af5b54f],
+.pill-panel-note[data-v-3af5b54f],
+.pill-history-lines[data-v-3af5b54f],
+.pill-status-desc[data-v-3af5b54f] {
   color: var(--pill-muted);
 }
-.pill-hero-meta[data-v-14cdfaf3],
-.pill-actions[data-v-14cdfaf3],
-.pill-stat-grid[data-v-14cdfaf3],
-.pill-action-grid[data-v-14cdfaf3],
-.pill-inventory-grid[data-v-14cdfaf3],
-.pill-recipe-grid[data-v-14cdfaf3],
-.pill-tip-list[data-v-14cdfaf3] {
+.pill-hero-meta[data-v-3af5b54f],
+.pill-actions[data-v-3af5b54f],
+.pill-stat-grid[data-v-3af5b54f],
+.pill-action-grid[data-v-3af5b54f],
+.pill-inventory-grid[data-v-3af5b54f],
+.pill-history-list[data-v-3af5b54f] {
   display: grid;
   gap: 12px;
 }
-.pill-hero-meta[data-v-14cdfaf3] {
+.pill-hero-meta[data-v-3af5b54f] {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   font-size: 13px;
 }
-.pill-actions[data-v-14cdfaf3] {
+.pill-actions[data-v-3af5b54f] {
   grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr));
 }
-.pill-stat-grid[data-v-14cdfaf3] {
+.pill-stat-grid[data-v-3af5b54f] {
   grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
 }
-.pill-stat-card[data-v-14cdfaf3],
-.pill-inventory-card[data-v-14cdfaf3],
-.pill-recipe-card[data-v-14cdfaf3],
-.pill-summary-line[data-v-14cdfaf3],
-.pill-history-item[data-v-14cdfaf3] {
+.pill-stat-card[data-v-3af5b54f],
+.pill-summary-line[data-v-3af5b54f],
+.pill-history-item[data-v-3af5b54f],
+.pill-inventory-card[data-v-3af5b54f],
+.pill-tool-block[data-v-3af5b54f] {
   border-radius: 22px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
 }
-.pill-stat-card[data-v-14cdfaf3] {
+.pill-stat-card[data-v-3af5b54f] {
   padding: 18px;
 }
-.pill-stat-label[data-v-14cdfaf3],
-.pill-panel-kicker[data-v-14cdfaf3],
-.pill-card-label[data-v-14cdfaf3] {
+.pill-stat-label[data-v-3af5b54f],
+.pill-panel-kicker[data-v-3af5b54f],
+.pill-card-label[data-v-3af5b54f] {
   color: var(--pill-muted);
   font-size: 13px;
   font-weight: 700;
 }
-.pill-stat-value[data-v-14cdfaf3] {
+.pill-stat-value[data-v-3af5b54f] {
   margin-top: 10px;
   font-size: clamp(26px, 4vw, 38px);
   font-weight: 900;
 }
-.pill-big-number[data-v-14cdfaf3] {
-  margin-top: 4px;
-  font-size: clamp(24px, 3.5vw, 34px);
-  font-weight: 900;
-}
-.pill-big-word[data-v-14cdfaf3] {
-  font-size: clamp(22px, 3vw, 28px);
-}
-.pill-panel-head[data-v-14cdfaf3] {
+.pill-panel-head[data-v-3af5b54f] {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
 }
-.pill-panel-head h2[data-v-14cdfaf3] {
+.pill-panel-head h2[data-v-3af5b54f] {
   margin: 6px 0 0;
   font-size: 24px;
 }
-.pill-summary-list[data-v-14cdfaf3],
-.pill-history-list[data-v-14cdfaf3] {
+.pill-summary-list[data-v-3af5b54f] {
   display: grid;
   gap: 12px;
 }
-.pill-summary-line[data-v-14cdfaf3],
-.pill-history-item[data-v-14cdfaf3] {
+.pill-summary-line[data-v-3af5b54f],
+.pill-history-item[data-v-3af5b54f] {
   padding: 16px 18px;
 }
-.pill-exchange[data-v-14cdfaf3] {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 12px;
+.pill-action-grid[data-v-3af5b54f] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
-.pill-exchange-actions[data-v-14cdfaf3] {
-  margin-top: 14px;
+.pill-status-card[data-v-3af5b54f] {
+  padding: 18px;
+}
+.pill-status-chip[data-v-3af5b54f] {
+  color: #88612b;
+  background: rgba(255, 179, 76, 0.16);
+}
+.pill-status-chip.ready[data-v-3af5b54f] {
+  color: #1d8c57;
+  background: rgba(47, 193, 120, 0.16);
+}
+.pill-status-body[data-v-3af5b54f] {
+  display: grid;
+  gap: 10px;
+}
+.pill-status-title[data-v-3af5b54f] {
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+.pill-status-countdown[data-v-3af5b54f] {
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 800;
+  color: var(--pill-accent);
+}
+.pill-inline-meta[data-v-3af5b54f] {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
+  gap: 8px;
 }
-.pill-exchange-control[data-v-14cdfaf3] {
-  min-width: 180px;
+.pill-inline-meta span[data-v-3af5b54f] {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--pill-accent-soft);
+  color: var(--pill-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.pill-toolkit[data-v-3af5b54f] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pill-tool-block[data-v-3af5b54f] {
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+.pill-tool-head[data-v-3af5b54f] {
+  display: grid;
+  gap: 6px;
+}
+.pill-tool-title[data-v-3af5b54f] {
+  font-size: 16px;
+  font-weight: 900;
+}
+.pill-tool-meta[data-v-3af5b54f] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--pill-muted);
+  font-size: 12px;
+}
+.pill-tool-row[data-v-3af5b54f] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.pill-inline-field[data-v-3af5b54f] {
+  min-width: 116px;
   display: grid;
   gap: 8px;
   font-size: 13px;
   color: var(--pill-muted);
 }
-.pill-exchange-line[data-v-14cdfaf3] {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
-}
-.pill-number-input[data-v-14cdfaf3] {
+.pill-number-input[data-v-3af5b54f] {
   width: 100%;
   border: 1px solid var(--pill-border);
   border-radius: 14px;
@@ -15746,224 +15788,69 @@ html.overflow-y-hidden {
   padding: 12px 14px;
   outline: none;
 }
-.pill-number-input[data-v-14cdfaf3]:focus {
+.pill-number-input[data-v-3af5b54f]:focus {
   border-color: rgba(255, 143, 61, 0.5);
   box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
 }
-.pill-action-grid[data-v-14cdfaf3] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+.pill-inventory-grid[data-v-3af5b54f] {
+  grid-template-columns: repeat(auto-fit, minmax(min(78px, 100%), 1fr));
 }
-.pill-action-card[data-v-14cdfaf3] {
-  padding: 16px;
-}
-.pill-status-chip[data-v-14cdfaf3] {
-  padding: 6px 10px;
-  color: #88612b;
-  background: rgba(255, 179, 76, 0.16);
-}
-.pill-status-chip.ready[data-v-14cdfaf3] {
-  color: #1d8c57;
-  background: rgba(47, 193, 120, 0.16);
-}
-.pill-card-body[data-v-14cdfaf3] {
-  display: grid;
-  gap: 8px;
-}
-.pill-card-meta[data-v-14cdfaf3] {
-  font-size: 12px;
-  color: var(--pill-muted);
-}
-.pill-action-number[data-v-14cdfaf3] {
-  margin-top: 2px;
-  font-size: clamp(30px, 4vw, 42px);
-  font-weight: 900;
-  line-height: 1;
-}
-.pill-action-word[data-v-14cdfaf3] {
-  margin-top: 2px;
-  font-size: clamp(24px, 3.2vw, 32px);
-  font-weight: 900;
-  line-height: 1.05;
-}
-.pill-metric-grid[data-v-14cdfaf3] {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.pill-metric-item[data-v-14cdfaf3] {
-  min-width: 0;
-  padding: 9px 10px;
-  border-radius: 16px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
+.pill-inventory-card[data-v-3af5b54f] {
+  padding: 10px 8px;
   display: grid;
   gap: 4px;
-}
-.pill-metric-item span[data-v-14cdfaf3] {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--pill-muted);
-}
-.pill-metric-item strong[data-v-14cdfaf3] {
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-  word-break: break-all;
-}
-.pill-metric-item-wide[data-v-14cdfaf3] {
-  grid-column: 1 / -1;
-}
-.pill-chip-row[data-v-14cdfaf3] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.pill-chip[data-v-14cdfaf3],
-.pill-tip-item[data-v-14cdfaf3],
-.pill-mini-note[data-v-14cdfaf3] {
-  padding: 7px 11px;
-  background: var(--pill-accent-soft);
-  color: var(--pill-accent);
-}
-.pill-mini-note.ready[data-v-14cdfaf3] {
-  background: rgba(47, 193, 120, 0.16);
-  color: #1d8c57;
-}
-.pill-inventory-grid[data-v-14cdfaf3],
-.pill-recipe-grid[data-v-14cdfaf3] {
-  grid-template-columns: repeat(auto-fit, minmax(min(82px, 100%), 1fr));
-}
-.pill-inventory-card[data-v-14cdfaf3],
-.pill-recipe-card[data-v-14cdfaf3] {
-  padding: 8px;
-  display: grid;
-  gap: 3px;
   text-align: center;
 }
-.pill-inventory-card.active[data-v-14cdfaf3],
-.pill-recipe-card.craftable[data-v-14cdfaf3] {
+.pill-inventory-card.active[data-v-3af5b54f] {
   border-color: rgba(41, 161, 98, 0.36);
   box-shadow: inset 0 0 0 1px rgba(41, 161, 98, 0.18);
 }
-.pill-item-icon[data-v-14cdfaf3] {
+.pill-item-icon[data-v-3af5b54f] {
   font-size: 16px;
 }
-.pill-item-name[data-v-14cdfaf3] {
+.pill-item-name[data-v-3af5b54f] {
   font-size: 11px;
   font-weight: 800;
 }
-.pill-item-count[data-v-14cdfaf3] {
+.pill-item-count[data-v-3af5b54f] {
   font-size: 14px;
   font-weight: 900;
 }
-.pill-pillcraft[data-v-14cdfaf3] {
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border-radius: 22px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
-  display: grid;
-  gap: 14px;
-}
-.pill-pillcraft-compact[data-v-14cdfaf3] {
-  margin-bottom: 14px;
-  padding: 14px 16px;
-  gap: 12px;
-}
-.pill-pillcraft-title[data-v-14cdfaf3] {
-  font-size: 16px;
-  font-weight: 900;
-}
-.pill-pillcraft-meta[data-v-14cdfaf3] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  color: var(--pill-muted);
-  font-size: 12px;
-}
-.pill-inline-field[data-v-14cdfaf3] {
-  min-width: 120px;
-}
-.pill-pillcraft-need[data-v-14cdfaf3] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-.pill-pillcraft-actions[data-v-14cdfaf3],
-.pill-recipe-action[data-v-14cdfaf3] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-}
-.pill-pillcraft-btns[data-v-14cdfaf3] {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.pill-recipe-head[data-v-14cdfaf3] {
-  display: grid;
-  gap: 6px;
-}
-.pill-recipe-head span[data-v-14cdfaf3],
-.pill-recipe-foot[data-v-14cdfaf3] {
-  color: var(--pill-muted);
-  font-size: 13px;
-}
-.pill-recipe-materials[data-v-14cdfaf3] {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-.pill-material-chip[data-v-14cdfaf3] {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(126, 152, 168, 0.12);
-  color: var(--pill-text);
-  font-size: 12px;
-}
-.pill-recipe-foot[data-v-14cdfaf3],
-.pill-history-top[data-v-14cdfaf3] {
+.pill-history-top[data-v-3af5b54f] {
   display: flex;
   justify-content: space-between;
   gap: 10px;
 }
-.pill-empty[data-v-14cdfaf3] {
+.pill-empty[data-v-3af5b54f] {
   padding: 24px;
   text-align: center;
   color: var(--pill-muted);
 }
-@media (max-width: 720px) {
-.pill-shell[data-v-14cdfaf3] {
-    padding: 0 8px;
-}
-.pill-action-grid[data-v-14cdfaf3] {
+@media (max-width: 860px) {
+.pill-action-grid[data-v-3af5b54f],
+  .pill-toolkit[data-v-3af5b54f] {
     grid-template-columns: 1fr;
 }
-.pill-hero[data-v-14cdfaf3],
-  .pill-panel[data-v-14cdfaf3] {
+}
+@media (max-width: 720px) {
+.pill-shell[data-v-3af5b54f] {
+    padding: 0 8px;
+}
+.pill-hero[data-v-3af5b54f],
+  .pill-panel[data-v-3af5b54f] {
     padding: 18px;
     border-radius: 22px;
 }
-.pill-panel-head[data-v-14cdfaf3] {
+.pill-panel-head[data-v-3af5b54f] {
     flex-direction: column;
 }
-.pill-pillcraft-actions[data-v-14cdfaf3],
-  .pill-pillcraft-btns[data-v-14cdfaf3],
-  .pill-recipe-action[data-v-14cdfaf3] {
+.pill-tool-row[data-v-3af5b54f] {
     width: 100%;
     justify-content: stretch;
 }
-.pill-metric-grid[data-v-14cdfaf3] {
-    grid-template-columns: 1fr;
-}
 }
 
-.pill-config[data-v-c62c646d] {
+.pill-config[data-v-a120640c] {
   --pill-bg: linear-gradient(180deg, #f7f2e8 0%, #f0ece2 100%);
   --pill-card: rgba(255, 255, 255, 0.88);
   --pill-card-strong: #ffffff;
@@ -15979,11 +15866,11 @@ html.overflow-y-hidden {
   color: var(--pill-text);
   overflow-x: hidden;
 }
-.pill-config[data-v-c62c646d],
-.pill-config *[data-v-c62c646d] {
+.pill-config[data-v-a120640c],
+.pill-config *[data-v-a120640c] {
   box-sizing: border-box;
 }
-.pill-config.is-dark-theme[data-v-c62c646d] {
+.pill-config.is-dark-theme[data-v-a120640c] {
   --pill-bg: linear-gradient(180deg, #151b1b 0%, #101515 100%);
   --pill-card: rgba(26, 34, 34, 0.92);
   --pill-card-strong: #1f2727;
@@ -15994,29 +15881,28 @@ html.overflow-y-hidden {
   --pill-accent: #ffb24c;
   --pill-accent-soft: rgba(255, 178, 76, 0.18);
 }
-.pill-shell[data-v-c62c646d] {
+.pill-shell[data-v-a120640c] {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1080px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
   display: grid;
   gap: 20px;
 }
-.pill-hero[data-v-c62c646d],
-.pill-panel[data-v-c62c646d] {
+.pill-hero[data-v-a120640c],
+.pill-panel[data-v-a120640c] {
   border-radius: 28px;
-  padding: 24px;
+  padding: 22px;
   background: var(--pill-card);
   border: 1px solid var(--pill-border);
   box-shadow: var(--pill-shadow);
 }
-.pill-hero[data-v-c62c646d] {
+.pill-hero[data-v-a120640c] {
   display: grid;
   gap: 16px;
 }
-.pill-badge[data-v-c62c646d],
-.pill-tip-item[data-v-c62c646d] {
+.pill-badge[data-v-a120640c] {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -16027,59 +15913,71 @@ html.overflow-y-hidden {
   background: var(--pill-accent-soft);
   color: var(--pill-accent);
 }
-.pill-title[data-v-c62c646d] {
+.pill-title[data-v-a120640c] {
   margin: 10px 0 6px;
   font-size: clamp(28px, 4vw, 40px);
 }
-.pill-subtitle[data-v-c62c646d],
-.pill-note[data-v-c62c646d] {
+.pill-subtitle[data-v-a120640c],
+.pill-note[data-v-a120640c] {
   color: var(--pill-muted);
 }
-.pill-actions[data-v-c62c646d],
-.pill-grid[data-v-c62c646d],
-.pill-switch-grid[data-v-c62c646d],
-.pill-tip-list[data-v-c62c646d] {
+.pill-actions[data-v-a120640c],
+.pill-grid[data-v-a120640c],
+.pill-switch-grid[data-v-a120640c],
+.pill-form-grid[data-v-a120640c] {
   display: grid;
   gap: 12px;
 }
-.pill-actions[data-v-c62c646d] {
+.pill-actions[data-v-a120640c] {
   grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
 }
-.pill-grid[data-v-c62c646d] {
+.pill-grid[data-v-a120640c] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.pill-panel-wide[data-v-c62c646d] {
+.pill-panel-wide[data-v-a120640c] {
   grid-column: 1 / -1;
 }
-.pill-panel-head[data-v-c62c646d] {
+.pill-panel-head[data-v-a120640c] {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
 }
-.pill-panel-head h2[data-v-c62c646d] {
+.pill-panel-head h2[data-v-a120640c] {
   margin: 6px 0 0;
-  font-size: 28px;
+  font-size: 26px;
 }
-.pill-panel-kicker[data-v-c62c646d] {
+.pill-panel-kicker[data-v-a120640c] {
   color: var(--pill-muted);
   font-size: 13px;
   font-weight: 700;
 }
-.pill-tip-list[data-v-c62c646d] {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.pill-switch-grid[data-v-a120640c] {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+.pill-form-grid[data-v-a120640c] {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+.pill-form-grid-2[data-v-a120640c] {
+  margin-top: 14px;
+}
+.pill-cron-field[data-v-a120640c] {
+  width: 100%;
 }
 @media (max-width: 880px) {
-.pill-grid[data-v-c62c646d] {
+.pill-grid[data-v-a120640c] {
     grid-template-columns: 1fr;
 }
-.pill-shell[data-v-c62c646d] {
+.pill-shell[data-v-a120640c] {
     padding: 0 8px;
 }
-.pill-hero[data-v-c62c646d],
-  .pill-panel[data-v-c62c646d] {
+.pill-hero[data-v-a120640c],
+  .pill-panel[data-v-a120640c] {
     padding: 18px;
     border-radius: 22px;
+}
+.pill-panel-head[data-v-a120640c] {
+    flex-direction: column;
 }
 }

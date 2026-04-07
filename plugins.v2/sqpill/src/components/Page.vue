@@ -6,7 +6,7 @@
           <div class="pill-badge">SQ魔丸</div>
           <h1 class="pill-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
           <p class="pill-subtitle">
-            {{ pill.subtitle || '自动搬砖 + 自动清沙滩，动态识别下一次可执行时间' }}
+            {{ pill.subtitle || '自动搬砖、自动清沙滩，支持清沙滩后自动炼造和自动兑换。' }}
           </p>
           <div class="pill-hero-meta">
             <span>最近执行 {{ status.last_run || '暂无' }}</span>
@@ -49,60 +49,8 @@
         </div>
       </section>
 
-      <section class="pill-panel">
-        <div class="pill-panel-head">
-          <div>
-            <div class="pill-panel-kicker">兑换中心</div>
-            <h2>魔力兑换</h2>
-          </div>
-          <div class="pill-mini-note" :class="{ ready: exchange.action_ready }">
-            {{ exchange.action_ready ? '可兑换' : '暂不可兑换' }}
-          </div>
-        </div>
-        <div class="pill-exchange">
-          <div class="pill-exchange-line">
-            <span>当前价格</span>
-            <strong>{{ exchange.pill_price ? `${exchange.pill_price} 魔力/颗` : '待识别' }}</strong>
-          </div>
-          <div class="pill-exchange-line">
-            <span>当前魔丸</span>
-            <strong>{{ exchange.magic_pills || 0 }}</strong>
-          </div>
-          <div class="pill-exchange-line">
-            <span>当前魔力</span>
-            <strong>{{ exchange.points || 0 }}</strong>
-          </div>
-          <div class="pill-exchange-line">
-            <span>可兑换上限</span>
-            <strong>{{ exchange.max_count || 0 }}</strong>
-          </div>
-        </div>
-        <div class="pill-exchange-actions">
-          <label class="pill-exchange-control">
-            <span>兑换数量</span>
-            <input
-              v-model="exchangeQuantity"
-              class="pill-number-input"
-              type="number"
-              min="1"
-              :max="Math.max(Number(exchange.max_count || 0), 1)"
-            />
-          </label>
-          <v-btn
-            color="amber-darken-2"
-            variant="flat"
-            :loading="loading"
-            :disabled="loading || !exchange.action_ready"
-            @click="exchangePoints"
-          >
-            兑换魔力
-          </v-btn>
-        </div>
-        <div class="pill-panel-note">{{ exchange.note || '支持手动兑换魔力。' }}</div>
-      </section>
-
       <section class="pill-action-grid">
-        <article class="pill-panel pill-action-card">
+        <article class="pill-panel pill-status-card">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">搬砖工坊</div>
@@ -112,53 +60,34 @@
               {{ brick.ready ? '可执行' : '冷却中' }}
             </span>
           </div>
-          <div class="pill-card-body">
-            <div class="pill-action-number">{{ brick.available_count || 0 }}</div>
-            <div class="pill-card-label">当前可搬砖块</div>
-            <div class="pill-card-meta">{{ brick.status_text || '等待刷新' }}</div>
-            <div class="pill-metric-grid">
-              <div class="pill-metric-item">
-                <span>口袋</span>
-                <strong>{{ brick.bag_count || 0 }} 块</strong>
-              </div>
-              <div class="pill-metric-item">
-                <span>今日</span>
-                <strong>{{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</strong>
-              </div>
-              <div v-if="brick.next_reset_time" class="pill-metric-item pill-metric-item-wide">
-                <span>重置</span>
-                <strong>{{ brick.next_reset_time }}</strong>
-              </div>
+          <div class="pill-status-body">
+            <div class="pill-status-title">{{ brickHeadline }}</div>
+            <div class="pill-status-countdown">{{ brickCountdownText }}</div>
+            <div class="pill-status-desc">{{ brick.status_text || '等待刷新' }}</div>
+            <div class="pill-inline-meta">
+              <span>口袋 {{ brick.bag_count || 0 }} 块</span>
+              <span>今日 {{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</span>
             </div>
           </div>
         </article>
 
-        <article class="pill-panel pill-action-card">
+        <article class="pill-panel pill-status-card">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">沙滩捡破烂</div>
-              <h2>沙滩状态</h2>
+              <h2>冷却动态时间</h2>
             </div>
             <span class="pill-status-chip" :class="{ ready: beach.ready }">
               {{ beach.ready ? '可清理' : '冷却中' }}
             </span>
           </div>
-          <div class="pill-card-body">
-            <div class="pill-action-word">{{ beach.ready ? '可清理' : '等待' }}</div>
-            <div class="pill-card-label">{{ beach.status_text || '等待刷新' }}</div>
-            <div class="pill-metric-grid">
-              <div v-if="beach.level_text" class="pill-metric-item">
-                <span>等级</span>
-                <strong>{{ beach.level_text }}</strong>
-              </div>
-              <div v-if="beach.hnr_text" class="pill-metric-item">
-                <span>HNR</span>
-                <strong>{{ beach.hnr_text }}</strong>
-              </div>
-              <div v-if="beach.next_ready_time" class="pill-metric-item pill-metric-item-wide">
-                <span>下次</span>
-                <strong>{{ beach.next_ready_time }}</strong>
-              </div>
+          <div class="pill-status-body">
+            <div class="pill-status-title">{{ beachHeadline }}</div>
+            <div class="pill-status-countdown">{{ beachCountdownText }}</div>
+            <div class="pill-status-desc">{{ beach.status_text || '等待刷新' }}</div>
+            <div class="pill-inline-meta">
+              <span v-if="beach.level_text">{{ beach.level_text }}</span>
+              <span v-if="beach.hnr_text">HNR {{ beach.hnr_text }}</span>
             </div>
           </div>
         </article>
@@ -171,26 +100,27 @@
             <h2>当前库存</h2>
           </div>
         </div>
-        <div class="pill-pillcraft pill-pillcraft-compact">
-          <div class="pill-pillcraft-copy">
-            <div class="pill-pillcraft-title">⚗️ 一键炼造魔丸</div>
-            <div class="pill-pillcraft-meta">
-              <span>最大可炼造：{{ magicPillMax }} 颗</span>
-              <span v-if="magicPillRecipe?.materials?.length">需要：{{ magicPillRecipe.materials.join(' / ') }}</span>
+
+        <div class="pill-toolkit">
+          <div class="pill-tool-block">
+            <div class="pill-tool-head">
+              <div class="pill-tool-title">⚗️ 一键炼造魔丸</div>
+              <div class="pill-tool-meta">
+                <span>最大可炼造 {{ magicPillMax }} 颗</span>
+                <span v-if="magicPillRecipe?.materials?.length">材料：{{ magicPillRecipe.materials.join(' / ') }}</span>
+              </div>
             </div>
-          </div>
-          <div class="pill-pillcraft-actions">
-            <label class="pill-exchange-control pill-inline-field">
-              <span>数量</span>
-              <input
-                v-model="pillCraftQuantity"
-                class="pill-number-input"
-                type="number"
-                min="1"
-                :max="Math.max(magicPillMax, 1)"
-              />
-            </label>
-            <div class="pill-pillcraft-btns">
+            <div class="pill-tool-row">
+              <label class="pill-inline-field">
+                <span>数量</span>
+                <input
+                  v-model="pillCraftQuantity"
+                  class="pill-number-input"
+                  type="number"
+                  min="1"
+                  :max="Math.max(magicPillMax, 1)"
+                />
+              </label>
               <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
               <v-btn
                 color="deep-purple-accent-3"
@@ -203,7 +133,39 @@
               </v-btn>
             </div>
           </div>
+
+          <div class="pill-tool-block">
+            <div class="pill-tool-head">
+              <div class="pill-tool-title">💰 兑换魔力</div>
+              <div class="pill-tool-meta">
+                <span>价格 {{ exchangePriceText }}</span>
+                <span>可兑换 {{ exchange.max_count || 0 }} 颗</span>
+              </div>
+            </div>
+            <div class="pill-tool-row">
+              <label class="pill-inline-field">
+                <span>数量</span>
+                <input
+                  v-model="exchangeQuantity"
+                  class="pill-number-input"
+                  type="number"
+                  min="1"
+                  :max="Math.max(Number(exchange.max_count || 0), 1)"
+                />
+              </label>
+              <v-btn
+                color="amber-darken-2"
+                variant="flat"
+                :loading="loading"
+                :disabled="loading || !exchange.action_ready"
+                @click="exchangePoints"
+              >
+                兑换魔力
+              </v-btn>
+            </div>
+          </div>
         </div>
+
         <div v-if="pill.inventory?.empty" class="pill-empty">{{ pill.inventory?.empty_text }}</div>
         <div v-else class="pill-inventory-grid">
           <article v-for="item in inventoryItems" :key="item.name" class="pill-inventory-card" :class="{ active: item.has_items }">
@@ -211,18 +173,6 @@
             <div class="pill-item-name">{{ item.name }}</div>
             <div class="pill-item-count">{{ item.count }}</div>
           </article>
-        </div>
-      </section>
-
-      <section v-if="(pill.capture_tips || []).length" class="pill-panel">
-        <div class="pill-panel-head">
-          <div>
-            <div class="pill-panel-kicker">后续补充</div>
-            <h2>后续扩展</h2>
-          </div>
-        </div>
-        <div class="pill-tip-list">
-          <div v-for="tip in pill.capture_tips || []" :key="tip" class="pill-tip-item">{{ tip }}</div>
         </div>
       </section>
 
@@ -267,12 +217,15 @@ const isDarkTheme = ref(false)
 const dismissedSummaryKey = ref('')
 const lastRunAutoRefreshTs = ref(0)
 const lastTriggerAutoRefreshTs = ref(0)
+const lastBrickCooldownRefreshTs = ref(0)
+const lastBeachCooldownRefreshTs = ref(0)
 const pluginBase = '/plugin/SQPill'
 
 let timer = null
 let themeObserver = null
 let mediaQuery = null
 let observedThemeNode = null
+let pendingRefreshTimer = null
 
 const pill = computed(() => status.pill_status || {})
 const overview = computed(() => pill.value.overview || [])
@@ -289,8 +242,37 @@ const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
 const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time))
 const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time))
+const brickResetTs = computed(() => Number(brick.value.next_reset_ts || 0) || parseDateTime(brick.value.next_reset_time))
+const beachReadyTs = computed(() => Number(beach.value.next_ready_ts || 0) || parseDateTime(beach.value.next_ready_time))
+const exchangePriceText = computed(() => (exchange.value.pill_price ? `${exchange.value.pill_price} 魔力/颗` : '待识别'))
 const exchangeQuantity = ref('1')
 const pillCraftQuantity = ref('1')
+
+const brickHeadline = computed(() => {
+  if (brick.value.ready) return '可立即搬砖'
+  if (Number(brick.value.daily_bricks || 0) >= Number(brick.value.daily_limit || 50)) return '今日已达上限'
+  return '等待搬砖'
+})
+
+const beachHeadline = computed(() => (beach.value.ready ? '可立即清理' : '冷却中'))
+
+const brickCountdownText = computed(() => {
+  if (brick.value.ready) return '现在可以开始搬砖'
+  const remain = brickResetTs.value - nowTs.value
+  if (brickResetTs.value && remain > 0) {
+    return `明日可搬: ${formatCountdown(remain)}`
+  }
+  return brick.value.status_text || '等待刷新'
+})
+
+const beachCountdownText = computed(() => {
+  if (beach.value.ready) return '现在可以进入沙滩'
+  const remain = beachReadyTs.value - nowTs.value
+  if (beachReadyTs.value && remain > 0) {
+    return `下次清理: ${formatCountdown(remain)}`
+  }
+  return beach.value.status_text || '等待刷新'
+})
 
 function normalizePositiveInt(value, fallback = 1) {
   const parsed = Number.parseInt(value, 10)
@@ -333,6 +315,14 @@ function parseDateTime(value) {
   return Number.isNaN(parsed) ? 0 : Math.floor(parsed / 1000)
 }
 
+function formatCountdown(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0))
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  const seconds = safeSeconds % 60
+  return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
 function closePlugin() {
   if (showSummary.value) {
     dismissSummary()
@@ -366,7 +356,7 @@ async function loadStatus() {
 }
 
 function applyStatusPayload(payload = {}) {
-  const nextStatus = payload?.status?.pill_status || payload?.pill_status || payload?.farm_status || payload?.status?.farm_status || {}
+  const nextStatus = payload?.status?.pill_status || payload?.pill_status || {}
   if (Object.keys(nextStatus).length) {
     status.pill_status = nextStatus
   }
@@ -384,6 +374,12 @@ function applyStatusPayload(payload = {}) {
   if (triggerTs && nowTs.value >= triggerTs) {
     lastTriggerAutoRefreshTs.value = triggerTs
   }
+  if (brickResetTs.value && nowTs.value >= brickResetTs.value) {
+    lastBrickCooldownRefreshTs.value = brickResetTs.value
+  }
+  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value) {
+    lastBeachCooldownRefreshTs.value = beachReadyTs.value
+  }
 }
 
 async function silentRefreshStatus() {
@@ -394,12 +390,23 @@ async function silentRefreshStatus() {
   }
 }
 
+function scheduleFollowUpRefresh(delay = 1200) {
+  if (pendingRefreshTimer) {
+    window.clearTimeout(pendingRefreshTimer)
+  }
+  pendingRefreshTimer = window.setTimeout(() => {
+    pendingRefreshTimer = null
+    silentRefreshStatus()
+  }, delay)
+}
+
 async function doAction(action, { silent = false } = {}) {
   loading.value = true
   try {
     const result = await action()
     applyStatusPayload(result)
     await silentRefreshStatus()
+    scheduleFollowUpRefresh()
     if (!silent) {
       flash(result?.message || '操作完成')
     }
@@ -444,9 +451,7 @@ async function exchangePoints() {
 }
 
 function setPillCraftMax() {
-  if (!magicPillMax.value) {
-    return
-  }
+  if (!magicPillMax.value) return
   pillCraftQuantity.value = String(magicPillMax.value)
 }
 
@@ -505,6 +510,14 @@ function tick() {
     lastTriggerAutoRefreshTs.value = nextTriggerTs.value
     doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
   }
+  if (brickResetTs.value && nowTs.value >= brickResetTs.value && lastBrickCooldownRefreshTs.value !== brickResetTs.value) {
+    lastBrickCooldownRefreshTs.value = brickResetTs.value
+    silentRefreshStatus()
+  }
+  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value && lastBeachCooldownRefreshTs.value !== beachReadyTs.value) {
+    lastBeachCooldownRefreshTs.value = beachReadyTs.value
+    silentRefreshStatus()
+  }
 }
 
 onMounted(async () => {
@@ -525,6 +538,7 @@ watch(summaryKey, () => {
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
+  if (pendingRefreshTimer) window.clearTimeout(pendingRefreshTimer)
   themeObserver?.disconnect()
   mediaQuery?.removeEventListener?.('change', detectTheme)
 })
@@ -567,7 +581,7 @@ onBeforeUnmount(() => {
 
 .pill-shell {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1080px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
@@ -590,20 +604,17 @@ onBeforeUnmount(() => {
 }
 
 .pill-badge,
-.pill-mini-note,
-.pill-status-chip,
-.pill-chip,
-.pill-tip-item {
+.pill-status-chip {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
+  padding: 7px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
 }
 
 .pill-badge {
-  width: fit-content;
-  padding: 8px 14px;
   background: var(--pill-accent-soft);
   color: var(--pill-accent);
 }
@@ -616,7 +627,8 @@ onBeforeUnmount(() => {
 
 .pill-subtitle,
 .pill-panel-note,
-.pill-history-lines {
+.pill-history-lines,
+.pill-status-desc {
   color: var(--pill-muted);
 }
 
@@ -625,8 +637,7 @@ onBeforeUnmount(() => {
 .pill-stat-grid,
 .pill-action-grid,
 .pill-inventory-grid,
-.pill-recipe-grid,
-.pill-tip-list {
+.pill-history-list {
   display: grid;
   gap: 12px;
 }
@@ -645,10 +656,10 @@ onBeforeUnmount(() => {
 }
 
 .pill-stat-card,
-.pill-inventory-card,
-.pill-recipe-card,
 .pill-summary-line,
-.pill-history-item {
+.pill-history-item,
+.pill-inventory-card,
+.pill-tool-block {
   border-radius: 22px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
@@ -672,16 +683,6 @@ onBeforeUnmount(() => {
   font-weight: 900;
 }
 
-.pill-big-number {
-  margin-top: 4px;
-  font-size: clamp(24px, 3.5vw, 34px);
-  font-weight: 900;
-}
-
-.pill-big-word {
-  font-size: clamp(22px, 3vw, 28px);
-}
-
 .pill-panel-head {
   display: flex;
   justify-content: space-between;
@@ -695,8 +696,7 @@ onBeforeUnmount(() => {
   font-size: 24px;
 }
 
-.pill-summary-list,
-.pill-history-list {
+.pill-summary-list {
   display: grid;
   gap: 12px;
 }
@@ -706,35 +706,101 @@ onBeforeUnmount(() => {
   padding: 16px 18px;
 }
 
-.pill-exchange {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 12px;
+.pill-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
-.pill-exchange-actions {
-  margin-top: 14px;
+.pill-status-card {
+  padding: 18px;
+}
+
+.pill-status-chip {
+  color: #88612b;
+  background: rgba(255, 179, 76, 0.16);
+}
+
+.pill-status-chip.ready {
+  color: #1d8c57;
+  background: rgba(47, 193, 120, 0.16);
+}
+
+.pill-status-body {
+  display: grid;
+  gap: 10px;
+}
+
+.pill-status-title {
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.pill-status-countdown {
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 800;
+  color: var(--pill-accent);
+}
+
+.pill-inline-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
+  gap: 8px;
 }
 
-.pill-exchange-control {
-  min-width: 180px;
+.pill-inline-meta span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--pill-accent-soft);
+  color: var(--pill-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill-toolkit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pill-tool-block {
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.pill-tool-head {
+  display: grid;
+  gap: 6px;
+}
+
+.pill-tool-title {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pill-tool-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--pill-muted);
+  font-size: 12px;
+}
+
+.pill-tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.pill-inline-field {
+  min-width: 116px;
   display: grid;
   gap: 8px;
   font-size: 13px;
   color: var(--pill-muted);
-}
-
-.pill-exchange-line {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
 }
 
 .pill-number-input {
@@ -752,117 +818,18 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
 }
 
-.pill-action-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+.pill-inventory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(78px, 100%), 1fr));
 }
 
-.pill-action-card {
-  padding: 16px;
-}
-
-.pill-status-chip {
-  padding: 6px 10px;
-  color: #88612b;
-  background: rgba(255, 179, 76, 0.16);
-}
-
-.pill-status-chip.ready {
-  color: #1d8c57;
-  background: rgba(47, 193, 120, 0.16);
-}
-
-.pill-card-body {
-  display: grid;
-  gap: 8px;
-}
-
-.pill-card-meta {
-  font-size: 12px;
-  color: var(--pill-muted);
-}
-
-.pill-action-number {
-  margin-top: 2px;
-  font-size: clamp(30px, 4vw, 42px);
-  font-weight: 900;
-  line-height: 1;
-}
-
-.pill-action-word {
-  margin-top: 2px;
-  font-size: clamp(24px, 3.2vw, 32px);
-  font-weight: 900;
-  line-height: 1.05;
-}
-
-.pill-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.pill-metric-item {
-  min-width: 0;
-  padding: 9px 10px;
-  border-radius: 16px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
+.pill-inventory-card {
+  padding: 10px 8px;
   display: grid;
   gap: 4px;
-}
-
-.pill-metric-item span {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--pill-muted);
-}
-
-.pill-metric-item strong {
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-  word-break: break-all;
-}
-
-.pill-metric-item-wide {
-  grid-column: 1 / -1;
-}
-
-.pill-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.pill-chip,
-.pill-tip-item,
-.pill-mini-note {
-  padding: 7px 11px;
-  background: var(--pill-accent-soft);
-  color: var(--pill-accent);
-}
-
-.pill-mini-note.ready {
-  background: rgba(47, 193, 120, 0.16);
-  color: #1d8c57;
-}
-
-.pill-inventory-grid,
-.pill-recipe-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(82px, 100%), 1fr));
-}
-
-.pill-inventory-card,
-.pill-recipe-card {
-  padding: 8px;
-  display: grid;
-  gap: 3px;
   text-align: center;
 }
 
-.pill-inventory-card.active,
-.pill-recipe-card.craftable {
+.pill-inventory-card.active {
   border-color: rgba(41, 161, 98, 0.36);
   box-shadow: inset 0 0 0 1px rgba(41, 161, 98, 0.18);
 }
@@ -881,88 +848,6 @@ onBeforeUnmount(() => {
   font-weight: 900;
 }
 
-.pill-pillcraft {
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border-radius: 22px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-card-strong);
-  display: grid;
-  gap: 14px;
-}
-
-.pill-pillcraft-compact {
-  margin-bottom: 14px;
-  padding: 14px 16px;
-  gap: 12px;
-}
-
-.pill-pillcraft-title {
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.pill-pillcraft-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  color: var(--pill-muted);
-  font-size: 12px;
-}
-
-.pill-inline-field {
-  min-width: 120px;
-}
-
-.pill-pillcraft-need {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.pill-pillcraft-actions,
-.pill-recipe-action {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pill-pillcraft-btns {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.pill-recipe-head {
-  display: grid;
-  gap: 6px;
-}
-
-.pill-recipe-head span,
-.pill-recipe-foot {
-  color: var(--pill-muted);
-  font-size: 13px;
-}
-
-.pill-recipe-materials {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
-.pill-material-chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(126, 152, 168, 0.12);
-  color: var(--pill-text);
-  font-size: 12px;
-}
-
-.pill-recipe-foot,
 .pill-history-top {
   display: flex;
   justify-content: space-between;
@@ -975,13 +860,16 @@ onBeforeUnmount(() => {
   color: var(--pill-muted);
 }
 
+@media (max-width: 860px) {
+  .pill-action-grid,
+  .pill-toolkit {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .pill-shell {
     padding: 0 8px;
-  }
-
-  .pill-action-grid {
-    grid-template-columns: 1fr;
   }
 
   .pill-hero,
@@ -994,15 +882,9 @@ onBeforeUnmount(() => {
     flex-direction: column;
   }
 
-  .pill-pillcraft-actions,
-  .pill-pillcraft-btns,
-  .pill-recipe-action {
+  .pill-tool-row {
     width: 100%;
     justify-content: stretch;
-  }
-
-  .pill-metric-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>

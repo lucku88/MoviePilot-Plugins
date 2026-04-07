@@ -1,18 +1,18 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_c62c646d_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_a120640c_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-c62c646d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a120640c"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "pill-badge" }, "SQ魔丸"),
   /*#__PURE__*/_createElementVNode("h1", { class: "pill-title" }, "配置中心"),
-  /*#__PURE__*/_createElementVNode("p", { class: "pill-subtitle" }, "当前已接入自动搬砖、自动清沙滩、动态调度和站点 Cookie 同步。")
+  /*#__PURE__*/_createElementVNode("p", { class: "pill-subtitle" }, " 搬砖按 CRON 运行，沙滩按冷却时间动态调度。自动炼造和自动兑换会在清沙滩后按当前配置执行。 ")
 ], -1));
 const _hoisted_4 = { class: "pill-actions" };
 const _hoisted_5 = { class: "pill-grid" };
@@ -31,42 +31,54 @@ const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
     /*#__PURE__*/_createElementVNode("h2", null, "时间配置")
   ])
 ], -1));
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。 ", -1));
-const _hoisted_12 = { class: "pill-panel" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_11 = { class: "pill-form-grid pill-form-grid-2" };
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 搬砖严格按上面的 CRON 运行，默认每天 00:05。沙滩不走 CRON，而是按页面返回的冷却时间自动调度。 ", -1));
+const _hoisted_13 = { class: "pill-panel" };
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+  /*#__PURE__*/_createElementVNode("div", null, [
+    /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "自动处理"),
+    /*#__PURE__*/_createElementVNode("h2", null, "炼造与兑换")
+  ])
+], -1));
+const _hoisted_15 = { class: "pill-form-grid" };
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 开启自动炼造或自动兑换后，插件会在清沙滩成功后按当前库存执行，不额外创建新的运行周期。 ", -1));
+const _hoisted_17 = { class: "pill-panel" };
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "搬砖节奏"),
     /*#__PURE__*/_createElementVNode("h2", null, "动作配置")
   ])
 ], -1));
-const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 每天搬砖次数固定按 50 次处理，不再需要手动配置循环次数。 ", -1));
-const _hoisted_15 = { class: "pill-panel" };
-const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_19 = { class: "pill-form-grid" };
+const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 每天搬砖次数固定按 50 次处理；若本轮搬完后页面仍显示未达上限，会在 60 秒后自动重试。 ", -1));
+const _hoisted_21 = { class: "pill-panel" };
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "网络设置"),
     /*#__PURE__*/_createElementVNode("h2", null, "连接参数")
   ])
 ], -1));
-const _hoisted_17 = { class: "pill-panel pill-panel-wide" };
-const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
+const _hoisted_23 = { class: "pill-form-grid" };
+const _hoisted_24 = { class: "pill-panel pill-panel-wide" };
+const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "兜底配置")
   ])
 ], -1));
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, [
+const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, [
   /*#__PURE__*/_createTextVNode(" 默认站点固定为 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode("。开启站点 Cookie 同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。 ")
 ], -1));
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("article", { class: "pill-panel pill-panel-wide" }, [
+const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("article", { class: "pill-panel pill-panel-wide" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
     /*#__PURE__*/_createElementVNode("div", null, [
       /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "当前说明"),
       /*#__PURE__*/_createElementVNode("h2", null, "功能状态")
     ])
   ]),
-  /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 当前版本已经支持自动搬砖、自动清沙滩、手动兑换魔力和一键炼造魔丸。赠送按钮暂时不接入，物品栏仅展示当前数量。 ")
+  /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 当前版本支持自动搬砖、自动清沙滩、手动兑换魔力、一键炼造魔丸，以及清沙滩后自动炼造与自动兑换。物品栏只用于展示当前数量。 ")
 ], -1));
 
 const {onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
@@ -100,6 +112,8 @@ const config = reactive({
   auto_cookie: true,
   enable_brick: true,
   enable_beach: true,
+  auto_craft: false,
+  auto_exchange: false,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
@@ -112,6 +126,8 @@ const config = reactive({
   move_delay_min_ms: 30,
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
+  reserve_material_count: 0,
+  reserve_magic_pill_count: 0,
 });
 
 let themeObserver = null;
@@ -216,9 +232,7 @@ return (_ctx, _cache) => {
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
   const _component_VCronField = _resolveComponent("VCronField");
-  const _component_v_col = _resolveComponent("v-col");
   const _component_v_text_field = _resolveComponent("v-text-field");
-  const _component_v_row = _resolveComponent("v-row");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", {
@@ -332,15 +346,29 @@ return (_ctx, _cache) => {
               "hide-details": ""
             }, null, 8, ["modelValue"]),
             _createVNode(_component_v_switch, {
+              modelValue: config.auto_craft,
+              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.auto_craft) = $event)),
+              label: "自动炼造魔丸",
+              color: "deep-purple",
+              "hide-details": ""
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_switch, {
+              modelValue: config.auto_exchange,
+              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.auto_exchange) = $event)),
+              label: "自动兑换魔力",
+              color: "amber",
+              "hide-details": ""
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
-              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.use_proxy) = $event)),
+              "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.use_proxy) = $event)),
               label: "使用系统代理",
               color: "info",
               "hide-details": ""
             }, null, 8, ["modelValue"]),
             _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
-              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.force_ipv4) = $event)),
+              "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.force_ipv4) = $event)),
               label: "优先 IPv4",
               color: "secondary",
               "hide-details": ""
@@ -349,134 +377,130 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("article", _hoisted_9, [
           _hoisted_10,
-          _createVNode(_component_v_row, null, {
-            default: _withCtx(() => [
-              _createVNode(_component_v_col, {
-                cols: "12",
-                md: "7"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_VCronField, {
-                    modelValue: config.brick_cron,
-                    "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.brick_cron) = $event)),
-                    label: "执行周期(cron)",
-                    hint: "例如：5 0 * * *",
-                    "persistent-hint": "",
-                    density: "compact"
-                  }, null, 8, ["modelValue"])
-                ]),
-                _: 1
-              }),
-              _createVNode(_component_v_col, {
-                cols: "12",
-                md: "3"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_text_field, {
-                    modelValue: config.schedule_buffer_seconds,
-                    "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.schedule_buffer_seconds) = $event)),
-                    label: "调度缓冲秒数",
-                    type: "number",
-                    variant: "outlined",
-                    density: "compact"
-                  }, null, 8, ["modelValue"])
-                ]),
-                _: 1
-              }),
-              _createVNode(_component_v_col, {
-                cols: "12",
-                md: "2"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_text_field, {
-                    modelValue: config.ready_retry_seconds,
-                    "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.ready_retry_seconds) = $event)),
-                    label: "快速重试秒数",
-                    type: "number",
-                    variant: "outlined",
-                    density: "compact"
-                  }, null, 8, ["modelValue"])
-                ]),
-                _: 1
-              })
-            ]),
-            _: 1
-          }),
-          _hoisted_11
+          _createVNode(_component_VCronField, {
+            modelValue: config.brick_cron,
+            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.brick_cron) = $event)),
+            label: "执行周期(cron)",
+            hint: "例如：5 0 * * * 表示每天 00:05 执行搬砖",
+            "persistent-hint": "",
+            density: "compact",
+            class: "pill-cron-field"
+          }, null, 8, ["modelValue"]),
+          _createElementVNode("div", _hoisted_11, [
+            _createVNode(_component_v_text_field, {
+              modelValue: config.schedule_buffer_seconds,
+              "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.schedule_buffer_seconds) = $event)),
+              label: "调度缓冲秒数",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.ready_retry_seconds,
+              "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.ready_retry_seconds) = $event)),
+              label: "快速重试秒数",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"])
+          ]),
+          _hoisted_12
         ]),
-        _createElementVNode("article", _hoisted_12, [
-          _hoisted_13,
-          _createVNode(_component_v_text_field, {
-            modelValue: config.move_delay_min_ms,
-            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.move_delay_min_ms) = $event)),
-            label: "搬砖间隔最小毫秒",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.move_delay_max_ms,
-            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.move_delay_max_ms) = $event)),
-            label: "搬砖间隔最大毫秒",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _hoisted_14
-        ]),
-        _createElementVNode("article", _hoisted_15, [
-          _hoisted_16,
-          _createVNode(_component_v_text_field, {
-            modelValue: config.random_delay_max_seconds,
-            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.random_delay_max_seconds) = $event)),
-            label: "随机延迟上限(秒)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_timeout,
-            "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.http_timeout) = $event)),
-            label: "HTTP 超时(秒)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_retry_times,
-            "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.http_retry_times) = $event)),
-            label: "GET 重试次数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            class: "mb-3"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_retry_delay,
-            "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.http_retry_delay) = $event)),
-            label: "GET 重试间隔(ms)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"])
+        _createElementVNode("article", _hoisted_13, [
+          _hoisted_14,
+          _createElementVNode("div", _hoisted_15, [
+            _createVNode(_component_v_text_field, {
+              modelValue: config.reserve_material_count,
+              "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.reserve_material_count) = $event)),
+              label: "自动时每种材料保留数量",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.reserve_magic_pill_count,
+              "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.reserve_magic_pill_count) = $event)),
+              label: "自动时保留魔丸数量",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"])
+          ]),
+          _hoisted_16
         ]),
         _createElementVNode("article", _hoisted_17, [
           _hoisted_18,
+          _createElementVNode("div", _hoisted_19, [
+            _createVNode(_component_v_text_field, {
+              modelValue: config.move_delay_min_ms,
+              "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.move_delay_min_ms) = $event)),
+              label: "搬砖间隔最小毫秒",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.move_delay_max_ms,
+              "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.move_delay_max_ms) = $event)),
+              label: "搬砖间隔最大毫秒",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"])
+          ]),
+          _hoisted_20
+        ]),
+        _createElementVNode("article", _hoisted_21, [
+          _hoisted_22,
+          _createElementVNode("div", _hoisted_23, [
+            _createVNode(_component_v_text_field, {
+              modelValue: config.random_delay_max_seconds,
+              "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.random_delay_max_seconds) = $event)),
+              label: "随机延迟上限(秒)",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.http_timeout,
+              "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((config.http_timeout) = $event)),
+              label: "HTTP 超时(秒)",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.http_retry_times,
+              "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.http_retry_times) = $event)),
+              label: "GET 重试次数",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"]),
+            _createVNode(_component_v_text_field, {
+              modelValue: config.http_retry_delay,
+              "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((config.http_retry_delay) = $event)),
+              label: "GET 重试间隔(ms)",
+              type: "number",
+              variant: "outlined",
+              density: "comfortable"
+            }, null, 8, ["modelValue"])
+          ])
+        ]),
+        _createElementVNode("article", _hoisted_24, [
+          _hoisted_25,
           _createVNode(_component_v_textarea, {
             modelValue: config.cookie,
-            "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.cookie) = $event)),
+            "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => ((config.cookie) = $event)),
             label: "SQ Cookie",
             rows: "6",
             variant: "outlined",
             density: "comfortable",
             placeholder: "例如 c_secure_pass=..."
           }, null, 8, ["modelValue"]),
-          _hoisted_19
+          _hoisted_26
         ]),
-        _hoisted_20
+        _hoisted_27
       ])
     ])
   ], 2))
@@ -484,6 +508,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c62c646d"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a120640c"]]);
 
 export { ConfigView as default };

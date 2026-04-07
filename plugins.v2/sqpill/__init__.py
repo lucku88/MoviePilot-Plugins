@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
-    plugin_desc = "SQ魔丸自动搬砖、清理沙滩与一键炼造魔丸，搬砖按 CRON 调度，沙滩按冷却时间动态调度。"
+    plugin_desc = "SQ魔丸自动搬砖、清理沙滩，并支持清沙滩后自动炼造魔丸和自动兑换魔力。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -77,6 +77,8 @@ class SQPill(_PluginBase):
     _auto_cookie: bool = True
     _enable_brick: bool = True
     _enable_beach: bool = True
+    _auto_craft: bool = False
+    _auto_exchange: bool = False
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cookie: str = ""
@@ -94,6 +96,8 @@ class SQPill(_PluginBase):
     _move_delay_min_ms: int = 30
     _move_delay_max_ms: int = 80
     _ready_retry_seconds: int = 60
+    _reserve_material_count: int = 0
+    _reserve_magic_pill_count: int = 0
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -219,6 +223,7 @@ class SQPill(_PluginBase):
 
             brick_result: Dict[str, Any] = {}
             beach_result: Dict[str, Any] = {}
+            auto_result: Dict[str, Any] = {}
 
             if self._enable_brick and page.get("brick", {}).get("ready"):
                 brick_result = self._run_brick_flow(session, page.get("brick") or {})
@@ -236,13 +241,16 @@ class SQPill(_PluginBase):
                 expect_brick_update=self._safe_int(brick_result.get("moved"), 0) > 0,
                 expect_beach_cooldown=bool(beach_result.get("done")),
             )
+            if beach_result.get("done") and (self._auto_craft or self._auto_exchange):
+                auto_result, final_page = self._run_auto_post_beach(session, final_page)
+                final_page = self._fetch_stable_page_state(session, previous_page=final_page)
             retry_due_now = self._needs_retry_soon(final_page, brick_result, beach_result)
             next_run = self._compute_next_run(final_page)
             if retry_due_now:
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
                 next_run = min(next_run, retry_ts) if next_run else retry_ts
 
-            lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result)
+            lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
                 remaining = max(
                     0,
@@ -420,6 +428,8 @@ class SQPill(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "enable_brick": self._enable_brick,
             "enable_beach": self._enable_beach,
+            "auto_craft": self._auto_craft,
+            "auto_exchange": self._auto_exchange,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -432,6 +442,8 @@ class SQPill(_PluginBase):
             "move_delay_min_ms": self._move_delay_min_ms,
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
+            "reserve_material_count": self._reserve_material_count,
+            "reserve_magic_pill_count": self._reserve_magic_pill_count,
             "capture_tips": [] if include_options else None,
         }
 
@@ -463,6 +475,8 @@ class SQPill(_PluginBase):
             "auto_cookie": True,
             "enable_brick": True,
             "enable_beach": True,
+            "auto_craft": False,
+            "auto_exchange": False,
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
@@ -475,6 +489,8 @@ class SQPill(_PluginBase):
             "move_delay_min_ms": 30,
             "move_delay_max_ms": 80,
             "ready_retry_seconds": 60,
+            "reserve_material_count": 0,
+            "reserve_magic_pill_count": 0,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -484,6 +500,8 @@ class SQPill(_PluginBase):
         self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
         self._enable_brick = self._to_bool(config.get("enable_brick", True))
         self._enable_beach = self._to_bool(config.get("enable_beach", True))
+        self._auto_craft = self._to_bool(config.get("auto_craft", False))
+        self._auto_exchange = self._to_bool(config.get("auto_exchange", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
@@ -496,6 +514,8 @@ class SQPill(_PluginBase):
         self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
         self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
         self._ready_retry_seconds = max(10, self._safe_int(config.get("ready_retry_seconds"), 60))
+        self._reserve_material_count = max(0, self._safe_int(config.get("reserve_material_count"), 0))
+        self._reserve_magic_pill_count = max(0, self._safe_int(config.get("reserve_magic_pill_count"), 0))
 
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
@@ -950,6 +970,10 @@ class SQPill(_PluginBase):
             previous_page=page,
             expect_beach_cooldown=bool(result.get("done")),
         )
+        auto_result: Dict[str, Any] = {}
+        if result.get("done") and (self._auto_craft or self._auto_exchange):
+            auto_result, page = self._run_auto_post_beach(session, page)
+            page = self._fetch_stable_page_state(session, previous_page=page)
         next_run = self._compute_next_run(page)
         if page.get("beach", {}).get("ready") and result.get("warning"):
             retry_ts = int(time.time()) + self._ready_retry_seconds
@@ -964,6 +988,8 @@ class SQPill(_PluginBase):
             lines.append(f"⚠️ 清沙滩失败：{result.get('warning')}")
         elif result.get("message") and not items:
             lines.append(f"ℹ️ 沙滩：{result.get('message')}")
+        if auto_result.get("lines"):
+            lines.extend(auto_result.get("lines") or [])
         if not lines:
             lines.append("ℹ️ 本次无可执行动作")
 
@@ -1101,8 +1127,107 @@ class SQPill(_PluginBase):
         self._append_history("⚗️ 一键炼造魔丸", lines)
         return {"pill_status": pill_status, "lines": lines}
 
-    def _compute_magic_pill_plan(self, inventory_items: List[Dict[str, Any]], target: Optional[int] = None) -> Dict[str, Any]:
-        inventory_map = self._inventory_to_map(inventory_items)
+    def _run_auto_post_beach(self, session: requests.Session, page: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        result = {
+            "crafted": 0,
+            "craft_steps": [],
+            "exchanged": 0,
+            "points": 0,
+            "lines": [],
+            "warning": "",
+        }
+        current_page = page or {}
+
+        if self._auto_craft:
+            craft_result = self._auto_craft_magic_pill(session, current_page)
+            if craft_result.get("crafted"):
+                result["crafted"] += self._safe_int(craft_result.get("crafted"), 0)
+                result["craft_steps"].extend(craft_result.get("craft_steps") or [])
+                result["lines"].extend(craft_result.get("lines") or [])
+                current_page = self._fetch_page_state(session)
+            elif craft_result.get("warning"):
+                result["warning"] = craft_result.get("warning")
+                result["lines"].append(f"⚠️ 自动炼造失败：{craft_result.get('warning')}")
+
+        if self._auto_exchange:
+            exchange_result = self._auto_exchange_points(session, current_page)
+            if exchange_result.get("exchanged"):
+                result["exchanged"] += self._safe_int(exchange_result.get("exchanged"), 0)
+                result["points"] += self._safe_int(exchange_result.get("points"), 0)
+                result["lines"].extend(exchange_result.get("lines") or [])
+                current_page = self._fetch_page_state(session)
+            elif exchange_result.get("warning"):
+                result["warning"] = result["warning"] or exchange_result.get("warning")
+                result["lines"].append(f"⚠️ 自动兑换失败：{exchange_result.get('warning')}")
+
+        return result, current_page
+
+    def _auto_craft_magic_pill(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
+        plan_info = self._compute_magic_pill_plan(
+            page.get("inventory") or [],
+            reserve_material_count=self._reserve_material_count,
+        )
+        max_count = self._safe_int(plan_info.get("max_count"), 0)
+        if max_count <= 0:
+            return {}
+
+        craft_plan = plan_info.get("plan") or {}
+        executed_steps: List[str] = []
+        for recipe_id in [1, 2, 3, 4, 5, 6]:
+            craft_qty = self._safe_int(craft_plan.get(recipe_id), 0)
+            if craft_qty <= 0:
+                continue
+            recipe_def = self.RECIPE_DEFINITIONS[recipe_id]
+            result = self._post_action(
+                session,
+                "craft_item",
+                {"recipe_id": recipe_id, "quantity": craft_qty},
+                retry_network=False,
+            )
+            if result and not result.get("success", True):
+                return {"warning": result.get("message") or result.get("msg") or f"{recipe_def['name']} 炼造失败"}
+            executed_steps.append(
+                f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
+            )
+
+        lines = [f"⚗️ 炼造：魔丸×{max_count}"]
+        if executed_steps:
+            lines.append(f"📦 步骤：{'  '.join(executed_steps)}")
+        return {"crafted": max_count, "craft_steps": executed_steps, "lines": lines}
+
+    def _auto_exchange_points(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
+        exchange = page.get("exchange") or {}
+        max_count = self._safe_int(exchange.get("max_count"), 0)
+        magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
+        exchangeable = max(0, min(max_count, magic_pills - self._reserve_magic_pill_count))
+        if exchangeable <= 0 or not exchange.get("enabled"):
+            return {}
+
+        result = self._post_action(
+            session,
+            "exchange_points",
+            {"quantity": exchangeable},
+            retry_network=False,
+        )
+        if result and not result.get("success", True):
+            return {"warning": result.get("message") or result.get("msg") or "兑换失败"}
+
+        gained = self._safe_int((result or {}).get("points_gained"), 0)
+        lines = [f"💰 兑换：魔丸×{exchangeable}"]
+        if gained > 0:
+            lines.append(f"✨ 获得：{gained} 魔力")
+        return {"exchanged": exchangeable, "points": gained, "lines": lines}
+
+    def _compute_magic_pill_plan(
+        self,
+        inventory_items: List[Dict[str, Any]],
+        target: Optional[int] = None,
+        reserve_material_count: int = 0,
+    ) -> Dict[str, Any]:
+        inventory_map = self._inventory_to_map(
+            inventory_items,
+            reserve_material_count=reserve_material_count,
+        )
         upper = max(0, sum(max(0, self._safe_int(val, 0)) for val in inventory_map.values()))
         upper = max(upper, inventory_map.get("砖块", 0) // 10, inventory_map.get("魔丸胚胎", 0) // 2)
 
@@ -1165,13 +1290,23 @@ class SQPill(_PluginBase):
                 return recipe_id, recipe_def
         return 0, None
 
-    def _inventory_to_map(self, inventory_items: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _inventory_to_map(
+        self,
+        inventory_items: List[Dict[str, Any]],
+        reserve_material_count: int = 0,
+        reserve_magic_pill_count: int = 0,
+    ) -> Dict[str, int]:
         data: Dict[str, int] = {}
         for item in inventory_items or []:
             name = str(item.get("name") or "").strip()
             if not name:
                 continue
-            data[name] = max(0, self._safe_int(item.get("count"), 0))
+            count = max(0, self._safe_int(item.get("count"), 0))
+            if name == "魔丸":
+                count = max(0, count - max(0, reserve_magic_pill_count))
+            elif reserve_material_count > 0:
+                count = max(0, count - max(0, reserve_material_count))
+            data[name] = count
         return data
 
     def _normalize_collected_items(self, result: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1334,7 +1469,11 @@ class SQPill(_PluginBase):
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
             "cookie_source": self._cookie_source,
-            "page_note": f"已接入自动搬砖、自动清沙滩、手动兑换与一键炼造魔丸；搬砖按 CRON {self._brick_cron} 调度，沙滩按冷却时间动态调度，未搬满 50 次会在 60 秒后自动重试。",
+            "page_note": (
+                f"搬砖按 CRON {self._brick_cron} 调度，沙滩按冷却时间动态调度。"
+                f"{' 清沙滩后会自动炼造魔丸。' if self._auto_craft else ''}"
+                f"{' 清沙滩后会自动兑换魔力。' if self._auto_exchange else ''}"
+            ),
             "overview": [
                 {"label": "魔力", "value": int(stats.get("points") or 0)},
                 {"label": "已兑换魔力", "value": int(stats.get("bonus_earned") or 0)},
@@ -1360,7 +1499,12 @@ class SQPill(_PluginBase):
             "capture_tips": [],
         }
 
-    def _build_result_lines(self, brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> Tuple[List[str], bool, bool]:
+    def _build_result_lines(
+        self,
+        brick_result: Dict[str, Any],
+        beach_result: Dict[str, Any],
+        auto_result: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[List[str], bool, bool]:
         lines: List[str] = []
         has_action = False
         has_warning = False
@@ -1380,10 +1524,17 @@ class SQPill(_PluginBase):
             lines.append(f"⚠️ 清沙滩失败：{beach_result.get('warning')}")
             has_warning = True
 
+        for line in (auto_result or {}).get("lines") or []:
+            lines.append(line)
+            if line.startswith(("⚗️", "💰", "✨", "📦")):
+                has_action = True
+            elif line.startswith("⚠️"):
+                has_warning = True
+
         return lines, has_action, has_warning
 
     def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        content_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "💊", "⚠️", "ℹ️"))]
+        content_lines = [line for line in lines if line]
         chunks = [self.SUMMARY_LINE]
         if content_lines:
             chunks.extend(content_lines)

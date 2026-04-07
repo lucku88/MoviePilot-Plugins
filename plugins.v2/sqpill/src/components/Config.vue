@@ -5,7 +5,9 @@
         <div>
           <div class="pill-badge">SQ魔丸</div>
           <h1 class="pill-title">配置中心</h1>
-          <p class="pill-subtitle">当前已接入自动搬砖、自动清沙滩、动态调度和站点 Cookie 同步。</p>
+          <p class="pill-subtitle">
+            搬砖按 CRON 运行，沙滩按冷却时间动态调度。自动炼造和自动兑换会在清沙滩后按当前配置执行。
+          </p>
         </div>
         <div class="pill-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
@@ -34,6 +36,8 @@
             <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
             <v-switch v-model="config.enable_brick" label="自动搬砖" color="deep-orange" hide-details />
             <v-switch v-model="config.enable_beach" label="自动清沙滩" color="teal" hide-details />
+            <v-switch v-model="config.auto_craft" label="自动炼造魔丸" color="deep-purple" hide-details />
+            <v-switch v-model="config.auto_exchange" label="自动兑换魔力" color="amber" hide-details />
             <v-switch v-model="config.use_proxy" label="使用系统代理" color="info" hide-details />
             <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
           </div>
@@ -46,25 +50,48 @@
               <h2>时间配置</h2>
             </div>
           </div>
-          <v-row>
-            <v-col cols="12" md="7">
-              <VCronField
-                v-model="config.brick_cron"
-                label="执行周期(cron)"
-                hint="例如：5 0 * * *"
-                persistent-hint
-                density="compact"
-              ></VCronField>
-            </v-col>
-            <v-col cols="12" md="3">
-              <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="compact" />
-            </v-col>
-            <v-col cols="12" md="2">
-              <v-text-field v-model="config.ready_retry_seconds" label="快速重试秒数" type="number" variant="outlined" density="compact" />
-            </v-col>
-          </v-row>
+          <VCronField
+            v-model="config.brick_cron"
+            label="执行周期(cron)"
+            hint="例如：5 0 * * * 表示每天 00:05 执行搬砖"
+            persistent-hint
+            density="compact"
+            class="pill-cron-field"
+          />
+          <div class="pill-form-grid pill-form-grid-2">
+            <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" />
+            <v-text-field v-model="config.ready_retry_seconds" label="快速重试秒数" type="number" variant="outlined" density="comfortable" />
+          </div>
           <div class="pill-note">
-            搬砖按你填写的 CRON 执行，默认是每天 00:05。沙滩仍按冷却时间动态调度；如果搬砖后检测到还没达到 50 次，会在 60 秒后自动重试。
+            搬砖严格按上面的 CRON 运行，默认每天 00:05。沙滩不走 CRON，而是按页面返回的冷却时间自动调度。
+          </div>
+        </article>
+
+        <article class="pill-panel">
+          <div class="pill-panel-head">
+            <div>
+              <div class="pill-panel-kicker">自动处理</div>
+              <h2>炼造与兑换</h2>
+            </div>
+          </div>
+          <div class="pill-form-grid">
+            <v-text-field
+              v-model="config.reserve_material_count"
+              label="自动时每种材料保留数量"
+              type="number"
+              variant="outlined"
+              density="comfortable"
+            />
+            <v-text-field
+              v-model="config.reserve_magic_pill_count"
+              label="自动时保留魔丸数量"
+              type="number"
+              variant="outlined"
+              density="comfortable"
+            />
+          </div>
+          <div class="pill-note">
+            开启自动炼造或自动兑换后，插件会在清沙滩成功后按当前库存执行，不额外创建新的运行周期。
           </div>
         </article>
 
@@ -75,10 +102,12 @@
               <h2>动作配置</h2>
             </div>
           </div>
-          <v-text-field v-model="config.move_delay_min_ms" label="搬砖间隔最小毫秒" type="number" variant="outlined" density="comfortable" class="mb-3" />
-          <v-text-field v-model="config.move_delay_max_ms" label="搬砖间隔最大毫秒" type="number" variant="outlined" density="comfortable" />
+          <div class="pill-form-grid">
+            <v-text-field v-model="config.move_delay_min_ms" label="搬砖间隔最小毫秒" type="number" variant="outlined" density="comfortable" />
+            <v-text-field v-model="config.move_delay_max_ms" label="搬砖间隔最大毫秒" type="number" variant="outlined" density="comfortable" />
+          </div>
           <div class="pill-note">
-            每天搬砖次数固定按 50 次处理，不再需要手动配置循环次数。
+            每天搬砖次数固定按 50 次处理；若本轮搬完后页面仍显示未达上限，会在 60 秒后自动重试。
           </div>
         </article>
 
@@ -89,10 +118,12 @@
               <h2>连接参数</h2>
             </div>
           </div>
-          <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
-          <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" class="mb-3" />
-          <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" class="mb-3" />
-          <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
+          <div class="pill-form-grid">
+            <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" />
+            <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" />
+            <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" />
+            <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
+          </div>
         </article>
 
         <article class="pill-panel pill-panel-wide">
@@ -123,7 +154,7 @@
             </div>
           </div>
           <div class="pill-note">
-            当前版本已经支持自动搬砖、自动清沙滩、手动兑换魔力和一键炼造魔丸。赠送按钮暂时不接入，物品栏仅展示当前数量。
+            当前版本支持自动搬砖、自动清沙滩、手动兑换魔力、一键炼造魔丸，以及清沙滩后自动炼造与自动兑换。物品栏只用于展示当前数量。
           </div>
         </article>
       </section>
@@ -153,6 +184,8 @@ const config = reactive({
   auto_cookie: true,
   enable_brick: true,
   enable_beach: true,
+  auto_craft: false,
+  auto_exchange: false,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
@@ -165,6 +198,8 @@ const config = reactive({
   move_delay_min_ms: 30,
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
+  reserve_material_count: 0,
+  reserve_magic_pill_count: 0,
 })
 
 let themeObserver = null
@@ -302,7 +337,7 @@ onBeforeUnmount(() => {
 
 .pill-shell {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1080px;
   min-width: 0;
   padding: 0 12px;
   margin: 0 auto;
@@ -313,7 +348,7 @@ onBeforeUnmount(() => {
 .pill-hero,
 .pill-panel {
   border-radius: 28px;
-  padding: 24px;
+  padding: 22px;
   background: var(--pill-card);
   border: 1px solid var(--pill-border);
   box-shadow: var(--pill-shadow);
@@ -324,8 +359,7 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-.pill-badge,
-.pill-tip-item {
+.pill-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -350,7 +384,7 @@ onBeforeUnmount(() => {
 .pill-actions,
 .pill-grid,
 .pill-switch-grid,
-.pill-tip-list {
+.pill-form-grid {
   display: grid;
   gap: 12px;
 }
@@ -377,7 +411,7 @@ onBeforeUnmount(() => {
 
 .pill-panel-head h2 {
   margin: 6px 0 0;
-  font-size: 28px;
+  font-size: 26px;
 }
 
 .pill-panel-kicker {
@@ -386,8 +420,20 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.pill-tip-list {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.pill-switch-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+.pill-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+.pill-form-grid-2 {
+  margin-top: 14px;
+}
+
+.pill-cron-field {
+  width: 100%;
 }
 
 @media (max-width: 880px) {
@@ -403,6 +449,10 @@ onBeforeUnmount(() => {
   .pill-panel {
     padding: 18px;
     border-radius: 22px;
+  }
+
+  .pill-panel-head {
+    flex-direction: column;
   }
 }
 </style>
