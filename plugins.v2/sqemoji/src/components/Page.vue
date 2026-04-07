@@ -18,7 +18,7 @@
           <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
           <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
           <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
+          <v-btn variant="text" @click="switchToConfig">配置</v-btn>
           <v-btn variant="text" @click="closePlugin">关闭</v-btn>
         </div>
       </section>
@@ -767,6 +767,12 @@ function dismissSummary() {
   }
 }
 
+function dismissSummaryOnExit() {
+  if (showSummary.value) {
+    dismissSummary()
+  }
+}
+
 function closePendingPanel() {
   hiddenPendingKey.value = pendingKey.value
 }
@@ -907,8 +913,13 @@ function recallStage() {
 }
 
 function closePlugin() {
-  if (showSummary.value) dismissSummary()
+  dismissSummaryOnExit()
   emit('close')
+}
+
+function switchToConfig() {
+  dismissSummaryOnExit()
+  emit('switch', 'config')
 }
 
 function slotRemainText(slot) {
@@ -1001,6 +1012,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  dismissSummaryOnExit()
   if (timer) window.clearInterval(timer)
   clearRefreshTimeouts()
   themeObserver?.disconnect?.()

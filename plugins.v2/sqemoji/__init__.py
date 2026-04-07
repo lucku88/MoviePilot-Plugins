@@ -28,7 +28,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -714,7 +714,7 @@ class SQEmoji(_PluginBase):
                 break
 
             tier = self._safe_int(openable_bag.get("tier"), 0)
-            bag_name = str(openable_bag.get("name") or f"表情包{tier}")
+            bag_name = self._compact_bag_name(openable_bag.get("name") or f"表情包{tier}")
             quantity = self._safe_int(openable_bag.get("quantity"), 0)
             batch = min(quantity, max_batch)
             result = self._post_action(session, "open_bag", {"tier": tier, "count": batch}, retry_network=True)
@@ -744,7 +744,7 @@ class SQEmoji(_PluginBase):
                 recall = result.get("result") or {}
                 gain_points = self._safe_int(recall.get("point_gain"), 0)
                 gain_magic = self._safe_int(recall.get("magic_gain"), 0)
-                lines.append(f"🎁 收演：声誉+{gain_points} 魔力+{gain_magic}")
+                lines.append(f"🎁 收演：声誉+{gain_points}，魔力+{gain_magic}")
                 state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
             else:
                 return state, lines
@@ -807,7 +807,7 @@ class SQEmoji(_PluginBase):
         if not result.get("success"):
             raise ValueError(result.get("message") or "开包失败")
         after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
-        lines = [f"📦 开包：{bag.get('name') or f'表情包{tier}'}×{count}"]
+        lines = [f"📦 开包：{self._compact_bag_name(bag.get('name') or f'表情包{tier}')}×{count}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "开包成功", "emoji_status": emoji_status}
 
@@ -909,12 +909,22 @@ class SQEmoji(_PluginBase):
             raise ValueError(result.get("message") or "收回演出失败")
         recall = result.get("result") or {}
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
-        lines = [f"🎁 收演：声誉+{self._safe_int(recall.get('point_gain'), 0)} 魔力+{self._safe_int(recall.get('magic_gain'), 0)}"]
+        lines = [f"🎁 收演：声誉+{self._safe_int(recall.get('point_gain'), 0)}，魔力+{self._safe_int(recall.get('magic_gain'), 0)}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已收回演出", "emoji_status": emoji_status}
 
     def _send_report(self, lines: List[str], next_run: Optional[int]):
-        chunks = [self.SUMMARY_LINE, *lines, self.SUMMARY_LINE, f"⏰ 下次运行：{self._format_ts(next_run) or '等待刷新'}", self.SUMMARY_LINE]
+        action_lines = [line for line in lines if str(line or "").strip() and not str(line).startswith("⏰ ")]
+        if not action_lines:
+            return
+        chunks = [
+            self.SUMMARY_LINE,
+            *action_lines,
+            "",
+            self.SUMMARY_LINE,
+            f"⏰ 下次运行：{self._format_ts(next_run) or '等待刷新'}",
+            self.SUMMARY_LINE,
+        ]
         self.post_message(
             title="【🎭SQ表情】 任务报告",
             mtype=NotificationType.Plugin,
@@ -1445,7 +1455,7 @@ class SQEmoji(_PluginBase):
     def _bag_quantity_map(self, state: Dict[str, Any]) -> Dict[str, int]:
         result: Dict[str, int] = {}
         for bag in self._iter_dicts(state.get("bags") or []):
-            name = str(bag.get("name") or f"表情包{self._safe_int(bag.get('tier'), 0)}")
+            name = self._compact_bag_name(bag.get("name") or f"表情包{self._safe_int(bag.get('tier'), 0)}")
             result[name] = self._safe_int(bag.get("quantity"), 0)
         return result
 
@@ -1469,6 +1479,11 @@ class SQEmoji(_PluginBase):
     @staticmethod
     def _format_named_counts(counts: Dict[str, int]) -> str:
         return "  ".join(f"{name}×{quantity}" for name, quantity in counts.items() if quantity > 0)
+
+    @staticmethod
+    def _compact_bag_name(name: Any) -> str:
+        text = str(name or "").strip()
+        return text[:-3] if text.endswith("表情包") else text
 
     def _stage_active_slots(self, stage: Dict[str, Any]) -> List[Dict[str, Any]]:
         slots = self._iter_dicts(stage.get("active_slots") or [])
