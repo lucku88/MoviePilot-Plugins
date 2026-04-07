@@ -33,6 +33,7 @@
           <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
           <v-switch v-model="config.auto_stage" label="自动舞台演出" color="deep-orange" hide-details />
           <v-switch v-model="config.auto_spin" label="自动清空当日老虎机次数" color="deep-purple" hide-details />
+          <v-switch v-model="config.auto_open_bags" label="自动开包并自动收下" color="teal" hide-details />
           <v-switch v-model="config.use_proxy" label="使用系统代理" color="secondary" hide-details />
           <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
         </div>
@@ -52,9 +53,22 @@
           <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" />
           <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" />
           <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
+          <v-select
+            v-model="config.auto_stage_effect_key"
+            :items="effectOptions"
+            item-title="title"
+            item-value="value"
+            label="自动演出舞台效果"
+            variant="outlined"
+            density="comfortable"
+            :disabled="!config.auto_stage"
+          />
         </div>
         <div class="emoji-note">
           自动舞台会在当前演出结束后自动收回并重新开演。自动老虎机会在当天仍有免费次数时自动转完，次日零点后重新识别。
+        </div>
+        <div class="emoji-note">
+          自动开包开启后，会在有表情包或待处理开包结果时自动执行，并直接收下结果，不会自动重开。
         </div>
       </section>
 
@@ -107,6 +121,7 @@ const pluginBase = '/plugin/SQEmoji'
 const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
+const effectOptions = ref([{ title: '自动选择最佳舞台效果', value: 'auto' }])
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -115,6 +130,7 @@ const config = reactive({
   auto_cookie: true,
   auto_stage: true,
   auto_spin: false,
+  auto_open_bags: false,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
@@ -124,11 +140,11 @@ const config = reactive({
   http_retry_times: 3,
   http_retry_delay: 1500,
   skip_before_seconds: 60,
+  auto_stage_effect_key: 'auto',
 })
 
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
 
 function flash(text, type = 'success') {
   message.text = text
@@ -136,7 +152,15 @@ function flash(text, type = 'success') {
 }
 
 function applyConfig(data = {}) {
-  Object.assign(config, { ...config, ...data })
+  if (Array.isArray(data.effect_options) && data.effect_options.length) {
+    effectOptions.value = data.effect_options
+  }
+  const { effect_options, capture_tips, ...rest } = data || {}
+  Object.assign(config, { ...config, ...rest })
+}
+
+function buildPayload() {
+  return { ...config }
 }
 
 async function loadConfig() {
@@ -147,7 +171,7 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true
   try {
-    const result = await props.api.post(`${pluginBase}/config`, { ...config })
+    const result = await props.api.post(`${pluginBase}/config`, buildPayload())
     applyConfig(result?.config || {})
     flash(result?.message || '配置已保存')
   } catch (error) {
@@ -174,30 +198,65 @@ function findThemeNode() {
   let current = rootEl.value
   while (current) {
     if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  if (darkThemes.has(themeValue)) {
+  const nodes = getThemeNodes()
+  if (nodes.some(nodeHasDarkHint)) {
     isDarkTheme.value = true
+    return
+  }
+  if (nodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false
     return
   }
   isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
-function bindTheme() {
+function bindThemeObserver() {
   detectTheme()
-  observedThemeNode = findThemeNode()
-  if (observedThemeNode && window.MutationObserver) {
+  if (window.MutationObserver) {
     themeObserver = new MutationObserver(detectTheme)
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] })
+    })
   }
   if (window.matchMedia) {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -206,7 +265,7 @@ function bindTheme() {
 }
 
 onMounted(async () => {
-  bindTheme()
+  bindThemeObserver()
   await loadConfig()
 })
 

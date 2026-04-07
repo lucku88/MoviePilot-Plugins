@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_0b95e84e_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_6dde405f_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-0b95e84e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-6dde405f"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -32,19 +32,20 @@ const _hoisted_9 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 ], -1));
 const _hoisted_10 = { class: "emoji-form-grid" };
 const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动舞台会在当前演出结束后自动收回并重新开演。自动老虎机会在当天仍有免费次数时自动转完，次日零点后重新识别。 ", -1));
-const _hoisted_12 = { class: "emoji-panel" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动开包开启后，会在有表情包或待处理开包结果时自动执行，并直接收下结果，不会自动重开。 ", -1));
+const _hoisted_13 = { class: "emoji-panel" };
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "Cookie 兜底")
   ])
 ], -1));
-const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, [
+const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, [
   /*#__PURE__*/_createTextVNode(" 默认读取 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode(" 站点配置中的 Cookie。开启“优先使用站点 Cookie”后，会优先使用 MoviePilot 站点管理中的值。 ")
 ], -1));
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("section", { class: "emoji-panel" }, [
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("section", { class: "emoji-panel" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
     /*#__PURE__*/_createElementVNode("div", null, [
       /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "功能说明"),
@@ -77,6 +78,7 @@ const props = __props;
 const saving = ref(false);
 const rootEl = ref(null);
 const isDarkTheme = ref(false);
+const effectOptions = ref([{ title: '自动选择最佳舞台效果', value: 'auto' }]);
 const message = reactive({ text: '', type: 'success' });
 const config = reactive({
   enabled: false,
@@ -85,6 +87,7 @@ const config = reactive({
   auto_cookie: true,
   auto_stage: true,
   auto_spin: false,
+  auto_open_bags: false,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
@@ -94,11 +97,11 @@ const config = reactive({
   http_retry_times: 3,
   http_retry_delay: 1500,
   skip_before_seconds: 60,
+  auto_stage_effect_key: 'auto',
 });
 
 let themeObserver = null;
 let mediaQuery = null;
-let observedThemeNode = null;
 
 function flash(text, type = 'success') {
   message.text = text;
@@ -106,7 +109,15 @@ function flash(text, type = 'success') {
 }
 
 function applyConfig(data = {}) {
-  Object.assign(config, { ...config, ...data });
+  if (Array.isArray(data.effect_options) && data.effect_options.length) {
+    effectOptions.value = data.effect_options;
+  }
+  const { effect_options, capture_tips, ...rest } = data || {};
+  Object.assign(config, { ...config, ...rest });
+}
+
+function buildPayload() {
+  return { ...config }
 }
 
 async function loadConfig() {
@@ -117,7 +128,7 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true;
   try {
-    const result = await props.api.post(`${pluginBase}/config`, { ...config });
+    const result = await props.api.post(`${pluginBase}/config`, buildPayload());
     applyConfig(result?.config || {});
     flash(result?.message || '配置已保存');
   } catch (error) {
@@ -144,30 +155,65 @@ function findThemeNode() {
   let current = rootEl.value;
   while (current) {
     if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase();
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement;
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase();
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase();
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  const classValue = String(node?.className || '').toLowerCase();
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  const classValue = String(node?.className || '').toLowerCase();
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode();
-  const themeValue = themeNode?.getAttribute?.('data-theme') || '';
-  const darkThemes = new Set(['dark', 'purple', 'transparent']);
-  if (darkThemes.has(themeValue)) {
+  const nodes = getThemeNodes();
+  if (nodes.some(nodeHasDarkHint)) {
     isDarkTheme.value = true;
+    return
+  }
+  if (nodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false;
     return
   }
   isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 }
 
-function bindTheme() {
+function bindThemeObserver() {
   detectTheme();
-  observedThemeNode = findThemeNode();
-  if (observedThemeNode && window.MutationObserver) {
+  if (window.MutationObserver) {
     themeObserver = new MutationObserver(detectTheme);
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] });
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    });
   }
   if (window.matchMedia) {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -176,7 +222,7 @@ function bindTheme() {
 }
 
 onMounted(async () => {
-  bindTheme();
+  bindThemeObserver();
   await loadConfig();
 });
 
@@ -190,6 +236,7 @@ return (_ctx, _cache) => {
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
   const _component_v_text_field = _resolveComponent("v-text-field");
+  const _component_v_select = _resolveComponent("v-select");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", {
@@ -301,15 +348,22 @@ return (_ctx, _cache) => {
             "hide-details": ""
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_switch, {
+            modelValue: config.auto_open_bags,
+            "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.auto_open_bags) = $event)),
+            label: "自动开包并自动收下",
+            color: "teal",
+            "hide-details": ""
+          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_switch, {
             modelValue: config.use_proxy,
-            "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.use_proxy) = $event)),
+            "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.use_proxy) = $event)),
             label: "使用系统代理",
             color: "secondary",
             "hide-details": ""
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_switch, {
             modelValue: config.force_ipv4,
-            "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.force_ipv4) = $event)),
+            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.force_ipv4) = $event)),
             label: "优先 IPv4",
             color: "secondary",
             "hide-details": ""
@@ -321,7 +375,7 @@ return (_ctx, _cache) => {
         _createElementVNode("div", _hoisted_10, [
           _createVNode(_component_v_text_field, {
             modelValue: config.schedule_buffer_seconds,
-            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.schedule_buffer_seconds) = $event)),
+            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.schedule_buffer_seconds) = $event)),
             label: "调度缓冲秒数",
             type: "number",
             variant: "outlined",
@@ -329,7 +383,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.skip_before_seconds,
-            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.skip_before_seconds) = $event)),
+            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.skip_before_seconds) = $event)),
             label: "提前跳过阈值(秒)",
             type: "number",
             variant: "outlined",
@@ -337,7 +391,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.random_delay_max_seconds,
-            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.random_delay_max_seconds) = $event)),
+            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.random_delay_max_seconds) = $event)),
             label: "随机延迟上限(秒)",
             type: "number",
             variant: "outlined",
@@ -345,7 +399,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.http_timeout,
-            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.http_timeout) = $event)),
+            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_timeout) = $event)),
             label: "HTTP 超时(秒)",
             type: "number",
             variant: "outlined",
@@ -353,7 +407,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.http_retry_times,
-            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_retry_times) = $event)),
+            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.http_retry_times) = $event)),
             label: "GET 重试次数",
             type: "number",
             variant: "outlined",
@@ -361,35 +415,47 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.http_retry_delay,
-            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.http_retry_delay) = $event)),
+            "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.http_retry_delay) = $event)),
             label: "GET 重试间隔(ms)",
             type: "number",
             variant: "outlined",
             density: "comfortable"
-          }, null, 8, ["modelValue"])
+          }, null, 8, ["modelValue"]),
+          _createVNode(_component_v_select, {
+            modelValue: config.auto_stage_effect_key,
+            "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.auto_stage_effect_key) = $event)),
+            items: effectOptions.value,
+            "item-title": "title",
+            "item-value": "value",
+            label: "自动演出舞台效果",
+            variant: "outlined",
+            density: "comfortable",
+            disabled: !config.auto_stage
+          }, null, 8, ["modelValue", "items", "disabled"])
         ]),
-        _hoisted_11
+        _hoisted_11,
+        _hoisted_12
       ]),
-      _createElementVNode("section", _hoisted_12, [
-        _hoisted_13,
+      _createElementVNode("section", _hoisted_13, [
+        _hoisted_14,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.cookie) = $event)),
+          "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.cookie) = $event)),
           label: "SQ Cookie",
           rows: "6",
           variant: "outlined",
           density: "comfortable",
           placeholder: "例如 c_secure_pass=..."
         }, null, 8, ["modelValue"]),
-        _hoisted_14
+        _hoisted_15
       ]),
-      _hoisted_15
+      _hoisted_16
     ])
   ], 2))
 }
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0b95e84e"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6dde405f"]]);
 
 export { ConfigView as default };

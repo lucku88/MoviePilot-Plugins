@@ -3,6 +3,7 @@ import random
 import re
 import socket
 import time
+import traceback
 from datetime import datetime, timedelta
 from html import unescape
 from math import ceil
@@ -27,7 +28,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -51,6 +52,7 @@ class SQEmoji(_PluginBase):
     _auto_cookie: bool = True
     _auto_stage: bool = True
     _auto_spin: bool = False
+    _auto_open_bags: bool = False
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cookie: str = ""
@@ -64,6 +66,7 @@ class SQEmoji(_PluginBase):
     _http_retry_times: int = 3
     _http_retry_delay: int = 1500
     _skip_before_seconds: int = 60
+    _auto_stage_effect_key: str = "auto"
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -89,7 +92,7 @@ class SQEmoji(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
-        self._bootstrap_pending = self._enabled and (self._auto_stage or self._auto_spin) and not self._next_trigger_time
+        self._bootstrap_pending = self._enabled and self._has_auto_jobs_enabled() and not self._next_trigger_time
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -140,7 +143,7 @@ class SQEmoji(_PluginBase):
 
     def get_service(self) -> List[Dict[str, Any]]:
         services: List[Dict[str, Any]] = []
-        if self._enabled and (self._auto_stage or self._auto_spin):
+        if self._enabled and self._has_auto_jobs_enabled():
             next_run = self._get_next_run_for_service()
             if next_run:
                 services.append({
@@ -169,6 +172,9 @@ class SQEmoji(_PluginBase):
 
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         start_time = time.time()
+        session: Optional[requests.Session] = None
+        state: Dict[str, Any] = {}
+        summary_lines: List[str] = []
         logger.info("## 开始执行... %s", self._format_time(self._aware_now()))
         try:
             if not self._enabled and not force:
@@ -189,16 +195,20 @@ class SQEmoji(_PluginBase):
             if not state or not state.get("user"):
                 raise ValueError("获取表情页失败，Cookie 可能已失效")
 
-            summary_lines: List[str] = []
             if self._auto_spin:
                 state, spin_lines = self._run_auto_spin(session, state)
                 summary_lines.extend(spin_lines)
+            if self._auto_open_bags:
+                state, open_lines = self._run_auto_open_bags(session, state)
+                summary_lines.extend(open_lines)
             if self._auto_stage:
                 state, stage_lines = self._run_auto_stage(session, state)
                 summary_lines.extend(stage_lines)
 
             final_bundle = self._fetch_bundle(session)
-            final_state = final_bundle["state"]
+            final_state = final_bundle.get("state") or state
+            if self._build_stage_runtime(state).get("has_active") and not self._build_stage_runtime(final_state).get("has_active"):
+                final_state = state
             next_run = self._compute_next_run(final_state)
             emoji_status = self._refresh_and_store_status(final_state, next_run, summary_lines)
 
@@ -216,6 +226,55 @@ class SQEmoji(_PluginBase):
             }
         except Exception as err:
             detail = self._get_error_detail(err)
+            retry_at: Optional[int] = None
+            fallback_delay = max(30, self._http_timeout * 2)
+
+            if session is not None:
+                try:
+                    recovered_bundle = self._fetch_bundle(session)
+                    state = recovered_bundle.get("state") or state
+                except Exception as refresh_err:
+                    logger.warning("%s 异常后刷新状态失败：%s", self.plugin_name, self._get_error_detail(refresh_err))
+
+            partial_lines = list(summary_lines)
+            if self._enabled and self._has_auto_jobs_enabled() and (partial_lines or reason in {"schedule", "bootstrap", "onlyonce"}):
+                retry_at = int(time.time()) + fallback_delay
+            if state:
+                computed_next = self._compute_next_run(state)
+                if computed_next:
+                    retry_at = min(retry_at, computed_next) if retry_at else computed_next
+            if partial_lines and retry_at:
+                partial_lines.append("\u23f0 \u7f51\u7edc\u6ce2\u52a8\uff0c\u5c06\u5728\u77ed\u5ef6\u8fdf\u540e\u81ea\u52a8\u91cd\u8bd5\u5269\u4f59\u6d41\u7a0b")
+
+            emoji_status = None
+            if state:
+                try:
+                    emoji_status = self._refresh_and_store_status(state, retry_at, partial_lines)
+                except Exception as store_err:
+                    logger.warning("%s 异常后保存状态失败：%s", self.plugin_name, self._get_error_detail(store_err))
+            elif retry_at:
+                try:
+                    self._schedule_next_run(retry_at, reason="error-retry")
+                except Exception as schedule_err:
+                    logger.warning("%s 异常后补重试失败：%s", self.plugin_name, self._get_error_detail(schedule_err))
+
+            if partial_lines:
+                if not emoji_status:
+                    self._append_history(partial_lines, retry_at)
+                    self.save_data("last_run", self._format_time(self._aware_now()))
+                logger.warning("%s 本轮部分完成后中断：%s", self.plugin_name, detail)
+                logger.warning("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
+                if self._notify:
+                    self._send_report(partial_lines, retry_at)
+                return {
+                    "success": True,
+                    "message": partial_lines[0],
+                    "lines": partial_lines,
+                    "emoji_status": emoji_status or (self.get_data("emoji_status") or {}),
+                    "status": self._build_status(auto_refresh=False),
+                }
+
+            logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
             if self._notify:
                 self.post_message(
@@ -224,15 +283,18 @@ class SQEmoji(_PluginBase):
                     text=detail,
                 )
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+        finally:
+            logger.info("## 执行结束... %s", self._format_time(self._aware_now()))
 
     def _manual_worker(self):
         self.run_job(force=True, reason="onlyonce")
 
     def _bootstrap_worker(self):
+        self._bootstrap_pending = False
         self.run_job(force=True, reason="bootstrap")
 
     def _auto_worker(self):
-        self.run_job(force=False, reason="auto")
+        self.run_job(force=False, reason="schedule")
 
     def _get_status(self):
         return self._build_status()
@@ -321,6 +383,7 @@ class SQEmoji(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
+            "auto_open_bags": self._auto_open_bags,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run),
             "next_run_ts": int(next_run.timestamp()) if next_run else 0,
@@ -340,6 +403,7 @@ class SQEmoji(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
+            "auto_open_bags": self._auto_open_bags,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -349,6 +413,8 @@ class SQEmoji(_PluginBase):
             "http_retry_times": self._http_retry_times,
             "http_retry_delay": self._http_retry_delay,
             "skip_before_seconds": self._skip_before_seconds,
+            "auto_stage_effect_key": self._auto_stage_effect_key,
+            "effect_options": self._build_effect_options() if include_options else None,
             "capture_tips": [] if include_options else None,
         }
 
@@ -358,7 +424,7 @@ class SQEmoji(_PluginBase):
         merged.update(config_payload or {})
         self.init_plugin(merged)
         self._update_config()
-        if self._enabled and (self._auto_stage or self._auto_spin):
+        if self._enabled and self._has_auto_jobs_enabled():
             self._reregister_plugin("save-config")
         try:
             status = self._refresh_state(reason="save-config") if self._cookie else self.get_data("emoji_status") or {}
@@ -369,7 +435,7 @@ class SQEmoji(_PluginBase):
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
-        if result.get("success") and self._enabled and (self._auto_stage or self._auto_spin):
+        if result.get("success") and self._enabled and self._has_auto_jobs_enabled():
             self._reregister_plugin("sync-cookie")
         return {**result, "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
 
@@ -381,6 +447,7 @@ class SQEmoji(_PluginBase):
             "auto_cookie": True,
             "auto_stage": True,
             "auto_spin": False,
+            "auto_open_bags": False,
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
@@ -390,6 +457,7 @@ class SQEmoji(_PluginBase):
             "http_retry_times": 3,
             "http_retry_delay": 1500,
             "skip_before_seconds": 60,
+            "auto_stage_effect_key": "auto",
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -399,6 +467,7 @@ class SQEmoji(_PluginBase):
         self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
         self._auto_stage = self._to_bool(config.get("auto_stage", True))
         self._auto_spin = self._to_bool(config.get("auto_spin", False))
+        self._auto_open_bags = self._to_bool(config.get("auto_open_bags", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
@@ -408,6 +477,8 @@ class SQEmoji(_PluginBase):
         self._http_retry_times = max(0, self._safe_int(config.get("http_retry_times"), 3))
         self._http_retry_delay = max(0, self._safe_int(config.get("http_retry_delay"), 1500))
         self._skip_before_seconds = max(0, self._safe_int(config.get("skip_before_seconds"), 60))
+        auto_stage_effect_key = str(config.get("auto_stage_effect_key") or "auto").strip()
+        self._auto_stage_effect_key = auto_stage_effect_key or "auto"
 
     def _update_config(self):
         self.update_config({
@@ -417,6 +488,7 @@ class SQEmoji(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
+            "auto_open_bags": self._auto_open_bags,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -426,6 +498,7 @@ class SQEmoji(_PluginBase):
             "http_retry_times": self._http_retry_times,
             "http_retry_delay": self._http_retry_delay,
             "skip_before_seconds": self._skip_before_seconds,
+            "auto_stage_effect_key": self._auto_stage_effect_key,
         })
 
     def _resolve_site_profile(self):
@@ -444,7 +517,7 @@ class SQEmoji(_PluginBase):
             if not cookie:
                 return {"success": False, "message": f"站点 {self._site_domain} 未配置 Cookie"}
             self._cookie = cookie
-            self._cookie_source = f"站点 Cookie · {self._site_domain}"
+            self._cookie_source = f"\u7ad9\u70b9\u540c\u6b65\uff1a{self._site_domain}"
             if save_config:
                 self._update_config()
             if not silent:
@@ -488,16 +561,19 @@ class SQEmoji(_PluginBase):
         return session
 
     def _fetch_bundle(self, session: requests.Session) -> Dict[str, Any]:
-        response = session.get(
-            f"{self._site_url}/siqi_emoji.php",
-            timeout=(self._http_timeout, self._http_timeout),
-        )
-        response.raise_for_status()
-        html = response.text
-        state = self._extract_initial_state(html)
-        if not state:
-            raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
-        return {"state": state, "html": html}
+        def run() -> Dict[str, Any]:
+            response = session.get(
+                f"{self._site_url}/siqi_emoji.php",
+                timeout=(self._http_timeout, self._http_timeout),
+            )
+            response.raise_for_status()
+            html = response.text
+            state = self._extract_initial_state(html)
+            if not state:
+                raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
+            return {"state": state, "html": html}
+
+        return self._request_with_retry("fetchEmojiPage", run)
 
     def _extract_initial_state(self, html: str) -> Dict[str, Any]:
         marker = "const SIQI_EMOJI_DATA ="
@@ -569,7 +645,7 @@ class SQEmoji(_PluginBase):
             return {"success": True, "data": data}
 
         if retry_network:
-            return self._request_with_retry(run)
+            return self._request_with_retry(f"postAction:{action}", run)
         return run()
 
     def _extract_action_state(self, result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -591,7 +667,7 @@ class SQEmoji(_PluginBase):
         total_spins = 0
         while remaining > 0:
             batch = min(remaining, max_batch)
-            result = self._post_action(session, "spin_slot", {"count": batch})
+            result = self._post_action(session, "spin_slot", {"count": batch}, retry_network=True)
             if not result.get("success"):
                 raise ValueError(result.get("message") or "老虎机转动失败")
             total_spins += batch
@@ -604,12 +680,64 @@ class SQEmoji(_PluginBase):
             return state, [f"🎰 老虎机：{diff_text}"]
         return state, [f"🎰 老虎机：已转动 {total_spins} 次"] if total_spins else []
 
+    def _run_auto_open_bags(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+        lines: List[str] = []
+        opened_counts: Dict[str, int] = {}
+        accepted_counts: Dict[str, int] = {}
+        accepted_batches = 0
+
+        def accept_pending(current_state: Dict[str, Any]) -> Dict[str, Any]:
+            nonlocal accepted_batches
+            pending = current_state.get("pending_open") or {}
+            if not pending:
+                return current_state
+            item_text = self._format_pending_item_counts(pending)
+            if item_text:
+                for name, quantity in self._parse_named_counts(item_text).items():
+                    accepted_counts[name] = accepted_counts.get(name, 0) + quantity
+            accepted_batches += 1
+            result = self._post_action(session, "accept_open", {}, retry_network=True)
+            if not result.get("success"):
+                raise ValueError(result.get("message") or "自动收下开包结果失败")
+            return self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+
+        state = accept_pending(state)
+        max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_open_bag_batch"), 12))
+
+        while True:
+            openable_bag = None
+            for bag in self._iter_dicts(state.get("bags") or []):
+                if self._safe_int(bag.get("quantity"), 0) > 0:
+                    openable_bag = bag
+                    break
+            if not openable_bag:
+                break
+
+            tier = self._safe_int(openable_bag.get("tier"), 0)
+            bag_name = str(openable_bag.get("name") or f"表情包{tier}")
+            quantity = self._safe_int(openable_bag.get("quantity"), 0)
+            batch = min(quantity, max_batch)
+            result = self._post_action(session, "open_bag", {"tier": tier, "count": batch}, retry_network=True)
+            if not result.get("success"):
+                raise ValueError(result.get("message") or "自动开包失败")
+            opened_counts[bag_name] = opened_counts.get(bag_name, 0) + batch
+            state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            state = accept_pending(state)
+            max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_open_bag_batch"), max_batch))
+
+        if opened_counts:
+            lines.append(f"📦 开包：{self._format_named_counts(opened_counts)}")
+        if accepted_counts:
+            lines.append(f"📥 收下：{self._format_named_counts(accepted_counts)}")
+        elif accepted_batches:
+            lines.append(f"📥 收下：已自动收下 {accepted_batches} 批开包结果")
+        return state, lines
+
     def _run_auto_stage(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         lines: List[str] = []
         runtime = self._build_stage_runtime(state)
         if runtime.get("has_active"):
-            remaining = self._safe_int(runtime.get("remaining_seconds"), 0)
-            if runtime.get("can_recall") or remaining <= 0:
+            if self._should_auto_recall_stage(runtime):
                 result = self._post_action(session, "recall_stage", {}, retry_network=True)
                 if not result.get("success"):
                     raise ValueError(result.get("message") or "收回演出失败")
@@ -638,7 +766,7 @@ class SQEmoji(_PluginBase):
         )
         if not result.get("success"):
             raise ValueError(result.get("message") or "启动演出失败")
-        state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+        state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         lines.append(f"🎭 开演：{plan.get('effect_name') or '舞台效果'} / 演员{len(placements)}位")
         return state, lines
 
@@ -656,7 +784,7 @@ class SQEmoji(_PluginBase):
         result = self._post_action(session, "spin_slot", {"count": count}, retry_network=True)
         if not result.get("success"):
             raise ValueError(result.get("message") or "老虎机转动失败")
-        after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+        after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, after_state))
         lines = [f"🎰 老虎机：{diff_text or f'已转动 {count} 次'}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
@@ -678,7 +806,7 @@ class SQEmoji(_PluginBase):
         result = self._post_action(session, "open_bag", {"tier": tier, "count": count}, retry_network=True)
         if not result.get("success"):
             raise ValueError(result.get("message") or "开包失败")
-        after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+        after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         lines = [f"📦 开包：{bag.get('name') or f'表情包{tier}'}×{count}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "开包成功", "emoji_status": emoji_status}
@@ -768,7 +896,7 @@ class SQEmoji(_PluginBase):
         )
         if not result.get("success"):
             raise ValueError(result.get("message") or "确认演出失败")
-        after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+        after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         effect = self._find_effect(after_state, effect_key) or {}
         lines = [f"🎭 开演：{effect.get('name') or effect_key} / 演员{len(placements)}位"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
@@ -816,7 +944,7 @@ class SQEmoji(_PluginBase):
         }
 
     def _compute_next_run(self, state: Dict[str, Any]) -> Optional[int]:
-        if not (self._auto_stage or self._auto_spin):
+        if not self._has_auto_jobs_enabled():
             return 0
 
         now_ts = int(time.time())
@@ -828,8 +956,10 @@ class SQEmoji(_PluginBase):
                 end_ts = self._safe_int(runtime.get("remaining_end_ts"), 0)
                 if end_ts > 0:
                     candidates.append(end_ts)
+                elif self._safe_int(runtime.get("remaining_seconds"), 0) > 0:
+                    candidates.append(now_ts + self._safe_int(runtime.get("remaining_seconds"), 0))
                 else:
-                    candidates.append(now_ts + 5)
+                    candidates.append(now_ts + 300)
             elif runtime.get("can_start"):
                 candidates.append(now_ts + 5)
             else:
@@ -842,6 +972,13 @@ class SQEmoji(_PluginBase):
                 candidates.append(now_ts + 5)
             else:
                 candidates.append(self._next_midnight_ts() + 5)
+
+        if self._auto_open_bags:
+            pending = state.get("pending_open") or {}
+            if pending:
+                candidates.append(now_ts + 5)
+            elif any(self._safe_int(bag.get("quantity"), 0) > 0 for bag in self._iter_dicts(state.get("bags") or [])):
+                candidates.append(now_ts + 5)
 
         candidates = [candidate for candidate in candidates if candidate > 0]
         return min(candidates) if candidates else 0
@@ -867,7 +1004,7 @@ class SQEmoji(_PluginBase):
             self._next_trigger_time = None
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
-        if self._enabled and (self._auto_stage or self._auto_spin):
+        if self._enabled and self._has_auto_jobs_enabled():
             self._bootstrap_pending = False
             self._reregister_plugin(reason or "schedule-next-run")
 
@@ -1095,6 +1232,26 @@ class SQEmoji(_PluginBase):
             })
         return result
 
+    def _build_effect_options(self) -> List[Dict[str, Any]]:
+        options: List[Dict[str, Any]] = [{"title": "自动选择最佳舞台效果", "value": "auto"}]
+        state = self.get_data("state") or {}
+        for effect in self._iter_dicts(state.get("effects") or []):
+            key = str(effect.get("key") or "").strip()
+            if not key:
+                continue
+            unlocked = bool(effect.get("unlocked"))
+            title = str(effect.get("name") or key)
+            if not unlocked:
+                title = f"{title}（未解锁）"
+            options.append({
+                "title": title,
+                "value": key,
+                "disabled": not unlocked,
+            })
+        if self._auto_stage_effect_key and self._auto_stage_effect_key != "auto" and not any(option.get("value") == self._auto_stage_effect_key for option in options):
+            options.append({"title": self._auto_stage_effect_key, "value": self._auto_stage_effect_key})
+        return options
+
     def _build_stage_runtime(self, state: Dict[str, Any]) -> Dict[str, Any]:
         stage = state.get("stage") or {}
         effect_map = {str(item.get("key") or ""): item for item in self._iter_dicts(state.get("effects") or [])}
@@ -1130,7 +1287,7 @@ class SQEmoji(_PluginBase):
             point_gain += ceil(self._safe_int(slot.get("point_bonus"), 0) * (1 + float(effect.get("point_bonus") or 0)))
             magic_gain += ceil(self._safe_int(slot.get("magic_bonus"), 0) * (1 + float(effect.get("magic_bonus") or 0)))
         effect_name = first_slot.get("effect_name") or effect.get("name") or "舞台效果"
-        can_recall = bool(stage.get("can_recall")) or remaining <= 0
+        can_recall = remaining <= 0 or (end_ts > 0 and end_ts <= int(time.time()))
         return {
             "has_active": True,
             "can_recall": can_recall,
@@ -1216,6 +1373,11 @@ class SQEmoji(_PluginBase):
         }
 
     def _choose_best_effect(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        preferred_key = str(self._auto_stage_effect_key or "auto").strip()
+        if preferred_key and preferred_key != "auto":
+            preferred = self._find_effect(state, preferred_key)
+            if preferred and preferred.get("unlocked"):
+                return preferred
         unlocked = [item for item in self._iter_dicts(state.get("effects") or []) if item.get("unlocked")]
         if not unlocked:
             return {"key": "basic", "name": "简陋舞台效果"}
@@ -1337,19 +1499,74 @@ class SQEmoji(_PluginBase):
         tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         return int(tomorrow.timestamp())
 
-    def _request_with_retry(self, func):
+    def _ensure_stage_state_after_confirm(self, session: requests.Session, state: Dict[str, Any]) -> Dict[str, Any]:
+        candidate = state if isinstance(state, dict) else {}
+        for attempt in range(3):
+            if candidate and self._build_stage_runtime(candidate).get("has_active"):
+                return candidate
+            if attempt >= 2:
+                break
+            time.sleep(1)
+            candidate = self._fetch_bundle(session)["state"]
+        return candidate
+
+    def _should_auto_recall_stage(self, runtime: Dict[str, Any]) -> bool:
+        remaining = self._safe_int(runtime.get("remaining_seconds"), 0)
+        if remaining <= 0:
+            return True
+        end_ts = self._safe_int(runtime.get("remaining_end_ts"), 0)
+        return end_ts > 0 and end_ts <= int(time.time())
+
+    def _has_auto_jobs_enabled(self) -> bool:
+        return bool(self._auto_stage or self._auto_spin or self._auto_open_bags)
+
+    @staticmethod
+    def _parse_named_counts(text: str) -> Dict[str, int]:
+        counts: Dict[str, int] = {}
+        for part in re.split(r"\s{2,}", str(text or "").strip()):
+            if "×" not in part:
+                continue
+            name, quantity = part.rsplit("×", 1)
+            try:
+                counts[name.strip()] = counts.get(name.strip(), 0) + int(quantity.strip())
+            except Exception:
+                continue
+        return counts
+
+    def _request_with_retry(self, label: str, func):
         last_error = None
-        for attempt in range(1, max(1, self._http_retry_times) + 1):
+        max_attempts = max(1, self._http_retry_times)
+        for attempt in range(1, max_attempts + 1):
             try:
                 return func()
             except Exception as err:
                 last_error = err
-                if attempt >= max(1, self._http_retry_times):
+                if attempt >= max_attempts or not self._is_retryable_network_error(err):
                     break
-                time.sleep(max(self._http_retry_delay / 1000.0, 0.1) * attempt)
+                delay = max(self._http_retry_delay / 1000.0, 0.2) * attempt
+                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, attempt, max_attempts, self._get_error_detail(err))
+                logger.info("%s %s will retry in %.1fs", self.plugin_name, label, delay)
+                time.sleep(delay)
         if last_error:
             raise last_error
         return {}
+
+    @staticmethod
+    def _is_retryable_network_error(err: Exception) -> bool:
+        if isinstance(err, (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError)):
+            return True
+        message = str(err).lower()
+        retryable_tokens = (
+            "timed out",
+            "timeout",
+            "temporarily unavailable",
+            "connection reset",
+            "failed to establish a new connection",
+            "remote end closed connection",
+            "name or service not known",
+            "read timed out",
+        )
+        return any(token in message for token in retryable_tokens)
 
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:
@@ -1437,3 +1654,4 @@ class SQEmoji(_PluginBase):
         if str(err):
             parts.append(str(err))
         return " | ".join(parts) or "未知错误"
+

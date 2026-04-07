@@ -221,7 +221,7 @@
         <div v-else class="emoji-actor-scroll">
           <div class="emoji-actor-grid">
             <button
-              v-for="actor in sortedActors"
+              v-for="actor in visibleActors"
               :key="actor.code"
               type="button"
               class="emoji-actor-card"
@@ -233,6 +233,25 @@
               <div class="emoji-actor-count">x{{ draftRemaining(actor.code) }}</div>
             </button>
           </div>
+        </div>
+        <div v-if="hasMoreActors || actorVisibleLimit > actorLimitStep" class="emoji-actor-actions">
+          <v-btn
+            v-if="hasMoreActors"
+            variant="tonal"
+            color="primary"
+            size="small"
+            @click="showMoreActors"
+          >
+            显示更多 {{ remainingActorCount }} 个
+          </v-btn>
+          <v-btn
+            v-if="actorVisibleLimit > actorLimitStep"
+            variant="text"
+            size="small"
+            @click="collapseActors"
+          >
+            收起
+          </v-btn>
         </div>
       </section>
 
@@ -399,6 +418,8 @@ const isDarkTheme = ref(false)
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const dismissedSummaryKey = ref('')
 const hiddenPendingKey = ref('')
+const actorLimitStep = 120
+const actorVisibleLimit = ref(actorLimitStep)
 const selectedTier = ref('1')
 const selectedEffect = ref('basic')
 const actorSort = ref('points_desc')
@@ -414,7 +435,7 @@ const draftMap = reactive({})
 let timer = null
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
+const refreshTimeouts = []
 
 const emoji = computed(() => status.emoji_status || {})
 const statsItems = computed(() => emoji.value.stats || [])
@@ -437,6 +458,9 @@ const pendingKey = computed(() => JSON.stringify(pendingOpen.value || {}))
 const pendingOpenVisible = computed(() => !!pendingOpen.value.items?.length && hiddenPendingKey.value !== pendingKey.value)
 const selectedEffectName = computed(() => effects.value.find((item) => item.key === selectedEffect.value)?.name || '未选择')
 const currentActors = computed(() => actorsByTier.value[String(selectedTier.value)] || [])
+const visibleActors = computed(() => sortedActors.value.slice(0, actorVisibleLimit.value))
+const hasMoreActors = computed(() => sortedActors.value.length > actorVisibleLimit.value)
+const remainingActorCount = computed(() => Math.max(0, sortedActors.value.length - actorVisibleLimit.value))
 const stageRemainText = computed(() => {
   const remain = Number(stage.value.remaining_end_ts || 0) - nowTs.value
   if (Number(stage.value.remaining_end_ts || 0) > 0 && remain > 0) {
@@ -520,6 +544,10 @@ watch(actorTabs, (items) => {
   selectedTier.value = String(items[0]?.tier || 1)
 }, { immediate: true, deep: true })
 
+watch([selectedTier, actorSort, currentActors], () => {
+  actorVisibleLimit.value = actorLimitStep
+}, { deep: true })
+
 watch(() => slotMachine.value.remaining, () => {
   spinCount.value = String(Math.min(normalizePositiveInt(spinCount.value, 1), spinMax.value))
 }, { immediate: true })
@@ -575,9 +603,43 @@ function formatCountdown(totalSeconds) {
 }
 
 function bagCardStyle(bag) {
+  const darkBagBackgrounds = {
+    1: 'linear-gradient(180deg, rgba(33, 43, 56, 0.98) 0%, rgba(26, 34, 44, 0.96) 100%)',
+    2: 'linear-gradient(180deg, rgba(27, 47, 37, 0.98) 0%, rgba(23, 39, 31, 0.96) 100%)',
+    3: 'linear-gradient(180deg, rgba(52, 40, 19, 0.98) 0%, rgba(43, 34, 17, 0.96) 100%)',
+    4: 'linear-gradient(180deg, rgba(55, 28, 38, 0.98) 0%, rgba(45, 23, 31, 0.96) 100%)',
+  }
   return {
-    '--bag-bg': bag.bg_color || '',
+    '--bag-bg': isDarkTheme.value
+      ? (darkBagBackgrounds[Number(bag.tier || 0)] || 'rgba(42, 34, 30, 0.96)')
+      : (bag.bg_color || ''),
     '--bag-badge': bag.badge_color || '',
+    '--bag-muted': isDarkTheme.value ? 'rgba(248, 234, 219, 0.82)' : '',
+  }
+}
+
+function showMoreActors() {
+  actorVisibleLimit.value += actorLimitStep
+}
+
+function collapseActors() {
+  actorVisibleLimit.value = actorLimitStep
+}
+
+function clearRefreshTimeouts() {
+  while (refreshTimeouts.length) {
+    const timerId = refreshTimeouts.pop()
+    window.clearTimeout(timerId)
+  }
+}
+
+function scheduleFollowupRefreshes() {
+  clearRefreshTimeouts()
+  for (const delay of [1200, 3200]) {
+    const timerId = window.setTimeout(() => {
+      void loadStatus(false)
+    }, delay)
+    refreshTimeouts.push(timerId)
   }
 }
 
@@ -765,6 +827,7 @@ async function withAction(action, fallback, afterAction = null) {
     const result = await action()
     applyStatusPayload(result || {})
     await loadStatus(false)
+    scheduleFollowupRefreshes()
     if (afterAction) {
       afterAction(result)
     }
@@ -861,30 +924,65 @@ function findThemeNode() {
   let current = rootEl.value
   while (current) {
     if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  if (darkThemes.has(themeValue)) {
+  const nodes = getThemeNodes()
+  if (nodes.some(nodeHasDarkHint)) {
     isDarkTheme.value = true
+    return
+  }
+  if (nodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false
     return
   }
   isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
-function bindTheme() {
+function bindThemeObserver() {
   detectTheme()
-  observedThemeNode = findThemeNode()
-  if (observedThemeNode && window.MutationObserver) {
+  if (window.MutationObserver) {
     themeObserver = new MutationObserver(detectTheme)
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] })
+    })
   }
   if (window.matchMedia) {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -894,7 +992,7 @@ function bindTheme() {
 
 onMounted(async () => {
   loadDismissedSummaryKey()
-  bindTheme()
+  bindThemeObserver()
   await loadStatus()
   timer = window.setInterval(() => {
     nowTs.value = Math.floor(Date.now() / 1000)
@@ -904,6 +1002,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
+  clearRefreshTimeouts()
   themeObserver?.disconnect?.()
   mediaQuery?.removeEventListener?.('change', detectTheme)
 })
@@ -1148,6 +1247,7 @@ onBeforeUnmount(() => {
   background: var(--bag-bg, var(--emoji-card-strong));
   display: grid;
   gap: 10px;
+  color: var(--emoji-text);
 }
 
 .emoji-bag-hero {
@@ -1168,14 +1268,21 @@ onBeforeUnmount(() => {
 .emoji-upgrade-tip {
   text-align: center;
   font-size: 14px;
+  color: var(--bag-muted, var(--emoji-muted));
+  line-height: 1.6;
 }
 
 .emoji-upgrade-box {
   padding: 12px;
   border-radius: 16px;
   border: 1px dashed var(--emoji-border);
+  background: rgba(255, 255, 255, 0.18);
   display: grid;
   gap: 10px;
+}
+
+.emoji-page.is-dark-theme .emoji-upgrade-box {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .emoji-upgrade-row span {
@@ -1240,24 +1347,32 @@ onBeforeUnmount(() => {
 }
 
 .emoji-actor-scroll {
-  max-height: 420px;
+  max-height: 360px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .emoji-actor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 6px;
 }
 
 .emoji-actor-card {
-  padding: 10px 6px;
+  padding: 8px 4px;
   text-align: center;
   cursor: pointer;
   border: 1px solid rgba(104, 161, 255, 0.36);
   border-radius: 14px;
   background: rgba(245, 250, 255, 0.72);
+}
+
+.emoji-actor-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .emoji-page.is-dark-theme .emoji-actor-card {
