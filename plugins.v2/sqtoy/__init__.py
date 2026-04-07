@@ -3,6 +3,7 @@ import random
 import re
 import socket
 import time
+import traceback
 from datetime import datetime, timedelta
 from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
@@ -26,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -177,6 +178,12 @@ class SQToy(_PluginBase):
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         start_time = time.time()
         logger.info("## 开始执行... %s", self._format_time(self._aware_now()))
+        session: Optional[requests.Session] = None
+        state: Dict[str, Any] = {}
+        html = ""
+        collect_names: List[str] = []
+        place_names: List[str] = []
+        placed_times: List[Dict[str, Any]] = []
         try:
             if not self._enabled and not force:
                 return {"success": False, "message": "插件未启用", "status": self._build_status(auto_refresh=False)}
@@ -196,27 +203,27 @@ class SQToy(_PluginBase):
 
             session = self._build_session()
             bundle = self._fetch_bundle(session)
-            state = bundle["state"]
-            html = bundle["html"]
+            state = bundle["state"] or {}
+            html = bundle["html"] or ""
             if not state or not state.get("user"):
                 raise ValueError("获取玩偶页面失败，Cookie 可能失效")
-
-            collect_names: List[str] = []
-            place_names: List[str] = []
-            placed_times: List[Dict[str, Any]] = []
 
             self._collect_personal_slots(session, collect_names)
             self._collect_remote_slots(session, state, collect_names)
 
-            state = self._fetch_bundle(session)["state"]
+            bundle = self._fetch_bundle(session)
+            state = bundle["state"] or state
+            html = bundle["html"] or html
             placed_times.extend(self._place_personal_slots(session, state, place_names))
             if self._enable_target:
-                state = self._fetch_bundle(session)["state"]
+                bundle = self._fetch_bundle(session)
+                state = bundle["state"] or state
+                html = bundle["html"] or html
                 placed_times.extend(self._place_target_slots(session, state, place_names))
 
             final_bundle = self._fetch_bundle(session)
-            final_state = final_bundle["state"]
-            final_html = final_bundle["html"]
+            final_state = final_bundle["state"] or state
+            final_html = final_bundle["html"] or html
             gain_exposure, gain_magic = self._summarize_gains(final_state.get("activity_logs") or [], start_time)
             next_run = self._compute_next_run(final_state, placed_times)
             lines = self._build_summary_lines(collect_names, place_names, gain_exposure, gain_magic)
@@ -234,12 +241,70 @@ class SQToy(_PluginBase):
             }
         except Exception as err:
             detail = self._get_error_detail(err)
+            retry_at: Optional[int] = None
+            fallback_delay = max(30, self._http_timeout * 2)
+
+            if session is not None:
+                try:
+                    recovered_bundle = self._fetch_bundle(session)
+                    state = recovered_bundle.get("state") or state
+                    html = recovered_bundle.get("html") or html
+                except Exception as refresh_err:
+                    logger.warning("%s 异常后刷新状态失败：%s", self.plugin_name, self._get_error_detail(refresh_err))
+
+            gain_exposure = 0
+            gain_magic = 0
+            if state:
+                gain_exposure, gain_magic = self._summarize_gains(state.get("activity_logs") or [], start_time)
+
+            partial_lines = self._build_summary_lines(collect_names, place_names, gain_exposure, gain_magic)
+            if self._enabled and (partial_lines or reason in {"schedule", "bootstrap", "onlyonce"}):
+                retry_at = int(time.time()) + fallback_delay
+            if state:
+                computed_next = self._compute_next_run(state, placed_times)
+                if computed_next:
+                    retry_at = min(retry_at, computed_next) if retry_at else computed_next
+            if partial_lines and retry_at:
+                partial_lines.append("⚠️ 本轮中途超时/网络波动，剩余动作稍后自动重试")
+
+            toy_status = None
+            if state and html:
+                try:
+                    toy_status = self._refresh_and_store_status(state, html, retry_at, partial_lines)
+                except Exception as store_err:
+                    logger.warning("%s 异常后保存状态失败：%s", self.plugin_name, self._get_error_detail(store_err))
+            elif retry_at:
+                try:
+                    self._schedule_next_run(retry_at, reason="error-retry")
+                except Exception as schedule_err:
+                    logger.warning("%s 异常后补重试失败：%s", self.plugin_name, self._get_error_detail(schedule_err))
+
+            if partial_lines:
+                if not toy_status:
+                    self._append_history(partial_lines, retry_at)
+                    self.save_data("last_run", self._format_time(self._aware_now()))
+                logger.warning("%s 本轮部分完成后中断：%s", self.plugin_name, detail)
+                logger.warning("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
+                if self._notify:
+                    self._send_report(partial_lines, retry_at)
+                return {
+                    "success": True,
+                    "message": partial_lines[0],
+                    "lines": partial_lines,
+                    "toy_status": toy_status or (self.get_data("toy_status") or {}),
+                    "status": self._build_status(auto_refresh=False),
+                }
+
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
+            logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             if self._notify:
+                text = detail
+                if retry_at:
+                    text += "\n⏰ 已安排稍后自动重试"
                 self.post_message(
                     title="【🧸SQ玩偶】 异常",
                     mtype=NotificationType.Plugin,
-                    text=detail,
+                    text=text,
                 )
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
@@ -553,9 +618,12 @@ class SQToy(_PluginBase):
         return session
 
     def _fetch_bundle(self, session: requests.Session) -> Dict[str, Any]:
-        response = session.get(
-            f"{self._site_url}/toy_show.php",
-            timeout=(self._http_timeout, self._http_timeout),
+        response = self._request_with_retry(
+            "fetchToyPage",
+            lambda: session.get(
+                f"{self._site_url}/toy_show.php",
+                timeout=(self._http_timeout, self._http_timeout),
+            ),
         )
         response.raise_for_status()
         html = response.text
@@ -709,7 +777,7 @@ class SQToy(_PluginBase):
             return {"success": True, "data": data}
 
         if retry_network:
-            return self._request_with_retry(run)
+            return self._request_with_retry(f"postAction:{action}", run)
         return run()
 
     def _collect_personal_slots(self, session: requests.Session, collect_names: List[str]):
@@ -810,6 +878,8 @@ class SQToy(_PluginBase):
         if not remaining:
             return placed_times
         for _ in range(self._max_target_try):
+            if not remaining:
+                break
             result = self._post_action(session, "random_target", {}, retry_network=True)
             target = result.get("target") or {}
             slots = [
@@ -837,8 +907,9 @@ class SQToy(_PluginBase):
                     success_count += 1
                     place_names.append(item["doll_name"] or "未知玩偶")
                     placed_times.append({"time": now_ts + max(0, item["display_seconds"]), "label": f"本轮放置 外展 {item['doll_name'] or item['doll_key']}"})
-            if success_count:
-                break
+            remaining = [item for item in remaining if self._safe_int(item.get("available"), 0) > 0]
+            if success_count and remaining:
+                time.sleep(max(self._place_retry_delay / 1000.0, 0))
         return placed_times
 
     def _collect_with_retry(self, session: requests.Session, owner_id: Any, slot_index: Any, doll_name: Optional[str]) -> bool:
@@ -988,6 +1059,9 @@ class SQToy(_PluginBase):
         if next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
             next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+            min_trigger = self._aware_now() + timedelta(seconds=5)
+            if next_trigger < min_trigger:
+                next_trigger = min_trigger
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
             self.save_data("next_run_time", self._format_time(next_run))
@@ -1013,11 +1087,13 @@ class SQToy(_PluginBase):
         logger.info("%s 已重新注册调度：%s", self.plugin_name, reason or "update")
 
     def _get_next_run_for_service(self) -> Optional[datetime]:
+        now = self._aware_now()
         if self._bootstrap_pending:
-            return self._aware_now() + timedelta(seconds=3)
-        if self._next_trigger_time:
-            return self._next_trigger_time
-        return self._load_saved_next_trigger()
+            return now + timedelta(seconds=3)
+        next_trigger = self._next_trigger_time or self._load_saved_next_trigger()
+        if not next_trigger:
+            return None
+        return next_trigger if next_trigger > now else now + timedelta(seconds=5)
 
     def _load_saved_next_run(self) -> Optional[datetime]:
         if self._next_run_time:
@@ -1442,19 +1518,48 @@ class SQToy(_PluginBase):
         seconds = max(until - int(time.time()), remaining, 0) if until > 0 else max(remaining, 0)
         return f"冷却中 x{cooling} · 最快{self._format_duration(seconds)}" if seconds else f"冷却中 x{cooling}"
 
-    def _request_with_retry(self, func):
+    def _request_with_retry(self, label: str, func):
         last_error = None
-        for attempt in range(1, max(1, self._http_retry_times) + 1):
+        max_attempts = max(1, self._http_retry_times)
+        for attempt in range(1, max_attempts + 1):
             try:
                 return func()
             except Exception as err:
                 last_error = err
-                if attempt >= max(1, self._http_retry_times):
-                    break
-                time.sleep(max(self._http_retry_delay / 1000.0, 0.1) * attempt)
+                detail = self._get_error_detail(err)
+                if attempt >= max_attempts or not self._is_retryable_network_error(err):
+                    raise
+                wait_seconds = max(self._http_retry_delay / 1000.0, 0.1) * attempt
+                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, attempt, max_attempts, detail)
+                logger.info("%s %s 将在 %.1f 秒后自动重试（%s/%s）", self.plugin_name, label, wait_seconds, attempt + 1, max_attempts)
+                time.sleep(wait_seconds)
         if last_error:
             raise last_error
         return {}
+
+    @staticmethod
+    def _is_retryable_network_error(err: Exception) -> bool:
+        status = getattr(getattr(err, "response", None), "status_code", None)
+        if status is not None and 500 <= int(status) < 600:
+            return True
+        if isinstance(err, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+            return True
+        detail = str(err).upper()
+        codes = ["ETIMEDOUT", "ECONNRESET", "ECONNABORTED", "EAI_AGAIN", "ENOTFOUND", "EHOSTUNREACH", "ECONNREFUSED"]
+        if any(code in detail for code in codes):
+            return True
+        detail_lower = str(err).lower()
+        return any(
+            token in detail_lower
+            for token in (
+                "read timed out",
+                "connect timeout",
+                "connection timed out",
+                "connection aborted",
+                "temporarily unavailable",
+                "remote disconnected",
+            )
+        )
 
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:

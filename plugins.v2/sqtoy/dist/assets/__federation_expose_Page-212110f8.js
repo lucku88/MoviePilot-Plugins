@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_60a379fe_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_b76b557e_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-60a379fe"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-b76b557e"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -517,36 +517,71 @@ function closePlugin() {
 function findThemeNode() {
   let current = rootEl.value;
   while (current) {
-    if (current.getAttribute?.('data-theme')) return current
+    if (current.getAttribute?.('data-theme') || current.className) return current
     current = current.parentElement;
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  if (document.body?.getAttribute('data-theme') || document.body?.className) return document.body
+  if (document.documentElement?.getAttribute('data-theme') || document.documentElement?.className) return document.documentElement
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  if (['dark', 'purple', 'transparent'].includes(themeValue)) {
+    return true
+  }
+  const className = String(node?.className || '').toLowerCase();
+  return ['v-theme--dark', 'theme--dark', 'theme-dark', 'dark'].some((token) => className.includes(token))
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  if (['light'].includes(themeValue)) {
+    return true
+  }
+  const className = String(node?.className || '').toLowerCase();
+  return ['v-theme--light', 'theme--light', 'theme-light', 'light'].some((token) => className.includes(token))
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode();
-  const themeValue = themeNode?.getAttribute?.('data-theme') || '';
-  const darkThemes = new Set(['dark', 'purple', 'transparent']);
-  if (darkThemes.has(themeValue)) {
+  const themeNodes = getThemeNodes();
+  if (themeNodes.some(nodeHasDarkHint)) {
     isDarkTheme.value = true;
+    return
+  }
+  if (themeNodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false;
     return
   }
   isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 }
 
-function bindTheme() {
+function bindThemeObserver() {
+  themeObserver?.disconnect?.();
   detectTheme();
   observedThemeNode = findThemeNode();
-  if (observedThemeNode && window.MutationObserver) {
-    themeObserver = new MutationObserver(detectTheme);
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] });
+  if (!window.MutationObserver) {
+    return
   }
-  if (window.matchMedia) {
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener?.('change', detectTheme);
-  }
+  themeObserver = new MutationObserver(() => {
+    const nextNode = findThemeNode();
+    if (nextNode !== observedThemeNode) {
+      bindThemeObserver();
+      return
+    }
+    detectTheme();
+  });
+  getThemeNodes().forEach((node) => {
+    themeObserver.observe(node, {
+      attributes: true,
+      subtree: node === document.documentElement || node === document.body,
+      attributeFilter: ['data-theme', 'class'],
+    });
+  });
 }
 
 function formatRemain(seconds) {
@@ -608,7 +643,12 @@ function remoteRemainText(item) {
 
 onMounted(async () => {
   loadDismissedSummaryKey();
-  bindTheme();
+  detectTheme();
+  bindThemeObserver();
+  if (window.matchMedia) {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener?.('change', detectTheme);
+  }
   await loadStatus();
   timer = window.setInterval(() => {
     nowTs.value = Math.floor(Date.now() / 1000);
@@ -1152,6 +1192,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-60a379fe"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b76b557e"]]);
 
 export { PageView as default };
