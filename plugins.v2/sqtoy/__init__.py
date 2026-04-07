@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -877,7 +877,8 @@ class SQToy(_PluginBase):
         remaining = [dict(item) for item in self._iter_dicts(state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
         if not remaining:
             return placed_times
-        for _ in range(self._max_target_try):
+        attempt_limit = max(self._max_target_try, min(max(len(remaining) * 2, 6), 20))
+        for _ in range(attempt_limit):
             if not remaining:
                 break
             result = self._post_action(session, "random_target", {}, retry_network=True)
@@ -892,7 +893,7 @@ class SQToy(_PluginBase):
             placements = []
             doll_index = 0
             for slot in slots:
-                if doll_index >= len(remaining) or len(placements) >= self._max_target_place:
+                if doll_index >= len(remaining):
                     break
                 doll = remaining[doll_index]
                 placements.append({"owner_id": slot.get("owner_id"), "slot_index": slot.get("slot_index"), "doll_key": doll.get("doll_key"), "doll_name": doll.get("name"), "display_seconds": self._safe_int(doll.get("display_seconds"), 0)})
@@ -1021,6 +1022,8 @@ class SQToy(_PluginBase):
     def _compute_next_run(self, state: Dict[str, Any], placed_times: Optional[List[Dict[str, Any]]] = None) -> Optional[int]:
         now_ts = int(time.time())
         candidates: List[int] = []
+        if self._needs_placement_retry(state):
+            candidates.append(now_ts + self._placement_retry_seconds())
         for slot in self._iter_dicts(state.get("personal_slots") or []):
             if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
                 continue
@@ -1046,6 +1049,18 @@ class SQToy(_PluginBase):
             candidates.append(self._safe_int(item.get("time"), 0))
         candidates = [candidate for candidate in candidates if candidate > 0]
         return min(candidates) if candidates else now_ts + 6 * 3600
+
+    def _placement_retry_seconds(self) -> int:
+        return max(45, min(300, self._http_timeout * 3))
+
+    def _needs_placement_retry(self, state: Dict[str, Any]) -> bool:
+        available_dolls = any(self._safe_int(item.get("available"), 0) > 0 for item in self._iter_dicts(state.get("doll_inventory") or []))
+        if not available_dolls:
+            return False
+        has_idle_personal_slot = any(not slot.get("occupant") for slot in self._iter_dicts(state.get("personal_slots") or []))
+        if has_idle_personal_slot:
+            return True
+        return self._enable_target
 
     def _should_skip_run(self) -> bool:
         next_run = self._load_saved_next_run()
