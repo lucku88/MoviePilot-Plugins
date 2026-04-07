@@ -26,7 +26,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -701,7 +701,12 @@ class SQToy(_PluginBase):
                 timeout=(self._http_timeout, self._http_timeout),
             )
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            if isinstance(data, dict):
+                return data
+            if data is None:
+                return {}
+            return {"success": True, "data": data}
 
         if retry_network:
             return self._request_with_retry(run)
@@ -712,8 +717,8 @@ class SQToy(_PluginBase):
         self_list = sorted(
             [
                 {"slot": slot, "sec": self._get_personal_remain_sec(slot)}
-                for slot in (state.get("personal_slots") or [])
-                if slot.get("occupant", {}).get("viewer_is_occupant")
+                for slot in self._iter_dicts(state.get("personal_slots") or [])
+                if (slot.get("occupant") or {}).get("viewer_is_occupant")
             ],
             key=lambda item: item["sec"] if item["sec"] is not None else 10**9,
         )
@@ -728,9 +733,9 @@ class SQToy(_PluginBase):
             current = next(
                 (
                     candidate
-                    for candidate in (latest.get("personal_slots") or [])
+                    for candidate in self._iter_dicts(latest.get("personal_slots") or [])
                     if candidate.get("slot_index") == slot.get("slot_index")
-                    and candidate.get("occupant", {}).get("viewer_is_occupant")
+                    and (candidate.get("occupant") or {}).get("viewer_is_occupant")
                 ),
                 None,
             )
@@ -744,7 +749,7 @@ class SQToy(_PluginBase):
         remote_list = sorted(
             [
                 {"item": item, "sec": self._get_remote_remain_sec(item)}
-                for item in (state.get("remote_deployments") or [])
+                for item in self._iter_dicts(state.get("remote_deployments") or [])
             ],
             key=lambda item: item["sec"] if item["sec"] is not None else 10**9,
         )
@@ -773,8 +778,8 @@ class SQToy(_PluginBase):
         placed_times: List[Dict[str, Any]] = []
         for _ in range(self._place_loop_limit):
             current = self._fetch_bundle(session)["state"]
-            idle_slots = [slot for slot in (current.get("personal_slots") or []) if not slot.get("occupant")]
-            dolls = [dict(item) for item in (current.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
+            idle_slots = [slot for slot in self._iter_dicts(current.get("personal_slots") or []) if not slot.get("occupant")]
+            dolls = [dict(item) for item in self._iter_dicts(current.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
             if not idle_slots or not dolls:
                 break
             placements = []
@@ -801,13 +806,17 @@ class SQToy(_PluginBase):
 
     def _place_target_slots(self, session: requests.Session, state: Dict[str, Any], place_names: List[str]) -> List[Dict[str, Any]]:
         placed_times: List[Dict[str, Any]] = []
-        remaining = [dict(item) for item in (state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
+        remaining = [dict(item) for item in self._iter_dicts(state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
         if not remaining:
             return placed_times
         for _ in range(self._max_target_try):
             result = self._post_action(session, "random_target", {}, retry_network=True)
             target = result.get("target") or {}
-            slots = [slot for slot in (target.get("slots") or []) if not slot.get("occupant") and not slot.get("cooldown_active")]
+            slots = [
+                slot
+                for slot in self._iter_dicts(target.get("slots") or [])
+                if not slot.get("occupant") and not slot.get("cooldown_active")
+            ]
             if not target or not slots:
                 continue
             placements = []
@@ -849,7 +858,7 @@ class SQToy(_PluginBase):
         return False
 
     def _pick_remote_candidate(self, slots: List[dict], remote: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        owned = [slot for slot in slots if (slot.get("occupant") or {}).get("viewer_is_occupant")]
+        owned = [slot for slot in self._iter_dicts(slots or []) if (slot.get("occupant") or {}).get("viewer_is_occupant")]
         for candidate in owned:
             if candidate.get("slot_index") == remote.get("slot_index"):
                 return candidate
@@ -861,7 +870,7 @@ class SQToy(_PluginBase):
     def _summarize_gains(self, logs: List[dict], since_time: float) -> Tuple[int, int]:
         gain_exposure = 0
         gain_magic = 0
-        for item in logs:
+        for item in self._iter_dicts(logs or []):
             created_at = item.get("created_at")
             if not created_at:
                 continue
@@ -941,19 +950,19 @@ class SQToy(_PluginBase):
     def _compute_next_run(self, state: Dict[str, Any], placed_times: Optional[List[Dict[str, Any]]] = None) -> Optional[int]:
         now_ts = int(time.time())
         candidates: List[int] = []
-        for slot in state.get("personal_slots") or []:
+        for slot in self._iter_dicts(state.get("personal_slots") or []):
             if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
                 continue
             sec = self._get_personal_remain_sec(slot)
             if sec is None:
                 continue
             candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
-        for remote in state.get("remote_deployments") or []:
+        for remote in self._iter_dicts(state.get("remote_deployments") or []):
             sec = self._get_remote_remain_sec(remote)
             if sec is None:
                 continue
             candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
-        for doll in state.get("doll_inventory") or []:
+        for doll in self._iter_dicts(state.get("doll_inventory") or []):
             if self._safe_int(doll.get("cooling_count"), 0) <= 0:
                 continue
             cooldown_until = self._safe_int(doll.get("cooldown_until"), 0)
@@ -1062,6 +1071,7 @@ class SQToy(_PluginBase):
             "personal_slots": self._build_personal_slots(state, doll_map),
             "target_panel": target_panel or {},
             "remote_records": self._build_remote_records(state, doll_map),
+            "history": (self.get_data("history") or [])[:20],
             "history_logs": self._build_activity_logs(state),
         }
 
@@ -1070,7 +1080,7 @@ class SQToy(_PluginBase):
         if isinstance(catalog, list) and catalog:
             exposure = self._safe_int((state.get("profile") or {}).get("exposure"), 0)
             boxes: List[Dict[str, Any]] = []
-            for item in catalog:
+            for item in self._iter_dicts(catalog):
                 box_key = str(item.get("key") or item.get("box_key") or "").strip()
                 unlock_exposure = self._safe_int(item.get("unlock_exposure"), 0)
                 locked = exposure < unlock_exposure
@@ -1092,9 +1102,12 @@ class SQToy(_PluginBase):
 
     def _build_doll_map(self, state: Dict[str, Any], parsed_map: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         result = dict(parsed_map or {})
-        for box in state.get("catalog") or []:
+        for box in self._iter_dicts(state.get("catalog") or []):
             box_name = str(box.get("name") or "")
-            for doll in (box.get("dolls") or {}).values():
+            dolls = box.get("dolls") or {}
+            if not isinstance(dolls, dict):
+                continue
+            for doll in self._iter_dicts(dolls.values()):
                 name = str(doll.get("name") or "").strip()
                 if not name:
                     continue
@@ -1135,7 +1148,7 @@ class SQToy(_PluginBase):
             if not isinstance(inventory, list) or not inventory:
                 continue
             result: List[Dict[str, Any]] = []
-            for item in inventory:
+            for item in self._iter_dicts(inventory):
                 box_key = str(item.get("box_key") or item.get("key") or "")
                 meta = known_map.get(box_key, {})
                 result.append({
@@ -1154,12 +1167,16 @@ class SQToy(_PluginBase):
 
     def _build_cabinet_cards(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         cards: List[Dict[str, Any]] = []
-        for item in state.get("doll_inventory") or []:
+        for item in self._iter_dicts(state.get("doll_inventory") or []):
             name = str(item.get("name") or "").strip()
             meta = doll_map.get(name, {})
             available = self._safe_int(item.get("available"), 0)
             total = self._safe_int(item.get("quantity"), 0)
             cooling = self._safe_int(item.get("cooling_count"), 0)
+            cooldown_until_ts = self._get_future_ts(
+                self._safe_int(item.get("cooldown_until"), 0),
+                self._safe_int(item.get("cooldown_remaining"), 0),
+            )
             cards.append({
                 "doll_key": item.get("doll_key") or "",
                 "name": name,
@@ -1174,13 +1191,14 @@ class SQToy(_PluginBase):
                 "display_count": max(total - available - cooling, 0),
                 "cooling_count": cooling,
                 "cooldown_text": self._describe_cooldown(item),
+                "cooldown_until_ts": cooldown_until_ts,
                 "can_place": available > 0,
             })
         return cards
 
     def _build_personal_slots(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         cards: List[Dict[str, Any]] = []
-        for slot in state.get("personal_slots") or []:
+        for slot in self._iter_dicts(state.get("personal_slots") or []):
             occupant = slot.get("occupant") or {}
             name = occupant.get("doll_name") or ""
             meta = doll_map.get(name, {})
@@ -1195,6 +1213,8 @@ class SQToy(_PluginBase):
                 "quality": occupant.get("quality") or meta.get("quality") or "",
                 "owner_name": self._strip_html(state.get("user", {}).get("username") or ""),
                 "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else "已可回收",
+                "remaining_seconds": remaining if remaining is not None else None,
+                "remaining_end_ts": self._get_future_ts(0, remaining),
                 "progress": self._calc_slot_progress(slot),
                 "reward_text": f"曝光+{self._safe_int(occupant.get('exposure_reward') or occupant.get('final_exposure_reward'), 0)} 魔力+{self._safe_int(occupant.get('magic_reward') or occupant.get('final_magic_reward'), 0)}",
                 "viewer_is_occupant": bool(occupant.get("viewer_is_occupant")),
@@ -1206,7 +1226,7 @@ class SQToy(_PluginBase):
         if not target:
             return {}
         slots = []
-        for slot in target.get("slots") or []:
+        for slot in self._iter_dicts(target.get("slots") or []):
             occupant = slot.get("occupant") or {}
             remaining = self._safe_int(occupant.get("time_until_collect"), 0)
             slots.append({
@@ -1220,6 +1240,8 @@ class SQToy(_PluginBase):
                 "viewer_is_occupant": bool(occupant.get("viewer_is_occupant")),
                 "can_collect": bool(occupant.get("viewer_is_occupant")) and (remaining <= 0 or self._safe_int(occupant.get("elapsed_seconds"), 0) >= self._safe_int(occupant.get("display_seconds"), 0)),
                 "remaining_text": self._format_duration(remaining) if remaining > 0 else "空位可抢",
+                "remaining_seconds": remaining,
+                "remaining_end_ts": self._get_future_ts(0, remaining),
                 "state_text": occupant.get("status") or slot.get("status") or ("空位" if not occupant else "展出中"),
             })
         return {
@@ -1231,7 +1253,7 @@ class SQToy(_PluginBase):
 
     def _build_remote_records(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         records: List[Dict[str, Any]] = []
-        for item in state.get("remote_deployments") or []:
+        for item in self._iter_dicts(state.get("remote_deployments") or []):
             name = item.get("doll_name") or ""
             meta = doll_map.get(name, {})
             remaining = self._get_remote_remain_sec(item)
@@ -1243,13 +1265,15 @@ class SQToy(_PluginBase):
                 "image": self._absolute_url(item.get("doll_icon") or meta.get("image") or ""),
                 "status": item.get("status") or "",
                 "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else "已可回收",
+                "remaining_seconds": remaining if remaining is not None else None,
+                "remaining_end_ts": self._get_future_ts(0, remaining),
                 "remaining": remaining if remaining is not None else 10**9,
             })
         return sorted(records, key=lambda item: item["remaining"])
 
     def _build_activity_logs(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         result: List[Dict[str, Any]] = []
-        for item in (state.get("activity_logs") or [])[:20]:
+        for item in self._iter_dicts((state.get("activity_logs") or [])[:20]):
             result.append({
                 "message": self._strip_html(item.get("message") or ""),
                 "time": item.get("created_at") or "",
@@ -1463,7 +1487,7 @@ class SQToy(_PluginBase):
         qty_keys: Tuple[str, ...] = ("quantity", "count"),
     ) -> str:
         counted: Dict[str, int] = {}
-        for item in items or []:
+        for item in self._iter_dicts(items or []):
             name = ""
             for key in name_keys:
                 name = str(item.get(key) or "").strip()
@@ -1483,13 +1507,26 @@ class SQToy(_PluginBase):
         box_key = str(box_key or "").strip()
         if not box_key:
             return "未知盲盒"
-        for item in state.get("catalog") or []:
+        for item in self._iter_dicts(state.get("catalog") or []):
             if str(item.get("key") or item.get("box_key") or "").strip() == box_key:
                 return str(item.get("name") or box_key)
-        for item in state.get("box_inventory") or []:
+        for item in self._iter_dicts(state.get("box_inventory") or []):
             if str(item.get("box_key") or item.get("key") or "").strip() == box_key:
                 return str(item.get("name") or box_key)
         return box_key
+
+    @staticmethod
+    def _iter_dicts(items: Any) -> List[Dict[str, Any]]:
+        return [item for item in (items or []) if isinstance(item, dict)]
+
+    @staticmethod
+    def _get_future_ts(until_ts: int, remaining_seconds: Optional[int]) -> int:
+        if until_ts and until_ts > 0:
+            return until_ts
+        if remaining_seconds is None:
+            return 0
+        remaining = max(0, int(remaining_seconds))
+        return int(time.time()) + remaining if remaining > 0 else 0
 
     def _absolute_url(self, url: str) -> str:
         if not url:

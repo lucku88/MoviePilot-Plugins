@@ -156,7 +156,7 @@
             <div class="toy-doll-meta">{{ doll.origin }}</div>
             <div class="toy-doll-count">可用/总数 {{ doll.available }} / {{ doll.total }}</div>
             <div class="toy-doll-count">展出{{ doll.display_count }} · 冷却{{ doll.cooling_count }}</div>
-            <div v-if="doll.cooldown_text" class="toy-doll-cooldown">{{ doll.cooldown_text }}</div>
+            <div v-if="cabinetCooldownText(doll)" class="toy-doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
             <v-btn block size="small" color="deep-orange" variant="flat" :disabled="!doll.can_place" class="mt-3">
               {{ selectedDollKey === doll.doll_key ? '已选择' : '选择上架' }}
             </v-btn>
@@ -182,7 +182,7 @@
             <template v-else>
               <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
               <div class="toy-slot-name">{{ slot.doll_name }}</div>
-              <div class="toy-slot-meta">{{ slot.remaining_text }}</div>
+              <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
               <div class="toy-slot-meta">{{ slot.reward_text }}</div>
               <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
               <v-btn
@@ -225,7 +225,7 @@
               </template>
               <template v-else>
                 <div class="toy-slot-name">{{ slot.doll_name || slot.state_text }}</div>
-                <div class="toy-slot-meta">{{ slot.remaining_text }}</div>
+                <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
                 <div class="toy-slot-meta">{{ slot.state_text }}</div>
                 <v-btn v-if="slot.viewer_is_occupant" color="primary" variant="flat" :disabled="loading" @click="collectSlot(slot)">
                   {{ slot.can_collect ? '收回玩偶' : '尝试收回' }}
@@ -250,7 +250,7 @@
             <div class="toy-remote-owner">{{ item.owner_name }}</div>
             <div class="toy-remote-meta">展位 {{ item.slot_index }}</div>
             <div class="toy-remote-meta">{{ item.doll_name }}</div>
-            <div class="toy-remote-meta">{{ item.remaining_text }}</div>
+            <div class="toy-remote-meta">{{ remoteRemainText(item) }}</div>
             <v-btn size="small" variant="flat" color="primary" :disabled="loading" @click="viewTarget(item.owner_id)">查看</v-btn>
           </article>
         </div>
@@ -263,11 +263,14 @@
             <h2>执行历史</h2>
           </div>
         </div>
-        <div v-if="!historyLogs.length" class="toy-empty">暂无执行历史</div>
+        <div v-if="!historyItems.length" class="toy-empty">暂无执行历史</div>
         <div v-else class="toy-history-list">
-          <article v-for="item in historyLogs" :key="`${item.time}-${item.message}`" class="toy-history-item">
-            <div class="toy-history-message">{{ item.message }}</div>
-            <div class="toy-history-time">{{ item.time }}</div>
+          <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="toy-history-item">
+            <div class="toy-history-top">
+              <strong>{{ item.title || '任务结果' }}</strong>
+              <span>{{ item.time }}</span>
+            </div>
+            <div class="toy-history-lines">{{ (item.lines || []).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -298,7 +301,11 @@ const buyQuantities = reactive({})
 const openQuantities = reactive({})
 const isDarkTheme = ref(false)
 const dismissedSummaryKey = ref('')
+const nowTs = ref(Math.floor(Date.now() / 1000))
+const lastRunAutoRefreshTs = ref(0)
+const lastTriggerAutoRefreshTs = ref(0)
 
+let timer = null
 let themeObserver = null
 let mediaQuery = null
 let observedThemeNode = null
@@ -310,10 +317,12 @@ const myBoxes = computed(() => toy.value.my_boxes || [])
 const personalSlots = computed(() => toy.value.personal_slots || [])
 const targetPanel = computed(() => toy.value.target_panel || {})
 const remoteRecords = computed(() => toy.value.remote_records || [])
-const historyLogs = computed(() => toy.value.history_logs || [])
+const historyItems = computed(() => status.history || toy.value.history || [])
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
+const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time))
+const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time))
 
 const cabinetCards = computed(() => {
   const items = [...(toy.value.cabinet || [])]
@@ -354,6 +363,27 @@ function flash(text, type = 'success') {
   message.type = type
 }
 
+function parseDateTime(value) {
+  if (!value || typeof value !== 'string') {
+    return 0
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+  if (!match) {
+    return 0
+  }
+  const [, year, month, day, hour, minute, second] = match
+  return Math.floor(
+    new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).getTime() / 1000,
+  )
+}
+
 function applyPayload(payload = {}) {
   if (payload.status && payload.status.toy_status) {
     Object.assign(status, payload.status)
@@ -368,9 +398,62 @@ function applyPayload(payload = {}) {
   }
 }
 
-async function loadStatus() {
-  const data = await props.api.get(`${pluginBase}/status`)
-  Object.assign(status, data || {})
+function loadDismissedSummaryKey() {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    dismissedSummaryKey.value = ''
+    return
+  }
+  dismissedSummaryKey.value = window.sessionStorage.getItem('sqtoy-summary-dismissed') || ''
+}
+
+watch(summaryKey, () => {
+  loadDismissedSummaryKey()
+})
+
+watch(nextRunTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastRunAutoRefreshTs.value = 0
+  }
+})
+
+watch(nextTriggerTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastTriggerAutoRefreshTs.value = 0
+  }
+})
+
+async function loadStatus(showError = true) {
+  try {
+    const data = await props.api.get(`${pluginBase}/status`)
+    Object.assign(status, data || {})
+    return true
+  } catch (error) {
+    if (showError) {
+      flash(error?.message || '加载状态失败', 'error')
+    }
+    return false
+  }
+}
+
+async function maybeAutoRefreshStatus() {
+  if (loading.value) {
+    return
+  }
+
+  let shouldRefresh = false
+  if (nextRunTs.value && nowTs.value >= nextRunTs.value && nextRunTs.value !== lastRunAutoRefreshTs.value) {
+    lastRunAutoRefreshTs.value = nextRunTs.value
+    shouldRefresh = true
+  }
+
+  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && nextTriggerTs.value !== lastTriggerAutoRefreshTs.value) {
+    lastTriggerAutoRefreshTs.value = nextTriggerTs.value
+    shouldRefresh = true
+  }
+
+  if (shouldRefresh) {
+    await loadStatus(false)
+  }
 }
 
 async function withAction(action, fallback) {
@@ -378,6 +461,7 @@ async function withAction(action, fallback) {
   try {
     const result = await action()
     applyPayload(result || {})
+    await loadStatus(false)
     flash(result?.message || fallback)
   } catch (error) {
     flash(error?.message || fallback, 'error')
@@ -480,11 +564,21 @@ function setSort(field, direction) {
 }
 
 function dismissSummary() {
-  dismissedSummaryKey.value = summaryKey.value
-  sessionStorage.setItem('sqtoy-summary-dismissed', dismissedSummaryKey.value)
+  const key = summaryKey.value
+  dismissedSummaryKey.value = key
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (key) {
+      window.sessionStorage.setItem('sqtoy-summary-dismissed', key)
+    } else {
+      window.sessionStorage.removeItem('sqtoy-summary-dismissed')
+    }
+  }
 }
 
 function closePlugin() {
+  if (showSummary.value) {
+    dismissSummary()
+  }
   emit('close')
 }
 
@@ -523,13 +617,77 @@ function bindTheme() {
   }
 }
 
+function formatRemain(seconds) {
+  const sec = Math.max(0, Number(seconds) || 0)
+  if (!sec) return '现在可回收'
+  const hours = Math.floor(sec / 3600)
+  const minutes = Math.floor((sec % 3600) / 60)
+  const secs = sec % 60
+  if (hours) return `${hours}小时${minutes}分钟`
+  if (minutes) return `${minutes}分钟${secs}秒`
+  return `${secs}秒`
+}
+
+function cabinetCooldownText(doll) {
+  const coolingCount = Number(doll?.cooling_count || 0)
+  if (!coolingCount) {
+    return ''
+  }
+  const untilTs = Number(doll?.cooldown_until_ts || 0)
+  if (!untilTs) {
+    return doll?.cooldown_text || ''
+  }
+  const remain = untilTs - nowTs.value
+  return remain > 0 ? `冷却中 x${coolingCount} · 最快${formatRemain(remain)}` : `冷却中 x${coolingCount}`
+}
+
+function slotRemainText(slot) {
+  const endTs = Number(slot?.remaining_end_ts || 0)
+  if (endTs) {
+    const remain = endTs - nowTs.value
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return slot?.remaining_text || '已可回收'
+}
+
+function targetRemainText(slot) {
+  if (!slot) {
+    return ''
+  }
+  if (slot.empty && !slot.cooldown_active) {
+    return '空位可抢'
+  }
+  const endTs = Number(slot.remaining_end_ts || 0)
+  if (endTs) {
+    const remain = endTs - nowTs.value
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return slot.remaining_text || slot.state_text || ''
+}
+
+function remoteRemainText(item) {
+  const endTs = Number(item?.remaining_end_ts || 0)
+  if (endTs) {
+    const remain = endTs - nowTs.value
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return item?.remaining_text || '已可回收'
+}
+
 onMounted(async () => {
-  dismissedSummaryKey.value = sessionStorage.getItem('sqtoy-summary-dismissed') || ''
+  loadDismissedSummaryKey()
   bindTheme()
   await loadStatus()
+  timer = window.setInterval(() => {
+    nowTs.value = Math.floor(Date.now() / 1000)
+    void maybeAutoRefreshStatus()
+  }, 1000)
 })
 
 onBeforeUnmount(() => {
+  if (timer) {
+    window.clearInterval(timer)
+  }
   themeObserver?.disconnect?.()
   mediaQuery?.removeEventListener?.('change', detectTheme)
 })
@@ -597,6 +755,8 @@ onBeforeUnmount(() => {
 .toy-doll-name, .toy-slot-name, .toy-remote-owner { font-size: 22px; font-weight: 800; }
 .toy-doll-meta, .toy-slot-meta, .toy-remote-meta, .toy-doll-count, .toy-slot-tip, .toy-history-time { margin-top: 8px; font-size: 13px; opacity: 0.8; }
 .toy-doll-cooldown { margin-top: 10px; padding: 7px 12px; background: rgba(126, 126, 126, 0.18); font-size: 12px; }
+.toy-history-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 13px; }
+.toy-history-lines, .toy-history-top span { font-size: 12px; opacity: 0.78; }
 .toy-slot-index { padding: 6px 12px; background: rgba(255, 166, 84, 0.14); font-size: 12px; font-weight: 700; margin-bottom: 14px; }
 .toy-slot-progress { margin: 14px 0; height: 8px; border-radius: 999px; background: rgba(255, 165, 93, 0.14); overflow: hidden; }
 .toy-slot-progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb56f 0%, #ff8747 100%); }

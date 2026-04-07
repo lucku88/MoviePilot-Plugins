@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_517b783a_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_60a379fe_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-517b783a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-60a379fe"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -198,8 +198,8 @@ const _hoisted_99 = {
   key: 1,
   class: "toy-history-list"
 };
-const _hoisted_100 = { class: "toy-history-message" };
-const _hoisted_101 = { class: "toy-history-time" };
+const _hoisted_100 = { class: "toy-history-top" };
+const _hoisted_101 = { class: "toy-history-lines" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -233,7 +233,11 @@ const buyQuantities = reactive({});
 const openQuantities = reactive({});
 const isDarkTheme = ref(false);
 const dismissedSummaryKey = ref('');
+const nowTs = ref(Math.floor(Date.now() / 1000));
+const lastRunAutoRefreshTs = ref(0);
+const lastTriggerAutoRefreshTs = ref(0);
 
+let timer = null;
 let themeObserver = null;
 let mediaQuery = null;
 let observedThemeNode = null;
@@ -245,10 +249,12 @@ const myBoxes = computed(() => toy.value.my_boxes || []);
 const personalSlots = computed(() => toy.value.personal_slots || []);
 const targetPanel = computed(() => toy.value.target_panel || {});
 const remoteRecords = computed(() => toy.value.remote_records || []);
-const historyLogs = computed(() => toy.value.history_logs || []);
+const historyItems = computed(() => status.history || toy.value.history || []);
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean));
 const summaryKey = computed(() => summaryLines.value.join('||'));
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value);
+const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time));
+const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time));
 
 const cabinetCards = computed(() => {
   const items = [...(toy.value.cabinet || [])];
@@ -289,6 +295,27 @@ function flash(text, type = 'success') {
   message.type = type;
 }
 
+function parseDateTime(value) {
+  if (!value || typeof value !== 'string') {
+    return 0
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) {
+    return 0
+  }
+  const [, year, month, day, hour, minute, second] = match;
+  return Math.floor(
+    new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).getTime() / 1000,
+  )
+}
+
 function applyPayload(payload = {}) {
   if (payload.status && payload.status.toy_status) {
     Object.assign(status, payload.status);
@@ -303,9 +330,62 @@ function applyPayload(payload = {}) {
   }
 }
 
-async function loadStatus() {
-  const data = await props.api.get(`${pluginBase}/status`);
-  Object.assign(status, data || {});
+function loadDismissedSummaryKey() {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    dismissedSummaryKey.value = '';
+    return
+  }
+  dismissedSummaryKey.value = window.sessionStorage.getItem('sqtoy-summary-dismissed') || '';
+}
+
+watch(summaryKey, () => {
+  loadDismissedSummaryKey();
+});
+
+watch(nextRunTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastRunAutoRefreshTs.value = 0;
+  }
+});
+
+watch(nextTriggerTs, (value) => {
+  if (!value || value > nowTs.value) {
+    lastTriggerAutoRefreshTs.value = 0;
+  }
+});
+
+async function loadStatus(showError = true) {
+  try {
+    const data = await props.api.get(`${pluginBase}/status`);
+    Object.assign(status, data || {});
+    return true
+  } catch (error) {
+    if (showError) {
+      flash(error?.message || '加载状态失败', 'error');
+    }
+    return false
+  }
+}
+
+async function maybeAutoRefreshStatus() {
+  if (loading.value) {
+    return
+  }
+
+  let shouldRefresh = false;
+  if (nextRunTs.value && nowTs.value >= nextRunTs.value && nextRunTs.value !== lastRunAutoRefreshTs.value) {
+    lastRunAutoRefreshTs.value = nextRunTs.value;
+    shouldRefresh = true;
+  }
+
+  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && nextTriggerTs.value !== lastTriggerAutoRefreshTs.value) {
+    lastTriggerAutoRefreshTs.value = nextTriggerTs.value;
+    shouldRefresh = true;
+  }
+
+  if (shouldRefresh) {
+    await loadStatus(false);
+  }
 }
 
 async function withAction(action, fallback) {
@@ -313,6 +393,7 @@ async function withAction(action, fallback) {
   try {
     const result = await action();
     applyPayload(result || {});
+    await loadStatus(false);
     flash(result?.message || fallback);
   } catch (error) {
     flash(error?.message || fallback, 'error');
@@ -415,11 +496,21 @@ function setSort(field, direction) {
 }
 
 function dismissSummary() {
-  dismissedSummaryKey.value = summaryKey.value;
-  sessionStorage.setItem('sqtoy-summary-dismissed', dismissedSummaryKey.value);
+  const key = summaryKey.value;
+  dismissedSummaryKey.value = key;
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (key) {
+      window.sessionStorage.setItem('sqtoy-summary-dismissed', key);
+    } else {
+      window.sessionStorage.removeItem('sqtoy-summary-dismissed');
+    }
+  }
 }
 
 function closePlugin() {
+  if (showSummary.value) {
+    dismissSummary();
+  }
   emit('close');
 }
 
@@ -458,13 +549,77 @@ function bindTheme() {
   }
 }
 
+function formatRemain(seconds) {
+  const sec = Math.max(0, Number(seconds) || 0);
+  if (!sec) return '现在可回收'
+  const hours = Math.floor(sec / 3600);
+  const minutes = Math.floor((sec % 3600) / 60);
+  const secs = sec % 60;
+  if (hours) return `${hours}小时${minutes}分钟`
+  if (minutes) return `${minutes}分钟${secs}秒`
+  return `${secs}秒`
+}
+
+function cabinetCooldownText(doll) {
+  const coolingCount = Number(doll?.cooling_count || 0);
+  if (!coolingCount) {
+    return ''
+  }
+  const untilTs = Number(doll?.cooldown_until_ts || 0);
+  if (!untilTs) {
+    return doll?.cooldown_text || ''
+  }
+  const remain = untilTs - nowTs.value;
+  return remain > 0 ? `冷却中 x${coolingCount} · 最快${formatRemain(remain)}` : `冷却中 x${coolingCount}`
+}
+
+function slotRemainText(slot) {
+  const endTs = Number(slot?.remaining_end_ts || 0);
+  if (endTs) {
+    const remain = endTs - nowTs.value;
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return slot?.remaining_text || '已可回收'
+}
+
+function targetRemainText(slot) {
+  if (!slot) {
+    return ''
+  }
+  if (slot.empty && !slot.cooldown_active) {
+    return '空位可抢'
+  }
+  const endTs = Number(slot.remaining_end_ts || 0);
+  if (endTs) {
+    const remain = endTs - nowTs.value;
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return slot.remaining_text || slot.state_text || ''
+}
+
+function remoteRemainText(item) {
+  const endTs = Number(item?.remaining_end_ts || 0);
+  if (endTs) {
+    const remain = endTs - nowTs.value;
+    return remain > 0 ? formatRemain(remain) : '已可回收'
+  }
+  return item?.remaining_text || '已可回收'
+}
+
 onMounted(async () => {
-  dismissedSummaryKey.value = sessionStorage.getItem('sqtoy-summary-dismissed') || '';
+  loadDismissedSummaryKey();
   bindTheme();
   await loadStatus();
+  timer = window.setInterval(() => {
+    nowTs.value = Math.floor(Date.now() / 1000);
+    void maybeAutoRefreshStatus();
+  }, 1000);
 });
 
 onBeforeUnmount(() => {
+  if (timer) {
+    window.clearInterval(timer);
+  }
   themeObserver?.disconnect?.();
   mediaQuery?.removeEventListener?.('change', detectTheme);
 });
@@ -769,8 +924,8 @@ return (_ctx, _cache) => {
                   _createElementVNode("div", _hoisted_58, _toDisplayString(doll.origin), 1),
                   _createElementVNode("div", _hoisted_59, "可用/总数 " + _toDisplayString(doll.available) + " / " + _toDisplayString(doll.total), 1),
                   _createElementVNode("div", _hoisted_60, "展出" + _toDisplayString(doll.display_count) + " · 冷却" + _toDisplayString(doll.cooling_count), 1),
-                  (doll.cooldown_text)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_61, _toDisplayString(doll.cooldown_text), 1))
+                  (cabinetCooldownText(doll))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_61, _toDisplayString(cabinetCooldownText(doll)), 1))
                     : _createCommentVNode("", true),
                   _createVNode(_component_v_btn, {
                     block: "",
@@ -824,7 +979,7 @@ return (_ctx, _cache) => {
                         }, null, 8, _hoisted_68))
                       : _createCommentVNode("", true),
                     _createElementVNode("div", _hoisted_69, _toDisplayString(slot.doll_name), 1),
-                    _createElementVNode("div", _hoisted_70, _toDisplayString(slot.remaining_text), 1),
+                    _createElementVNode("div", _hoisted_70, _toDisplayString(slotRemainText(slot)), 1),
                     _createElementVNode("div", _hoisted_71, _toDisplayString(slot.reward_text), 1),
                     _createElementVNode("div", _hoisted_72, [
                       _createElementVNode("div", {
@@ -912,7 +1067,7 @@ return (_ctx, _cache) => {
                         ], 64))
                       : (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
                           _createElementVNode("div", _hoisted_84, _toDisplayString(slot.doll_name || slot.state_text), 1),
-                          _createElementVNode("div", _hoisted_85, _toDisplayString(slot.remaining_text), 1),
+                          _createElementVNode("div", _hoisted_85, _toDisplayString(targetRemainText(slot)), 1),
                           _createElementVNode("div", _hoisted_86, _toDisplayString(slot.state_text), 1),
                           (slot.viewer_is_occupant)
                             ? (_openBlock(), _createBlock(_component_v_btn, {
@@ -955,7 +1110,7 @@ return (_ctx, _cache) => {
                   _createElementVNode("div", _hoisted_92, _toDisplayString(item.owner_name), 1),
                   _createElementVNode("div", _hoisted_93, "展位 " + _toDisplayString(item.slot_index), 1),
                   _createElementVNode("div", _hoisted_94, _toDisplayString(item.doll_name), 1),
-                  _createElementVNode("div", _hoisted_95, _toDisplayString(item.remaining_text), 1),
+                  _createElementVNode("div", _hoisted_95, _toDisplayString(remoteRemainText(item)), 1),
                   _createVNode(_component_v_btn, {
                     size: "small",
                     variant: "flat",
@@ -974,16 +1129,19 @@ return (_ctx, _cache) => {
       ]),
       _createElementVNode("section", _hoisted_96, [
         _hoisted_97,
-        (!historyLogs.value.length)
+        (!historyItems.value.length)
           ? (_openBlock(), _createElementBlock("div", _hoisted_98, "暂无执行历史"))
           : (_openBlock(), _createElementBlock("div", _hoisted_99, [
-              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyLogs.value, (item) => {
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
-                  key: `${item.time}-${item.message}`,
+                  key: `${item.time}-${item.title}`,
                   class: "toy-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_100, _toDisplayString(item.message), 1),
-                  _createElementVNode("div", _hoisted_101, _toDisplayString(item.time), 1)
+                  _createElementVNode("div", _hoisted_100, [
+                    _createElementVNode("strong", null, _toDisplayString(item.title || '任务结果'), 1),
+                    _createElementVNode("span", null, _toDisplayString(item.time), 1)
+                  ]),
+                  _createElementVNode("div", _hoisted_101, _toDisplayString((item.lines || []).join(' / ')), 1)
                 ]))
               }), 128))
             ]))
@@ -994,6 +1152,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-517b783a"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-60a379fe"]]);
 
 export { PageView as default };
