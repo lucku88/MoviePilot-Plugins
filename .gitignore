@@ -17,6 +17,8 @@ dist/
 !plugins.v2/sqpill/dist/**
 !plugins.v2/sqtoy/dist/
 !plugins.v2/sqtoy/dist/**
+!plugins.v2/sqemoji/dist/
+!plugins.v2/sqemoji/dist/**
 downloads/
 eggs/
 .eggs/
