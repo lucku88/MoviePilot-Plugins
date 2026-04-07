@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_a120640c_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_0aec06cd_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a120640c"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-0aec06cd"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pill-shell" };
 const _hoisted_2 = { class: "pill-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -16,7 +16,7 @@ const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 ], -1));
 const _hoisted_4 = { class: "pill-actions" };
 const _hoisted_5 = { class: "pill-grid" };
-const _hoisted_6 = { class: "pill-panel" };
+const _hoisted_6 = { class: "pill-panel pill-panel-wide" };
 const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "基础开关"),
@@ -33,7 +33,7 @@ const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_11 = { class: "pill-form-grid pill-form-grid-2" };
 const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 搬砖严格按上面的 CRON 运行，默认每天 00:05。沙滩不走 CRON，而是按页面返回的冷却时间自动调度。 ", -1));
-const _hoisted_13 = { class: "pill-panel" };
+const _hoisted_13 = { class: "pill-panel pill-panel-wide" };
 const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "自动处理"),
@@ -42,7 +42,7 @@ const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_15 = { class: "pill-form-grid" };
 const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 开启自动炼造或自动兑换后，插件会在清沙滩成功后按当前库存执行，不额外创建新的运行周期。 ", -1));
-const _hoisted_17 = { class: "pill-panel" };
+const _hoisted_17 = { class: "pill-panel pill-panel-wide" };
 const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "搬砖节奏"),
@@ -51,7 +51,7 @@ const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_19 = { class: "pill-form-grid" };
 const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-note" }, " 每天搬砖次数固定按 50 次处理；若本轮搬完后页面仍显示未达上限，会在 60 秒后自动重试。 ", -1));
-const _hoisted_21 = { class: "pill-panel" };
+const _hoisted_21 = { class: "pill-panel pill-panel-wide" };
 const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "pill-panel-kicker" }, "网络设置"),
@@ -508,6 +508,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a120640c"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0aec06cd"]]);
 
 export { ConfigView as default };

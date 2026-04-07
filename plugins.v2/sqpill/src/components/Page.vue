@@ -63,11 +63,6 @@
           <div class="pill-status-body">
             <div class="pill-status-title">{{ brickHeadline }}</div>
             <div class="pill-status-countdown">{{ brickCountdownText }}</div>
-            <div class="pill-status-desc">{{ brick.status_text || '等待刷新' }}</div>
-            <div class="pill-inline-meta">
-              <span>口袋 {{ brick.bag_count || 0 }} 块</span>
-              <span>今日 {{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</span>
-            </div>
           </div>
         </article>
 
@@ -84,11 +79,6 @@
           <div class="pill-status-body">
             <div class="pill-status-title">{{ beachHeadline }}</div>
             <div class="pill-status-countdown">{{ beachCountdownText }}</div>
-            <div class="pill-status-desc">{{ beach.status_text || '等待刷新' }}</div>
-            <div class="pill-inline-meta">
-              <span v-if="beach.level_text">{{ beach.level_text }}</span>
-              <span v-if="beach.hnr_text">HNR {{ beach.hnr_text }}</span>
-            </div>
           </div>
         </article>
       </section>
@@ -627,8 +617,7 @@ onBeforeUnmount(() => {
 
 .pill-subtitle,
 .pill-panel-note,
-.pill-history-lines,
-.pill-status-desc {
+.pill-history-lines {
   color: var(--pill-muted);
 }
 
@@ -740,21 +729,6 @@ onBeforeUnmount(() => {
   font-size: clamp(18px, 2vw, 22px);
   font-weight: 800;
   color: var(--pill-accent);
-}
-
-.pill-inline-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pill-inline-meta span {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--pill-accent-soft);
-  color: var(--pill-accent);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .pill-toolkit {

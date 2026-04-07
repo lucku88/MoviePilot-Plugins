@@ -22,7 +22,7 @@
       </v-alert>
 
       <section class="pill-grid">
-        <article class="pill-panel">
+        <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">基础开关</div>
@@ -67,7 +67,7 @@
           </div>
         </article>
 
-        <article class="pill-panel">
+        <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">自动处理</div>
@@ -95,7 +95,7 @@
           </div>
         </article>
 
-        <article class="pill-panel">
+        <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">搬砖节奏</div>
@@ -111,7 +111,7 @@
           </div>
         </article>
 
-        <article class="pill-panel">
+        <article class="pill-panel pill-panel-wide">
           <div class="pill-panel-head">
             <div>
               <div class="pill-panel-kicker">网络设置</div>
@@ -394,7 +394,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .pill-panel-wide {
@@ -425,7 +425,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-form-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
 }
 
 .pill-form-grid-2 {
