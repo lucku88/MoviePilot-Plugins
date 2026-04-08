@@ -55,7 +55,7 @@
     "name": "SQ玩偶",
     "description": "SQ玩偶自动回收、展出与外展，支持 Vue 状态页、动态调度和站点 Cookie 同步。",
     "labels": "工具,自动化,玩偶",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,

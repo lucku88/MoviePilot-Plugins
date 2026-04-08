@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -930,6 +930,105 @@ class SQToy(_PluginBase):
             if (candidate.get("occupant") or {}).get("doll_name") == remote.get("doll_name"):
                 return candidate
         return owned[0] if owned else None
+
+    def _collect_with_retry(
+        self,
+        session: requests.Session,
+        owner_id: Any,
+        slot_index: Any,
+        doll_name: Optional[str],
+    ) -> bool:
+        owner_id = self._safe_int(owner_id, 0)
+        slot_index = self._safe_int(slot_index, -1)
+        if owner_id <= 0 or slot_index < 0:
+            return False
+
+        for attempt in range(1, self._collect_retry + 1):
+            try:
+                result = self._post_action(session, "collect_slot", {"owner_id": owner_id, "slot_index": slot_index})
+                if result.get("success"):
+                    return True
+                if self._confirm_collect_success(session, owner_id, slot_index, doll_name):
+                    return True
+                detail = self._strip_html(result.get("message") or result.get("msg") or "")
+                if detail:
+                    logger.warning(
+                        "%s 鍥炴敹杩斿洖澶辫触锛?s/%s锛夛細%s | %s",
+                        self.plugin_name,
+                        attempt,
+                        self._collect_retry,
+                        doll_name or "鏈煡鐜╁伓",
+                        detail,
+                    )
+            except Exception as err:
+                logger.warning(
+                    "%s 鍥炴敹澶辫触锛?s/%s锛夛細%s | %s",
+                    self.plugin_name,
+                    attempt,
+                    self._collect_retry,
+                    doll_name or "鏈煡鐜╁伓",
+                    self._get_error_detail(err),
+                )
+                if self._confirm_collect_success(session, owner_id, slot_index, doll_name):
+                    return True
+            if attempt < self._collect_retry:
+                time.sleep(max(self._collect_retry_delay / 1000.0, 0))
+        return False
+
+    def _confirm_collect_success(
+        self,
+        session: requests.Session,
+        owner_id: int,
+        slot_index: int,
+        doll_name: Optional[str],
+    ) -> bool:
+        try:
+            latest = self._fetch_bundle(session)["state"] or {}
+        except Exception as err:
+            logger.warning(
+                "%s 鍥炴敹鐘舵€佺‘璁ゅけ璐ワ細%s | %s",
+                self.plugin_name,
+                doll_name or "鏈煡鐜╁伓",
+                self._get_error_detail(err),
+            )
+            return False
+
+        personal_slot = next(
+            (
+                candidate
+                for candidate in self._iter_dicts(latest.get("personal_slots") or [])
+                if self._safe_int(candidate.get("owner_id"), 0) == owner_id
+                and self._safe_int(candidate.get("slot_index"), -1) == slot_index
+            ),
+            None,
+        )
+        if personal_slot is not None:
+            occupant = personal_slot.get("occupant") or {}
+            if not occupant or not occupant.get("viewer_is_occupant"):
+                logger.info(
+                    "%s 鍥炴敹鐘舵€佸凡纭锛%s锛堟寜鏈€鏂扮姸鎬佽瀹氬凡鎴愬姛锛?",
+                    self.plugin_name,
+                    doll_name or "鏈煡鐜╁伓",
+                )
+                return True
+            return False
+
+        expected_name = str(doll_name or "").strip()
+        for item in self._iter_dicts(latest.get("remote_deployments") or []):
+            if self._safe_int(item.get("owner_id"), 0) != owner_id:
+                continue
+            if self._safe_int(item.get("slot_index"), -1) != slot_index:
+                continue
+            current_name = str(item.get("doll_name") or "").strip()
+            if not expected_name or not current_name or current_name == expected_name:
+                return False
+
+        logger.info(
+            "%s 鍥炴敹鐘舵€佸凡纭锛%s锛堟寜鏈€鏂扮姸鎬佽瀹氬凡鎴愬姛锛?",
+            self.plugin_name,
+            doll_name or "鏈煡鐜╁伓",
+        )
+        return True
 
     def _summarize_gains(self, logs: List[dict], since_time: float) -> Tuple[int, int]:
         gain_exposure = 0
