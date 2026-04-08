@@ -72,7 +72,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -517,6 +517,15 @@ class MediaCoverRemix(_PluginBase):
             return [item for item in result if isinstance(item, dict)]
         return []
 
+    def _get_service(self, server_name: str) -> Any:
+        helper = self._mediaserver_helper or MediaServerHelper()
+        try:
+            services = helper.get_services(name_filters=[server_name]) or {}
+        except Exception as err:
+            logger.warning("%s 获取媒体服务器实例失败：%s / %s", self.plugin_name, server_name, err)
+            return None
+        return services.get(server_name)
+
     def _process_library(self, library: Dict[str, Any]) -> Dict[str, Any]:
         image_urls = [item for item in (library.get("image_list") or []) if item][: self._image_count]
         if not image_urls:
@@ -529,17 +538,26 @@ class MediaCoverRemix(_PluginBase):
                 "message": "媒体库没有可用的 image_list",
             }
 
+        service = self._get_service(library.get("server_name"))
+        runtime = self._extract_trimemedia_runtime(library.get("server_name"), service, library) if service else {
+            "base_url": "",
+            "headers": {},
+            "cookies": {},
+            "attrs_dump": [],
+        }
         output_file = self._output_dir() / f"{self._slugify(library.get('server_name'))}_{self._slugify(library.get('name'))}_{library.get('id')}.png"
         generated, generate_message = self._generate_cover(
             library_name=library.get("name") or str(library.get("id")),
             library_type=library.get("type") or library.get("server_type") or "",
             image_urls=image_urls,
             output_file=output_file,
+            request_headers=runtime.get("headers") or {},
+            request_cookies=runtime.get("cookies") or {},
         )
         uploaded = False
         upload_message = "未启用自动替换"
         if generated and self._auto_upload:
-            uploaded, upload_message = self._upload_trimemedia_cover(library, output_file)
+            uploaded, upload_message = self._upload_trimemedia_cover(library, output_file, service=service, runtime=runtime)
 
         result = {
             "server": library.get("server_name"),
@@ -554,9 +572,17 @@ class MediaCoverRemix(_PluginBase):
         }
         return result
 
-    def _generate_cover(self, library_name: str, library_type: str, image_urls: List[str], output_file: Path) -> Tuple[bool, str]:
+    def _generate_cover(
+        self,
+        library_name: str,
+        library_type: str,
+        image_urls: List[str],
+        output_file: Path,
+        request_headers: Dict[str, str],
+        request_cookies: Dict[str, str],
+    ) -> Tuple[bool, str]:
         self._ensure_pillow()
-        images, errors = self._download_images(image_urls)
+        images, errors = self._download_images(image_urls, request_headers=request_headers, request_cookies=request_cookies)
         if not images:
             detail = "; ".join(errors[:3]) if errors else "未下载到任何源图"
             return False, f"封面生成失败：{detail}"
@@ -599,15 +625,24 @@ class MediaCoverRemix(_PluginBase):
         if not all([Image, ImageDraw, ImageFilter, ImageFont]):
             raise RuntimeError("Pillow 未安装，无法生成媒体库封面")
 
-    def _download_images(self, image_urls: List[str]) -> Tuple[List[Image.Image], List[str]]:
+    def _download_images(
+        self,
+        image_urls: List[str],
+        request_headers: Dict[str, str],
+        request_cookies: Dict[str, str],
+    ) -> Tuple[List[Image.Image], List[str]]:
         images: List[Image.Image] = []
         errors: List[str] = []
         for url in image_urls:
             if self._stop_event.is_set():
                 break
             try:
-                response = requests.get(url, timeout=self._http_timeout)
+                response = requests.get(url, headers=request_headers, cookies=request_cookies, timeout=self._http_timeout)
                 response.raise_for_status()
+                content_type = str(response.headers.get("content-type") or "").lower()
+                if "application/json" in content_type:
+                    payload = response.json()
+                    raise ValueError(payload.get("msg") or str(payload))
                 image = Image.open(io.BytesIO(response.content)).convert("RGB")
                 images.append(image)
             except Exception as err:
@@ -809,17 +844,18 @@ class MediaCoverRemix(_PluginBase):
                 return f"{value[:12]}...{value[-6:]}" if len(value) > 24 else "***"
         return value
 
-    def _upload_trimemedia_cover(self, library: Dict[str, Any], output_file: Path) -> Tuple[bool, str]:
-        helper = self._mediaserver_helper or MediaServerHelper()
-        try:
-            services = helper.get_services(name_filters=[library.get("server_name")]) or {}
-            service = services.get(library.get("server_name"))
-        except Exception as err:
-            return False, f"获取媒体服务器实例失败：{err}"
+    def _upload_trimemedia_cover(
+        self,
+        library: Dict[str, Any],
+        output_file: Path,
+        service: Any = None,
+        runtime: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bool, str]:
+        service = service or self._get_service(library.get("server_name"))
         if not service:
             return False, "未找到对应的媒体服务器实例"
 
-        runtime = self._extract_trimemedia_runtime(library.get("server_name"), service, library)
+        runtime = runtime or self._extract_trimemedia_runtime(library.get("server_name"), service, library)
         if not runtime.get("base_url"):
             return False, "未能识别飞牛地址"
 

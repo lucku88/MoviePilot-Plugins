@@ -91,11 +91,12 @@
     "name": "媒体库封面生成魔改",
     "description": "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。",
     "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "为媒体库源图下载补上飞牛鉴权头与 Cookie 透传，避免 image_list 拉取时直接返回 Auth Failed。",
       "v0.1.1": "补充运行时诊断，返回更明确的源图下载失败原因，并修复飞牛探测接口的反射异常。",
       "v0.1.0": "首版发布，支持读取 MoviePilot 中的飞牛影视媒体库、生成拼贴风格封面、展示预览和尝试自动回写。"
     }
