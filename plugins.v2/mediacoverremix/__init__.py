@@ -72,7 +72,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
