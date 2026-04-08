@@ -9,6 +9,7 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
 | 序号 | 插件名称 | 版本 | 功能描述 | 标签 |
 |------|----------|------|----------|------|
 | 1 | [🌱 SQ农场 (SQFarm)](#1--sq农场-sqfarm) | v0.4.5 | 支持 SQ 站点农场状态展示、一键收菜、种植、动态调度和 Cookie 同步 | 站点 |
+| 2 | [🖼️ 媒体库封面生成魔改 (MediaCoverRemix)](#2-️-媒体库封面生成魔改-mediacoverremix) | v0.1.0 | 读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换 | 媒体服务器 |
 
 ### 1. 🌱 SQ农场 (SQFarm)
 - 版本：v0.4.5
@@ -39,6 +40,21 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
   - v0.1.0: 首版发布，支持 MoviePilot V2 定时执行 SQ农场收菜、售卖和种植。
   </details>
 
+### 2. 🖼️ 媒体库封面生成魔改 (MediaCoverRemix)
+- 版本：v0.1.0
+- 功能：读取 MoviePilot 已配置的飞牛影视媒体库，按媒体库现有 `image_list` 生成新的拼贴风格封面，并尝试自动回写到飞牛影视。
+- 标签：媒体服务器
+- 特点：
+  - 🧩 直接读取 MoviePilot 中的媒体服务器和媒体库列表
+  - 🎨 复用 Jellyfin Library Poster 的拼贴视觉思路，生成横版媒体库封面
+  - 🖼️ 提供 Vue 配置页与数据页，支持预览最近一次生成结果
+  - 🧪 内置飞牛 `trimemedia` 运行时探测，便于排查鉴权与回写链路
+  - 🔁 支持手动执行、保存后立即执行和 Cron 定时生成
+- 说明：
+  - 当前重点适配飞牛影视 `trimemedia`
+  - 自动替换依赖 MoviePilot 运行时里能取到飞牛服务的连接信息与鉴权信息
+  - 如果回写失败，插件仍会保留本地生成的封面文件与预览结果
+
 ## 📖 使用说明
 
 1. 在 MoviePilot 的自定义插件仓库中添加：
@@ -48,6 +64,11 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
    - 启用站点 Cookie 同步，或手动填写 SQ Cookie
    - 配置 OCR 地址，例如 `http://ip:8089/api/tr-run/`
    - 选择是否自动售出、自动种植以及优先种植种子
+4. 如果使用 `媒体库封面生成魔改`：
+   - 先填写 MoviePilot 地址与 API Token
+   - 选择飞牛影视媒体服务器和需要处理的媒体库
+   - 按需设置标题映射规则、封面尺寸和定时任务
+   - 先用“立即生成”验证封面生成与飞牛回写是否正常
 
 ## 🧩 OCR 说明
 
@@ -74,6 +95,7 @@ services:
 ```text
 plugins.v2/
   sqfarm/
+  mediacoverremix/
 package.v2.json
 README.md
 LICENSE
@@ -84,6 +106,13 @@ LICENSE
 - 插件主文件：`plugins.v2/sqfarm/__init__.py`
 - 状态页：`plugins.v2/sqfarm/src/components/Page.vue`
 - 配置页：`plugins.v2/sqfarm/src/components/Config.vue`
+- 市场配置：`package.v2.json`
+
+`MediaCoverRemix` 对应文件：
+
+- 插件主文件：`plugins.v2/mediacoverremix/__init__.py`
+- 状态页：`plugins.v2/mediacoverremix/src/components/Page.vue`
+- 配置页：`plugins.v2/mediacoverremix/src/components/Config.vue`
 - 市场配置：`package.v2.json`
 
 后续如果要继续添加新插件，可以直接：
