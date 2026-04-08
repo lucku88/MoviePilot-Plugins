@@ -90,7 +90,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -1123,20 +1123,31 @@ class MediaCoverRemix(_PluginBase):
             return False, f"自动替换失败：{err}"
 
     def _trimemedia_upload_temp(self, runtime: Dict[str, Any], output_file: Path) -> Dict[str, Any]:
+        form_data = {"image_type": "poster"}
+        signature_candidates = [
+            "{}",
+            json.dumps(form_data, ensure_ascii=False, separators=(",", ":")),
+            "",
+        ]
+        last_error: Optional[str] = None
         with output_file.open("rb") as handle:
             files = {"file": (output_file.name, handle, "image/png")}
-            response = self._trimemedia_http_request(
-                runtime=runtime,
-                method="POST",
-                path="/api/v1/image/temp/upload",
-                files=files,
-                form_data={"image_type": "poster"},
-            )
-        data = response.json()
-        code = data.get("code")
-        if code not in (0, 200, None):
-            raise ValueError(data.get("msg") or self._trimemedia_upload_error(data))
-        return data
+            for signature_body_text in signature_candidates:
+                handle.seek(0)
+                response = self._trimemedia_http_request(
+                    runtime=runtime,
+                    method="POST",
+                    path="/api/v1/image/temp/upload",
+                    files=files,
+                    form_data=form_data,
+                    signature_body_text=signature_body_text,
+                )
+                data = response.json()
+                code = data.get("code")
+                if code in (0, 200, None):
+                    return data
+                last_error = data.get("msg") or self._trimemedia_upload_error(data)
+        raise ValueError(last_error or "临时图片上传失败")
 
     def _trimemedia_request(
         self,
@@ -1393,6 +1404,7 @@ class MediaCoverRemix(_PluginBase):
         json_data: Optional[Dict[str, Any]] = None,
         files: Optional[Dict[str, Any]] = None,
         form_data: Optional[Dict[str, Any]] = None,
+        signature_body_text: Optional[str] = None,
         request_headers: Optional[Dict[str, str]] = None,
         request_cookies: Optional[Dict[str, str]] = None,
         session: Optional[requests.Session] = None,
@@ -1407,7 +1419,9 @@ class MediaCoverRemix(_PluginBase):
         query_text = parsed.query or ""
         body_text = ""
         method = method.upper()
-        if method != "GET" and json_data and files is None:
+        if signature_body_text is not None:
+            body_text = signature_body_text
+        elif method != "GET" and json_data and files is None:
             body_text = json.dumps(json_data, ensure_ascii=False, separators=(",", ":"))
 
         headers = self._build_trimemedia_headers(
