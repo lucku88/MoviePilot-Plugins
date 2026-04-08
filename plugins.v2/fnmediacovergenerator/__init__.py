@@ -107,7 +107,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -983,7 +983,10 @@ class FnMediaCoverGenerator(_PluginBase):
         random.shuffle(unique_urls)
 
         success_count = 0
-        for index, url in enumerate(unique_urls[:required_items], start=1):
+        content_hashes = set()
+        for url in unique_urls:
+            if success_count >= required_items:
+                break
             if self._stop_event.is_set():
                 return False, "任务已手动停止"
             try:
@@ -996,29 +999,34 @@ class FnMediaCoverGenerator(_PluginBase):
                 if "application/json" in content_type:
                     payload = response.json()
                     raise ValueError(payload.get("msg") or str(payload))
-                (library_dir / f"{index}.jpg").write_bytes(response.content)
+                content = response.content
+                content_hash = hashlib.sha1(content).hexdigest()
+                if content_hash in content_hashes:
+                    continue
+                content_hashes.add(content_hash)
                 success_count += 1
+                (library_dir / f"{success_count}.jpg").write_bytes(content)
             except Exception as err:
                 logger.warning("%s 下载媒体库源图失败：%s / %s", self.plugin_name, url, err)
         if success_count <= 0:
             return False, "媒体库源图下载失败"
         if not self.prepare_library_images(library_dir, required_items=required_items):
             return False, "媒体库源图数量不足，无法补齐封面素材"
-        return True, f"已准备 {success_count} 张封面源图"
+        return True, f"已准备 {success_count} 张不重复封面源图"
 
     def prepare_library_images(self, library_dir: Path, required_items: int = 9) -> bool:
         existing = [item for item in sorted(library_dir.glob("*.jpg"), key=lambda p: p.name) if item.is_file()]
         if not existing:
             return False
+        source_images = list(existing)
         last_used: Optional[Path] = None
         for index in range(1, required_items + 1):
             target = library_dir / f"{index}.jpg"
             if target.exists():
                 continue
-            candidates = [item for item in existing if item != last_used] or existing
+            candidates = [item for item in source_images if item != last_used] or source_images
             selected = random.choice(candidates)
             shutil.copyfile(selected, target)
-            existing.append(target)
             last_used = selected
         return True
 
