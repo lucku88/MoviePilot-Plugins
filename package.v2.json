@@ -86,19 +86,5 @@
       "v0.1.1": "修复自动演出重复召回，新增自动开包并自动收下，补强深浅色模式、网络重试和演员列表渲染性能。",
       "v0.1.0": "首版发布，接入每日老虎机、表情包开包与合成、演员图鉴和舞台演出。"
     }
-  },
-  "PrivateCheckin": {
-    "name": "自用签到",
-    "description": "支持自定义浏览器签到页与 GET/POST 接口签到，浏览器型任务默认优先使用 Playwright 过 CF。",
-    "labels": "站点,自动化,签到",
-    "version": "0.3.0",
-    "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2705.png",
-    "author": "lucku88",
-    "level": 1,
-    "history": {
-      "v0.3.0": "移除新建任务里的旧专用模式，下拉只保留通用签到方式；默认任务改为空，并重新调整 Vue 页面宽度和边距。",
-      "v0.2.0": "调整 Vue 数据页/配置页布局，改为默认示例模板，新增 GET/POST 表单/POST JSON 接口签到，并默认优先推荐 Playwright 过 CF。",
-      "v0.1.0": "首版发布，提供 Vue 数据页/配置页、可编辑任务列表、通用签到页访问、思齐签到/HNR 领取、New API 签到，以及 Playwright/FlareSolverr 的 CF 处理。"
-    }
   }
 }
