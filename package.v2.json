@@ -89,13 +89,14 @@
   },
   "PrivateCheckin": {
     "name": "自用签到",
-    "description": "支持自定义签到页、思齐签到/HNR 领取、New API 签到，并内置 Playwright/FlareSolverr 的 CF 兜底。",
+    "description": "支持自定义浏览器签到页、GET/POST 接口签到、思齐签到/HNR 领取、New API 签到，并默认优先使用 Playwright 过 CF。",
     "labels": "站点,自动化,签到",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2705.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.2.0": "调整 Vue 数据页/配置页布局，改为默认示例模板，新增 GET/POST 表单/POST JSON 接口签到，并默认优先推荐 Playwright 过 CF。",
       "v0.1.0": "首版发布，提供 Vue 数据页/配置页、可编辑任务列表、通用签到页访问、思齐签到/HNR 领取、New API 签到，以及 Playwright/FlareSolverr 的 CF 处理。"
     }
   }

@@ -1,3 +1,4 @@
+import json
 import random
 import re
 import socket
@@ -7,7 +8,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urljoin, urlparse
 
 import pytz
 import requests
@@ -29,9 +30,12 @@ from app.schemas import NotificationType
 
 class PrivateCheckin(_PluginBase):
     plugin_name = "自用签到"
-    plugin_desc = "支持自定义签到页、思齐签到/HNR 领取、New API 签到，并内置 Playwright/FlareSolverr 的 CF 兜底。"
+    plugin_desc = (
+        "支持自定义浏览器签到页、GET/POST 接口签到、思齐签到/HNR 领取、New API 签到，"
+        "并默认优先使用 Playwright 过 CF。"
+    )
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2705.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.2.0"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "privatecheckin_"
@@ -44,17 +48,20 @@ class PrivateCheckin(_PluginBase):
     )
     DEFAULT_CRON = "0 9 * * *"
     DEFAULT_SUCCESS_KEYWORDS = (
-        "签到成功|今日已签到|已经签到|已签到|签到已得|already signed|already attended|check-in completed"
+        "签到成功|今日已签到|已经签到|已签到|签到已得|\"success\":true|\"status\":\"success\"|already signed|already attended|check-in completed"
     )
     DEFAULT_FAILURE_KEYWORDS = "Cookie已失效|未登录|请先登录|重新登录|login required"
     TASK_TYPE_LABELS = {
-        "generic_attendance": "通用签到页",
+        "generic_attendance": "浏览器自动签到页",
+        "request_get": "GET 接口签到",
+        "request_post_form": "POST 表单签到",
+        "request_post_json": "POST JSON 签到",
         "siqi_attendance": "思齐签到",
         "siqi_hnr_claim": "思齐 HNR 领取",
         "new_api_checkin": "New API 签到",
     }
     CF_MODE_LABELS = {
-        "auto": "自动",
+        "auto": "智能兜底",
         "request": "仅请求",
         "playwright": "仅 Playwright",
         "flaresolverr": "仅 FlareSolverr",
@@ -313,80 +320,86 @@ class PrivateCheckin(_PluginBase):
     def _default_tasks(self) -> List[Dict[str, Any]]:
         return [
             {
-                "id": "ourbits-attendance",
-                "name": "我堡签到",
-                "enabled": True,
+                "id": "sample-browser-checkin",
+                "name": "示例：浏览器自动签到页",
+                "enabled": False,
                 "task_type": "generic_attendance",
-                "site_url": "https://ourbits.club",
-                "target_url": "https://ourbits.club/attendance.php",
+                "site_url": "",
+                "target_url": "",
                 "use_moviepilot_cookie": True,
-                "moviepilot_domain": "ourbits.club",
+                "moviepilot_domain": "",
                 "cf_mode": "playwright",
             },
             {
-                "id": "hddolby-attendance",
-                "name": "杜比签到",
-                "enabled": True,
-                "task_type": "generic_attendance",
-                "site_url": "https://www.hddolby.com",
-                "target_url": "https://www.hddolby.com/attendance.php",
+                "id": "sample-request-get",
+                "name": "示例：GET 接口签到",
+                "enabled": False,
+                "task_type": "request_get",
+                "site_url": "",
+                "target_url": "",
                 "use_moviepilot_cookie": True,
-                "moviepilot_domain": "hddolby.com",
-                "cf_mode": "playwright",
-            },
-            {
-                "id": "ubits-attendance",
-                "name": "UBits 签到",
-                "enabled": True,
-                "task_type": "generic_attendance",
-                "site_url": "https://ubits.club",
-                "target_url": "https://ubits.club/attendance.php",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "ubits.club",
-                "cf_mode": "playwright",
-            },
-            {
-                "id": "audiences-attendance",
-                "name": "观众签到",
-                "enabled": True,
-                "task_type": "generic_attendance",
-                "site_url": "https://audiences.me",
-                "target_url": "https://audiences.me/attendance.php",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "audiences.me",
-                "cf_mode": "playwright",
-            },
-            {
-                "id": "siqi-attendance",
-                "name": "思齐签到",
-                "enabled": True,
-                "task_type": "siqi_attendance",
-                "site_url": "https://si-qi.xyz",
-                "target_url": "https://si-qi.xyz/attendance.php",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "si-qi.xyz",
+                "moviepilot_domain": "",
                 "cf_mode": "request",
+                "request_body": "action=checkin",
+                "request_headers": '{"X-Requested-With":"XMLHttpRequest"}',
             },
             {
-                "id": "siqi-hnr",
-                "name": "思齐 HNR 领取",
-                "enabled": True,
-                "task_type": "siqi_hnr_claim",
-                "site_url": "https://si-qi.xyz",
-                "target_url": "https://si-qi.xyz/hnrview.php",
+                "id": "sample-request-post-form",
+                "name": "示例：POST 表单签到",
+                "enabled": False,
+                "task_type": "request_post_form",
+                "site_url": "",
+                "target_url": "",
                 "use_moviepilot_cookie": True,
-                "moviepilot_domain": "si-qi.xyz",
+                "moviepilot_domain": "",
                 "cf_mode": "request",
+                "request_body": "action=checkin&token=请替换",
+                "request_headers": "",
             },
             {
-                "id": "new-api-checkin",
-                "name": "New API 签到",
-                "enabled": True,
-                "task_type": "new_api_checkin",
-                "site_url": "https://open.xingyungept.cn",
-                "target_url": "https://open.xingyungept.cn/console/personal",
+                "id": "sample-request-post-json",
+                "name": "示例：POST JSON 签到",
+                "enabled": False,
+                "task_type": "request_post_json",
+                "site_url": "",
+                "target_url": "",
                 "use_moviepilot_cookie": False,
-                "moviepilot_domain": "open.xingyungept.cn",
+                "moviepilot_domain": "",
+                "cf_mode": "request",
+                "request_body": '{\n  "action": "checkin"\n}',
+                "request_headers": '{\n  "Content-Type": "application/json"\n}',
+            },
+            {
+                "id": "sample-siqi-attendance",
+                "name": "示例：思齐签到",
+                "enabled": False,
+                "task_type": "siqi_attendance",
+                "site_url": "",
+                "target_url": "",
+                "use_moviepilot_cookie": True,
+                "moviepilot_domain": "",
+                "cf_mode": "request",
+            },
+            {
+                "id": "sample-siqi-hnr",
+                "name": "示例：思齐 HNR 领取",
+                "enabled": False,
+                "task_type": "siqi_hnr_claim",
+                "site_url": "",
+                "target_url": "",
+                "use_moviepilot_cookie": True,
+                "moviepilot_domain": "",
+                "cf_mode": "request",
+            },
+            {
+                "id": "sample-new-api-checkin",
+                "name": "示例：New API 签到",
+                "enabled": False,
+                "task_type": "new_api_checkin",
+                "site_url": "",
+                "target_url": "",
+                "use_moviepilot_cookie": False,
+                "moviepilot_domain": "",
                 "cf_mode": "request",
                 "new_api_uid": "",
             },
@@ -404,9 +417,11 @@ class PrivateCheckin(_PluginBase):
             "moviepilot_domain": "",
             "cookie": "",
             "user_agent": "",
-            "cf_mode": "auto",
+            "cf_mode": "playwright",
             "success_keywords": self.DEFAULT_SUCCESS_KEYWORDS,
             "failure_keywords": self.DEFAULT_FAILURE_KEYWORDS,
+            "request_body": "",
+            "request_headers": "",
             "allow_logged_in_as_success": True,
             "use_proxy": False,
             "force_ipv4": True,
@@ -452,7 +467,7 @@ class PrivateCheckin(_PluginBase):
         task["allow_logged_in_as_success"] = self._to_bool(task.get("allow_logged_in_as_success", True))
         task["use_proxy"] = self._to_bool(task.get("use_proxy", self._use_proxy))
         task["force_ipv4"] = self._to_bool(task.get("force_ipv4", self._force_ipv4))
-        task["cf_mode"] = task.get("cf_mode") if task.get("cf_mode") in self.CF_MODE_LABELS else "auto"
+        task["cf_mode"] = task.get("cf_mode") if task.get("cf_mode") in self.CF_MODE_LABELS else "playwright"
         task["site_url"] = self._normalize_url(task.get("site_url") or self._guess_site_url(task.get("target_url")))
         task["target_url"] = self._normalize_url(task.get("target_url") or self._default_target_url(task))
         task["moviepilot_domain"] = (task.get("moviepilot_domain") or self._guess_domain(task["site_url"] or task["target_url"]) or "").strip().lower()
@@ -460,6 +475,8 @@ class PrivateCheckin(_PluginBase):
         task["user_agent"] = (task.get("user_agent") or "").strip()
         task["success_keywords"] = (task.get("success_keywords") or self.DEFAULT_SUCCESS_KEYWORDS).strip()
         task["failure_keywords"] = (task.get("failure_keywords") or self.DEFAULT_FAILURE_KEYWORDS).strip()
+        task["request_body"] = (task.get("request_body") or "").strip()
+        task["request_headers"] = (task.get("request_headers") or "").strip()
         task["new_api_uid"] = (task.get("new_api_uid") or "").strip()
         return task
 
@@ -475,9 +492,11 @@ class PrivateCheckin(_PluginBase):
             "moviepilot_domain": task.get("moviepilot_domain") or "",
             "cookie": task.get("cookie") or "",
             "user_agent": task.get("user_agent") or "",
-            "cf_mode": task.get("cf_mode") or "auto",
+            "cf_mode": task.get("cf_mode") or "playwright",
             "success_keywords": task.get("success_keywords") or "",
             "failure_keywords": task.get("failure_keywords") or "",
+            "request_body": task.get("request_body") or "",
+            "request_headers": task.get("request_headers") or "",
             "allow_logged_in_as_success": bool(task.get("allow_logged_in_as_success")),
             "use_proxy": bool(task.get("use_proxy")),
             "force_ipv4": bool(task.get("force_ipv4")),
@@ -543,10 +562,11 @@ class PrivateCheckin(_PluginBase):
             "tasks": tasks,
             "history": history[:30],
             "guides": [
-                "普通站点优先用请求模式；命中 Cloudflare 时可切到 Playwright。",
-                "MoviePilot V2 容器已自带 Playwright，适合 attendance.php 这种浏览器打开即自动签到的站点。",
-                "更强的 Cloudflare 可以额外部署 FlareSolverr，并在这里填入地址后切到 FlareSolverr 或自动模式。",
-                "任务支持优先读取 MoviePilot 站点 Cookie；不在站点管理里的站点，请直接把浏览器 Cookie 填到任务里。",
+                "浏览器自动签到页默认建议使用 Playwright，适合 attendance.php 这类打开页面即自动签到或领取的站点。",
+                "GET/POST 接口签到通过 requests 执行，适合 AJAX 或 API 型签到；如需鉴权，请准备好 Cookie、请求头或表单参数。",
+                "智能兜底会优先尝试 Playwright，再回退 requests，最后才尝试 FlareSolverr。",
+                "MoviePilot V2 容器已自带 Playwright；只有强 CF 仍过不去时，再额外部署 FlareSolverr。",
+                "任务支持优先读取 MoviePilot 站点 Cookie；如果站点不在站点管理里，直接填写浏览器 Cookie 即可。",
             ],
         }
 
@@ -561,6 +581,8 @@ class PrivateCheckin(_PluginBase):
                 success, message, method, detail = self._run_siqi_hnr_claim(task, runtime)
             elif task_type == "new_api_checkin":
                 success, message, method, detail = self._run_new_api_checkin(task, runtime)
+            elif task_type in ["request_get", "request_post_form", "request_post_json"]:
+                success, message, method, detail = self._run_request_task(task, runtime)
             else:
                 success, message, method, detail = self._run_generic_attendance(task, runtime)
 
@@ -632,10 +654,10 @@ class PrivateCheckin(_PluginBase):
                 raise ValueError("未配置 New API 站点地址")
             return runtime
 
-        if not runtime.get("cookie"):
-            raise ValueError("未配置有效 Cookie，请手动填写或开启 MoviePilot 站点 Cookie")
         if not runtime.get("target_url"):
             raise ValueError("未配置任务目标地址")
+        if runtime.get("task_type") in ["siqi_attendance", "siqi_hnr_claim"] and not runtime.get("cookie"):
+            raise ValueError("未配置有效 Cookie，请手动填写或开启 MoviePilot 站点 Cookie")
         return runtime
 
     def _run_generic_attendance(self, task: Dict[str, Any], runtime: Dict[str, Any]) -> Tuple[bool, str, str, str]:
@@ -660,6 +682,61 @@ class PrivateCheckin(_PluginBase):
             return True, "已访问签到页，未捕获明确成功关键字，按已登录通过处理", page.get("method") or "request", ""
 
         return False, "未命中成功关键字", page.get("method") or "request", ""
+
+    def _run_request_task(self, task: Dict[str, Any], runtime: Dict[str, Any]) -> Tuple[bool, str, str, str]:
+        task_type = task.get("task_type")
+        target_url = runtime.get("target_url")
+        headers = self._parse_request_headers(task.get("request_headers"))
+        session = self._build_session(
+            runtime=runtime,
+            extra_headers=headers,
+            allow_post_retry=task_type in ["request_post_form", "request_post_json"],
+        )
+
+        logger.info("%s 正在执行接口签到：%s", task.get("name"), target_url)
+        if task_type == "request_get":
+            params = self._parse_key_value_payload(task.get("request_body"))
+            response = session.get(
+                target_url,
+                params=params or None,
+                timeout=(self._http_timeout, self._http_timeout),
+            )
+        elif task_type == "request_post_form":
+            payload = self._parse_key_value_payload(task.get("request_body"))
+            response = session.post(
+                target_url,
+                data=payload,
+                timeout=(self._http_timeout, self._http_timeout),
+            )
+        else:
+            payload = self._parse_json_payload(task.get("request_body"))
+            response = session.post(
+                target_url,
+                json=payload,
+                timeout=(self._http_timeout, self._http_timeout),
+            )
+
+        response_text = response.text or ""
+        if self._looks_logged_out(response_text):
+            return False, "Cookie 已失效或未登录", "request", ""
+        if response.status_code >= 400:
+            return False, f"请求失败，HTTP {response.status_code}", "request", ""
+        if self._match_keywords(response_text, task.get("failure_keywords")) and not self._match_keywords(
+            response_text, task.get("success_keywords")
+        ):
+            return False, "响应命中失败关键字", "request", ""
+        if self._match_keywords(response_text, task.get("success_keywords")):
+            return True, "请求成功，命中成功关键字", "request", ""
+
+        response_json = self._safe_json(response)
+        if isinstance(response_json, dict) and response_json:
+            success, message = self._detect_json_success(response_json)
+            if success is True:
+                return True, message or "接口返回成功", "request", ""
+            if success is False:
+                return False, message or "接口返回失败", "request", ""
+
+        return False, "未命中成功关键字，请补充成功关键字/正则", "request", ""
 
     def _run_siqi_attendance(self, task: Dict[str, Any], runtime: Dict[str, Any]) -> Tuple[bool, str, str, str]:
         url = runtime.get("target_url") or urljoin(runtime.get("site_url", "") + "/", "attendance.php")
@@ -841,8 +918,8 @@ class PrivateCheckin(_PluginBase):
             "request": ["request"],
             "playwright": ["playwright"],
             "flaresolverr": ["flaresolverr"],
-            "auto": ["request", "playwright", "flaresolverr"],
-        }.get(mode, ["request", "playwright", "flaresolverr"])
+            "auto": ["playwright", "request", "flaresolverr"],
+        }.get(mode, ["playwright", "request", "flaresolverr"])
 
         last_result = {"success": False, "message": "未执行", "method": ""}
         for strategy in strategies:
@@ -1214,11 +1291,100 @@ class PrivateCheckin(_PluginBase):
         task_type = task.get("task_type")
         if not base_url:
             return ""
+        if task_type in ["request_get", "request_post_form", "request_post_json"]:
+            return ""
         if task_type == "siqi_hnr_claim":
             return urljoin(base_url + "/", "hnrview.php")
         if task_type == "new_api_checkin":
             return urljoin(base_url + "/", "console/personal")
         return urljoin(base_url + "/", "attendance.php")
+
+    @staticmethod
+    def _parse_request_headers(raw_headers: str) -> Dict[str, str]:
+        text = (raw_headers or "").strip()
+        if not text:
+            return {}
+        try:
+            parsed = json.loads(text)
+            if not isinstance(parsed, dict):
+                raise ValueError("请求头 JSON 必须是对象")
+            return {str(key): "" if value is None else str(value) for key, value in parsed.items()}
+        except json.JSONDecodeError:
+            headers: Dict[str, str] = {}
+            for line in re.split(r"[\r\n]+", text):
+                segment = line.strip()
+                if not segment:
+                    continue
+                if ":" not in segment:
+                    raise ValueError("请求头格式错误，应为 JSON 或每行 Header: Value")
+                name, value = segment.split(":", 1)
+                headers[name.strip()] = value.strip()
+            return headers
+
+    @staticmethod
+    def _parse_key_value_payload(raw_payload: str) -> Dict[str, str]:
+        text = (raw_payload or "").strip()
+        if not text:
+            return {}
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                return {str(key): "" if value is None else str(value) for key, value in parsed.items()}
+        except json.JSONDecodeError:
+            pass
+
+        merged: Dict[str, str] = {}
+        normalized = text.replace("\r", "\n").replace("&", "\n")
+        for line in normalized.split("\n"):
+            segment = line.strip()
+            if not segment:
+                continue
+            if "=" in segment:
+                key, value = segment.split("=", 1)
+                merged[key.strip()] = value.strip()
+        if merged:
+            return merged
+
+        return {key: value for key, value in parse_qsl(text, keep_blank_values=True)}
+
+    @staticmethod
+    def _parse_json_payload(raw_payload: str) -> Any:
+        text = (raw_payload or "").strip()
+        if not text:
+            return {}
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as err:
+            raise ValueError(f"JSON 请求体格式错误：{err}") from err
+
+    @staticmethod
+    def _detect_json_success(data: Dict[str, Any]) -> Tuple[Optional[bool], str]:
+        message = (
+            data.get("message")
+            or data.get("msg")
+            or data.get("detail")
+            or data.get("error")
+            or data.get("errMsg")
+            or ""
+        )
+        if data.get("success") is True:
+            return True, str(message or "接口返回 success=true")
+        if data.get("success") is False:
+            return False, str(message or "接口返回 success=false")
+
+        status = str(data.get("status") or "").strip().lower()
+        if status in ["ok", "success", "passed"]:
+            return True, str(message or f"接口返回 status={status}")
+        if status in ["error", "failed", "forbidden"]:
+            return False, str(message or f"接口返回 status={status}")
+
+        code = data.get("code")
+        if code in [0, 200]:
+            return True, str(message or f"接口返回 code={code}")
+        if isinstance(code, int) and code >= 400:
+            return False, str(message or f"接口返回 code={code}")
+
+        return None, str(message)
 
     def _guess_site_url(self, value: Any) -> str:
         url = self._normalize_url(value)

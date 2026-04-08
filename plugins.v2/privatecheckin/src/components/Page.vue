@@ -2,12 +2,13 @@
   <div ref="rootEl" class="pc-page" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="pc-shell">
       <section class="pc-hero">
-        <div>
+        <div class="pc-hero-copy">
           <div class="pc-badge">自用签到</div>
           <h1 class="pc-title">数据页</h1>
           <p class="pc-subtitle">
             最近运行 {{ status.last_run || '暂无记录' }} · 下次计划 {{ status.next_run_time || '未启用或 Cron 无效' }}
           </p>
+          <div class="pc-mini">浏览器型任务默认更适合 Playwright，接口型任务按 requests 执行。</div>
         </div>
         <div class="pc-actions">
           <v-btn color="success" variant="flat" :loading="loading" @click="runAll">立即执行全部</v-btn>
@@ -36,7 +37,7 @@
         </article>
         <article class="pc-stat-card">
           <div class="pc-stat-label">强 CF 兜底</div>
-          <div class="pc-stat-value">{{ status.flaresolverr_enabled ? 'FlareSolverr 已配置' : 'Playwright / 请求' }}</div>
+          <div class="pc-stat-value">{{ status.flaresolverr_enabled ? '已配置 FlareSolverr' : 'Playwright 优先' }}</div>
         </article>
       </section>
 
@@ -56,7 +57,7 @@
         <div class="pc-panel-head pc-panel-head-wrap">
           <div>
             <div class="pc-kicker">任务面板</div>
-            <h2>站点签到 / 领取任务</h2>
+            <h2>签到 / 领取任务</h2>
           </div>
         </div>
 
@@ -77,17 +78,39 @@
             </header>
 
             <div class="pc-chip-row">
-              <v-chip size="small" variant="tonal">{{ task.enabled ? '已启用' : '未启用' }}</v-chip>
-              <v-chip size="small" variant="tonal">{{ task.cookie_source || (task.use_moviepilot_cookie ? '待同步站点 Cookie' : '手动 Cookie') }}</v-chip>
-              <v-chip size="small" variant="tonal">{{ task.last_method || '待执行' }}</v-chip>
+              <v-chip size="small" variant="tonal">
+                {{ task.enabled ? '已启用' : '示例 / 停用' }}
+              </v-chip>
+              <v-chip size="small" variant="tonal">
+                {{ task.cookie_source || (task.use_moviepilot_cookie ? '待同步站点 Cookie' : '手动 Cookie / 请求头') }}
+              </v-chip>
+              <v-chip size="small" variant="tonal">
+                {{ task.last_method || '待执行' }}
+              </v-chip>
             </div>
 
-            <div class="pc-task-meta">
-              <div><strong>任务地址：</strong>{{ task.target_url || '未填写' }}</div>
-              <div><strong>站点地址：</strong>{{ task.site_url || '未填写' }}</div>
-              <div><strong>最近执行：</strong>{{ task.last_run || '暂无记录' }}</div>
-              <div><strong>最近结果：</strong>{{ task.last_message || '暂无' }}</div>
-              <div><strong>成功/失败：</strong>{{ task.success_count || 0 }} / {{ task.fail_count || 0 }}</div>
+            <div class="pc-meta-grid">
+              <div class="pc-meta-item">
+                <span>任务地址</span>
+                <strong>{{ task.target_url || '未填写' }}</strong>
+              </div>
+              <div class="pc-meta-item">
+                <span>站点地址</span>
+                <strong>{{ task.site_url || '未填写' }}</strong>
+              </div>
+              <div class="pc-meta-item">
+                <span>最近执行</span>
+                <strong>{{ task.last_run || '暂无记录' }}</strong>
+              </div>
+              <div class="pc-meta-item">
+                <span>成功 / 失败</span>
+                <strong>{{ task.success_count || 0 }} / {{ task.fail_count || 0 }}</strong>
+              </div>
+            </div>
+
+            <div class="pc-result-box">
+              <div class="pc-mini">最近结果</div>
+              <div>{{ task.last_message || '暂无' }}</div>
             </div>
 
             <div v-if="task.recent?.length" class="pc-recent-list">
@@ -296,7 +319,7 @@ onBeforeUnmount(() => {
 
 .pc-shell {
   display: grid;
-  gap: 20px;
+  gap: 28px;
 }
 
 .pc-hero,
@@ -304,8 +327,8 @@ onBeforeUnmount(() => {
 .pc-stat-card,
 .pc-task-card {
   border: 1px solid rgba(21, 70, 52, 0.14);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.86);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
   box-shadow: 0 18px 50px rgba(18, 48, 39, 0.08);
 }
@@ -313,8 +336,12 @@ onBeforeUnmount(() => {
 .pc-hero {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  padding: 28px;
+  gap: 28px;
+  padding: 32px;
+}
+
+.pc-hero-copy {
+  max-width: 760px;
 }
 
 .pc-badge,
@@ -333,13 +360,13 @@ onBeforeUnmount(() => {
 }
 
 .pc-title {
-  margin: 14px 0 8px;
+  margin: 14px 0 10px;
   font-size: clamp(30px, 4vw, 42px);
   line-height: 1.08;
 }
 
 .pc-subtitle {
-  margin: 0;
+  margin: 0 0 8px;
   color: #506355;
   line-height: 1.7;
 }
@@ -352,24 +379,28 @@ onBeforeUnmount(() => {
 }
 
 .pc-stat-grid,
-.pc-task-grid,
-.pc-grid {
+.pc-grid,
+.pc-task-grid {
   display: grid;
   gap: 20px;
 }
 
 .pc-stat-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .pc-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.pc-task-grid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
 }
 
 .pc-panel,
 .pc-stat-card,
 .pc-task-card {
-  padding: 24px;
+  padding: 28px;
 }
 
 .pc-panel-head {
@@ -377,7 +408,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .pc-panel-head-wrap {
@@ -386,7 +417,7 @@ onBeforeUnmount(() => {
 
 .pc-panel-head h2 {
   margin: 10px 0 0;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .pc-stat-label,
@@ -398,29 +429,27 @@ onBeforeUnmount(() => {
 
 .pc-stat-value {
   margin-top: 10px;
-  font-size: clamp(22px, 3vw, 34px);
+  font-size: clamp(24px, 3vw, 34px);
   line-height: 1.12;
   font-weight: 700;
 }
 
 .pc-summary-list,
 .pc-guide-list,
-.pc-history-list {
+.pc-history-list,
+.pc-recent-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .pc-summary-line,
 .pc-guide-item,
 .pc-history-item,
-.pc-recent-item {
-  padding: 12px 14px;
-  border-radius: 16px;
+.pc-recent-item,
+.pc-result-box {
+  padding: 14px 16px;
+  border-radius: 18px;
   background: rgba(18, 87, 58, 0.06);
-}
-
-.pc-task-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .pc-task-head,
@@ -434,33 +463,45 @@ onBeforeUnmount(() => {
 }
 
 .pc-chip-row {
-  margin: 14px 0;
+  margin: 16px 0 18px;
 }
 
 .pc-task-name {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
 }
 
-.pc-task-meta,
-.pc-recent-list {
+.pc-meta-grid {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.pc-task-meta {
-  margin-bottom: 14px;
-  color: #213428;
-  line-height: 1.7;
+.pc-meta-item {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(18, 87, 58, 0.04);
 }
 
-.pc-recent-list {
+.pc-meta-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: #5d6d62;
+  font-size: 13px;
+}
+
+.pc-meta-item strong {
+  word-break: break-word;
+}
+
+.pc-result-box {
   margin-bottom: 16px;
 }
 
 .pc-recent-item {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .pc-empty {
@@ -487,7 +528,7 @@ onBeforeUnmount(() => {
 .is-dark-theme .pc-stat-label,
 .is-dark-theme .pc-mini,
 .is-dark-theme .pc-empty,
-.is-dark-theme .pc-task-meta {
+.is-dark-theme .pc-meta-item span {
   color: #b8c9be;
 }
 
@@ -500,19 +541,13 @@ onBeforeUnmount(() => {
 .is-dark-theme .pc-summary-line,
 .is-dark-theme .pc-guide-item,
 .is-dark-theme .pc-history-item,
-.is-dark-theme .pc-recent-item {
+.is-dark-theme .pc-recent-item,
+.is-dark-theme .pc-result-box,
+.is-dark-theme .pc-meta-item {
   background: rgba(90, 132, 110, 0.12);
 }
 
-@media (max-width: 1080px) {
-  .pc-grid,
-  .pc-task-grid,
-  .pc-stat-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 980px) {
   .pc-hero,
   .pc-task-head,
   .pc-task-actions,
