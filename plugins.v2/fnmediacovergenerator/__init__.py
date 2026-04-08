@@ -30,10 +30,6 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.utils.url import UrlUtils
 
-from app.plugins.fnmediacovergenerator.style.style_animated_1 import create_style_animated_1
-from app.plugins.fnmediacovergenerator.style.style_animated_2 import create_style_animated_2
-from app.plugins.fnmediacovergenerator.style.style_animated_3 import create_style_animated_3
-from app.plugins.fnmediacovergenerator.style.style_animated_4 import create_style_animated_4
 from app.plugins.fnmediacovergenerator.style.style_static_1 import create_style_static_1
 from app.plugins.fnmediacovergenerator.style.style_static_2 import create_style_static_2
 from app.plugins.fnmediacovergenerator.style.style_static_3 import create_style_static_3
@@ -109,9 +105,9 @@ def _safe_float(value: Any, default: float, minimum: Optional[float] = None, max
 
 class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
-    plugin_desc = "生成媒体库动态/静态封面，支持飞牛影视"
+    plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -218,8 +214,6 @@ class FnMediaCoverGenerator(_PluginBase):
             {"path": "generate_now", "endpoint": self.api_generate_now, "auth": "bear", "methods": ["POST", "GET"], "summary": "立即生成封面"},
             {"path": "/set_cover_style", "endpoint": self.api_set_cover_style, "auth": "bear", "methods": ["POST", "GET"], "summary": "切换风格"},
             {"path": "set_cover_style", "endpoint": self.api_set_cover_style, "auth": "bear", "methods": ["POST", "GET"], "summary": "切换风格"},
-            {"path": "/toggle_style_variant", "endpoint": self.api_toggle_style_variant, "auth": "bear", "methods": ["POST"], "summary": "切换静态/动态"},
-            {"path": "toggle_style_variant", "endpoint": self.api_toggle_style_variant, "auth": "bear", "methods": ["POST"], "summary": "切换静态/动态"},
             {"path": "/select_style_1", "endpoint": self.api_select_style_1, "auth": "bear", "methods": ["POST"], "summary": "选择风格1"},
             {"path": "select_style_1", "endpoint": self.api_select_style_1, "auth": "bear", "methods": ["POST"], "summary": "选择风格1"},
             {"path": "/select_style_2", "endpoint": self.api_select_style_2, "auth": "bear", "methods": ["POST"], "summary": "选择风格2"},
@@ -264,14 +258,14 @@ class FnMediaCoverGenerator(_PluginBase):
                                         "props": {
                                             "type": "info",
                                             "variant": "tonal",
-                                            "text": "直接读取 MoviePilot 已配置的飞牛影视媒体服务器，支持静态/动态封面生成。动态封面建议选择 APNG，便于后续自动替换。"
+                                            "text": "直接读取 MoviePilot 已配置的飞牛影视媒体服务器，仅生成静态封面并支持自动替换。"
                                         }
                                     },
                                     {
                                         "component": "VRow",
                                         "content": [
                                             {"component": "VCol", "props": {"cols": 12, "md": 3}, "content": [{"component": "VSwitch", "props": {"model": "enabled", "label": "启用插件"}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 3}, "content": [{"component": "VSwitch", "props": {"model": "auto_upload", "label": "自动替换飞牛封面", "hint": "动态封面推荐 APNG；GIF 只生成本地文件", "persistentHint": True}}]},
+                                            {"component": "VCol", "props": {"cols": 12, "md": 3}, "content": [{"component": "VSwitch", "props": {"model": "auto_upload", "label": "自动替换飞牛封面", "hint": "开启后会在静态封面生成完成后自动回写飞牛媒体库。", "persistentHint": True}}]},
                                             {"component": "VCol", "props": {"cols": 12, "md": 3}, "content": [{"component": "VSwitch", "props": {"model": "onlyonce", "label": "保存后立即运行一次"}}]},
                                             {"component": "VCol", "props": {"cols": 12, "md": 3}, "content": [{"component": "VCronField", "props": {"model": "cron", "label": "定时任务", "placeholder": "5位 Cron"}}]},
                                         ],
@@ -298,9 +292,8 @@ class FnMediaCoverGenerator(_PluginBase):
                                     {
                                         "component": "VRow",
                                         "content": [
-                                            {"component": "VCol", "props": {"cols": 12, "md": 4}, "content": [{"component": "VSelect", "props": {"model": "cover_style_variant", "label": "风格类型", "items": [{"title": "静态", "value": "static"}, {"title": "动态", "value": "animated"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 4}, "content": [{"component": "VSelect", "props": {"model": "cover_style_base", "label": "风格编号", "items": [{"title": "风格1", "value": "static_1"}, {"title": "风格2", "value": "static_2"}, {"title": "风格3", "value": "static_3"}, {"title": "风格4", "value": "static_4"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 4}, "content": [{"component": "VSwitch", "props": {"model": "multi_1_blur", "label": "九宫格样式启用模糊底图"}}]},
+                                            {"component": "VCol", "props": {"cols": 12, "md": 6}, "content": [{"component": "VSelect", "props": {"model": "cover_style_base", "label": "风格编号", "items": [{"title": "风格1", "value": "static_1"}, {"title": "风格2", "value": "static_2"}, {"title": "风格3", "value": "static_3"}, {"title": "风格4", "value": "static_4"}]}}]},
+                                            {"component": "VCol", "props": {"cols": 12, "md": 6}, "content": [{"component": "VSwitch", "props": {"model": "multi_1_blur", "label": "九宫格样式启用模糊底图"}}]},
                                         ],
                                     },
                                     {
@@ -371,36 +364,6 @@ class FnMediaCoverGenerator(_PluginBase):
                                             "label": "媒体库标题映射",
                                             "placeholder": "国漫:\n  - 国漫\n  - GUOMAN\n  - '#22314C'"
                                         }
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    {
-                        "component": "VCard",
-                        "props": {"variant": "outlined", "class": "mt-3"},
-                        "content": [
-                            {"component": "VCardTitle", "text": "动态封面参数"},
-                            {
-                                "component": "VCardText",
-                                "content": [
-                                    {
-                                        "component": "VRow",
-                                        "content": [
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VTextField", "props": {"model": "animation_duration", "label": "时长(秒)", "placeholder": "8"}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VTextField", "props": {"model": "animation_fps", "label": "FPS", "placeholder": "15"}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VSelect", "props": {"model": "animation_format", "label": "动图格式", "items": [{"title": "APNG", "value": "apng"}, {"title": "GIF", "value": "gif"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VSelect", "props": {"model": "animation_scroll", "label": "滚动方式", "items": [{"title": "上下往返", "value": "alternate"}, {"title": "向下", "value": "down"}, {"title": "向上", "value": "up"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VSelect", "props": {"model": "animation_reduce_colors", "label": "颜色压缩", "items": [{"title": "关闭", "value": "off"}, {"title": "中等", "value": "medium"}, {"title": "强", "value": "strong"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 2}, "content": [{"component": "VTextField", "props": {"model": "animated_2_image_count", "label": "动态图取图数", "placeholder": "6"}}]},
-                                        ],
-                                    },
-                                    {
-                                        "component": "VRow",
-                                        "content": [
-                                            {"component": "VCol", "props": {"cols": 12, "md": 4}, "content": [{"component": "VSelect", "props": {"model": "animated_2_departure_type", "label": "风格1离场方式", "items": [{"title": "飞出", "value": "fly"}, {"title": "淡出", "value": "fade"}, {"title": "交叉淡化", "value": "crossfade"}]}}]},
-                                            {"component": "VCol", "props": {"cols": 12, "md": 8}, "content": [{"component": "VAlert", "props": {"type": "warning", "variant": "tonal", "text": "飞牛自动替换更推荐 APNG。若选择 GIF，插件会照常生成本地文件，但默认不自动回写。"}}]},
-                                        ],
                                     },
                                 ],
                             },
@@ -483,7 +446,7 @@ class FnMediaCoverGenerator(_PluginBase):
                             } if setup_warnings else {
                                 "component": "VAlert",
                                 "props": {"type": "info", "variant": "tonal", "density": "compact", "class": "mt-3"},
-                                "text": "当前风格会直接作用于飞牛媒体库封面。动态模式建议配合 APNG 使用。"
+                                "text": "当前风格会直接作用于飞牛媒体库静态封面。"
                             },
                         ],
                     }
@@ -505,7 +468,6 @@ class FnMediaCoverGenerator(_PluginBase):
                                             "component": "VCol",
                                             "props": {"cols": 12, "md": 9},
                                             "content": [
-                                                {"component": "VBtn", "props": {"variant": "flat", "color": "primary", "class": "text-none mr-2 mb-2", "prepend-icon": "mdi-swap-horizontal"}, "text": f"切换到{'动态' if style_variant == 'static' else '静态'}", "events": {"click": {"api": "plugin/FnMediaCoverGenerator/toggle_style_variant", "method": "post"}}},
                                                 {"component": "VBtn", "props": {"variant": "flat", "color": "primary", "class": "text-none mb-2", "prepend-icon": "mdi-play-circle-outline"}, "text": "立即生成当前风格", "events": {"click": {"api": "plugin/FnMediaCoverGenerator/generate_now", "method": "post"}}},
                                             ],
                                         }
@@ -584,12 +546,6 @@ class FnMediaCoverGenerator(_PluginBase):
             return {"success": False, "message": "缺少风格参数"}
         self._set_cover_style(style_value, persist=True)
         return {"success": True, "message": f"已切换到 {self._cover_style}"}
-
-    def api_toggle_style_variant(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        self._cover_style_variant = "animated" if self._cover_style_variant == "static" else "static"
-        self._cover_style = self.__compose_cover_style(self._cover_style_base, self._cover_style_variant)
-        self._update_config()
-        return {"success": True, "message": f"已切换到{'动态' if self._cover_style_variant == 'animated' else '静态'}模式"}
 
     def api_select_style_1(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         return self._select_style_index(1)
@@ -701,7 +657,7 @@ class FnMediaCoverGenerator(_PluginBase):
             "title_config": self._title_config,
             "cover_style": self._cover_style,
             "cover_style_base": self._cover_style_base,
-            "cover_style_variant": self._cover_style_variant,
+            "cover_style_variant": "static",
             "multi_1_blur": self._multi_1_blur,
             "zh_font_preset": self._zh_font_preset,
             "en_font_preset": self._en_font_preset,
@@ -737,11 +693,10 @@ class FnMediaCoverGenerator(_PluginBase):
     def _apply_config(self, config: Dict[str, Any]):
         cover_style = str(config.get("cover_style") or "static_1").strip()
         cover_style_base = str(config.get("cover_style_base") or "").strip()
-        cover_style_variant = str(config.get("cover_style_variant") or "").strip()
-        resolved_base, resolved_variant = self.__resolve_cover_style_ui(cover_style)
+        resolved_base, _ = self.__resolve_cover_style_ui(cover_style)
         self._cover_style_base = cover_style_base or resolved_base
-        self._cover_style_variant = cover_style_variant or resolved_variant
-        self._cover_style = self.__compose_cover_style(self._cover_style_base, self._cover_style_variant)
+        self._cover_style_variant = "static"
+        self._cover_style = self.__compose_cover_style(self._cover_style_base, "static")
         self._enabled = _safe_bool(config.get("enabled"), False)
         self._onlyonce = _safe_bool(config.get("onlyonce"), False)
         self._auto_upload = _safe_bool(config.get("auto_upload"), True)
@@ -1072,12 +1027,8 @@ class FnMediaCoverGenerator(_PluginBase):
         title_scale = _safe_float(self._title_scale, 1.0, 0.2, 4.0)
         zh_font_size = float(self._zh_font_size)
         en_font_size = float(self._en_font_size)
-        if not self._cover_style.startswith("animated"):
-            zh_font_size = self._resolution_config.get_font_size(zh_font_size) * title_scale
-            en_font_size = self._resolution_config.get_font_size(en_font_size) * title_scale
-        else:
-            zh_font_size *= title_scale
-            en_font_size *= title_scale
+        zh_font_size = self._resolution_config.get_font_size(zh_font_size) * title_scale
+        en_font_size = self._resolution_config.get_font_size(en_font_size) * title_scale
         font_path = (str(self._zh_font_path), str(self._en_font_path))
         font_size = (float(zh_font_size), float(en_font_size))
         font_offset = (
@@ -1096,16 +1047,6 @@ class FnMediaCoverGenerator(_PluginBase):
             return create_style_static_3(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
         if self._cover_style == "static_4":
             return create_style_static_4(single_image, title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
-        if not shutil.which("ffmpeg"):
-            raise RuntimeError("当前环境缺少 ffmpeg，无法生成动态封面")
-        if self._cover_style == "animated_1":
-            return create_style_animated_1(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config, animation_duration=self._animation_duration, animation_fps=self._animation_fps, animation_format=self._animation_format, animation_resolution="320x180", animation_reduce_colors=self._animation_reduce_colors, image_count=self._animated_2_image_count, departure_type=self._animated_2_departure_type, stop_event=self._stop_event)
-        if self._cover_style == "animated_2":
-            return create_style_animated_2(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config, animation_duration=self._animation_duration, animation_fps=self._animation_fps, animation_format=self._animation_format, animation_resolution="320x180", animation_reduce_colors=self._animation_reduce_colors, image_count=self._animated_2_image_count, stop_event=self._stop_event)
-        if self._cover_style == "animated_3":
-            return create_style_animated_3(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config, animation_duration=self._animation_duration, animation_scroll=self._animation_scroll, animation_fps=self._animation_fps, animation_format=self._animation_format, animation_resolution="320x180", animation_reduce_colors=self._animation_reduce_colors, stop_event=self._stop_event)
-        if self._cover_style == "animated_4":
-            return create_style_animated_4(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config, animation_duration=self._animation_duration, animation_fps=self._animation_fps, animation_format=self._animation_format, animation_resolution="320x180", animation_reduce_colors=self._animation_reduce_colors, image_count=self._animated_2_image_count, stop_event=self._stop_event)
         raise ValueError(f"不支持的风格：{self._cover_style}")
 
     def _save_generated_cover(self, image_base64: str, server_name: str, library_name: str, library_id: str) -> Tuple[Path, str]:
@@ -1174,46 +1115,42 @@ class FnMediaCoverGenerator(_PluginBase):
 
     def _select_style_index(self, index: int) -> Dict[str, Any]:
         self._cover_style_base = f"static_{max(1, min(4, int(index)))}"
-        self._cover_style = self.__compose_cover_style(self._cover_style_base, self._cover_style_variant)
+        self._cover_style_variant = "static"
+        self._cover_style = self.__compose_cover_style(self._cover_style_base, "static")
         self._update_config()
         return {"success": True, "message": f"已切换到 {self._cover_style}"}
 
     def _set_cover_style(self, cover_style: str, persist: bool = True) -> bool:
-        base, variant = self.__resolve_cover_style_ui(cover_style)
+        base, _ = self.__resolve_cover_style_ui(cover_style)
         self._cover_style_base = base
-        self._cover_style_variant = variant
-        self._cover_style = self.__compose_cover_style(base, variant)
+        self._cover_style_variant = "static"
+        self._cover_style = self.__compose_cover_style(base, "static")
         if persist:
             self._update_config()
         return True
 
     def __compose_cover_style(self, base_style: str, variant: str) -> str:
         base = base_style if base_style in {"static_1", "static_2", "static_3", "static_4"} else "static_1"
-        mode = variant if variant in {"static", "animated"} else "static"
-        suffix = base.split("_")[-1]
-        return base if mode == "static" else f"animated_{suffix}"
+        return base
 
     def __resolve_cover_style_ui(self, cover_style: str) -> Tuple[str, str]:
         if cover_style in {"animated_1", "animated_2", "animated_3", "animated_4"}:
             suffix = cover_style.split("_")[-1]
-            return f"static_{suffix}", "animated"
+            return f"static_{suffix}", "static"
         if cover_style in {"static_1", "static_2", "static_3", "static_4"}:
             return cover_style, "static"
         return "static_1", "static"
 
     def __get_cover_style_parts(self) -> Tuple[str, int]:
-        variant = "animated" if self._cover_style.startswith("animated_") else "static"
         try:
             index = int(self._cover_style.split("_")[-1])
         except Exception:
             index = 1
-        return variant, max(1, min(4, index))
+        return "static", max(1, min(4, index))
 
     def __get_required_items(self) -> int:
-        if self._cover_style in {"static_3", "animated_3"}:
+        if self._cover_style == "static_3":
             return 9
-        if self._cover_style in {"animated_1", "animated_2", "animated_4"}:
-            return self._animated_2_image_count
         return 1
 
     def __build_page_style_cards(self, style_variant: str, selected_index: int) -> List[Dict[str, Any]]:
@@ -1230,7 +1167,7 @@ class FnMediaCoverGenerator(_PluginBase):
                             "events": {"click": {"api": f"plugin/FnMediaCoverGenerator/select_style_{index}", "method": "post"}},
                             "content": [
                                 {"component": "VImg", "props": {"src": self.__style_preview_src(index), "aspect-ratio": "16/9", "cover": True}},
-                                {"component": "VCardText", "props": {"class": "py-2 text-center"}, "text": f"风格{index}{'（当前）' if index == selected_index else ''} / {'动态' if style_variant == 'animated' else '静态'}"},
+                                {"component": "VCardText", "props": {"class": "py-2 text-center"}, "text": f"风格{index}{'（当前）' if index == selected_index else ''} / 静态"},
                             ],
                         }
                     ],

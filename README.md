@@ -9,8 +9,7 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
 | 序号 | 插件名称 | 版本 | 功能描述 | 标签 |
 |------|----------|------|----------|------|
 | 1 | [🌱 SQ农场 (SQFarm)](#1--sq农场-sqfarm) | v0.4.5 | 支持 SQ 站点农场状态展示、一键收菜、种植、动态调度和 Cookie 同步 | 站点 |
-| 2 | [🖼️ 媒体库封面生成魔改 (MediaCoverRemix)](#2-️-媒体库封面生成魔改-mediacoverremix) | v0.1.7 | 读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换 | 媒体服务器 |
-| 3 | [🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)](#3-️-飞牛影视媒体库封面生成-fnmediacovergenerator) | v0.1.0 | 为飞牛影视媒体库生成动态/静态封面，并支持自动替换 | 媒体服务器 |
+| 2 | [🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)](#2-️-飞牛影视媒体库封面生成-fnmediacovergenerator) | v0.1.1 | 为飞牛影视媒体库生成静态封面，并支持自动替换 | 媒体服务器 |
 
 ### 1. 🌱 SQ农场 (SQFarm)
 - 版本：v0.4.5
@@ -41,39 +40,19 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
   - v0.1.0: 首版发布，支持 MoviePilot V2 定时执行 SQ农场收菜、售卖和种植。
   </details>
 
-### 2. 🖼️ 媒体库封面生成魔改 (MediaCoverRemix)
-- 版本：v0.1.7
-- 功能：读取 MoviePilot 已配置的飞牛影视媒体库，按媒体库现有 `image_list` 生成新的拼贴风格封面，并尝试自动回写到飞牛影视。
-- 标签：媒体服务器
-- 特点：
-  - 🧩 直接读取 MoviePilot 中的媒体服务器和媒体库列表
-  - 🎨 复用 Jellyfin Library Poster 的拼贴视觉思路，生成横版媒体库封面
-  - 🖼️ 提供 Vue 配置页与数据页，支持预览最近一次生成结果
-  - 🧪 内置飞牛 `trimemedia` 运行时探测，便于排查鉴权与回写链路
-  - 🔁 已按飞牛前端实际上传参数补齐临时图片上传请求，并增强回写失败时的脱敏诊断信息
-  - 🔐 已补上 multipart 上传的签名兼容逻辑，尽量对齐飞牛前端 FormData 请求行为
-  - 🧷 上传前会补齐 `Trim-MC-token`，并将封面压成飞牛前端同款 `WEBP <= 5MB`
-  - 🎯 自动回写时按飞牛“自定义单图封面”模式提交，避免 `setPoster` 因类型值错误返回 `Invalid Params`
-  - 🔁 支持手动执行、保存后立即执行和 Cron 定时生成
-- 说明：
-  - 当前重点适配飞牛影视 `trimemedia`
-  - 自动替换依赖 MoviePilot 运行时里能取到飞牛服务的连接信息与鉴权信息
-  - 如果回写失败，插件仍会保留本地生成的封面文件与预览结果
-
-### 3. 🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)
-- 版本：v0.1.0
-- 功能：为 MoviePilot 已配置的飞牛影视媒体库生成动态/静态封面，并支持自动替换。
+### 2. 🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)
+- 版本：v0.1.1
+- 功能：为 MoviePilot 已配置的飞牛影视媒体库生成静态封面，并支持自动替换。
 - 标签：媒体服务器
 - 特点：
   - 🎨 复用成熟的拼贴封面样式与字体配置逻辑，并收敛为飞牛影视专用版本
   - 🧩 直接读取 MoviePilot 已配置的飞牛影视媒体服务器与媒体库，无需额外手填库信息
   - 🖼️ 保留统一的媒体库封面生成操作流：选媒体库、选风格、调字体、立即生成、查看历史
-  - 🔁 支持静态 PNG/JPG/WebP 与动态 APNG/GIF 生成，并按飞牛支持情况自动回写
+  - 🔁 仅生成静态 PNG/JPG/WebP 封面，并支持飞牛自动回写
   - 🔐 复用现有飞牛鉴权与上传链路，对接 `image/temp/upload` 与 `mdb/setPoster`
   - 🧹 支持图片缓存与字体缓存清理，便于重复调样式
 - 说明：
   - 当前重点适配 MoviePilot 中已配置的飞牛影视 `trimemedia`
-  - 动态封面建议优先使用 `APNG`，飞牛自动回写不支持 `GIF`
   - 如果飞牛回写失败，插件会保留本地输出结果与历史记录，便于手动核对
 
 ## 📖 使用说明
@@ -85,15 +64,10 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
    - 启用站点 Cookie 同步，或手动填写 SQ Cookie
    - 配置 OCR 地址，例如 `http://ip:8089/api/tr-run/`
    - 选择是否自动售出、自动种植以及优先种植种子
-4. 如果使用 `媒体库封面生成魔改`：
-   - 先填写 MoviePilot 地址与 API Token
-   - 选择飞牛影视媒体服务器和需要处理的媒体库
-   - 按需设置标题映射规则、封面尺寸和定时任务
-   - 先用“立即生成”验证封面生成与飞牛回写是否正常
-5. 如果使用 `飞牛影视媒体库封面生成`：
+4. 如果使用 `飞牛影视媒体库封面生成`：
    - 先在 MoviePilot 的媒体服务器里配置好飞牛影视账号
-   - 在插件页选择飞牛影视媒体服务器、目标媒体库与静态/动态风格
-   - 按需调整字体、标题映射、分辨率和动画参数
+   - 在插件页选择飞牛影视媒体服务器、目标媒体库与静态风格
+   - 按需调整字体、标题映射和分辨率
    - 先用“立即生成”验证输出效果，再决定是否开启自动替换和定时任务
 
 ## 🧩 OCR 说明
@@ -121,7 +95,6 @@ services:
 ```text
 plugins.v2/
   sqfarm/
-  mediacoverremix/
   fnmediacovergenerator/
 package.v2.json
 README.md
@@ -133,13 +106,6 @@ LICENSE
 - 插件主文件：`plugins.v2/sqfarm/__init__.py`
 - 状态页：`plugins.v2/sqfarm/src/components/Page.vue`
 - 配置页：`plugins.v2/sqfarm/src/components/Config.vue`
-- 市场配置：`package.v2.json`
-
-`MediaCoverRemix` 对应文件：
-
-- 插件主文件：`plugins.v2/mediacoverremix/__init__.py`
-- 状态页：`plugins.v2/mediacoverremix/src/components/Page.vue`
-- 配置页：`plugins.v2/mediacoverremix/src/components/Config.vue`
 - 市场配置：`package.v2.json`
 
 `FnMediaCoverGenerator` 对应文件：

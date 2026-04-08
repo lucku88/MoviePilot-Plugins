@@ -87,33 +87,16 @@
       "v0.1.0": "首版发布，接入每日老虎机、表情包开包与合成、演员图鉴和舞台演出。"
     }
   },
-  "MediaCoverRemix": {
-    "name": "媒体库封面生成魔改",
-    "description": "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。",
-    "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.7",
-    "icon": "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png",
-    "author": "lucku88",
-    "level": 1,
-    "history": {
-      "v0.1.7": "修正飞牛 setPoster 的 poster_type 取值，自动回写改为按自定义单图模式提交，解决上传成功后仍返回 Invalid Params。",
-      "v0.1.6": "上传前改为按飞牛前端行为压成 5MB 内的 WEBP，并补齐 Trim-MC-token Cookie，继续收敛临时图片上传 Invalid Params。",
-      "v0.1.5": "补齐飞牛 multipart 上传的 authx 签名兼容，按前端 FormData 行为增加签名兜底重试，继续收敛临时图片上传参数错误。",
-      "v0.1.4": "按飞牛前端实际请求为临时图片上传补上 image_type，并增强上传与 setPoster 的脱敏报错，同时修复 inspect 接口 500。",
-      "v0.1.2": "为媒体库源图下载补上飞牛鉴权头与 Cookie 透传，避免 image_list 拉取时直接返回 Auth Failed。",
-      "v0.1.1": "补充运行时诊断，返回更明确的源图下载失败原因，并修复飞牛探测接口的反射异常。",
-      "v0.1.0": "首版发布，支持读取 MoviePilot 中的飞牛影视媒体库、生成拼贴风格封面、展示预览和尝试自动回写。"
-    }
-  },
   "FnMediaCoverGenerator": {
     "name": "飞牛影视媒体库封面生成",
-    "description": "生成媒体库动态/静态封面，支持飞牛影视",
+    "description": "生成媒体库静态封面，支持飞牛影视",
     "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "icon": "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.1": "移除动态封面入口，插件收敛为飞牛影视静态封面生成与自动替换。",
       "v0.1.0": "首版发布，按媒体库拼贴封面插件的风格与交互适配飞牛影视，支持静态/动态封面生成、历史封面预览和飞牛自动替换。"
     }
   }
