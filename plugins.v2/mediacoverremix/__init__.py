@@ -39,6 +39,8 @@ from app.plugins import _PluginBase
 
 TRIMEMEDIA_SIGN_SECRET = "NDzZTVxnRKP8Z0jXg1VAMonaG8akvh"
 TRIMEMEDIA_API_KEY = "16CCEB3D-AB42-077D-36A1-F355324E4237"
+TRIMEMEDIA_TOKEN_COOKIE = "Trim-MC-token"
+TRIMEMEDIA_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 TRIMEMEDIA_PATH_MARKERS = (
     "/api/v1",
     "/library/",
@@ -90,7 +92,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -964,6 +966,54 @@ class MediaCoverRemix(_PluginBase):
         response.raise_for_status()
         return response.json()
 
+    def _prepare_trimemedia_upload_file(self, output_file: Path) -> Tuple[str, io.BytesIO, str]:
+        self._ensure_pillow()
+        qualities = (92, 86, 80, 74, 68, 62, 56, 50, 44, 38)
+        scales = (1.0, 0.95, 0.9, 0.85, 0.8)
+        best_payload = b""
+
+        with Image.open(output_file) as source:
+            source_image = source.convert("RGB")
+
+        try:
+            for scale in scales:
+                candidate = source_image
+                if scale != 1.0:
+                    candidate = source_image.resize(
+                        (
+                            max(1, int(source_image.width * scale)),
+                            max(1, int(source_image.height * scale)),
+                        ),
+                        RESAMPLING.LANCZOS,
+                    )
+                try:
+                    for quality in qualities:
+                        buffer = io.BytesIO()
+                        candidate.save(buffer, format="WEBP", quality=quality)
+                        payload = buffer.getvalue()
+                        if payload:
+                            best_payload = payload
+                        if len(payload) <= TRIMEMEDIA_UPLOAD_MAX_BYTES:
+                            ready = io.BytesIO(payload)
+                            ready.seek(0)
+                            return f"{output_file.stem}.webp", ready, "image/webp"
+                finally:
+                    if candidate is not source_image:
+                        candidate.close()
+        finally:
+            source_image.close()
+
+        if not best_payload:
+            raise ValueError("未能生成飞牛上传图片")
+        logger.warning(
+            "%s 飞牛上传图片仍超过 5MB，继续尝试最小 WEBP 结果：%s bytes",
+            self.plugin_name,
+            len(best_payload),
+        )
+        fallback = io.BytesIO(best_payload)
+        fallback.seek(0)
+        return f"{output_file.stem}.webp", fallback, "image/webp"
+
     def _trimemedia_request(
         self,
         base_url: str,
@@ -1130,10 +1180,11 @@ class MediaCoverRemix(_PluginBase):
             "",
         ]
         last_error: Optional[str] = None
-        with output_file.open("rb") as handle:
-            files = {"file": (output_file.name, handle, "image/png")}
+        upload_name, upload_buffer, upload_mime = self._prepare_trimemedia_upload_file(output_file)
+        try:
+            files = {"file": (upload_name, upload_buffer, upload_mime)}
             for signature_body_text in signature_candidates:
-                handle.seek(0)
+                upload_buffer.seek(0)
                 response = self._trimemedia_http_request(
                     runtime=runtime,
                     method="POST",
@@ -1147,6 +1198,8 @@ class MediaCoverRemix(_PluginBase):
                 if code in (0, 200, None):
                     return data
                 last_error = data.get("msg") or self._trimemedia_upload_error(data)
+        finally:
+            upload_buffer.close()
         raise ValueError(last_error or "临时图片上传失败")
 
     def _trimemedia_request(
@@ -1252,6 +1305,7 @@ class MediaCoverRemix(_PluginBase):
         if not base_url and library.get("link"):
             base_url, api_host = self._resolve_trimemedia_hosts(str(library.get("link")))
 
+        cookies = self._trimemedia_cookie_map(cookies, token)
         return {
             "base_url": base_url,
             "api_host": api_host,
@@ -1288,6 +1342,7 @@ class MediaCoverRemix(_PluginBase):
         base_url, normalized_api_host = self._resolve_trimemedia_hosts(str(api_host))
         session = getattr(api, "_session", None)
         cookies = session.cookies.get_dict() if isinstance(session, requests.Session) else {}
+        cookies = self._trimemedia_cookie_map(cookies, token)
         return {
             "base_url": base_url,
             "api_host": normalized_api_host,
@@ -1341,7 +1396,7 @@ class MediaCoverRemix(_PluginBase):
             "base_url": base_url,
             "api_host": normalized_api_host,
             "headers": {},
-            "cookies": session.cookies.get_dict(),
+            "cookies": self._trimemedia_cookie_map(session.cookies.get_dict(), token),
             "token": token,
             "apikey": TRIMEMEDIA_API_KEY,
             "auth_source": "service.config.credentials",
@@ -1395,6 +1450,15 @@ class MediaCoverRemix(_PluginBase):
         base_url = str(runtime.get("base_url") or "").rstrip("/")
         return url.startswith(f"{api_host}/api/v1/") or (base_url and url.startswith(f"{base_url}/v/api/v1/"))
 
+    def _trimemedia_cookie_map(self, cookies: Optional[Dict[str, Any]], token: str = "") -> Dict[str, str]:
+        normalized: Dict[str, str] = {}
+        if isinstance(cookies, dict):
+            normalized.update({str(key): str(value) for key, value in cookies.items() if value is not None})
+        token = str(token or "").strip()
+        if token and not normalized.get(TRIMEMEDIA_TOKEN_COOKIE):
+            normalized[TRIMEMEDIA_TOKEN_COOKIE] = token
+        return normalized
+
     def _trimemedia_http_request(
         self,
         runtime: Dict[str, Any],
@@ -1432,8 +1496,8 @@ class MediaCoverRemix(_PluginBase):
             extra_headers=request_headers,
             include_content_type=bool(json_data and files is None),
         )
-        cookies = dict(runtime.get("cookies") or {})
-        cookies.update(request_cookies or {})
+        cookies = self._trimemedia_cookie_map(runtime.get("cookies"), str(runtime.get("token") or ""))
+        cookies.update(self._trimemedia_cookie_map(request_cookies, str(runtime.get("token") or "")))
         requester = session or requests
         request_kwargs: Dict[str, Any] = {
             "method": method,

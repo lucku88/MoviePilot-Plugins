@@ -91,11 +91,12 @@
     "name": "媒体库封面生成魔改",
     "description": "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。",
     "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "icon": "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.6": "上传前改为按飞牛前端行为压成 5MB 内的 WEBP，并补齐 Trim-MC-token Cookie，继续收敛临时图片上传 Invalid Params。",
       "v0.1.5": "补齐飞牛 multipart 上传的 authx 签名兼容，按前端 FormData 行为增加签名兜底重试，继续收敛临时图片上传参数错误。",
       "v0.1.4": "按飞牛前端实际请求为临时图片上传补上 image_type，并增强上传与 setPoster 的脱敏报错，同时修复 inspect 接口 500。",
       "v0.1.2": "为媒体库源图下载补上飞牛鉴权头与 Cookie 透传，避免 image_list 拉取时直接返回 Auth Failed。",
