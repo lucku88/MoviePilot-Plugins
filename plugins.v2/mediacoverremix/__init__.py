@@ -90,7 +90,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -844,8 +844,9 @@ class MediaCoverRemix(_PluginBase):
         except Exception as err:
             result["services_error"] = str(err)
 
-        self.save_data("inspect_result", result)
-        return result
+        safe_result = self._sanitize_json_value(result)
+        self.save_data("inspect_result", safe_result)
+        return safe_result
 
     def _object_summary(self, obj: Any) -> Dict[str, Any]:
         if obj is None:
@@ -867,21 +868,54 @@ class MediaCoverRemix(_PluginBase):
             if name.lower() in {"password", "passwd", "secret"}:
                 continue
             if isinstance(value, (str, int, float, bool)) or value is None:
-                plain[name] = value
+                plain[name] = self._sanitize_json_value(value, name)
             elif isinstance(value, dict):
-                plain[name] = {str(k): self._mask_sensitive(v) for k, v in list(value.items())[:12]}
-            elif isinstance(value, (list, tuple)):
-                plain[name] = [self._mask_sensitive(v) for v in list(value)[:12]]
+                plain[name] = self._sanitize_json_value(dict(list(value.items())[:12]), name)
+            elif isinstance(value, (list, tuple, set)):
+                plain[name] = self._sanitize_json_value(list(value)[:12], name)
         summary["attrs"] = plain
         summary["methods"] = methods[:60]
         return summary
 
-    def _mask_sensitive(self, value: Any) -> Any:
+    def _sanitize_json_value(self, value: Any, key: str = "") -> Any:
+        key_lower = str(key or "").lower()
         if isinstance(value, str):
-            low = value.lower()
-            if "token" in low or "cookie" in low or len(value) > 80:
+            if (
+                key_lower in {"authorization", "auth", "authx", "token", "apikey", "api_key", "cookie", "cookies"}
+                or "token" in key_lower
+                or "cookie" in key_lower
+                or len(value) > 80
+            ):
                 return f"{value[:12]}...{value[-6:]}" if len(value) > 24 else "***"
-        return value
+            return value
+        if isinstance(value, (int, float, bool)) or value is None:
+            return value
+        if isinstance(value, dict):
+            return {
+                str(item_key): self._sanitize_json_value(item_value, str(item_key))
+                for item_key, item_value in list(value.items())[:20]
+            }
+        if isinstance(value, (list, tuple, set)):
+            return [self._sanitize_json_value(item, key) for item in list(value)[:20]]
+        return repr(value)
+
+    def _mask_sensitive(self, value: Any) -> Any:
+        return self._sanitize_json_value(value)
+
+    def _trimemedia_extract_hash_path(self, upload_info: Any) -> str:
+        if not isinstance(upload_info, dict):
+            return ""
+        for container in [upload_info, upload_info.get("data")]:
+            if not isinstance(container, dict):
+                continue
+            hash_path = str(container.get("hash_path") or "").strip()
+            if hash_path:
+                return hash_path
+        return ""
+
+    def _trimemedia_upload_error(self, upload_info: Any) -> str:
+        safe_payload = self._sanitize_json_value(upload_info)
+        return json.dumps(safe_payload, ensure_ascii=False, separators=(",", ":"))
 
     def _upload_trimemedia_cover(
         self,
@@ -1076,14 +1110,14 @@ class MediaCoverRemix(_PluginBase):
             poster_info = self._trimemedia_request(runtime, "/api/v1/mdb/getPoster", {"guid": library.get("id")})
             poster_type = (poster_info.get("data") or {}).get("poster_type") or "single"
             upload_info = self._trimemedia_upload_temp(runtime, output_file)
-            hash_path = ((upload_info.get("data") or {}).get("hash_path")) or ""
+            hash_path = self._trimemedia_extract_hash_path(upload_info)
             if not hash_path:
-                return False, "临时图片上传后未返回 hash_path"
+                return False, f"临时图片上传未返回 hash_path：{self._trimemedia_upload_error(upload_info)}"
             payload = {"guid": library.get("id"), "poster_type": poster_type, "poster": hash_path}
             result = self._trimemedia_request(runtime, "/api/v1/mdb/setPoster", payload)
             code = result.get("code")
             if code not in (0, 200, None):
-                return False, f"setPoster 返回异常：{result}"
+                return False, f"setPoster 返回异常：{self._trimemedia_upload_error(result)}"
             return True, "自动替换成功"
         except Exception as err:
             return False, f"自动替换失败：{err}"
@@ -1096,8 +1130,13 @@ class MediaCoverRemix(_PluginBase):
                 method="POST",
                 path="/api/v1/image/temp/upload",
                 files=files,
+                form_data={"image_type": "poster"},
             )
-        return response.json()
+        data = response.json()
+        code = data.get("code")
+        if code not in (0, 200, None):
+            raise ValueError(data.get("msg") or self._trimemedia_upload_error(data))
+        return data
 
     def _trimemedia_request(
         self,
@@ -1353,6 +1392,7 @@ class MediaCoverRemix(_PluginBase):
         url: Optional[str] = None,
         json_data: Optional[Dict[str, Any]] = None,
         files: Optional[Dict[str, Any]] = None,
+        form_data: Optional[Dict[str, Any]] = None,
         request_headers: Optional[Dict[str, str]] = None,
         request_cookies: Optional[Dict[str, str]] = None,
         session: Optional[requests.Session] = None,
@@ -1390,8 +1430,12 @@ class MediaCoverRemix(_PluginBase):
         }
         if files is not None:
             request_kwargs["files"] = files
+            if form_data is not None and method != "GET":
+                request_kwargs["data"] = form_data
         elif json_data is not None and method != "GET":
             request_kwargs["data"] = body_text
+        elif form_data is not None and method != "GET":
+            request_kwargs["data"] = form_data
         response = requester.request(**request_kwargs)
         response.raise_for_status()
         return response
