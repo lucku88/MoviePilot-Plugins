@@ -28,7 +28,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -667,11 +667,21 @@ class SQEmoji(_PluginBase):
         total_spins = 0
         while remaining > 0:
             batch = min(remaining, max_batch)
+            used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
             result = self._post_action(session, "spin_slot", {"count": batch}, retry_network=True)
-            if not result.get("success"):
-                raise ValueError(result.get("message") or "老虎机转动失败")
-            total_spins += batch
-            state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            if result.get("success"):
+                total_spins += batch
+                state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            else:
+                recovered = self._recover_spin_state(session, state, before_bags, used_before, batch)
+                recovered_state = recovered.get("state") or {}
+                recovered_spins = self._safe_int(recovered.get("spins"), 0)
+                if recovered_state and recovered_spins > 0:
+                    logger.info("%s 老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
+                    total_spins += recovered_spins
+                    state = recovered_state
+                else:
+                    raise ValueError(result.get("message") or "老虎机转动失败")
             spin = state.get("spin") or {}
             remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
 
@@ -1539,6 +1549,111 @@ class SQEmoji(_PluginBase):
 
     def _has_auto_jobs_enabled(self) -> bool:
         return bool(self._auto_stage or self._auto_spin or self._auto_open_bags)
+
+    def _recover_spin_state(
+        self,
+        session: requests.Session,
+        before_state: Dict[str, Any],
+        before_bags: Dict[str, int],
+        used_before: int,
+        requested_count: int,
+    ) -> Dict[str, Any]:
+        current_state = self._fetch_bundle(session)["state"] or {}
+        used_after = self._safe_int((current_state.get("spin") or {}).get("used"), 0)
+        used_delta = max(0, used_after - used_before)
+        bag_diff = self._bag_quantity_diff(before_bags, current_state)
+        bag_gain = sum(max(0, value) for value in bag_diff.values())
+        recovered_spins = used_delta if used_delta > 0 else bag_gain
+        if recovered_spins <= 0:
+            limit = self._safe_int((current_state.get("spin") or {}).get("limit"), 0)
+            if limit > 0 and used_after >= limit and used_before < limit:
+                recovered_spins = min(max(0, limit - used_before), max(1, requested_count))
+        return {
+            "state": current_state,
+            "spins": recovered_spins,
+            "bag_diff": bag_diff,
+        }
+
+    def _run_auto_spin(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+        spin = state.get("spin") or {}
+        remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
+        if remaining <= 0:
+            return state, []
+
+        before_bags = self._bag_quantity_map(state)
+        max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_spin_batch"), 10))
+        total_spins = 0
+        while remaining > 0:
+            batch = min(remaining, max_batch)
+            used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
+            try:
+                result = self._post_action(session, "spin_slot", {"count": batch}, retry_network=True)
+            except Exception:
+                recovered = self._recover_spin_state(session, state, before_bags, used_before, batch)
+                recovered_state = recovered.get("state") or {}
+                recovered_spins = self._safe_int(recovered.get("spins"), 0)
+                if not recovered_state or recovered_spins <= 0:
+                    raise
+                logger.info("%s 老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
+                total_spins += recovered_spins
+                state = recovered_state
+            else:
+                if result.get("success"):
+                    total_spins += batch
+                    state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+                else:
+                    recovered = self._recover_spin_state(session, state, before_bags, used_before, batch)
+                    recovered_state = recovered.get("state") or {}
+                    recovered_spins = self._safe_int(recovered.get("spins"), 0)
+                    if not recovered_state or recovered_spins <= 0:
+                        raise ValueError(result.get("message") or "老虎机转动失败")
+                    logger.info("%s 老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
+                    total_spins += recovered_spins
+                    state = recovered_state
+
+            spin = state.get("spin") or {}
+            remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
+
+        diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, state))
+        if diff_text:
+            return state, [f"🎰 老虎机：{diff_text}"]
+        return state, [f"🎰 老虎机：已转动 {total_spins} 次"] if total_spins else []
+
+    def _manual_spin(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        requested = max(1, self._safe_int(payload.get("count"), 1))
+        session = self._build_session()
+        state = self._fetch_bundle(session)["state"]
+        spin = state.get("spin") or {}
+        remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
+        if remaining <= 0:
+            raise ValueError("今日老虎机次数已用完")
+        max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_spin_batch"), 10))
+        count = min(requested, remaining, max_batch)
+        before_bags = self._bag_quantity_map(state)
+        used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
+        try:
+            result = self._post_action(session, "spin_slot", {"count": count}, retry_network=True)
+        except Exception:
+            recovered = self._recover_spin_state(session, state, before_bags, used_before, count)
+            after_state = recovered.get("state") or {}
+            recovered_spins = self._safe_int(recovered.get("spins"), 0)
+            if not after_state or recovered_spins <= 0:
+                raise
+            logger.info("%s 手动老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
+        else:
+            if result.get("success"):
+                after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
+            else:
+                recovered = self._recover_spin_state(session, state, before_bags, used_before, count)
+                after_state = recovered.get("state") or {}
+                recovered_spins = self._safe_int(recovered.get("spins"), 0)
+                if not after_state or recovered_spins <= 0:
+                    raise ValueError(result.get("message") or "老虎机转动失败")
+                logger.info("%s 手动老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
+        diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, after_state))
+        lines = [f"🎰 老虎机：{diff_text or f'已转动 {count} 次'}"]
+        emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
+        return {"message": lines[0], "emoji_status": emoji_status}
 
     @staticmethod
     def _parse_named_counts(text: str) -> Dict[str, int]:
