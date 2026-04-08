@@ -1,10 +1,12 @@
 import base64
+import hashlib
 import io
 import json
 import math
 import random
 import re
 import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -33,6 +35,22 @@ from app.core.config import settings
 from app.helper.mediaserver import MediaServerHelper
 from app.log import logger
 from app.plugins import _PluginBase
+
+
+TRIMEMEDIA_SIGN_SECRET = "NDzZTVxnRKP8Z0jXg1VAMonaG8akvh"
+TRIMEMEDIA_API_KEY = "16CCEB3D-AB42-077D-36A1-F355324E4237"
+TRIMEMEDIA_PATH_MARKERS = (
+    "/api/v1",
+    "/library/",
+    "/item/",
+    "/search/",
+    "/user/",
+    "/manager/",
+    "/mediadb/",
+    "/mdb/",
+    "/image/",
+    "/sys/",
+)
 
 
 def _safe_int(value: Any, default: int, minimum: Optional[int] = None, maximum: Optional[int] = None) -> int:
@@ -72,7 +90,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -541,8 +559,12 @@ class MediaCoverRemix(_PluginBase):
         service = self._get_service(library.get("server_name"))
         runtime = self._extract_trimemedia_runtime(library.get("server_name"), service, library) if service else {
             "base_url": "",
+            "api_host": "",
             "headers": {},
             "cookies": {},
+            "token": "",
+            "apikey": "",
+            "auth_source": "",
             "attrs_dump": [],
         }
         output_file = self._output_dir() / f"{self._slugify(library.get('server_name'))}_{self._slugify(library.get('name'))}_{library.get('id')}.png"
@@ -553,6 +575,7 @@ class MediaCoverRemix(_PluginBase):
             output_file=output_file,
             request_headers=runtime.get("headers") or {},
             request_cookies=runtime.get("cookies") or {},
+            request_runtime=runtime,
         )
         uploaded = False
         upload_message = "未启用自动替换"
@@ -580,9 +603,15 @@ class MediaCoverRemix(_PluginBase):
         output_file: Path,
         request_headers: Dict[str, str],
         request_cookies: Dict[str, str],
+        request_runtime: Optional[Dict[str, Any]] = None,
     ) -> Tuple[bool, str]:
         self._ensure_pillow()
-        images, errors = self._download_images(image_urls, request_headers=request_headers, request_cookies=request_cookies)
+        images, errors = self._download_images(
+            image_urls,
+            request_headers=request_headers,
+            request_cookies=request_cookies,
+            request_runtime=request_runtime,
+        )
         if not images:
             detail = "; ".join(errors[:3]) if errors else "未下载到任何源图"
             return False, f"封面生成失败：{detail}"
@@ -630,6 +659,7 @@ class MediaCoverRemix(_PluginBase):
         image_urls: List[str],
         request_headers: Dict[str, str],
         request_cookies: Dict[str, str],
+        request_runtime: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List[Image.Image], List[str]]:
         images: List[Image.Image] = []
         errors: List[str] = []
@@ -637,7 +667,16 @@ class MediaCoverRemix(_PluginBase):
             if self._stop_event.is_set():
                 break
             try:
-                response = requests.get(url, headers=request_headers, cookies=request_cookies, timeout=self._http_timeout)
+                if self._is_trimemedia_runtime_ready(request_runtime) and self._is_trimemedia_request(url, request_runtime):
+                    response = self._trimemedia_http_request(
+                        runtime=request_runtime,
+                        method="GET",
+                        url=url,
+                        request_headers=request_headers,
+                        request_cookies=request_cookies,
+                    )
+                else:
+                    response = requests.get(url, headers=request_headers, cookies=request_cookies, timeout=self._http_timeout)
                 response.raise_for_status()
                 content_type = str(response.headers.get("content-type") or "").lower()
                 if "application/json" in content_type:
@@ -1003,6 +1042,438 @@ class MediaCoverRemix(_PluginBase):
                 continue
             if "token" in key_lower and isinstance(value, str) and value:
                 headers.setdefault("Authorization", value if value.lower().startswith("bearer ") else f"Bearer {value}")
+            if key_lower in {"authorization", "auth"} and isinstance(value, str) and value:
+                headers.setdefault("Authorization", value)
+        return headers, cookies
+
+    def _parse_cookie_string(self, cookie_value: str) -> Dict[str, str]:
+        cookies: Dict[str, str] = {}
+        for chunk in str(cookie_value or "").split(";"):
+            if "=" not in chunk:
+                continue
+            name, value = chunk.split("=", 1)
+            cookies[name.strip()] = value.strip()
+        return cookies
+
+    def _upload_trimemedia_cover(
+        self,
+        library: Dict[str, Any],
+        output_file: Path,
+        service: Any = None,
+        runtime: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bool, str]:
+        service = service or self._get_service(library.get("server_name"))
+        if not service:
+            return False, "未找到对应的媒体服务器实例"
+
+        runtime = runtime or self._extract_trimemedia_runtime(library.get("server_name"), service, library)
+        if not runtime.get("base_url"):
+            return False, "未能识别飞牛地址"
+        if not self._is_trimemedia_runtime_ready(runtime):
+            return False, "未能从 MoviePilot 读取有效的飞牛鉴权"
+
+        try:
+            poster_info = self._trimemedia_request(runtime, "/api/v1/mdb/getPoster", {"guid": library.get("id")})
+            poster_type = (poster_info.get("data") or {}).get("poster_type") or "single"
+            upload_info = self._trimemedia_upload_temp(runtime, output_file)
+            hash_path = ((upload_info.get("data") or {}).get("hash_path")) or ""
+            if not hash_path:
+                return False, "临时图片上传后未返回 hash_path"
+            payload = {"guid": library.get("id"), "poster_type": poster_type, "poster": hash_path}
+            result = self._trimemedia_request(runtime, "/api/v1/mdb/setPoster", payload)
+            code = result.get("code")
+            if code not in (0, 200, None):
+                return False, f"setPoster 返回异常：{result}"
+            return True, "自动替换成功"
+        except Exception as err:
+            return False, f"自动替换失败：{err}"
+
+    def _trimemedia_upload_temp(self, runtime: Dict[str, Any], output_file: Path) -> Dict[str, Any]:
+        with output_file.open("rb") as handle:
+            files = {"file": (output_file.name, handle, "image/png")}
+            response = self._trimemedia_http_request(
+                runtime=runtime,
+                method="POST",
+                path="/api/v1/image/temp/upload",
+                files=files,
+            )
+        return response.json()
+
+    def _trimemedia_request(
+        self,
+        runtime: Dict[str, Any],
+        path: str,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        response = self._trimemedia_http_request(
+            runtime=runtime,
+            method="POST",
+            path=path,
+            json_data=payload,
+        )
+        data = response.json()
+        code = data.get("code")
+        if code not in (0, 200, None):
+            raise ValueError(data.get("msg") or str(data))
+        return data
+
+    def _extract_trimemedia_runtime(self, server_name: str, service: Any, library: Dict[str, Any]) -> Dict[str, Any]:
+        instance = getattr(service, "instance", None)
+        helper = self._mediaserver_helper or MediaServerHelper()
+        helper_config = None
+        try:
+            configs = helper.get_configs() or {}
+            if isinstance(configs, dict):
+                helper_config = configs.get(server_name)
+        except Exception:
+            helper_config = None
+
+        service_config = getattr(service, "config", None)
+        candidate_objects = [service, instance, service_config, helper_config]
+
+        base_url = ""
+        api_host = ""
+        headers: Dict[str, str] = {}
+        cookies: Dict[str, str] = {}
+        token = ""
+        apikey = ""
+        auth_source = ""
+        attrs_dump: List[Dict[str, Any]] = []
+        config_keys: List[str] = []
+
+        for obj in candidate_objects:
+            if obj is None:
+                continue
+            attrs = self._collect_object_attrs(obj)
+            attrs_dump.append({
+                "type": obj.__class__.__name__,
+                "keys": sorted(list(attrs.keys()))[:120],
+            })
+            if not base_url:
+                base_url = self._guess_base_url_from_attrs(attrs) or base_url
+                if base_url and not api_host:
+                    _, api_host = self._resolve_trimemedia_hosts(base_url)
+            extra_headers, extra_cookies = self._guess_headers_cookies(attrs)
+            headers.update({k: v for k, v in extra_headers.items() if v})
+            cookies.update({k: v for k, v in extra_cookies.items() if v})
+
+        if instance is not None:
+            instance_runtime = self._runtime_from_trimemedia_instance(instance)
+            if instance_runtime.get("base_url"):
+                base_url = instance_runtime["base_url"]
+            if instance_runtime.get("api_host"):
+                api_host = instance_runtime["api_host"]
+            headers.update(instance_runtime.get("headers") or {})
+            cookies.update(instance_runtime.get("cookies") or {})
+            token = instance_runtime.get("token") or token
+            apikey = instance_runtime.get("apikey") or apikey
+            auth_source = instance_runtime.get("auth_source") or auth_source
+
+        raw_config = None
+        for config_obj in [service_config, helper_config]:
+            if getattr(config_obj, "config", None):
+                raw_config = getattr(config_obj, "config", None)
+                break
+        config_values, config_keys = self._trimemedia_credentials_from_config(raw_config)
+        if config_values.get("host"):
+            config_base, config_api_host = self._resolve_trimemedia_hosts(str(config_values.get("host")))
+            base_url = base_url or config_base
+            api_host = api_host or config_api_host
+        if not token and config_values.get("host") and config_values.get("username") and config_values.get("password"):
+            try:
+                login_runtime = self._runtime_from_trimemedia_credentials(
+                    host=str(config_values.get("host")),
+                    username=str(config_values.get("username")),
+                    password=str(config_values.get("password")),
+                )
+            except Exception as err:
+                logger.warning("%s 飞牛配置登录失败：%s / %s", self.plugin_name, server_name, err)
+                login_runtime = {}
+            if login_runtime.get("base_url"):
+                base_url = login_runtime["base_url"]
+            if login_runtime.get("api_host"):
+                api_host = login_runtime["api_host"]
+            headers.update(login_runtime.get("headers") or {})
+            cookies.update(login_runtime.get("cookies") or {})
+            token = login_runtime.get("token") or token
+            apikey = login_runtime.get("apikey") or apikey
+            auth_source = login_runtime.get("auth_source") or auth_source
+
+        if not base_url and library.get("link"):
+            base_url, api_host = self._resolve_trimemedia_hosts(str(library.get("link")))
+
+        return {
+            "base_url": base_url,
+            "api_host": api_host,
+            "headers": headers,
+            "cookies": cookies,
+            "token": token,
+            "apikey": apikey or TRIMEMEDIA_API_KEY,
+            "auth_source": auth_source,
+            "config_keys": config_keys,
+            "attrs_dump": attrs_dump,
+        }
+
+    def _collect_object_attrs(self, obj: Any) -> Dict[str, Any]:
+        attrs: Dict[str, Any] = {}
+        for name in dir(obj):
+            if name.startswith("__"):
+                continue
+            try:
+                value = getattr(obj, name)
+            except Exception:
+                continue
+            if callable(value):
+                continue
+            attrs[name] = value
+        return attrs
+
+    def _runtime_from_trimemedia_instance(self, instance: Any) -> Dict[str, Any]:
+        api = getattr(instance, "api", None) or getattr(instance, "_api", None)
+        if api is None:
+            return {}
+        api_host = getattr(api, "host", None) or getattr(api, "_host", None) or ""
+        token = getattr(api, "token", None) or getattr(api, "_token", None) or ""
+        apikey = getattr(api, "apikey", None) or getattr(api, "_apikey", None) or TRIMEMEDIA_API_KEY
+        base_url, normalized_api_host = self._resolve_trimemedia_hosts(str(api_host))
+        session = getattr(api, "_session", None)
+        cookies = session.cookies.get_dict() if isinstance(session, requests.Session) else {}
+        return {
+            "base_url": base_url,
+            "api_host": normalized_api_host,
+            "headers": {},
+            "cookies": cookies,
+            "token": token,
+            "apikey": apikey,
+            "auth_source": "service.instance.api",
+        }
+
+    def _trimemedia_credentials_from_config(self, config_data: Any) -> Tuple[Dict[str, str], List[str]]:
+        if not isinstance(config_data, dict):
+            return {}, []
+        host = config_data.get("host") or config_data.get("url") or config_data.get("server")
+        username = config_data.get("username") or config_data.get("user")
+        password = config_data.get("password") or config_data.get("passwd") or config_data.get("pwd")
+        return {
+            "host": str(host or "").strip(),
+            "username": str(username or "").strip(),
+            "password": str(password or "").strip(),
+        }, sorted([str(key) for key in config_data.keys()])[:120]
+
+    def _runtime_from_trimemedia_credentials(self, host: str, username: str, password: str) -> Dict[str, Any]:
+        api_host = self._probe_trimemedia_api_host(host)
+        if not api_host:
+            return {}
+        base_url, normalized_api_host = self._resolve_trimemedia_hosts(api_host)
+        session = requests.Session()
+        payload = {"username": username, "password": password, "app_name": "trimemedia-web"}
+        response = self._trimemedia_http_request(
+            runtime={
+                "base_url": base_url,
+                "api_host": normalized_api_host,
+                "headers": {},
+                "cookies": {},
+                "token": "",
+                "apikey": TRIMEMEDIA_API_KEY,
+            },
+            method="POST",
+            path="/api/v1/login",
+            json_data=payload,
+            session=session,
+        )
+        data = response.json()
+        if int(data.get("code") or -1) != 0:
+            raise ValueError(data.get("msg") or str(data))
+        token = str((data.get("data") or {}).get("token") or "").strip()
+        if not token:
+            raise ValueError("飞牛登录成功但未返回 token")
+        return {
+            "base_url": base_url,
+            "api_host": normalized_api_host,
+            "headers": {},
+            "cookies": session.cookies.get_dict(),
+            "token": token,
+            "apikey": TRIMEMEDIA_API_KEY,
+            "auth_source": "service.config.credentials",
+        }
+
+    def _resolve_trimemedia_hosts(self, value: str) -> Tuple[str, str]:
+        parsed = urlparse(str(value or "").strip())
+        if not parsed.scheme or not parsed.netloc:
+            return "", ""
+        root = f"{parsed.scheme}://{parsed.netloc}"
+        path = (parsed.path or "").rstrip("/")
+        for marker in TRIMEMEDIA_PATH_MARKERS:
+            if marker in path:
+                path = path.split(marker, 1)[0].rstrip("/")
+                break
+        if path.endswith("/v"):
+            api_host = f"{root}{path}"
+            base_url = f"{root}{path[:-2]}".rstrip("/")
+        else:
+            base_url = f"{root}{path}".rstrip("/")
+            api_host = f"{base_url}/v".rstrip("/")
+        return base_url, api_host
+
+    def _probe_trimemedia_api_host(self, host: str) -> str:
+        base_url, api_host = self._resolve_trimemedia_hosts(host)
+        for candidate in [api_host, base_url]:
+            if not candidate:
+                continue
+            try:
+                response = requests.get(
+                    f"{candidate}/api/v1/sys/version",
+                    headers={"Accept": "application/json", "User-Agent": settings.USER_AGENT},
+                    timeout=self._http_timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                if int(data.get("code") or -1) == 0:
+                    _, normalized_api_host = self._resolve_trimemedia_hosts(candidate)
+                    return normalized_api_host
+            except Exception:
+                continue
+        return ""
+
+    def _is_trimemedia_runtime_ready(self, runtime: Optional[Dict[str, Any]]) -> bool:
+        return bool(runtime and runtime.get("api_host") and runtime.get("token") and runtime.get("apikey"))
+
+    def _is_trimemedia_request(self, url: str, runtime: Optional[Dict[str, Any]]) -> bool:
+        if not runtime or not runtime.get("api_host"):
+            return False
+        api_host = str(runtime.get("api_host") or "").rstrip("/")
+        base_url = str(runtime.get("base_url") or "").rstrip("/")
+        return url.startswith(f"{api_host}/api/v1/") or (base_url and url.startswith(f"{base_url}/v/api/v1/"))
+
+    def _trimemedia_http_request(
+        self,
+        runtime: Dict[str, Any],
+        method: str,
+        path: Optional[str] = None,
+        url: Optional[str] = None,
+        json_data: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict[str, Any]] = None,
+        request_headers: Optional[Dict[str, str]] = None,
+        request_cookies: Optional[Dict[str, str]] = None,
+        session: Optional[requests.Session] = None,
+    ) -> requests.Response:
+        api_host = str(runtime.get("api_host") or "").rstrip("/")
+        if not url and not (api_host and path):
+            raise ValueError("缺少飞牛请求地址")
+
+        full_url = str(url or f"{api_host}{path}")
+        parsed = urlparse(full_url)
+        api_path = parsed.path or (path or "")
+        query_text = parsed.query or ""
+        body_text = ""
+        method = method.upper()
+        if method != "GET" and json_data and files is None:
+            body_text = json.dumps(json_data, ensure_ascii=False, separators=(",", ":"))
+
+        headers = self._build_trimemedia_headers(
+            runtime=runtime,
+            api_path=api_path,
+            query_text=query_text,
+            body_text=body_text,
+            extra_headers=request_headers,
+            include_content_type=bool(json_data and files is None),
+        )
+        cookies = dict(runtime.get("cookies") or {})
+        cookies.update(request_cookies or {})
+        requester = session or requests
+        request_kwargs: Dict[str, Any] = {
+            "method": method,
+            "url": full_url,
+            "headers": headers,
+            "cookies": cookies,
+            "timeout": self._http_timeout,
+        }
+        if files is not None:
+            request_kwargs["files"] = files
+        elif json_data is not None and method != "GET":
+            request_kwargs["data"] = body_text
+        response = requester.request(**request_kwargs)
+        response.raise_for_status()
+        return response
+
+    def _build_trimemedia_headers(
+        self,
+        runtime: Dict[str, Any],
+        api_path: str,
+        query_text: str,
+        body_text: str,
+        extra_headers: Optional[Dict[str, str]] = None,
+        include_content_type: bool = False,
+    ) -> Dict[str, str]:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": settings.USER_AGENT,
+            "Referer": str(runtime.get("api_host") or runtime.get("base_url") or ""),
+        }
+        for key, value in (runtime.get("headers") or {}).items():
+            if key.lower() not in {"authorization", "authx", "content-type"}:
+                headers[str(key)] = str(value)
+        for key, value in (extra_headers or {}).items():
+            if key.lower() not in {"authorization", "authx", "content-type"}:
+                headers[str(key)] = str(value)
+        token = str(runtime.get("token") or "").strip()
+        if token:
+            headers["Authorization"] = token
+        headers["authx"] = self._build_trimemedia_authx(
+            api_path=api_path,
+            payload_text=body_text if body_text else query_text,
+            apikey=str(runtime.get("apikey") or TRIMEMEDIA_API_KEY),
+        )
+        if include_content_type:
+            headers["Content-Type"] = "application/json"
+        return headers
+
+    def _build_trimemedia_authx(self, api_path: str, payload_text: str, apikey: str) -> str:
+        normalized_path = api_path if api_path.startswith("/v") else f"/v{api_path}"
+        nonce = str(random.randint(100000, 999999))
+        timestamp = str(int(time.time() * 1000))
+        body_hash = hashlib.md5((payload_text or "").encode("utf-8")).hexdigest()
+        sign_raw = "_".join([TRIMEMEDIA_SIGN_SECRET, normalized_path, nonce, timestamp, body_hash, apikey])
+        sign = hashlib.md5(sign_raw.encode("utf-8")).hexdigest()
+        return f"nonce={nonce}&timestamp={timestamp}&sign={sign}"
+
+    def _guess_base_url_from_attrs(self, attrs: Dict[str, Any]) -> str:
+        for key in ("base_url", "server", "host", "url", "_host", "_server", "_base_url"):
+            value = attrs.get(key)
+            if isinstance(value, str) and value.startswith("http"):
+                base_url, _ = self._resolve_trimemedia_hosts(value)
+                return base_url
+        for value in attrs.values():
+            if not isinstance(value, str):
+                continue
+            if value.startswith("http://") or value.startswith("https://"):
+                base_url, _ = self._resolve_trimemedia_hosts(value)
+                return base_url
+        return ""
+
+    def _guess_headers_cookies(self, attrs: Dict[str, Any]) -> Tuple[Dict[str, str], Dict[str, str]]:
+        headers: Dict[str, str] = {}
+        cookies: Dict[str, str] = {}
+        for key, value in attrs.items():
+            key_lower = key.lower()
+            if isinstance(value, requests.Session):
+                headers.update({str(k): str(v) for k, v in value.headers.items()})
+                cookies.update(value.cookies.get_dict())
+                continue
+            if key_lower in {"headers", "_headers"} and isinstance(value, dict):
+                headers.update({str(k): str(v) for k, v in value.items()})
+                continue
+            if key_lower in {"cookies", "_cookies"}:
+                if isinstance(value, dict):
+                    cookies.update({str(k): str(v) for k, v in value.items()})
+                elif isinstance(value, str):
+                    cookies.update(self._parse_cookie_string(value))
+                continue
+            if key_lower == "cookie" and isinstance(value, str):
+                cookies.update(self._parse_cookie_string(value))
+                continue
+            if "token" in key_lower and isinstance(value, str) and value:
+                headers.setdefault("Authorization", value)
             if key_lower in {"authorization", "auth"} and isinstance(value, str) and value:
                 headers.setdefault("Authorization", value)
         return headers, cookies
