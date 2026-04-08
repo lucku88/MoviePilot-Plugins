@@ -14,14 +14,25 @@ import pytz
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+try:
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    RESAMPLING = getattr(Image, "Resampling", Image)
+except Exception:
+    Image = None
+    ImageDraw = None
+    ImageFilter = None
+    ImageFont = None
+
+    class _FallbackResampling:
+        LANCZOS = 1
+
+    RESAMPLING = _FallbackResampling()
 
 from app.core.config import settings
 from app.helper.mediaserver import MediaServerHelper
 from app.log import logger
 from app.plugins import _PluginBase
-
-RESAMPLING = getattr(Image, "Resampling", Image)
 
 
 def _safe_int(value: Any, default: int, minimum: Optional[int] = None, maximum: Optional[int] = None) -> int:
@@ -544,6 +555,7 @@ class MediaCoverRemix(_PluginBase):
         return result
 
     def _generate_cover(self, library_name: str, library_type: str, image_urls: List[str], output_file: Path) -> bool:
+        self._ensure_pillow()
         images = self._download_images(image_urls)
         if not images:
             return False
@@ -581,6 +593,10 @@ class MediaCoverRemix(_PluginBase):
         output_file.parent.mkdir(parents=True, exist_ok=True)
         canvas.convert("RGB").save(output_file, format="PNG", optimize=True)
         return True
+
+    def _ensure_pillow(self):
+        if not all([Image, ImageDraw, ImageFilter, ImageFont]):
+            raise RuntimeError("Pillow 未安装，无法生成媒体库封面")
 
     def _download_images(self, image_urls: List[str]) -> List[Image.Image]:
         images: List[Image.Image] = []
@@ -707,6 +723,7 @@ class MediaCoverRemix(_PluginBase):
 
     def _to_preview_payload(self, path: Path) -> str:
         try:
+            self._ensure_pillow()
             image = Image.open(path).convert("RGB")
             image.thumbnail((420, 236), RESAMPLING.LANCZOS)
             buffer = io.BytesIO()
