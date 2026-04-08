@@ -91,11 +91,12 @@
     "name": "飞牛影视媒体库封面生成",
     "description": "生成媒体库静态封面，支持飞牛影视",
     "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "媒体库源图改为每次按对应媒体库的 image_list 随机打散后取图，避免固定顺序导致封面来源过于重复。",
       "v0.1.1": "移除动态封面入口，插件收敛为飞牛影视静态封面生成与自动替换。",
       "v0.1.0": "首版发布，按媒体库拼贴封面插件的风格与交互适配飞牛影视，支持静态/动态封面生成、历史封面预览和飞牛自动替换。"
     }
