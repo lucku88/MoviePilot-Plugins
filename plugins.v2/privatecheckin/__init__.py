@@ -31,11 +31,11 @@ from app.schemas import NotificationType
 class PrivateCheckin(_PluginBase):
     plugin_name = "自用签到"
     plugin_desc = (
-        "支持自定义浏览器签到页、GET/POST 接口签到、思齐签到/HNR 领取、New API 签到，"
-        "并默认优先使用 Playwright 过 CF。"
+        "支持自定义浏览器签到页与 GET/POST 接口签到，"
+        "浏览器型任务默认优先使用 Playwright 过 CF。"
     )
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2705.png"
-    plugin_version = "0.2.0"
+    plugin_version = "0.3.0"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "privatecheckin_"
@@ -60,6 +60,12 @@ class PrivateCheckin(_PluginBase):
         "siqi_hnr_claim": "思齐 HNR 领取",
         "new_api_checkin": "New API 签到",
     }
+    EXPOSED_TASK_TYPE_VALUES = [
+        "generic_attendance",
+        "request_get",
+        "request_post_form",
+        "request_post_json",
+    ]
     CF_MODE_LABELS = {
         "auto": "智能兜底",
         "request": "仅请求",
@@ -268,7 +274,10 @@ class PrivateCheckin(_PluginBase):
             "http_retry_delay": self._http_retry_delay,
             "flaresolverr_url": self._flaresolverr_url,
             "tasks": [self._export_task(task) for task in self._tasks],
-            "task_type_options": [{"title": label, "value": value} for value, label in self.TASK_TYPE_LABELS.items()],
+            "task_type_options": [
+                {"title": self.TASK_TYPE_LABELS.get(value, value), "value": value}
+                for value in self.EXPOSED_TASK_TYPE_VALUES
+            ],
             "cf_mode_options": [{"title": label, "value": value} for value, label in self.CF_MODE_LABELS.items()],
         }
 
@@ -314,96 +323,11 @@ class PrivateCheckin(_PluginBase):
             "http_retry_times": 3,
             "http_retry_delay": 1500,
             "flaresolverr_url": "",
-            "tasks": self._default_tasks(),
+            "tasks": [],
         }
 
     def _default_tasks(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "id": "sample-browser-checkin",
-                "name": "示例：浏览器自动签到页",
-                "enabled": False,
-                "task_type": "generic_attendance",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "",
-                "cf_mode": "playwright",
-            },
-            {
-                "id": "sample-request-get",
-                "name": "示例：GET 接口签到",
-                "enabled": False,
-                "task_type": "request_get",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-                "request_body": "action=checkin",
-                "request_headers": '{"X-Requested-With":"XMLHttpRequest"}',
-            },
-            {
-                "id": "sample-request-post-form",
-                "name": "示例：POST 表单签到",
-                "enabled": False,
-                "task_type": "request_post_form",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-                "request_body": "action=checkin&token=请替换",
-                "request_headers": "",
-            },
-            {
-                "id": "sample-request-post-json",
-                "name": "示例：POST JSON 签到",
-                "enabled": False,
-                "task_type": "request_post_json",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": False,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-                "request_body": '{\n  "action": "checkin"\n}',
-                "request_headers": '{\n  "Content-Type": "application/json"\n}',
-            },
-            {
-                "id": "sample-siqi-attendance",
-                "name": "示例：思齐签到",
-                "enabled": False,
-                "task_type": "siqi_attendance",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-            },
-            {
-                "id": "sample-siqi-hnr",
-                "name": "示例：思齐 HNR 领取",
-                "enabled": False,
-                "task_type": "siqi_hnr_claim",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": True,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-            },
-            {
-                "id": "sample-new-api-checkin",
-                "name": "示例：New API 签到",
-                "enabled": False,
-                "task_type": "new_api_checkin",
-                "site_url": "",
-                "target_url": "",
-                "use_moviepilot_cookie": False,
-                "moviepilot_domain": "",
-                "cf_mode": "request",
-                "new_api_uid": "",
-            },
-        ]
+        return []
 
     def _task_template(self) -> Dict[str, Any]:
         return {
@@ -452,8 +376,6 @@ class PrivateCheckin(_PluginBase):
             seen_ids.add(task["id"])
             normalized_tasks.append(task)
 
-        if not normalized_tasks:
-            normalized_tasks = [self._normalize_task(task) for task in self._default_tasks()]
         self._tasks = normalized_tasks
 
     def _normalize_task(self, raw_task: Dict[str, Any]) -> Dict[str, Any]:
@@ -563,10 +485,10 @@ class PrivateCheckin(_PluginBase):
             "history": history[:30],
             "guides": [
                 "浏览器自动签到页默认建议使用 Playwright，适合 attendance.php 这类打开页面即自动签到或领取的站点。",
-                "GET/POST 接口签到通过 requests 执行，适合 AJAX 或 API 型签到；如需鉴权，请准备好 Cookie、请求头或表单参数。",
+                "GET / POST 表单 / POST JSON 这三类接口任务通过 requests 执行，适合 AJAX 或 API 型签到。",
                 "智能兜底会优先尝试 Playwright，再回退 requests，最后才尝试 FlareSolverr。",
                 "MoviePilot V2 容器已自带 Playwright；只有强 CF 仍过不去时，再额外部署 FlareSolverr。",
-                "任务支持优先读取 MoviePilot 站点 Cookie；如果站点不在站点管理里，直接填写浏览器 Cookie 即可。",
+                "任务支持优先读取 MoviePilot 站点 Cookie；如果站点不在站点管理里，直接填写浏览器 Cookie 或请求头即可。",
             ],
         }
 

@@ -1,18 +1,18 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_bbef189b_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_21c156c3_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-bbef189b"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-21c156c3"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "pc-shell" };
 const _hoisted_2 = { class: "pc-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pc-hero-copy" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "pc-badge" }, "自用签到"),
   /*#__PURE__*/_createElementVNode("h1", { class: "pc-title" }, "配置页"),
-  /*#__PURE__*/_createElementVNode("p", { class: "pc-subtitle" }, " 这里统一管理签到页、接口请求、Cookie 和过 CF 策略。浏览器型签到默认优先用 MoviePilot 自带的 Playwright， 接口型签到则按 requests 执行。 ")
+  /*#__PURE__*/_createElementVNode("p", { class: "pc-subtitle" }, " 这里统一管理签到页、接口请求、Cookie 和过 CF 策略。浏览器型任务默认优先用 MoviePilot 自带的 Playwright， 接口型任务默认按 requests 执行。 ")
 ], -1));
 const _hoisted_4 = { class: "pc-actions" };
 const _hoisted_5 = { class: "pc-grid" };
@@ -34,8 +34,8 @@ const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_12 = { class: "pc-form-grid" };
 const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pc-note-stack" }, [
-  /*#__PURE__*/_createElementVNode("div", { class: "pc-note" }, " `智能兜底` 会按 `Playwright -> requests -> FlareSolverr` 顺序尝试，浏览器型签到默认更推荐 `仅 Playwright`。 "),
-  /*#__PURE__*/_createElementVNode("div", { class: "pc-note" }, " 如果站点已经配置在 MoviePilot 站点管理里，可以打开“优先使用 MoviePilot Cookie”；否则直接填写浏览器 Cookie。 ")
+  /*#__PURE__*/_createElementVNode("div", { class: "pc-note" }, " `智能兜底` 会按 `Playwright -> requests -> FlareSolverr` 顺序尝试。浏览器自动签到页通常优先用 `仅 Playwright`， 接口签到通常优先用 `仅请求`。 "),
+  /*#__PURE__*/_createElementVNode("div", { class: "pc-note" }, " 如果站点已经配置在 MoviePilot 站点管理里，可以打开“优先使用 MoviePilot Cookie”；否则直接填写浏览器 Cookie 或请求头。 ")
 ], -1));
 const _hoisted_14 = { class: "pc-panel" };
 const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pc-panel-head" }, [
@@ -68,7 +68,7 @@ const _hoisted_30 = { class: "pc-form-grid" };
 const _hoisted_31 = { class: "pc-task-group" };
 const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pc-group-head" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "pc-kicker" }, "Cookie 与过盾"),
-  /*#__PURE__*/_createElementVNode("div", { class: "pc-mini" }, "浏览器型签到默认建议 Playwright，接口型签到默认建议 requests。")
+  /*#__PURE__*/_createElementVNode("div", { class: "pc-mini" }, "浏览器自动签到页默认建议 Playwright，接口型任务默认建议 requests。")
 ], -1));
 const _hoisted_33 = { class: "pc-switch-grid pc-switch-grid-tight" };
 const _hoisted_34 = { class: "pc-form-grid" };
@@ -78,7 +78,7 @@ const _hoisted_35 = {
 };
 const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "pc-group-head" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "pc-kicker" }, "接口参数"),
-  /*#__PURE__*/_createElementVNode("div", { class: "pc-mini" }, "接口型签到支持自定义请求头和请求体，便于适配 GET / 表单 / JSON 这几类常见方式。")
+  /*#__PURE__*/_createElementVNode("div", { class: "pc-mini" }, "支持自定义请求头和请求体，适配 GET / 表单 / JSON 这几类常见方式。")
 ], -1));
 const _hoisted_37 = { class: "pc-form-grid pc-form-grid-wide" };
 const _hoisted_38 = {
@@ -115,6 +115,17 @@ const props = __props;
 
 const REQUEST_TASK_TYPES = ['request_get', 'request_post_form', 'request_post_json'];
 const KEYWORD_TASK_TYPES = ['generic_attendance', ...REQUEST_TASK_TYPES];
+const LEGACY_TASK_LABELS = {
+  siqi_attendance: '思齐签到（旧专用模式）',
+  siqi_hnr_claim: '思齐 HNR 领取（旧专用模式）',
+  new_api_checkin: 'New API 签到（旧专用模式）',
+};
+const BASE_TASK_TYPE_OPTIONS = [
+  { title: '浏览器自动签到页', value: 'generic_attendance' },
+  { title: 'GET 接口签到', value: 'request_get' },
+  { title: 'POST 表单签到', value: 'request_post_form' },
+  { title: 'POST JSON 签到', value: 'request_post_json' },
+];
 
 const rootEl = ref(null);
 const isDarkTheme = ref(false);
@@ -138,20 +149,8 @@ const modeGuides = [
     title: 'POST JSON 签到',
     text: '适合 JSON API。请求体直接填写 JSON，对方接口要求的 Header 也可以在请求头里补上。',
   },
-  {
-    title: '思齐 / New API 专用',
-    text: '这几类会走插件内置逻辑，不需要自己拼接口；只需要把地址、Cookie 和必要参数填完整即可。',
-  },
 ];
-const taskTypeOptions = ref([
-  { title: '浏览器自动签到页', value: 'generic_attendance' },
-  { title: 'GET 接口签到', value: 'request_get' },
-  { title: 'POST 表单签到', value: 'request_post_form' },
-  { title: 'POST JSON 签到', value: 'request_post_json' },
-  { title: '思齐签到', value: 'siqi_attendance' },
-  { title: '思齐 HNR 领取', value: 'siqi_hnr_claim' },
-  { title: 'New API 签到', value: 'new_api_checkin' },
-]);
+const taskTypeOptions = ref([...BASE_TASK_TYPE_OPTIONS]);
 const cfModeOptions = ref([
   { title: '智能兜底', value: 'auto' },
   { title: '仅请求', value: 'request' },
@@ -188,18 +187,19 @@ function clone(value) {
 }
 
 function createTask(overrides = {}) {
+  const taskType = overrides.task_type || 'generic_attendance';
   return {
     id: overrides.id || '',
     name: overrides.name || '',
     enabled: overrides.enabled ?? true,
-    task_type: overrides.task_type || 'generic_attendance',
+    task_type: taskType,
     site_url: overrides.site_url || '',
     target_url: overrides.target_url || '',
     use_moviepilot_cookie: overrides.use_moviepilot_cookie ?? false,
     moviepilot_domain: overrides.moviepilot_domain || '',
     cookie: overrides.cookie || '',
     user_agent: overrides.user_agent || '',
-    cf_mode: overrides.cf_mode || (REQUEST_TASK_TYPES.includes(overrides.task_type) ? 'request' : 'playwright'),
+    cf_mode: overrides.cf_mode || (REQUEST_TASK_TYPES.includes(taskType) ? 'request' : 'playwright'),
     success_keywords: overrides.success_keywords ?? DEFAULT_SUCCESS_KEYWORDS,
     failure_keywords: overrides.failure_keywords ?? DEFAULT_FAILURE_KEYWORDS,
     request_body: overrides.request_body || '',
@@ -209,72 +209,6 @@ function createTask(overrides = {}) {
     force_ipv4: overrides.force_ipv4 ?? true,
     new_api_uid: overrides.new_api_uid || '',
   }
-}
-
-function createDefaultTasks() {
-  return [
-    createTask({
-      id: 'sample-browser-checkin',
-      name: '示例：浏览器自动签到页',
-      enabled: false,
-      task_type: 'generic_attendance',
-      use_moviepilot_cookie: true,
-      cf_mode: 'playwright',
-    }),
-    createTask({
-      id: 'sample-request-get',
-      name: '示例：GET 接口签到',
-      enabled: false,
-      task_type: 'request_get',
-      use_moviepilot_cookie: true,
-      cf_mode: 'request',
-      request_headers: '{"X-Requested-With":"XMLHttpRequest"}',
-      request_body: 'action=checkin',
-    }),
-    createTask({
-      id: 'sample-request-post-form',
-      name: '示例：POST 表单签到',
-      enabled: false,
-      task_type: 'request_post_form',
-      use_moviepilot_cookie: true,
-      cf_mode: 'request',
-      request_body: 'action=checkin&token=请替换',
-    }),
-    createTask({
-      id: 'sample-request-post-json',
-      name: '示例：POST JSON 签到',
-      enabled: false,
-      task_type: 'request_post_json',
-      use_moviepilot_cookie: false,
-      cf_mode: 'request',
-      request_headers: '{\n  "Content-Type": "application/json"\n}',
-      request_body: '{\n  "action": "checkin"\n}',
-    }),
-    createTask({
-      id: 'sample-siqi-attendance',
-      name: '示例：思齐签到',
-      enabled: false,
-      task_type: 'siqi_attendance',
-      use_moviepilot_cookie: true,
-      cf_mode: 'request',
-    }),
-    createTask({
-      id: 'sample-siqi-hnr',
-      name: '示例：思齐 HNR 领取',
-      enabled: false,
-      task_type: 'siqi_hnr_claim',
-      use_moviepilot_cookie: true,
-      cf_mode: 'request',
-    }),
-    createTask({
-      id: 'sample-new-api-checkin',
-      name: '示例：New API 签到',
-      enabled: false,
-      task_type: 'new_api_checkin',
-      use_moviepilot_cookie: false,
-      cf_mode: 'request',
-    }),
-  ]
 }
 
 function createBlankTask() {
@@ -287,8 +221,20 @@ function createBlankTask() {
   })
 }
 
+function mergeTaskTypeOptions(tasks, options) {
+  const merged = [...options];
+  for (const task of tasks || []) {
+    if (merged.some((item) => item.value === task.task_type)) continue
+    const legacyTitle = LEGACY_TASK_LABELS[task.task_type];
+    if (legacyTitle) {
+      merged.push({ title: legacyTitle, value: task.task_type });
+    }
+  }
+  return merged
+}
+
 function resolveTaskTypeLabel(value) {
-  return taskTypeOptions.value.find((item) => item.value === value)?.title || value
+  return taskTypeOptions.value.find((item) => item.value === value)?.title || LEGACY_TASK_LABELS[value] || value
 }
 
 function resolveCfModeLabel(value) {
@@ -301,6 +247,14 @@ function usesKeywordMatcher(type) {
 
 function usesRequestPayload(type) {
   return REQUEST_TASK_TYPES.includes(type)
+}
+
+function handleTaskTypeChange(task) {
+  if (REQUEST_TASK_TYPES.includes(task.task_type) && task.cf_mode === 'playwright') {
+    task.cf_mode = 'request';
+  } else if (!REQUEST_TASK_TYPES.includes(task.task_type) && task.cf_mode === 'request') {
+    task.cf_mode = 'playwright';
+  }
 }
 
 function taskTargetPlaceholder(type) {
@@ -328,9 +282,9 @@ function taskTypeDescription(type) {
   if (type === 'request_get') return '适合 AJAX / API 类型的 GET 签到接口，可填写请求参数和请求头。'
   if (type === 'request_post_form') return '适合 form-urlencoded 类型接口，常见于表单提交签到。'
   if (type === 'request_post_json') return '适合 JSON API，可直接填写 JSON 请求体和鉴权请求头。'
-  if (type === 'siqi_attendance') return '内置思齐 attendance.php 验证码识别与提交逻辑。'
-  if (type === 'siqi_hnr_claim') return '内置思齐 HNR 页面解析与奖励领取逻辑。'
-  if (type === 'new_api_checkin') return '内置 New API /api/user/checkin 查询与签到逻辑，需要额外填写 UID。'
+  if (type === 'siqi_attendance') return '旧专用模式。已不再提供新建入口，建议改成通用接口模式或浏览器模式。'
+  if (type === 'siqi_hnr_claim') return '旧专用模式。已不再提供新建入口，建议改成通用接口模式或浏览器模式。'
+  if (type === 'new_api_checkin') return '旧专用模式。已不再提供新建入口，建议改成 POST JSON 或其他通用接口模式。'
   return '适合浏览器打开页面即可自动完成签到或领取的站点，默认建议只用 Playwright。'
 }
 
@@ -388,8 +342,9 @@ function applyConfig(payload) {
   config.http_retry_times = payload.http_retry_times ?? 3;
   config.http_retry_delay = payload.http_retry_delay ?? 1500;
   config.flaresolverr_url = payload.flaresolverr_url || '';
-  config.tasks = clone(payload.tasks || createDefaultTasks());
-  taskTypeOptions.value = payload.task_type_options || taskTypeOptions.value;
+  config.tasks = Array.isArray(payload.tasks) ? clone(payload.tasks) : [];
+  const baseOptions = Array.isArray(payload.task_type_options) && payload.task_type_options.length ? payload.task_type_options : BASE_TASK_TYPE_OPTIONS;
+  taskTypeOptions.value = mergeTaskTypeOptions(config.tasks, baseOptions);
   cfModeOptions.value = payload.cf_mode_options || cfModeOptions.value;
 }
 
@@ -421,11 +376,6 @@ function addTask() {
 
 function removeTask(index) {
   config.tasks.splice(index, 1);
-}
-
-function resetDefaults() {
-  config.tasks = createDefaultTasks();
-  flash('已恢复默认示例模板，请按你的站点实际参数修改后再启用', 'info');
 }
 
 onMounted(() => {
@@ -469,17 +419,6 @@ return (_ctx, _cache) => {
             ]),
             _: 1
           }),
-          _createVNode(_component_v_btn, {
-            color: "warning",
-            variant: "flat",
-            loading: saving.value,
-            onClick: resetDefaults
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("恢复默认示例")
-            ]),
-            _: 1
-          }, 8, ["loading"]),
           _createVNode(_component_v_btn, {
             color: "primary",
             variant: "flat",
@@ -647,7 +586,7 @@ return (_ctx, _cache) => {
               onClick: addTask
             }, {
               default: _withCtx(() => [
-                _createTextVNode("新增空白任务")
+                _createTextVNode("新增任务")
               ]),
               _: 1
             })
@@ -659,12 +598,12 @@ return (_ctx, _cache) => {
           class: "mb-4"
         }, {
           default: _withCtx(() => [
-            _createTextVNode(" 默认示例只提供填写模板，不会预设真实站点地址。把示例里的站点地址、任务地址、请求体、Cookie 改成你自己的再启用即可。 ")
+            _createTextVNode(" 新任务默认是空白配置，请自己填写站点地址、任务地址、Cookie 或请求参数后再启用。 ")
           ]),
           _: 1
         }),
         (!config.tasks.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_21, " 暂无任务，点击“新增空白任务”或“恢复默认示例”开始。 "))
+          ? (_openBlock(), _createElementBlock("div", _hoisted_21, " 还没有任务，点击右上角“新增任务”开始。 "))
           : (_openBlock(), _createBlock(_component_v_expansion_panels, {
               key: 1,
               multiple: "",
@@ -690,7 +629,7 @@ return (_ctx, _cache) => {
                                 variant: "tonal"
                               }, {
                                 default: _withCtx(() => [
-                                  _createTextVNode(_toDisplayString(task.enabled ? '启用' : '示例 / 停用'), 1)
+                                  _createTextVNode(_toDisplayString(task.enabled ? '启用' : '未启用'), 1)
                                 ]),
                                 _: 2
                               }, 1032, ["color"]),
@@ -727,7 +666,7 @@ return (_ctx, _cache) => {
                                 }, null, 8, ["modelValue", "onUpdate:modelValue"]),
                                 _createVNode(_component_v_select, {
                                   modelValue: task.task_type,
-                                  "onUpdate:modelValue": $event => ((task.task_type) = $event),
+                                  "onUpdate:modelValue": [$event => ((task.task_type) = $event), $event => (handleTaskTypeChange(task))],
                                   items: taskTypeOptions.value,
                                   label: "任务类型",
                                   variant: "outlined",
@@ -825,8 +764,8 @@ return (_ctx, _cache) => {
                                       key: 0,
                                       modelValue: task.new_api_uid,
                                       "onUpdate:modelValue": $event => ((task.new_api_uid) = $event),
-                                      label: "New API UID",
-                                      placeholder: "例如 225",
+                                      label: "Legacy UID",
+                                      placeholder: "仅旧专用任务需要",
                                       variant: "outlined",
                                       density: "comfortable"
                                     }, null, 8, ["modelValue", "onUpdate:modelValue"]))
@@ -928,6 +867,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-bbef189b"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-21c156c3"]]);
 
 export { ConfigView as default };

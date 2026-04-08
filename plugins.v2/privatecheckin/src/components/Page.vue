@@ -79,7 +79,7 @@
 
             <div class="pc-chip-row">
               <v-chip size="small" variant="tonal">
-                {{ task.enabled ? '已启用' : '示例 / 停用' }}
+                {{ task.enabled ? '已启用' : '未启用' }}
               </v-chip>
               <v-chip size="small" variant="tonal">
                 {{ task.cookie_source || (task.use_moviepilot_cookie ? '待同步站点 Cookie' : '手动 Cookie / 请求头') }}
@@ -315,9 +315,12 @@ onBeforeUnmount(() => {
 <style scoped>
 .pc-page {
   color: #13251a;
+  padding: clamp(16px, 2vw, 24px) clamp(18px, 4vw, 56px) 48px;
 }
 
 .pc-shell {
+  width: min(1360px, 100%);
+  margin: 0 auto;
   display: grid;
   gap: 28px;
 }
@@ -548,6 +551,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 980px) {
+  .pc-page {
+    padding: 16px 14px 36px;
+  }
+
   .pc-hero,
   .pc-task-head,
   .pc-task-actions,
