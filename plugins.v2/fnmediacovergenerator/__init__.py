@@ -68,6 +68,29 @@ DEFAULT_FONT_URLS = {
     "Plaster": "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/fonts/Plaster.woff2",
 }
 
+DEFAULT_SUBTITLE_MAP = {
+    "国漫": "GUOMAN",
+    "动画": "Animation",
+    "动漫": "Anime",
+    "电影": "Films",
+    "动画电影": "Animated Films",
+    "国产剧": "Chinese Drama",
+    "欧美剧": "Western Series",
+    "日韩剧": "Japan & Korea Drama",
+    "日剧": "Japanese Drama",
+    "韩剧": "Korean Drama",
+    "电视剧": "TV Series",
+    "纪录片": "Documentaries",
+    "综艺": "Variety Shows",
+    "其他": "Others",
+    "短剧": "Short Drama",
+    "番剧": "Anime Series",
+    "美剧": "US Series",
+    "英剧": "UK Series",
+    "台剧": "Taiwan Drama",
+    "港剧": "Hong Kong Drama",
+}
+
 
 def _safe_bool(value: Any, default: bool = False) -> bool:
     if value is None:
@@ -107,7 +130,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -331,7 +354,7 @@ class FnMediaCoverGenerator(_PluginBase):
                                         "props": {
                                             "type": "info",
                                             "variant": "tonal",
-                                            "text": "字体支持预设名、HTTP 下载地址或容器内本地路径。标题映射按 YAML 配置读取，可给单个媒体库单独指定主标题、副标题和背景色。"
+                                            "text": "字体支持预设名、HTTP 下载地址或容器内本地路径。标题映射按 YAML 配置读取，可给单个媒体库单独指定主标题、副标题和背景色；未填写副标题时，会对常见媒体库名自动补默认副标题。"
                                         }
                                     },
                                     {
@@ -362,7 +385,7 @@ class FnMediaCoverGenerator(_PluginBase):
                                             "theme": "monokai",
                                             "style": "height: 18rem",
                                             "label": "媒体库标题映射",
-                                            "placeholder": "国漫:\n  - 国漫\n  - GUOMAN\n  - '#22314C'"
+                                            "placeholder": "国漫:\n  - 国漫\n  - GUOMAN\n  - '#22314C'\n动画电影:\n  - 动画电影\n  - Animated Films"
                                         }
                                     },
                                 ],
@@ -1358,15 +1381,47 @@ class FnMediaCoverGenerator(_PluginBase):
                 normalized[str(key)] = rows
         return normalized
 
+    def __get_default_subtitle(self, library_name: str) -> str:
+        normalized_name = re.sub(r"\s+", "", str(library_name or "").strip())
+        if not normalized_name:
+            return ""
+        if normalized_name in DEFAULT_SUBTITLE_MAP:
+            return DEFAULT_SUBTITLE_MAP[normalized_name]
+        if "动画" in normalized_name and "电影" in normalized_name:
+            return "Animated Films"
+        if "国漫" in normalized_name:
+            return "GUOMAN"
+        if "动漫" in normalized_name or "番剧" in normalized_name:
+            return "Anime"
+        if "欧美" in normalized_name and "剧" in normalized_name:
+            return "Western Series"
+        if ("日韩" in normalized_name or "日剧" in normalized_name or "韩剧" in normalized_name) and "剧" in normalized_name:
+            return "Japan & Korea Drama"
+        if "国产" in normalized_name and "剧" in normalized_name:
+            return "Chinese Drama"
+        if "纪录" in normalized_name:
+            return "Documentaries"
+        if "综艺" in normalized_name:
+            return "Variety Shows"
+        if "电影" in normalized_name:
+            return "Films"
+        if "剧" in normalized_name:
+            return "TV Series"
+        if re.fullmatch(r"[A-Za-z0-9 _-]+", str(library_name or "").strip()):
+            return re.sub(r"[_-]+", " ", str(library_name or "").strip()).title()
+        return ""
+
     def __get_title_from_config(self, library_name: str) -> Tuple[str, str, Optional[str]]:
         zh_title = library_name
-        en_title = ""
+        en_title = self.__get_default_subtitle(library_name)
         bg_color = None
         for config_key, config_value in self._current_config.items():
             if str(config_key).strip() != str(library_name).strip():
                 continue
             zh_title = config_value[0]
-            en_title = config_value[1] if len(config_value) > 1 else ""
+            en_title = config_value[1].strip() if len(config_value) > 1 and isinstance(config_value[1], str) else ""
+            if not en_title:
+                en_title = self.__get_default_subtitle(zh_title or library_name)
             bg_color = config_value[2] if len(config_value) > 2 else None
             break
         return zh_title, en_title, bg_color
