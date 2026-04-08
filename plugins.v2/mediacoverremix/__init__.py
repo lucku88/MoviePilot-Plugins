@@ -41,6 +41,7 @@ TRIMEMEDIA_SIGN_SECRET = "NDzZTVxnRKP8Z0jXg1VAMonaG8akvh"
 TRIMEMEDIA_API_KEY = "16CCEB3D-AB42-077D-36A1-F355324E4237"
 TRIMEMEDIA_TOKEN_COOKIE = "Trim-MC-token"
 TRIMEMEDIA_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
+TRIMEMEDIA_SINGLE_POSTER_TYPE = 1
 TRIMEMEDIA_PATH_MARKERS = (
     "/api/v1",
     "/library/",
@@ -92,7 +93,7 @@ class MediaCoverRemix(_PluginBase):
     plugin_name = "媒体库封面生成魔改"
     plugin_desc = "读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换。"
     plugin_icon = "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "mediacoverremix_"
@@ -939,12 +940,15 @@ class MediaCoverRemix(_PluginBase):
         base_url = str(runtime.get("base_url")).rstrip("/")
         try:
             poster_info = self._trimemedia_request(base_url, "/v/api/v1/mdb/getPoster", headers, cookies, {"guid": library.get("id")})
-            poster_type = (poster_info.get("data") or {}).get("poster_type") or "single"
             upload_info = self._trimemedia_upload_temp(base_url, headers, cookies, output_file)
             hash_path = ((upload_info.get("data") or {}).get("hash_path")) or ""
             if not hash_path:
                 return False, "临时图片上传后未返回 hash_path"
-            payload = {"guid": library.get("id"), "poster_type": poster_type, "poster": hash_path}
+            payload = {
+                "guid": library.get("id"),
+                "poster_type": TRIMEMEDIA_SINGLE_POSTER_TYPE,
+                "poster": hash_path,
+            }
             result = self._trimemedia_request(base_url, "/v/api/v1/mdb/setPoster", headers, cookies, payload)
             code = result.get("code")
             if code not in (0, 200, None):
@@ -1158,12 +1162,15 @@ class MediaCoverRemix(_PluginBase):
 
         try:
             poster_info = self._trimemedia_request(runtime, "/api/v1/mdb/getPoster", {"guid": library.get("id")})
-            poster_type = (poster_info.get("data") or {}).get("poster_type") or "single"
             upload_info = self._trimemedia_upload_temp(runtime, output_file)
             hash_path = self._trimemedia_extract_hash_path(upload_info)
             if not hash_path:
                 return False, f"临时图片上传未返回 hash_path：{self._trimemedia_upload_error(upload_info)}"
-            payload = {"guid": library.get("id"), "poster_type": poster_type, "poster": hash_path}
+            payload = {
+                "guid": library.get("id"),
+                "poster_type": TRIMEMEDIA_SINGLE_POSTER_TYPE,
+                "poster": hash_path,
+            }
             result = self._trimemedia_request(runtime, "/api/v1/mdb/setPoster", payload)
             code = result.get("code")
             if code not in (0, 200, None):
