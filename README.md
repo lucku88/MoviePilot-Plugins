@@ -10,6 +10,7 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
 |------|----------|------|----------|------|
 | 1 | [🌱 SQ农场 (SQFarm)](#1--sq农场-sqfarm) | v0.4.5 | 支持 SQ 站点农场状态展示、一键收菜、种植、动态调度和 Cookie 同步 | 站点 |
 | 2 | [🖼️ 媒体库封面生成魔改 (MediaCoverRemix)](#2-️-媒体库封面生成魔改-mediacoverremix) | v0.1.7 | 读取 MoviePilot 已配置的飞牛影视媒体库，生成拼贴风格封面并尝试自动替换 | 媒体服务器 |
+| 3 | [🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)](#3-️-飞牛影视媒体库封面生成-fnmediacovergenerator) | v0.1.0 | 按 Emby 媒体库封面生成插件风格生成飞牛影视媒体库动态/静态封面，并支持自动替换 | 媒体服务器 |
 
 ### 1. 🌱 SQ农场 (SQFarm)
 - 版本：v0.4.5
@@ -59,6 +60,22 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
   - 自动替换依赖 MoviePilot 运行时里能取到飞牛服务的连接信息与鉴权信息
   - 如果回写失败，插件仍会保留本地生成的封面文件与预览结果
 
+### 3. 🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)
+- 版本：v0.1.0
+- 功能：参考 `Emby媒体库封面生成` 的风格与操作方式，为 MoviePilot 已配置的飞牛影视媒体库生成动态/静态封面，并支持自动替换。
+- 标签：媒体服务器
+- 特点：
+  - 🎨 复用 `justzerock/MoviePilot-Plugins` 的 4 套静态/动态封面样式与字体配置逻辑
+  - 🧩 直接读取 MoviePilot 已配置的飞牛影视媒体服务器与媒体库，无需额外手填库信息
+  - 🖼️ 保留与 Emby 版本相近的操作流：选媒体库、选风格、调字体、立即生成、查看历史
+  - 🔁 支持静态 PNG/JPG/WebP 与动态 APNG/GIF 生成，并按飞牛支持情况自动回写
+  - 🔐 复用现有飞牛鉴权与上传链路，对接 `image/temp/upload` 与 `mdb/setPoster`
+  - 🧹 支持图片缓存与字体缓存清理，便于重复调样式
+- 说明：
+  - 当前重点适配 MoviePilot 中已配置的飞牛影视 `trimemedia`
+  - 动态封面建议优先使用 `APNG`，飞牛自动回写不支持 `GIF`
+  - 如果飞牛回写失败，插件会保留本地输出结果与历史记录，便于手动核对
+
 ## 📖 使用说明
 
 1. 在 MoviePilot 的自定义插件仓库中添加：
@@ -73,6 +90,11 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
    - 选择飞牛影视媒体服务器和需要处理的媒体库
    - 按需设置标题映射规则、封面尺寸和定时任务
    - 先用“立即生成”验证封面生成与飞牛回写是否正常
+5. 如果使用 `飞牛影视媒体库封面生成`：
+   - 先在 MoviePilot 的媒体服务器里配置好飞牛影视账号
+   - 在插件页选择飞牛影视媒体服务器、目标媒体库与静态/动态风格
+   - 按需调整字体、标题映射、分辨率和动画参数
+   - 先用“立即生成”验证输出效果，再决定是否开启自动替换和定时任务
 
 ## 🧩 OCR 说明
 
@@ -100,6 +122,7 @@ services:
 plugins.v2/
   sqfarm/
   mediacoverremix/
+  fnmediacovergenerator/
 package.v2.json
 README.md
 LICENSE
@@ -117,6 +140,13 @@ LICENSE
 - 插件主文件：`plugins.v2/mediacoverremix/__init__.py`
 - 状态页：`plugins.v2/mediacoverremix/src/components/Page.vue`
 - 配置页：`plugins.v2/mediacoverremix/src/components/Config.vue`
+- 市场配置：`package.v2.json`
+
+`FnMediaCoverGenerator` 对应文件：
+
+- 插件主文件：`plugins.v2/fnmediacovergenerator/__init__.py`
+- 封面样式：`plugins.v2/fnmediacovergenerator/style/`
+- 工具模块：`plugins.v2/fnmediacovergenerator/utils/`
 - 市场配置：`package.v2.json`
 
 后续如果要继续添加新插件，可以直接：

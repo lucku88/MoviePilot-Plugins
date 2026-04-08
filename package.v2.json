@@ -104,5 +104,17 @@
       "v0.1.1": "补充运行时诊断，返回更明确的源图下载失败原因，并修复飞牛探测接口的反射异常。",
       "v0.1.0": "首版发布，支持读取 MoviePilot 中的飞牛影视媒体库、生成拼贴风格封面、展示预览和尝试自动回写。"
     }
+  },
+  "FnMediaCoverGenerator": {
+    "name": "飞牛影视媒体库封面生成",
+    "description": "生成媒体库动态/静态封面，支持飞牛影视",
+    "labels": "媒体服务器,飞牛影视,封面",
+    "version": "0.1.0",
+    "icon": "https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/icons/emby.png",
+    "author": "lucku88",
+    "level": 1,
+    "history": {
+      "v0.1.0": "首版发布，参考 Emby媒体库封面生成 的风格与交互，适配 MoviePilot 已配置的飞牛影视媒体库，支持静态/动态封面生成、历史封面预览和飞牛自动替换。"
+    }
   }
 }
