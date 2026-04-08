@@ -107,7 +107,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -1039,9 +1039,9 @@ class FnMediaCoverGenerator(_PluginBase):
         )
         bg_color_config = {"mode": self._bg_color_mode, "custom_color": self._custom_bg_color, "config_color": config_bg_color}
         logger.info("%s 正在生成媒体库封面：%s / %s / %s", self.plugin_name, server_name, library_name, self._cover_style)
-        single_image = str(library_dir / "1.jpg")
         if self._cover_style == "static_1":
-            return create_style_static_1(single_image, title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
+            return create_style_static_1(str(library_dir), title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
+        single_image = str(library_dir / "1.jpg")
         if self._cover_style == "static_2":
             return create_style_static_2(single_image, title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
         if self._cover_style == "static_3":
@@ -1150,6 +1150,8 @@ class FnMediaCoverGenerator(_PluginBase):
         return "static", max(1, min(4, index))
 
     def __get_required_items(self) -> int:
+        if self._cover_style == "static_1":
+            return 3
         if self._cover_style == "static_3":
             return 9
         return 1

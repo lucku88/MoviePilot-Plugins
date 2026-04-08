@@ -320,9 +320,22 @@ def rotate_image(img, angle, bg_color=(0, 0, 0, 0)):
 
 
 @memory_efficient_operation
+def _resolve_style_static_1_image_paths(image_source):
+    source_path = Path(image_source)
+    if source_path.is_dir():
+        image_paths = [source_path / f"{index}.jpg" for index in range(1, 4)]
+        existing_paths = [path for path in image_paths if path.exists()]
+        if not existing_paths:
+            raise FileNotFoundError(f"未找到可用的风格1源图目录: {source_path}")
+        while len(existing_paths) < 3:
+            existing_paths.append(existing_paths[-1])
+        return existing_paths[:3]
+    return [source_path, source_path, source_path]
+
+
 def create_style_static_1(image_path, title, font_path, font_size=(170,75), font_offset=(0,40,40), blur_size=50, color_ratio=0.8, resolution_config=None, bg_color_config=None):
     try:
-        logger.info("开始创建单图封面...")
+        logger.info("开始创建风格1封面...")
 
         # 初始化分辨率配置
         if resolution_config is None:
@@ -351,8 +364,12 @@ def create_style_static_1(image_path, title, font_path, font_size=(170,75), font
 
         num_colors = 6
 
+        image_paths = _resolve_style_static_1_image_paths(image_path)
+
         # 使用资源管理器加载原始图片
-        with managed_image(image_path, "RGB") as original_img:
+        with managed_image(str(image_paths[0]), "RGB") as original_img, \
+             managed_image(str(image_paths[1]), "RGB") as second_img, \
+             managed_image(str(image_paths[2]), "RGB") as third_img:
 
             # 获取背景颜色
             if bg_color_config:
@@ -424,21 +441,25 @@ def create_style_static_1(image_path, title, font_path, font_size=(170,75), font
 
             # 3. 处理卡片效果
             # 裁剪为正方形
-            square_img = crop_to_square(original_img)
+            square_img_main = crop_to_square(original_img)
+            square_img_aux1 = crop_to_square(second_img)
+            square_img_aux2 = crop_to_square(third_img)
 
             # 计算卡片尺寸 (画布高度的70%)
             card_size = int(canvas_size[1] * 0.7)
-            square_img = square_img.resize((card_size, card_size), Image.LANCZOS)
+            square_img_main = square_img_main.resize((card_size, card_size), Image.LANCZOS)
+            square_img_aux1 = square_img_aux1.resize((card_size, card_size), Image.LANCZOS)
+            square_img_aux2 = square_img_aux2.resize((card_size, card_size), Image.LANCZOS)
         
             # 准备三张卡片图像
             cards = []
 
             # 主卡片 - 原始图
-            main_card = add_rounded_corners(square_img, radius=card_size//8)
+            main_card = add_rounded_corners(square_img_main, radius=card_size//8)
             main_card = main_card.convert("RGBA")
 
-            # 辅助卡片1 (中间层) - 与第二种颜色混合，加深颜色
-            aux_card1 = square_img.copy().filter(ImageFilter.GaussianBlur(radius=8))
+            # 辅助卡片1 (中间层) - 使用第二张海报并做轻度模糊、色彩融合
+            aux_card1 = square_img_aux1.copy().filter(ImageFilter.GaussianBlur(radius=8))
             aux_card1_array = np.array(aux_card1, dtype=float)
             card_color1_array = np.array([[card_colors[0]]], dtype=float)
             # 降低原图比例，增加颜色混合比例
@@ -448,8 +469,8 @@ def create_style_static_1(image_path, title, font_path, font_size=(170,75), font
             aux_card1 = add_rounded_corners(aux_card1, radius=card_size//8)
             aux_card1 = aux_card1.convert("RGBA")
 
-            # 辅助卡片2 (底层) - 与第三种颜色混合，加深颜色
-            aux_card2 = square_img.copy().filter(ImageFilter.GaussianBlur(radius=16))
+            # 辅助卡片2 (底层) - 使用第三张海报并做更强模糊、色彩融合
+            aux_card2 = square_img_aux2.copy().filter(ImageFilter.GaussianBlur(radius=16))
             aux_card2_array = np.array(aux_card2, dtype=float)
             card_color2_array = np.array([[card_colors[1]]], dtype=float)
             # 降低原图比例，增加颜色混合比例
