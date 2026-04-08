@@ -530,7 +530,7 @@ class MediaCoverRemix(_PluginBase):
             }
 
         output_file = self._output_dir() / f"{self._slugify(library.get('server_name'))}_{self._slugify(library.get('name'))}_{library.get('id')}.png"
-        generated = self._generate_cover(
+        generated, generate_message = self._generate_cover(
             library_name=library.get("name") or str(library.get("id")),
             library_type=library.get("type") or library.get("server_type") or "",
             image_urls=image_urls,
@@ -547,18 +547,19 @@ class MediaCoverRemix(_PluginBase):
             "library_name": library.get("name"),
             "success": generated,
             "uploaded": uploaded,
-            "message": upload_message if generated else "封面生成失败",
+            "message": upload_message if generated else generate_message,
             "output_file": str(output_file),
             "output_name": output_file.name,
             "preview_url": self._to_preview_payload(output_file),
         }
         return result
 
-    def _generate_cover(self, library_name: str, library_type: str, image_urls: List[str], output_file: Path) -> bool:
+    def _generate_cover(self, library_name: str, library_type: str, image_urls: List[str], output_file: Path) -> Tuple[bool, str]:
         self._ensure_pillow()
-        images = self._download_images(image_urls)
+        images, errors = self._download_images(image_urls)
         if not images:
-            return False
+            detail = "; ".join(errors[:3]) if errors else "未下载到任何源图"
+            return False, f"封面生成失败：{detail}"
         width = self._poster_width
         height = self._poster_height
         primary = images[0].copy().convert("RGB")
@@ -592,14 +593,15 @@ class MediaCoverRemix(_PluginBase):
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
         canvas.convert("RGB").save(output_file, format="PNG", optimize=True)
-        return True
+        return True, "封面生成成功"
 
     def _ensure_pillow(self):
         if not all([Image, ImageDraw, ImageFilter, ImageFont]):
             raise RuntimeError("Pillow 未安装，无法生成媒体库封面")
 
-    def _download_images(self, image_urls: List[str]) -> List[Image.Image]:
+    def _download_images(self, image_urls: List[str]) -> Tuple[List[Image.Image], List[str]]:
         images: List[Image.Image] = []
+        errors: List[str] = []
         for url in image_urls:
             if self._stop_event.is_set():
                 break
@@ -610,7 +612,8 @@ class MediaCoverRemix(_PluginBase):
                 images.append(image)
             except Exception as err:
                 logger.warning("%s 下载封面源图失败：%s / %s", self.plugin_name, url, err)
-        return images
+                errors.append(f"{url} -> {err}")
+        return images, errors
 
     def _build_background(self, image: Image.Image, width: int, height: int) -> Image.Image:
         seed = image.resize((width, height), RESAMPLING.LANCZOS).filter(ImageFilter.GaussianBlur(30))
@@ -775,6 +778,7 @@ class MediaCoverRemix(_PluginBase):
             return {"type": "None"}
         summary: Dict[str, Any] = {"type": obj.__class__.__name__}
         plain: Dict[str, Any] = {}
+        methods: List[str] = []
         for name in dir(obj):
             if name.startswith("__"):
                 continue
@@ -783,6 +787,8 @@ class MediaCoverRemix(_PluginBase):
             except Exception:
                 continue
             if callable(value):
+                if not name.startswith("_"):
+                    methods.append(name)
                 continue
             if name.lower() in {"password", "passwd", "secret"}:
                 continue
@@ -793,7 +799,7 @@ class MediaCoverRemix(_PluginBase):
             elif isinstance(value, (list, tuple)):
                 plain[name] = [self._mask_sensitive(v) for v in list(value)[:12]]
         summary["attrs"] = plain
-        summary["methods"] = [name for name in dir(obj) if not name.startswith("_") and callable(getattr(obj, name, None))][:60]
+        summary["methods"] = methods[:60]
         return summary
 
     def _mask_sensitive(self, value: Any) -> Any:
