@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_8a539df0_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_96395a45_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-8a539df0"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-96395a45"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-config-header" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-header-copy" }, [
@@ -17,7 +17,7 @@ const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_4 = { class: "emoji-header-actions" };
 const _hoisted_5 = { class: "emoji-settings-card" };
 const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-settings-title" }, "⚙️ 基本设置", -1));
-const _hoisted_7 = { class: "emoji-switch-grid" };
+const _hoisted_7 = { class: "emoji-switch-grid emoji-switch-grid-basic" };
 const _hoisted_8 = { class: "emoji-switch-item" };
 const _hoisted_9 = { class: "emoji-switch-item" };
 const _hoisted_10 = { class: "emoji-switch-item" };
@@ -31,16 +31,13 @@ const _hoisted_17 = { class: "emoji-switch-item" };
 const _hoisted_18 = { class: "emoji-switch-item" };
 const _hoisted_19 = { class: "emoji-switch-item" };
 const _hoisted_20 = { class: "emoji-field-grid" };
-const _hoisted_21 = { class: "emoji-field-block emoji-field-block-wide" };
+const _hoisted_21 = { class: "emoji-field-block" };
 const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-field-label" }, "站点Cookie", -1));
 const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 启用【使用站点Cookie】功能后，插件会自动获取已配置站点的cookie，关闭使用站点Cookie功能才可以手动改cookie。 ", -1));
-const _hoisted_24 = { class: "emoji-settings-card" };
-const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-settings-title" }, "⏰ 时间配置", -1));
-const _hoisted_26 = { class: "emoji-settings-card" };
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-settings-title" }, "🎭 演出设置", -1));
-const _hoisted_28 = { class: "emoji-field-grid" };
-const _hoisted_29 = { class: "emoji-field-block" };
-const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-field-label" }, "演出舞台效果", -1));
+const _hoisted_24 = { class: "emoji-field-block" };
+const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-field-label" }, "执行周期", -1));
+const _hoisted_26 = { class: "emoji-field-block" };
+const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-field-label" }, "演出舞台效果", -1));
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -89,6 +86,19 @@ const config = reactive({
 });
 
 const cookieReadonly = computed(() => !!config.auto_cookie);
+const cookieFieldValue = computed({
+  get() {
+    if (config.auto_cookie) {
+      return truncateCookie(config.cookie)
+    }
+    return config.cookie
+  },
+  set(value) {
+    if (!config.auto_cookie) {
+      config.cookie = value || '';
+    }
+  },
+});
 
 let themeObserver = null;
 let mediaQuery = null;
@@ -96,6 +106,12 @@ let mediaQuery = null;
 function flash(text, type = 'success') {
   message.text = text;
   message.type = type;
+}
+
+function truncateCookie(value) {
+  const text = String(value || '').trim();
+  if (!text) return ''
+  return text.length > 56 ? `${text.slice(0, 56)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -230,7 +246,7 @@ return (_ctx, _cache) => {
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
-  const _component_v_textarea = _resolveComponent("v-textarea");
+  const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_VCronField = _resolveComponent("VCronField");
   const _component_v_select = _resolveComponent("v-select");
 
@@ -304,8 +320,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.enabled) = $event)),
+              class: "emoji-switch-control",
               label: "启用插件",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -314,8 +332,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.use_proxy) = $event)),
+              class: "emoji-switch-control",
               label: "使用代理",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -324,8 +344,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.notify) = $event)),
+              class: "emoji-switch-control",
               label: "开启通知",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -334,8 +356,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.onlyonce) = $event)),
+              class: "emoji-switch-control",
               label: "立即运行一次",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -349,8 +373,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.auto_cookie,
               "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.auto_cookie) = $event)),
+              class: "emoji-switch-control",
               label: "使用站点Cookie",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -359,8 +385,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.auto_stage,
               "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.auto_stage) = $event)),
+              class: "emoji-switch-control",
               label: "自动舞台演出",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -369,8 +397,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.auto_spin,
               "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.auto_spin) = $event)),
+              class: "emoji-switch-control",
               label: "自动老虎机",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -379,8 +409,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.auto_open_bags,
               "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.auto_open_bags) = $event)),
+              class: "emoji-switch-control",
               label: "自动开包并收下",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -389,8 +421,10 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
               "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.force_ipv4) = $event)),
+              class: "emoji-switch-control",
               label: "优先 IPv4",
               color: "#7c5cff",
+              density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
@@ -399,37 +433,30 @@ return (_ctx, _cache) => {
         _createElementVNode("div", _hoisted_20, [
           _createElementVNode("div", _hoisted_21, [
             _hoisted_22,
-            _createVNode(_component_v_textarea, {
-              modelValue: config.cookie,
-              "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.cookie) = $event)),
+            _createVNode(_component_v_text_field, {
+              modelValue: cookieFieldValue.value,
+              "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((cookieFieldValue).value = $event)),
               label: "站点Cookie",
-              rows: "4",
-              "auto-grow": "",
               variant: "outlined",
               density: "comfortable",
-              placeholder: "例如 c_secure_pass=...",
               disabled: cookieReadonly.value,
-              readonly: cookieReadonly.value
-            }, null, 8, ["modelValue", "disabled", "readonly"]),
+              readonly: cookieReadonly.value,
+              placeholder: cookieReadonly.value ? '使用站点Cookie后自动同步' : '例如 c_secure_pass=...'
+            }, null, 8, ["modelValue", "disabled", "readonly", "placeholder"]),
             _hoisted_23
-          ])
-        ])
-      ]),
-      _createElementVNode("section", _hoisted_24, [
-        _hoisted_25,
-        _createVNode(_component_VCronField, {
-          modelValue: config.spin_cron,
-          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.spin_cron) = $event)),
-          label: "老虎机/开包执行周期(cron)",
-          density: "comfortable",
-          class: "emoji-cron-field"
-        }, null, 8, ["modelValue"])
-      ]),
-      _createElementVNode("section", _hoisted_26, [
-        _hoisted_27,
-        _createElementVNode("div", _hoisted_28, [
-          _createElementVNode("div", _hoisted_29, [
-            _hoisted_30,
+          ]),
+          _createElementVNode("div", _hoisted_24, [
+            _hoisted_25,
+            _createVNode(_component_VCronField, {
+              modelValue: config.spin_cron,
+              "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.spin_cron) = $event)),
+              label: "老虎机/开包执行周期(cron)",
+              density: "comfortable",
+              class: "emoji-cron-field"
+            }, null, 8, ["modelValue"])
+          ]),
+          _createElementVNode("div", _hoisted_26, [
+            _hoisted_27,
             _createVNode(_component_v_select, {
               modelValue: config.auto_stage_effect_key,
               "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.auto_stage_effect_key) = $event)),
@@ -450,6 +477,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8a539df0"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-96395a45"]]);
 
 export { ConfigView as default };

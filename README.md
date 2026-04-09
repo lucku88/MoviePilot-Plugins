@@ -9,7 +9,8 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
 | 序号 | 插件名称 | 版本 | 功能描述 | 标签 |
 |------|----------|------|----------|------|
 | 1 | [🌱 SQ农场 (SQFarm)](#1--sq农场-sqfarm) | v0.4.5 | 支持 SQ 站点农场状态展示、一键收菜、种植、动态调度和 Cookie 同步 | 站点 |
-| 2 | [🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)](#2-️-飞牛影视媒体库封面生成-fnmediacovergenerator) | v0.1.5 | 为飞牛影视媒体库生成静态封面，并支持自动替换 | 媒体服务器 |
+| 2 | [🎭 SQ表情 (SQEmoji)](#2--sq表情-sqemoji) | v0.1.8 | 支持 SQ 站点老虎机、开包、舞台演出和执行记录展示 | 站点 |
+| 3 | [🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)](#3-️-飞牛影视媒体库封面生成-fnmediacovergenerator) | v0.1.5 | 为飞牛影视媒体库生成静态封面，并支持自动替换 | 媒体服务器 |
 
 ### 1. 🌱 SQ农场 (SQFarm)
 - 版本：v0.4.5
@@ -40,7 +41,33 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
   - v0.1.0: 首版发布，支持 MoviePilot V2 定时执行 SQ农场收菜、售卖和种植。
   </details>
 
-### 2. 🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)
+### 2. 🎭 SQ表情 (SQEmoji)
+- 版本：v0.1.8
+- 功能：支持 SQ 站点老虎机、开包、舞台演出和执行记录展示。
+- 标签：站点
+- 特点：
+  - 🎰 支持每日老虎机状态展示、手动转动和自动清空当日次数
+  - 🎒 支持表情包开包、自动收下、合成和开包结果处理
+  - 📖 支持表情图鉴按层级切换、P/M 排序和可用演员查看
+  - 🎭 支持舞台效果选择、自动排演、确认演出、召回结算和扩展格子
+  - 🍪 支持优先读取 MoviePilot 站点中的 `si-qi.xyz` Cookie，也可关闭后手动填写
+  - 🧾 支持最近执行摘要、执行历史和任务通知回看
+- 更新说明：
+  <details>
+  <summary>点击查看更新历史</summary>
+
+  - v0.1.8: 继续收紧配置页开关与输入框，合并时间/演出设置到功能区，并补充 README 中的 SQ表情说明。
+  - v0.1.7: 重做状态页与配置页深浅色样式、Cookie 交互和舞台效果选择，并修复已解锁舞台效果下拉项显示。
+  - v0.1.6: 收紧状态页与配置页说明文案，去掉草拟数量提示，新增运行前 1 分钟自动预刷新状态。
+  - v0.1.5: 修复自动收下误报异常，新增老虎机/开包独立 CRON，并将舞台效果下拉改为仅显示已解锁项。
+  - v0.1.4: 修复老虎机超时后二次执行误判异常的问题，确保同一轮继续自动开包。
+  - v0.1.3: 通知中过滤自动收下结果，仅保留执行历史展示。
+  - v0.1.2: 摘要在关闭状态页后自动隐藏，通知改为仅推送实际动作并统一任务报告格式。
+  - v0.1.1: 修复自动演出重复召回，新增自动开包并自动收下，补强深浅色模式、网络重试和演员列表渲染性能。
+  - v0.1.0: 首版发布，接入每日老虎机、表情包开包与合成、演员图鉴和舞台演出。
+  </details>
+
+### 3. 🎞️ 飞牛影视媒体库封面生成 (FnMediaCoverGenerator)
 - 版本：v0.1.5
 - 功能：为 MoviePilot 已配置的飞牛影视媒体库生成静态封面，并支持自动替换。
 - 标签：媒体服务器
@@ -62,7 +89,7 @@ MoviePilot 第三方插件仓库，当前收录个人维护的插件，后续新
 
 1. 在 MoviePilot 的自定义插件仓库中添加：
    - `https://github.com/lucku88/MoviePilot-Plugins/`
-2. 刷新插件仓库并安装需要的插件，例如 `SQ农场`
+2. 刷新插件仓库并安装需要的插件，例如 `SQ农场`、`SQ表情`
 3. 在插件配置页完成以下设置：
    - 启用站点 Cookie 同步，或手动填写 SQ Cookie
    - 配置 OCR 地址，例如 `http://ip:8089/api/tr-run/`
@@ -98,6 +125,7 @@ services:
 ```text
 plugins.v2/
   sqfarm/
+  sqemoji/
   fnmediacovergenerator/
 package.v2.json
 README.md
@@ -109,6 +137,13 @@ LICENSE
 - 插件主文件：`plugins.v2/sqfarm/__init__.py`
 - 状态页：`plugins.v2/sqfarm/src/components/Page.vue`
 - 配置页：`plugins.v2/sqfarm/src/components/Config.vue`
+- 市场配置：`package.v2.json`
+
+`SQEmoji` 对应文件：
+
+- 插件主文件：`plugins.v2/sqemoji/__init__.py`
+- 状态页：`plugins.v2/sqemoji/src/components/Page.vue`
+- 配置页：`plugins.v2/sqemoji/src/components/Config.vue`
 - 市场配置：`package.v2.json`
 
 `FnMediaCoverGenerator` 对应文件：
