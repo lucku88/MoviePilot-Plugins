@@ -29,7 +29,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.10"
+    plugin_version = "0.1.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -1413,6 +1413,13 @@ class SQEmoji(_PluginBase):
     def _build_stage_rows(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         stage = state.get("stage") or {}
         active_map: Dict[Tuple[int, int], Dict[str, Any]] = {}
+        actor_tier_map: Dict[str, int] = {}
+        inventory = state.get("actor_inventory_by_tier") or {}
+        for tier in range(1, 5):
+            for item in self._iter_dicts(inventory.get(str(tier)) or inventory.get(tier) or []):
+                code = str(item.get("code") or item.get("emoji_code") or "").strip()
+                if code and code not in actor_tier_map:
+                    actor_tier_map[code] = tier
         for slot in self._stage_active_slots(stage):
             row_index = self._safe_int(slot.get("row_index"), 0)
             slot_index = self._safe_int(slot.get("slot_index"), 0)
@@ -1427,12 +1434,20 @@ class SQEmoji(_PluginBase):
             for slot_index in range(1, slot_count + 1):
                 active = active_map.get((row_index, slot_index)) or {}
                 remaining = self._safe_int(active.get("remaining_seconds"), 0)
+                emoji_code = str(active.get("emoji_code") or "").strip()
+                slot_tier = (
+                    self._safe_int(active.get("tier"), 0)
+                    or self._safe_int(active.get("bag_tier"), 0)
+                    or self._safe_int(active.get("emoji_tier"), 0)
+                    or actor_tier_map.get(emoji_code, 0)
+                )
                 row_slots.append({
                     "row_index": row_index,
                     "slot_index": slot_index,
                     "filled": bool(active),
-                    "emoji_code": active.get("emoji_code") or "",
+                    "emoji_code": emoji_code,
                     "emoji": active.get("emoji") or "",
+                    "tier": slot_tier,
                     "points": self._safe_int(active.get("point_bonus"), 0),
                     "magic": self._safe_int(active.get("magic_bonus"), 0),
                     "remaining_seconds": remaining,

@@ -620,30 +620,28 @@ function bagCardStyle(bag) {
   }
 }
 
-function stageSlotPalette(rowIndex) {
+function stageSlotPalette(tier) {
   const lightPalettes = {
-    1: { bg: '#fff0f3', border: 'rgba(232, 109, 143, 0.34)', color: '#6f3850' },
+    1: { bg: '#eef6ff', border: 'rgba(94, 149, 226, 0.34)', color: '#285585' },
     2: { bg: '#effff1', border: 'rgba(90, 185, 108, 0.34)', color: '#2d6336' },
-    3: { bg: '#eef6ff', border: 'rgba(94, 149, 226, 0.34)', color: '#285585' },
-    4: { bg: '#fff7e7', border: 'rgba(226, 171, 69, 0.36)', color: '#7a5a15' },
-    5: { bg: '#f4efff', border: 'rgba(145, 118, 235, 0.34)', color: '#5a4695' },
+    3: { bg: '#fff7e7', border: 'rgba(226, 171, 69, 0.36)', color: '#7a5a15' },
+    4: { bg: '#fff0f3', border: 'rgba(232, 109, 143, 0.34)', color: '#6f3850' },
     default: { bg: '#f7f8fc', border: 'rgba(129, 133, 164, 0.2)', color: '#4b5063' },
   }
   const darkPalettes = {
-    1: { bg: 'rgba(124, 49, 84, 0.22)', border: 'rgba(255, 126, 165, 0.34)', color: '#ffd4e1' },
+    1: { bg: 'rgba(37, 65, 102, 0.24)', border: 'rgba(112, 173, 255, 0.3)', color: '#dcecff' },
     2: { bg: 'rgba(45, 93, 57, 0.24)', border: 'rgba(109, 226, 137, 0.3)', color: '#d7ffe1' },
-    3: { bg: 'rgba(37, 65, 102, 0.24)', border: 'rgba(112, 173, 255, 0.3)', color: '#dcecff' },
-    4: { bg: 'rgba(98, 73, 28, 0.26)', border: 'rgba(255, 205, 109, 0.3)', color: '#ffe9b3' },
-    5: { bg: 'rgba(79, 56, 118, 0.26)', border: 'rgba(176, 150, 255, 0.3)', color: '#ece3ff' },
+    3: { bg: 'rgba(98, 73, 28, 0.26)', border: 'rgba(255, 205, 109, 0.3)', color: '#ffe9b3' },
+    4: { bg: 'rgba(124, 49, 84, 0.22)', border: 'rgba(255, 126, 165, 0.34)', color: '#ffd4e1' },
     default: { bg: 'rgba(255, 255, 255, 0.04)', border: 'rgba(124, 92, 255, 0.18)', color: '#f3f5ff' },
   }
   const paletteMap = isDarkTheme.value ? darkPalettes : lightPalettes
-  return paletteMap[rowIndex] || paletteMap.default
+  return paletteMap[tier] || paletteMap.default
 }
 
 function stageSlotStyle(row, slot) {
   if (slot.filled) {
-    const palette = stageSlotPalette(Number(row.row_index || 0))
+    const palette = stageSlotPalette(Number(slot.tier || 0))
     return {
       '--stage-slot-bg': palette.bg,
       '--stage-slot-border': palette.border,
@@ -651,10 +649,11 @@ function stageSlotStyle(row, slot) {
     }
   }
   if (draftMap[slotKey(slot)]) {
+    const palette = stageSlotPalette(Number(draftMap[slotKey(slot)].tier || 0))
     return {
-      '--stage-slot-bg': isDarkTheme.value ? 'rgba(255, 171, 64, 0.18)' : '#fff2de',
-      '--stage-slot-border': 'rgba(255, 171, 64, 0.42)',
-      '--stage-slot-color': isDarkTheme.value ? '#ffe0b6' : '#98632f',
+      '--stage-slot-bg': palette.bg,
+      '--stage-slot-border': palette.border,
+      '--stage-slot-color': palette.color,
     }
   }
   return {}
