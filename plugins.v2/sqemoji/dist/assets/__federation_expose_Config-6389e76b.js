@@ -1,18 +1,18 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_6dde405f_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_50e5bb66_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-6dde405f"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-50e5bb66"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "emoji-badge" }, "SQ表情"),
   /*#__PURE__*/_createElementVNode("h1", { class: "emoji-title" }, "配置中心"),
-  /*#__PURE__*/_createElementVNode("p", { class: "emoji-subtitle" }, "管理老虎机、舞台自动执行、Cookie 同步和网络参数。")
+  /*#__PURE__*/_createElementVNode("p", { class: "emoji-subtitle" }, "管理老虎机/开包时间、自动舞台演出和 Cookie 同步。")
 ], -1));
 const _hoisted_4 = { class: "emoji-actions" };
 const _hoisted_5 = { class: "emoji-panel" };
@@ -26,13 +26,13 @@ const _hoisted_7 = { class: "emoji-switch-grid" };
 const _hoisted_8 = { class: "emoji-panel" };
 const _hoisted_9 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "调度与网络"),
-    /*#__PURE__*/_createElementVNode("h2", null, "执行参数")
+    /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "调度策略"),
+    /*#__PURE__*/_createElementVNode("h2", null, "时间配置")
   ])
 ], -1));
 const _hoisted_10 = { class: "emoji-form-grid" };
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动舞台会在当前演出结束后自动收回并重新开演。自动老虎机会在当天仍有免费次数时自动转完，次日零点后重新识别。 ", -1));
-const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动开包开启后，会在有表情包或待处理开包结果时自动执行，并直接收下结果，不会自动重开。 ", -1));
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动老虎机和自动开包会按上面的 CRON 运行；如果同轮产生了待收下结果，会在本轮继续自动收下。 ", -1));
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动舞台会在当前演出结束后自动收回并重新开演；下拉菜单只显示当前已经解锁的舞台效果。 ", -1));
 const _hoisted_13 = { class: "emoji-panel" };
 const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
@@ -91,6 +91,7 @@ const config = reactive({
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
+  spin_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
   http_timeout: 12,
@@ -114,6 +115,9 @@ function applyConfig(data = {}) {
   }
   const { effect_options, capture_tips, ...rest } = data || {};
   Object.assign(config, { ...config, ...rest });
+  if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {
+    config.auto_stage_effect_key = 'auto';
+  }
 }
 
 function buildPayload() {
@@ -235,7 +239,7 @@ return (_ctx, _cache) => {
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
-  const _component_v_text_field = _resolveComponent("v-text-field");
+  const _component_VCronField = _resolveComponent("VCronField");
   const _component_v_select = _resolveComponent("v-select");
   const _component_v_textarea = _resolveComponent("v-textarea");
 
@@ -372,58 +376,19 @@ return (_ctx, _cache) => {
       ]),
       _createElementVNode("section", _hoisted_8, [
         _hoisted_9,
+        _createVNode(_component_VCronField, {
+          modelValue: config.spin_cron,
+          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.spin_cron) = $event)),
+          label: "老虎机/开包执行周期(cron)",
+          hint: "例如：5 0 * * * 表示每天 00:05 执行老虎机和自动开包",
+          "persistent-hint": "",
+          density: "compact",
+          class: "emoji-cron-field"
+        }, null, 8, ["modelValue"]),
         _createElementVNode("div", _hoisted_10, [
-          _createVNode(_component_v_text_field, {
-            modelValue: config.schedule_buffer_seconds,
-            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.schedule_buffer_seconds) = $event)),
-            label: "调度缓冲秒数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.skip_before_seconds,
-            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.skip_before_seconds) = $event)),
-            label: "提前跳过阈值(秒)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.random_delay_max_seconds,
-            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.random_delay_max_seconds) = $event)),
-            label: "随机延迟上限(秒)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_timeout,
-            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.http_timeout) = $event)),
-            label: "HTTP 超时(秒)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_retry_times,
-            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.http_retry_times) = $event)),
-            label: "GET 重试次数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_retry_delay,
-            "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.http_retry_delay) = $event)),
-            label: "GET 重试间隔(ms)",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable"
-          }, null, 8, ["modelValue"]),
           _createVNode(_component_v_select, {
             modelValue: config.auto_stage_effect_key,
-            "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.auto_stage_effect_key) = $event)),
+            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.auto_stage_effect_key) = $event)),
             items: effectOptions.value,
             "item-title": "title",
             "item-value": "value",
@@ -440,7 +405,7 @@ return (_ctx, _cache) => {
         _hoisted_14,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.cookie) = $event)),
+          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.cookie) = $event)),
           label: "SQ Cookie",
           rows: "6",
           variant: "outlined",
@@ -456,6 +421,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6dde405f"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-50e5bb66"]]);
 
 export { ConfigView as default };

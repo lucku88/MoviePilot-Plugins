@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytz
 import requests
 import urllib3.util.connection as urllib3_connection
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -28,7 +29,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -37,6 +38,7 @@ class SQEmoji(_PluginBase):
 
     DEFAULT_SITE_URL = "https://si-qi.xyz"
     DEFAULT_SITE_DOMAIN = "si-qi.xyz"
+    DEFAULT_SPIN_CRON = "5 0 * * *"
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -67,6 +69,7 @@ class SQEmoji(_PluginBase):
     _http_retry_delay: int = 1500
     _skip_before_seconds: int = 60
     _auto_stage_effect_key: str = "auto"
+    _spin_cron: str = DEFAULT_SPIN_CRON
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -414,6 +417,7 @@ class SQEmoji(_PluginBase):
             "http_retry_delay": self._http_retry_delay,
             "skip_before_seconds": self._skip_before_seconds,
             "auto_stage_effect_key": self._auto_stage_effect_key,
+            "spin_cron": self._spin_cron,
             "effect_options": self._build_effect_options() if include_options else None,
             "capture_tips": [] if include_options else None,
         }
@@ -458,6 +462,7 @@ class SQEmoji(_PluginBase):
             "http_retry_delay": 1500,
             "skip_before_seconds": 60,
             "auto_stage_effect_key": "auto",
+            "spin_cron": self.DEFAULT_SPIN_CRON,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -479,6 +484,7 @@ class SQEmoji(_PluginBase):
         self._skip_before_seconds = max(0, self._safe_int(config.get("skip_before_seconds"), 60))
         auto_stage_effect_key = str(config.get("auto_stage_effect_key") or "auto").strip()
         self._auto_stage_effect_key = auto_stage_effect_key or "auto"
+        self._spin_cron = (config.get("spin_cron") or self.DEFAULT_SPIN_CRON).strip() or self.DEFAULT_SPIN_CRON
 
     def _update_config(self):
         self.update_config({
@@ -499,6 +505,7 @@ class SQEmoji(_PluginBase):
             "http_retry_delay": self._http_retry_delay,
             "skip_before_seconds": self._skip_before_seconds,
             "auto_stage_effect_key": self._auto_stage_effect_key,
+            "spin_cron": self._spin_cron,
         })
 
     def _resolve_site_profile(self):
@@ -706,10 +713,21 @@ class SQEmoji(_PluginBase):
                 for name, quantity in self._parse_named_counts(item_text).items():
                     accepted_counts[name] = accepted_counts.get(name, 0) + quantity
             accepted_batches += 1
-            result = self._post_action(session, "accept_open", {}, retry_network=True)
-            if not result.get("success"):
-                raise ValueError(result.get("message") or "自动收下开包结果失败")
-            return self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            try:
+                result = self._post_action(session, "accept_open", {}, retry_network=True)
+            except Exception:
+                recovered_state = self._recover_accept_open_state(session)
+                if recovered_state is not None:
+                    logger.info("%s open-bag accept status confirmed by refreshed state", self.plugin_name)
+                    return recovered_state
+                raise
+            if result.get("success"):
+                return self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            recovered_state = self._recover_accept_open_state(session)
+            if recovered_state is not None:
+                logger.info("%s open-bag accept status confirmed by refreshed state", self.plugin_name)
+                return recovered_state
+            raise ValueError(result.get("message") or "自动收下开包结果失败")
 
         state = accept_pending(state)
         max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_open_bag_batch"), 12))
@@ -828,10 +846,22 @@ class SQEmoji(_PluginBase):
         if not pending:
             raise ValueError("当前没有待处理开包结果")
         item_text = self._format_pending_item_counts(pending)
-        result = self._post_action(session, "accept_open", {}, retry_network=True)
-        if not result.get("success"):
-            raise ValueError(result.get("message") or "收下失败")
-        after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+        result: Dict[str, Any] = {}
+        try:
+            result = self._post_action(session, "accept_open", {}, retry_network=True)
+        except Exception:
+            recovered_state = self._recover_accept_open_state(session)
+            if recovered_state is None:
+                raise
+            after_state = recovered_state
+        else:
+            if result.get("success"):
+                after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
+            else:
+                recovered_state = self._recover_accept_open_state(session)
+                if recovered_state is None:
+                    raise ValueError(result.get("message") or "收下失败")
+                after_state = recovered_state
         lines = [f"📥 收下：{item_text or (pending.get('bag_name') or '开包结果')}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已收下", "emoji_status": emoji_status}
@@ -990,20 +1020,14 @@ class SQEmoji(_PluginBase):
             else:
                 candidates.append(now_ts + 6 * 3600)
 
-        if self._auto_spin:
-            spin = state.get("spin") or {}
-            remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
-            if remaining > 0:
-                candidates.append(now_ts + 5)
-            else:
-                candidates.append(self._next_midnight_ts() + 5)
-
-        if self._auto_open_bags:
+        if self._auto_spin or self._auto_open_bags:
             pending = state.get("pending_open") or {}
             if pending:
                 candidates.append(now_ts + 5)
-            elif any(self._safe_int(bag.get("quantity"), 0) > 0 for bag in self._iter_dicts(state.get("bags") or [])):
-                candidates.append(now_ts + 5)
+            else:
+                slot_next = self._get_cron_next_ts(self._spin_cron)
+                if slot_next:
+                    candidates.append(slot_next)
 
         candidates = [candidate for candidate in candidates if candidate > 0]
         return min(candidates) if candidates else 0
@@ -1264,17 +1288,12 @@ class SQEmoji(_PluginBase):
             key = str(effect.get("key") or "").strip()
             if not key:
                 continue
-            unlocked = bool(effect.get("unlocked"))
-            title = str(effect.get("name") or key)
-            if not unlocked:
-                title = f"{title}（未解锁）"
+            if not bool(effect.get("unlocked")):
+                continue
             options.append({
-                "title": title,
+                "title": str(effect.get("name") or key),
                 "value": key,
-                "disabled": not unlocked,
             })
-        if self._auto_stage_effect_key and self._auto_stage_effect_key != "auto" and not any(option.get("value") == self._auto_stage_effect_key for option in options):
-            options.append({"title": self._auto_stage_effect_key, "value": self._auto_stage_effect_key})
         return options
 
     def _build_stage_runtime(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -1529,6 +1548,20 @@ class SQEmoji(_PluginBase):
         tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         return int(tomorrow.timestamp())
 
+    def _get_cron_next_ts(self, cron_expr: str) -> Optional[int]:
+        expr = (cron_expr or "").strip()
+        if not expr:
+            return None
+        try:
+            timezone = pytz.timezone(settings.TZ)
+            now_dt = self._aware_now() + timedelta(seconds=1)
+            trigger = CronTrigger.from_crontab(expr, timezone=timezone)
+            next_fire = trigger.get_next_fire_time(None, now_dt)
+            return int(next_fire.timestamp()) if next_fire else None
+        except Exception as err:
+            logger.warning("%s CRON 表达式无效：%s | %s", self.plugin_name, expr, err)
+            return None
+
     def _ensure_stage_state_after_confirm(self, session: requests.Session, state: Dict[str, Any]) -> Dict[str, Any]:
         candidate = state if isinstance(state, dict) else {}
         for attempt in range(3):
@@ -1573,6 +1606,13 @@ class SQEmoji(_PluginBase):
             "spins": recovered_spins,
             "bag_diff": bag_diff,
         }
+
+    def _recover_accept_open_state(self, session: requests.Session) -> Optional[Dict[str, Any]]:
+        current_state = self._fetch_bundle(session)["state"] or {}
+        pending = current_state.get("pending_open") or {}
+        if pending:
+            return None
+        return current_state
 
     def _run_auto_spin(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         spin = state.get("spin") or {}

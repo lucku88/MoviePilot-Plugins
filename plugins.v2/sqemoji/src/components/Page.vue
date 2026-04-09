@@ -418,7 +418,7 @@ const isDarkTheme = ref(false)
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const dismissedSummaryKey = ref('')
 const hiddenPendingKey = ref('')
-const actorLimitStep = 120
+const actorLimitStep = 60
 const actorVisibleLimit = ref(actorLimitStep)
 const selectedTier = ref('1')
 const selectedEffect = ref('basic')
@@ -1359,19 +1359,19 @@ onBeforeUnmount(() => {
 }
 
 .emoji-actor-scroll {
-  max-height: 360px;
+  max-height: 320px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .emoji-actor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 5px;
 }
 
 .emoji-actor-card {
-  padding: 8px 4px;
+  padding: 6px 4px;
   text-align: center;
   cursor: pointer;
   border: 1px solid rgba(104, 161, 255, 0.36);
@@ -1397,7 +1397,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-actor-main {
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.1;
 }
 

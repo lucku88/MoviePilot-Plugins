@@ -5,7 +5,7 @@
         <div>
           <div class="emoji-badge">SQ表情</div>
           <h1 class="emoji-title">配置中心</h1>
-          <p class="emoji-subtitle">管理老虎机、舞台自动执行、Cookie 同步和网络参数。</p>
+          <p class="emoji-subtitle">管理老虎机/开包时间、自动舞台演出和 Cookie 同步。</p>
         </div>
         <div class="emoji-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
@@ -42,17 +42,19 @@
       <section class="emoji-panel">
         <div class="emoji-panel-head">
           <div>
-            <div class="emoji-panel-kicker">调度与网络</div>
-            <h2>执行参数</h2>
+            <div class="emoji-panel-kicker">调度策略</div>
+            <h2>时间配置</h2>
           </div>
         </div>
+        <VCronField
+          v-model="config.spin_cron"
+          label="老虎机/开包执行周期(cron)"
+          hint="例如：5 0 * * * 表示每天 00:05 执行老虎机和自动开包"
+          persistent-hint
+          density="compact"
+          class="emoji-cron-field"
+        />
         <div class="emoji-form-grid">
-          <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" />
-          <v-text-field v-model="config.skip_before_seconds" label="提前跳过阈值(秒)" type="number" variant="outlined" density="comfortable" />
-          <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" />
-          <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" />
-          <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" />
-          <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
           <v-select
             v-model="config.auto_stage_effect_key"
             :items="effectOptions"
@@ -65,10 +67,10 @@
           />
         </div>
         <div class="emoji-note">
-          自动舞台会在当前演出结束后自动收回并重新开演。自动老虎机会在当天仍有免费次数时自动转完，次日零点后重新识别。
+          自动老虎机和自动开包会按上面的 CRON 运行；如果同轮产生了待收下结果，会在本轮继续自动收下。
         </div>
         <div class="emoji-note">
-          自动开包开启后，会在有表情包或待处理开包结果时自动执行，并直接收下结果，不会自动重开。
+          自动舞台会在当前演出结束后自动收回并重新开演；下拉菜单只显示当前已经解锁的舞台效果。
         </div>
       </section>
 
@@ -134,6 +136,7 @@ const config = reactive({
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
+  spin_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
   http_timeout: 12,
@@ -157,6 +160,9 @@ function applyConfig(data = {}) {
   }
   const { effect_options, capture_tips, ...rest } = data || {}
   Object.assign(config, { ...config, ...rest })
+  if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {
+    config.auto_stage_effect_key = 'auto'
+  }
 }
 
 function buildPayload() {
