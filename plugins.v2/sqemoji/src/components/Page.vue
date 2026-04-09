@@ -4,14 +4,14 @@
       <section class="emoji-hero">
         <div class="emoji-copy">
           <div class="emoji-badge">SQ表情</div>
-          <h1 class="emoji-title">{{ emoji.title || '表情演出' }}</h1>
+          <h1 class="emoji-title">{{ emoji.title || '思齐表情演出' }}</h1>
           <p class="emoji-subtitle">
-            {{ emoji.subtitle || '每日免费老虎机抽包、演员图鉴与舞台演出。' }}
+            {{ emoji.subtitle || '老虎机、开包、舞台演出、获取执行记录。' }}
           </p>
           <div class="emoji-hero-meta">
-            <span>最近执行 {{ status.last_run || '暂无' }}</span>
-            <span>下次运行 {{ emoji.next_run_time || status.next_run_time || '等待刷新' }}</span>
-            <span>Cookie {{ emoji.cookie_source || status.cookie_source || '未同步' }}</span>
+            <span class="emoji-meta-chip">最近执行 {{ status.last_run || '暂无' }}</span>
+            <span class="emoji-meta-chip">下次运行 {{ emoji.next_run_time || status.next_run_time || '等待刷新' }}</span>
+            <span class="emoji-meta-chip">{{ emoji.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
         </div>
         <div class="emoji-actions">
@@ -36,11 +36,8 @@
       </section>
 
       <section v-if="showSummary" class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">本次摘要</div>
-            <h2>任务结果</h2>
-          </div>
+        <div class="emoji-section-head emoji-section-head-compact">
+          <h2 class="emoji-section-title">✨ 本次摘要</h2>
           <v-btn variant="text" size="small" @click="dismissSummary">关闭</v-btn>
         </div>
         <div class="emoji-summary-list">
@@ -49,11 +46,8 @@
       </section>
 
       <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">老虎机</div>
-            <h2>表情老虎机</h2>
-          </div>
+        <div class="emoji-section-head">
+          <h2 class="emoji-section-title">🎰 表情老虎机</h2>
           <div class="emoji-panel-note">
             今日次数：{{ slotMachine.used || 0 }}/{{ slotMachine.limit || 0 }}
             <span v-if="slotMachine.base || slotMachine.extra">
@@ -89,11 +83,8 @@
       </section>
 
       <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">我的表情包</div>
-            <h2>开包与合成</h2>
-          </div>
+        <div class="emoji-section-head">
+          <h2 class="emoji-section-title">🎒 我的表情包</h2>
         </div>
         <div class="emoji-bag-grid">
           <article
@@ -157,11 +148,8 @@
         </div>
 
         <article v-if="pendingOpenVisible && pendingOpen.items?.length" class="emoji-pending-panel">
-          <div class="emoji-panel-head">
-            <div>
-              <div class="emoji-panel-kicker">开包结果</div>
-              <h2>待处理结果</h2>
-            </div>
+          <div class="emoji-section-head emoji-section-head-compact">
+            <h3 class="emoji-subsection-title">📦 待处理开包结果</h3>
             <v-btn variant="text" size="small" @click="closePendingPanel">关闭</v-btn>
           </div>
           <div class="emoji-pending-meta">
@@ -184,11 +172,8 @@
       </section>
 
       <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">图鉴与演员</div>
-            <h2>演员图鉴 / 演员操作</h2>
-          </div>
+        <div class="emoji-section-head">
+          <h2 class="emoji-section-title">📖 表情图鉴</h2>
         </div>
 
         <div class="emoji-tier-tabs">
@@ -256,11 +241,8 @@
       </section>
 
       <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">演出舞台</div>
-            <h2>舞台效果与阵容</h2>
-          </div>
+        <div class="emoji-section-head">
+          <h2 class="emoji-section-title">🎭 表情演出舞台</h2>
           <div class="emoji-stage-note">
             <span>当前舞台：{{ stage.current_effect_name || '未开始' }}</span>
             <span>{{ stage.current_text || '当前无演出演员' }}</span>
@@ -376,11 +358,8 @@
       </section>
 
       <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">最近记录</div>
-            <h2>执行历史</h2>
-          </div>
+        <div class="emoji-section-head">
+          <h2 class="emoji-section-title">🧾 最近记录</h2>
         </div>
         <div v-if="!historyItems.length" class="emoji-empty">暂无执行历史</div>
         <div v-else class="emoji-history-list">
@@ -417,7 +396,7 @@ const isDarkTheme = ref(false)
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const dismissedSummaryKey = ref('')
 const hiddenPendingKey = ref('')
-const actorLimitStep = 60
+const actorLimitStep = 48
 const actorVisibleLimit = ref(actorLimitStep)
 const selectedTier = ref('1')
 const selectedEffect = ref('basic')
@@ -1021,31 +1000,31 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .emoji-page {
-  --emoji-bg: linear-gradient(180deg, #f7f0e2 0%, #f4f2ef 100%);
-  --emoji-card: rgba(255, 255, 255, 0.9);
-  --emoji-card-strong: #ffffff;
-  --emoji-text: #5a330d;
-  --emoji-muted: #9b7855;
-  --emoji-border: rgba(232, 168, 104, 0.28);
-  --emoji-shadow: 0 18px 36px rgba(167, 120, 63, 0.08);
-  --emoji-accent: #df7a11;
-  --emoji-accent-soft: rgba(223, 122, 17, 0.12);
+  --emoji-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.94) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%);
+  --emoji-panel: rgba(255, 255, 255, 0.9);
+  --emoji-panel-strong: rgba(255, 255, 255, 0.98);
+  --emoji-text: #262638;
+  --emoji-muted: #777a90;
+  --emoji-border: rgba(129, 133, 164, 0.18);
+  --emoji-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
+  --emoji-accent: #7c5cff;
+  --emoji-accent-soft: rgba(124, 92, 255, 0.1);
   min-height: 100%;
-  padding: 20px 0 32px;
+  padding: 20px 0 36px;
   background: var(--emoji-bg);
   color: var(--emoji-text);
 }
 
 .emoji-page.is-dark-theme {
-  --emoji-bg: linear-gradient(180deg, #181513 0%, #121010 100%);
-  --emoji-card: rgba(31, 24, 22, 0.92);
-  --emoji-card-strong: rgba(42, 34, 30, 0.96);
-  --emoji-text: #f8eadb;
-  --emoji-muted: #ccb298;
-  --emoji-border: rgba(255, 185, 106, 0.18);
-  --emoji-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
-  --emoji-accent: #ffb24c;
-  --emoji-accent-soft: rgba(255, 178, 76, 0.14);
+  --emoji-bg: radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%);
+  --emoji-panel: rgba(26, 28, 39, 0.92);
+  --emoji-panel-strong: rgba(19, 21, 30, 0.98);
+  --emoji-text: #f3f5ff;
+  --emoji-muted: #9fa7c4;
+  --emoji-border: rgba(124, 92, 255, 0.18);
+  --emoji-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  --emoji-accent: #8b6cff;
+  --emoji-accent-soft: rgba(139, 108, 255, 0.14);
 }
 
 .emoji-page,
@@ -1056,9 +1035,9 @@ onBeforeUnmount(() => {
 .emoji-shell {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0 16px;
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .emoji-hero,
@@ -1072,23 +1051,32 @@ onBeforeUnmount(() => {
 .emoji-history-item {
   border: 1px solid var(--emoji-border);
   border-radius: 24px;
-  background: var(--emoji-card);
+  background: var(--emoji-panel);
   box-shadow: var(--emoji-shadow);
 }
 
 .emoji-hero,
 .emoji-panel {
-  padding: 20px;
+  padding: 22px;
+}
+
+.emoji-panel,
+.emoji-row-card,
+.emoji-history-item,
+.emoji-bag-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 300px;
 }
 
 .emoji-hero {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .emoji-badge,
 .emoji-tier-chip,
-.emoji-sort-chip {
+.emoji-sort-chip,
+.emoji-meta-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1117,7 +1105,8 @@ onBeforeUnmount(() => {
 .emoji-stage-slot-time,
 .emoji-effect-meta,
 .emoji-upgrade-tip,
-.emoji-stat-desc {
+.emoji-stat-desc,
+.emoji-bag-count {
   color: var(--emoji-muted);
 }
 
@@ -1134,11 +1123,19 @@ onBeforeUnmount(() => {
 
 .emoji-hero-meta {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.emoji-meta-chip {
+  padding: 8px 14px;
+  border: 1px solid var(--emoji-border);
+  background: var(--emoji-panel-strong);
+  color: var(--emoji-text);
   font-size: 13px;
+  justify-content: flex-start;
 }
 
 .emoji-actions {
-  grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(112px, 100%), 1fr));
 }
 
 .emoji-stat-grid {
@@ -1148,10 +1145,10 @@ onBeforeUnmount(() => {
 .emoji-stat-card {
   padding: 18px;
   text-align: center;
+  background: var(--emoji-panel-strong);
 }
 
-.emoji-stat-label,
-.emoji-panel-kicker {
+.emoji-stat-label {
   font-size: 13px;
   color: var(--emoji-muted);
   font-weight: 700;
@@ -1168,7 +1165,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
-.emoji-panel-head {
+.emoji-section-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1176,9 +1173,24 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
 }
 
-.emoji-panel-head h2 {
-  margin: 6px 0 0;
-  font-size: 26px;
+.emoji-section-head-compact {
+  align-items: center;
+}
+
+.emoji-section-title,
+.emoji-subsection-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.emoji-subsection-title {
+  font-size: 20px;
+}
+
+.emoji-panel-note {
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .emoji-summary-list {
@@ -1190,29 +1202,29 @@ onBeforeUnmount(() => {
 .emoji-history-item {
   padding: 14px 16px;
   border-radius: 18px;
-  background: var(--emoji-card-strong);
+  background: var(--emoji-panel-strong);
   border: 1px solid var(--emoji-border);
 }
 
 .slot-layout {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .slot-reels {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   max-width: 460px;
   margin: 0 auto;
 }
 
 .slot-cell {
   padding: 18px 12px;
-  min-height: 80px;
+  min-height: 82px;
   border-radius: 18px;
   border: 1px solid var(--emoji-border);
-  background: var(--emoji-card-strong);
+  background: var(--emoji-panel-strong);
   display: grid;
   place-items: center;
   font-size: 38px;
@@ -1240,11 +1252,11 @@ onBeforeUnmount(() => {
 
 .emoji-number-input {
   width: 100%;
-  max-width: 110px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  max-width: 116px;
+  padding: 11px 12px;
+  border-radius: 14px;
   border: 1px solid var(--emoji-border);
-  background: var(--emoji-card-strong);
+  background: var(--emoji-panel-strong);
   color: var(--emoji-text);
   outline: none;
 }
@@ -1254,15 +1266,15 @@ onBeforeUnmount(() => {
 }
 
 .emoji-bag-card {
-  padding: 16px;
-  background: var(--bag-bg, var(--emoji-card-strong));
+  padding: 18px;
+  background: var(--bag-bg, var(--emoji-panel-strong));
   display: grid;
-  gap: 10px;
+  gap: 12px;
   color: var(--emoji-text);
 }
 
 .emoji-bag-hero {
-  height: 110px;
+  height: 112px;
   border-radius: 18px;
   background-repeat: no-repeat;
   background-position: center;
@@ -1280,20 +1292,25 @@ onBeforeUnmount(() => {
   text-align: center;
   font-size: 14px;
   color: var(--bag-muted, var(--emoji-muted));
-  line-height: 1.6;
+  line-height: 1.65;
+}
+
+.emoji-page.is-dark-theme .emoji-bag-count,
+.emoji-page.is-dark-theme .emoji-upgrade-tip {
+  color: rgba(243, 245, 255, 0.86);
 }
 
 .emoji-upgrade-box {
-  padding: 12px;
-  border-radius: 16px;
+  padding: 14px;
+  border-radius: 18px;
   border: 1px dashed var(--emoji-border);
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
   display: grid;
   gap: 10px;
 }
 
 .emoji-page.is-dark-theme .emoji-upgrade-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .emoji-upgrade-row span {
@@ -1304,8 +1321,8 @@ onBeforeUnmount(() => {
 .emoji-pending-panel {
   margin-top: 18px;
   padding: 18px;
-  border-radius: 24px;
-  background: var(--emoji-card-strong);
+  border-radius: 22px;
+  background: var(--emoji-panel-strong);
   border: 1px solid var(--emoji-border);
 }
 
@@ -1344,7 +1361,7 @@ onBeforeUnmount(() => {
 .emoji-tier-chip,
 .emoji-sort-chip {
   border: 1px solid var(--emoji-border);
-  background: var(--emoji-card-strong);
+  background: var(--emoji-panel-strong);
   color: var(--emoji-text);
   padding: 8px 12px;
   cursor: pointer;
@@ -1358,7 +1375,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-actor-scroll {
-  max-height: 320px;
+  max-height: 300px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -1366,16 +1383,20 @@ onBeforeUnmount(() => {
 .emoji-actor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .emoji-actor-card {
-  padding: 6px 4px;
+  padding: 7px 4px;
   text-align: center;
   cursor: pointer;
-  border: 1px solid rgba(104, 161, 255, 0.36);
+  border: 1px solid rgba(104, 161, 255, 0.3);
   border-radius: 14px;
-  background: rgba(245, 250, 255, 0.72);
+  background: rgba(245, 250, 255, 0.74);
+}
+
+.emoji-page.is-dark-theme .emoji-actor-card {
+  background: rgba(35, 40, 56, 0.9);
 }
 
 .emoji-actor-actions {
@@ -1384,10 +1405,6 @@ onBeforeUnmount(() => {
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
-}
-
-.emoji-page.is-dark-theme .emoji-actor-card {
-  background: rgba(39, 48, 56, 0.82);
 }
 
 .emoji-actor-card:disabled {
@@ -1417,11 +1434,12 @@ onBeforeUnmount(() => {
 .emoji-effect-card {
   padding: 14px;
   cursor: pointer;
+  background: var(--emoji-panel-strong);
 }
 
 .emoji-effect-card.active {
-  border-color: rgba(241, 74, 74, 0.48);
-  box-shadow: inset 0 0 0 1px rgba(241, 74, 74, 0.18);
+  border-color: rgba(124, 92, 255, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(124, 92, 255, 0.16);
 }
 
 .emoji-effect-card.locked {
@@ -1447,6 +1465,7 @@ onBeforeUnmount(() => {
 
 .emoji-row-card {
   padding: 16px;
+  background: var(--emoji-panel-strong);
 }
 
 .emoji-row-head {
@@ -1471,7 +1490,7 @@ onBeforeUnmount(() => {
   min-height: 84px;
   border-radius: 14px;
   border: 1px dashed var(--emoji-border);
-  background: var(--emoji-card-strong);
+  background: var(--emoji-panel);
   padding: 6px 4px;
   text-align: center;
   cursor: pointer;
@@ -1508,6 +1527,7 @@ onBeforeUnmount(() => {
   border-radius: 18px;
   text-align: center;
   color: var(--emoji-muted);
+  background: var(--emoji-panel-strong);
 }
 
 .emoji-history-list {
@@ -1523,11 +1543,16 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 860px) {
-  .emoji-panel-head,
+  .emoji-section-head,
   .emoji-stage-toolbar,
   .emoji-row-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .emoji-panel-note,
+  .emoji-stage-note {
+    width: 100%;
   }
 }
 
@@ -1540,6 +1565,18 @@ onBeforeUnmount(() => {
   .emoji-panel {
     padding: 18px;
     border-radius: 20px;
+  }
+
+  .emoji-hero-meta,
+  .emoji-actions,
+  .emoji-stat-grid,
+  .emoji-bag-grid,
+  .emoji-effect-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .slot-reels {
+    max-width: none;
   }
 }
 </style>

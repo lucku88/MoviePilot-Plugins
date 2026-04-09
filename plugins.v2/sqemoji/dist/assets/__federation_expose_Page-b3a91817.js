@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_39529e99_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_f597fa09_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-39529e99"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-f597fa09"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -14,151 +14,133 @@ const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_5 = { class: "emoji-title" };
 const _hoisted_6 = { class: "emoji-subtitle" };
 const _hoisted_7 = { class: "emoji-hero-meta" };
-const _hoisted_8 = { class: "emoji-actions" };
-const _hoisted_9 = { class: "emoji-stat-grid" };
-const _hoisted_10 = { class: "emoji-stat-label" };
-const _hoisted_11 = { class: "emoji-stat-value" };
-const _hoisted_12 = {
+const _hoisted_8 = { class: "emoji-meta-chip" };
+const _hoisted_9 = { class: "emoji-meta-chip" };
+const _hoisted_10 = { class: "emoji-meta-chip" };
+const _hoisted_11 = { class: "emoji-actions" };
+const _hoisted_12 = { class: "emoji-stat-grid" };
+const _hoisted_13 = { class: "emoji-stat-label" };
+const _hoisted_14 = { class: "emoji-stat-value" };
+const _hoisted_15 = {
   key: 0,
   class: "emoji-stat-desc"
 };
-const _hoisted_13 = {
+const _hoisted_16 = {
   key: 1,
   class: "emoji-panel"
 };
-const _hoisted_14 = { class: "emoji-panel-head" };
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "本次摘要"),
-  /*#__PURE__*/_createElementVNode("h2", null, "任务结果")
+const _hoisted_17 = { class: "emoji-section-head emoji-section-head-compact" };
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "✨ 本次摘要", -1));
+const _hoisted_19 = { class: "emoji-summary-list" };
+const _hoisted_20 = { class: "emoji-panel" };
+const _hoisted_21 = { class: "emoji-section-head" };
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "🎰 表情老虎机", -1));
+const _hoisted_23 = { class: "emoji-panel-note" };
+const _hoisted_24 = { key: 0 };
+const _hoisted_25 = { class: "slot-layout" };
+const _hoisted_26 = { class: "slot-reels" };
+const _hoisted_27 = { class: "slot-actions" };
+const _hoisted_28 = ["max"];
+const _hoisted_29 = { class: "emoji-panel" };
+const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-section-head" }, [
+  /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "🎒 我的表情包")
 ], -1));
-const _hoisted_16 = { class: "emoji-summary-list" };
-const _hoisted_17 = { class: "emoji-panel" };
-const _hoisted_18 = { class: "emoji-panel-head" };
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "老虎机"),
-  /*#__PURE__*/_createElementVNode("h2", null, "表情老虎机")
-], -1));
-const _hoisted_20 = { class: "emoji-panel-note" };
-const _hoisted_21 = { key: 0 };
-const _hoisted_22 = { class: "slot-layout" };
-const _hoisted_23 = { class: "slot-reels" };
-const _hoisted_24 = { class: "slot-actions" };
-const _hoisted_25 = ["max"];
-const _hoisted_26 = { class: "emoji-panel" };
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
-  /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "我的表情包"),
-    /*#__PURE__*/_createElementVNode("h2", null, "开包与合成")
-  ])
-], -1));
-const _hoisted_28 = { class: "emoji-bag-grid" };
-const _hoisted_29 = { class: "emoji-bag-count" };
-const _hoisted_30 = { class: "emoji-inline-row" };
-const _hoisted_31 = ["onUpdate:modelValue", "max"];
-const _hoisted_32 = {
+const _hoisted_31 = { class: "emoji-bag-grid" };
+const _hoisted_32 = { class: "emoji-bag-count" };
+const _hoisted_33 = { class: "emoji-inline-row" };
+const _hoisted_34 = ["onUpdate:modelValue", "max"];
+const _hoisted_35 = {
   key: 1,
   class: "emoji-upgrade-box"
 };
-const _hoisted_33 = { class: "emoji-upgrade-row" };
-const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "目标数", -1));
-const _hoisted_35 = ["onUpdate:modelValue", "max"];
-const _hoisted_36 = { class: "emoji-upgrade-tip" };
-const _hoisted_37 = {
+const _hoisted_36 = { class: "emoji-upgrade-row" };
+const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "目标数", -1));
+const _hoisted_38 = ["onUpdate:modelValue", "max"];
+const _hoisted_39 = { class: "emoji-upgrade-tip" };
+const _hoisted_40 = {
   key: 0,
   class: "emoji-pending-panel"
 };
-const _hoisted_38 = { class: "emoji-panel-head" };
-const _hoisted_39 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "开包结果"),
-  /*#__PURE__*/_createElementVNode("h2", null, "待处理结果")
+const _hoisted_41 = { class: "emoji-section-head emoji-section-head-compact" };
+const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", { class: "emoji-subsection-title" }, "📦 待处理开包结果", -1));
+const _hoisted_43 = { class: "emoji-pending-meta" };
+const _hoisted_44 = { class: "emoji-result-emoji" };
+const _hoisted_45 = { class: "emoji-result-attr" };
+const _hoisted_46 = { class: "emoji-result-owned" };
+const _hoisted_47 = { class: "emoji-result-actions" };
+const _hoisted_48 = { class: "emoji-panel" };
+const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-section-head" }, [
+  /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "📖 表情图鉴")
 ], -1));
-const _hoisted_40 = { class: "emoji-pending-meta" };
-const _hoisted_41 = { class: "emoji-result-emoji" };
-const _hoisted_42 = { class: "emoji-result-attr" };
-const _hoisted_43 = { class: "emoji-result-owned" };
-const _hoisted_44 = { class: "emoji-result-actions" };
-const _hoisted_45 = { class: "emoji-panel" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
-  /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "图鉴与演员"),
-    /*#__PURE__*/_createElementVNode("h2", null, "演员图鉴 / 演员操作")
-  ])
-], -1));
-const _hoisted_47 = { class: "emoji-tier-tabs" };
-const _hoisted_48 = ["onClick"];
-const _hoisted_49 = { class: "emoji-sort-tabs" };
-const _hoisted_50 = ["onClick"];
-const _hoisted_51 = {
+const _hoisted_50 = { class: "emoji-tier-tabs" };
+const _hoisted_51 = ["onClick"];
+const _hoisted_52 = { class: "emoji-sort-tabs" };
+const _hoisted_53 = ["onClick"];
+const _hoisted_54 = {
   key: 0,
   class: "emoji-empty"
 };
-const _hoisted_52 = {
+const _hoisted_55 = {
   key: 1,
   class: "emoji-actor-scroll"
 };
-const _hoisted_53 = { class: "emoji-actor-grid" };
-const _hoisted_54 = ["disabled", "onClick"];
-const _hoisted_55 = { class: "emoji-actor-main" };
-const _hoisted_56 = { class: "emoji-actor-attr" };
-const _hoisted_57 = { class: "emoji-actor-count" };
-const _hoisted_58 = {
+const _hoisted_56 = { class: "emoji-actor-grid" };
+const _hoisted_57 = ["disabled", "onClick"];
+const _hoisted_58 = { class: "emoji-actor-main" };
+const _hoisted_59 = { class: "emoji-actor-attr" };
+const _hoisted_60 = { class: "emoji-actor-count" };
+const _hoisted_61 = {
   key: 2,
   class: "emoji-actor-actions"
 };
-const _hoisted_59 = { class: "emoji-panel" };
-const _hoisted_60 = { class: "emoji-panel-head" };
-const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "演出舞台"),
-  /*#__PURE__*/_createElementVNode("h2", null, "舞台效果与阵容")
-], -1));
-const _hoisted_62 = { class: "emoji-stage-note" };
-const _hoisted_63 = { class: "emoji-effect-grid" };
-const _hoisted_64 = ["onClick"];
-const _hoisted_65 = { class: "emoji-effect-title" };
-const _hoisted_66 = { class: "emoji-effect-meta" };
-const _hoisted_67 = { class: "emoji-effect-meta" };
-const _hoisted_68 = { class: "emoji-effect-meta" };
-const _hoisted_69 = { class: "emoji-stage-toolbar" };
-const _hoisted_70 = { class: "emoji-stage-toolbar-left" };
-const _hoisted_71 = { key: 0 };
-const _hoisted_72 = { key: 1 };
-const _hoisted_73 = { class: "emoji-stage-toolbar-right" };
-const _hoisted_74 = { class: "emoji-stage-rows" };
-const _hoisted_75 = { class: "emoji-row-head" };
-const _hoisted_76 = { class: "emoji-row-actions" };
-const _hoisted_77 = {
+const _hoisted_62 = { class: "emoji-panel" };
+const _hoisted_63 = { class: "emoji-section-head" };
+const _hoisted_64 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "🎭 表情演出舞台", -1));
+const _hoisted_65 = { class: "emoji-stage-note" };
+const _hoisted_66 = { class: "emoji-effect-grid" };
+const _hoisted_67 = ["onClick"];
+const _hoisted_68 = { class: "emoji-effect-title" };
+const _hoisted_69 = { class: "emoji-effect-meta" };
+const _hoisted_70 = { class: "emoji-effect-meta" };
+const _hoisted_71 = { class: "emoji-effect-meta" };
+const _hoisted_72 = { class: "emoji-stage-toolbar" };
+const _hoisted_73 = { class: "emoji-stage-toolbar-left" };
+const _hoisted_74 = { key: 0 };
+const _hoisted_75 = { key: 1 };
+const _hoisted_76 = { class: "emoji-stage-toolbar-right" };
+const _hoisted_77 = { class: "emoji-stage-rows" };
+const _hoisted_78 = { class: "emoji-row-head" };
+const _hoisted_79 = { class: "emoji-row-actions" };
+const _hoisted_80 = {
   key: 0,
   class: "emoji-stage-slot-grid"
 };
-const _hoisted_78 = ["onClick"];
-const _hoisted_79 = { class: "emoji-stage-slot-emoji" };
-const _hoisted_80 = { class: "emoji-stage-slot-meta" };
-const _hoisted_81 = { class: "emoji-stage-slot-time" };
+const _hoisted_81 = ["onClick"];
 const _hoisted_82 = { class: "emoji-stage-slot-emoji" };
 const _hoisted_83 = { class: "emoji-stage-slot-meta" };
-const _hoisted_84 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-stage-slot-time" }, "点击撤回", -1));
-const _hoisted_85 = {
+const _hoisted_84 = { class: "emoji-stage-slot-time" };
+const _hoisted_85 = { class: "emoji-stage-slot-emoji" };
+const _hoisted_86 = { class: "emoji-stage-slot-meta" };
+const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-stage-slot-time" }, "点击撤回", -1));
+const _hoisted_88 = {
   key: 2,
   class: "emoji-stage-slot-empty"
 };
-const _hoisted_86 = { class: "emoji-panel" };
-const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
-  /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "最近记录"),
-    /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
-  ])
+const _hoisted_89 = { class: "emoji-panel" };
+const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-section-head" }, [
+  /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "🧾 最近记录")
 ], -1));
-const _hoisted_88 = {
+const _hoisted_91 = {
   key: 0,
   class: "emoji-empty"
 };
-const _hoisted_89 = {
+const _hoisted_92 = {
   key: 1,
   class: "emoji-history-list"
 };
-const _hoisted_90 = { class: "emoji-history-top" };
-const _hoisted_91 = { class: "emoji-history-lines" };
-const _hoisted_92 = {
+const _hoisted_93 = { class: "emoji-history-top" };
+const _hoisted_94 = { class: "emoji-history-lines" };
+const _hoisted_95 = {
   key: 0,
   class: "emoji-history-next"
 };
@@ -167,7 +149,7 @@ const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShar
 
 
 const pluginBase = '/plugin/SQEmoji';
-const actorLimitStep = 60;
+const actorLimitStep = 48;
 
 const _sfc_main = {
   __name: 'Page',
@@ -805,15 +787,15 @@ return (_ctx, _cache) => {
       _createElementVNode("section", _hoisted_2, [
         _createElementVNode("div", _hoisted_3, [
           _hoisted_4,
-          _createElementVNode("h1", _hoisted_5, _toDisplayString(emoji.value.title || '表情演出'), 1),
-          _createElementVNode("p", _hoisted_6, _toDisplayString(emoji.value.subtitle || '每日免费老虎机抽包、演员图鉴与舞台演出。'), 1),
+          _createElementVNode("h1", _hoisted_5, _toDisplayString(emoji.value.title || '思齐表情演出'), 1),
+          _createElementVNode("p", _hoisted_6, _toDisplayString(emoji.value.subtitle || '老虎机、开包、舞台演出、获取执行记录。'), 1),
           _createElementVNode("div", _hoisted_7, [
-            _createElementVNode("span", null, "最近执行 " + _toDisplayString(status.last_run || '暂无'), 1),
-            _createElementVNode("span", null, "下次运行 " + _toDisplayString(emoji.value.next_run_time || status.next_run_time || '等待刷新'), 1),
-            _createElementVNode("span", null, "Cookie " + _toDisplayString(emoji.value.cookie_source || status.cookie_source || '未同步'), 1)
+            _createElementVNode("span", _hoisted_8, "最近执行 " + _toDisplayString(status.last_run || '暂无'), 1),
+            _createElementVNode("span", _hoisted_9, "下次运行 " + _toDisplayString(emoji.value.next_run_time || status.next_run_time || '等待刷新'), 1),
+            _createElementVNode("span", _hoisted_10, _toDisplayString(emoji.value.cookie_source || status.cookie_source || '未同步'), 1)
           ])
         ]),
-        _createElementVNode("div", _hoisted_8, [
+        _createElementVNode("div", _hoisted_11, [
           _createVNode(_component_v_btn, {
             color: "success",
             variant: "flat",
@@ -879,24 +861,24 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_9, [
+      _createElementVNode("section", _hoisted_12, [
         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(statsItems.value, (item) => {
           return (_openBlock(), _createElementBlock("article", {
             key: item.label,
             class: "emoji-stat-card"
           }, [
-            _createElementVNode("div", _hoisted_10, _toDisplayString(item.label), 1),
-            _createElementVNode("div", _hoisted_11, _toDisplayString(item.value), 1),
+            _createElementVNode("div", _hoisted_13, _toDisplayString(item.label), 1),
+            _createElementVNode("div", _hoisted_14, _toDisplayString(item.value), 1),
             (item.desc)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_12, _toDisplayString(item.desc), 1))
+              ? (_openBlock(), _createElementBlock("div", _hoisted_15, _toDisplayString(item.desc), 1))
               : _createCommentVNode("", true)
           ]))
         }), 128))
       ]),
       (showSummary.value)
-        ? (_openBlock(), _createElementBlock("section", _hoisted_13, [
-            _createElementVNode("div", _hoisted_14, [
-              _hoisted_15,
+        ? (_openBlock(), _createElementBlock("section", _hoisted_16, [
+            _createElementVNode("div", _hoisted_17, [
+              _hoisted_18,
               _createVNode(_component_v_btn, {
                 variant: "text",
                 size: "small",
@@ -908,7 +890,7 @@ return (_ctx, _cache) => {
                 _: 1
               })
             ]),
-            _createElementVNode("div", _hoisted_16, [
+            _createElementVNode("div", _hoisted_19, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(summaryLines.value, (line) => {
                 return (_openBlock(), _createElementBlock("div", {
                   key: line,
@@ -918,18 +900,18 @@ return (_ctx, _cache) => {
             ])
           ]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_17, [
-        _createElementVNode("div", _hoisted_18, [
-          _hoisted_19,
-          _createElementVNode("div", _hoisted_20, [
+      _createElementVNode("section", _hoisted_20, [
+        _createElementVNode("div", _hoisted_21, [
+          _hoisted_22,
+          _createElementVNode("div", _hoisted_23, [
             _createTextVNode(" 今日次数：" + _toDisplayString(slotMachine.value.used || 0) + "/" + _toDisplayString(slotMachine.value.limit || 0) + " ", 1),
             (slotMachine.value.base || slotMachine.value.extra)
-              ? (_openBlock(), _createElementBlock("span", _hoisted_21, " （基础" + _toDisplayString(slotMachine.value.base || 0) + " + f(hnr*等级) " + _toDisplayString(slotMachine.value.extra || 0) + "） ", 1))
+              ? (_openBlock(), _createElementBlock("span", _hoisted_24, " （基础" + _toDisplayString(slotMachine.value.base || 0) + " + f(hnr*等级) " + _toDisplayString(slotMachine.value.extra || 0) + "） ", 1))
               : _createCommentVNode("", true)
           ])
         ]),
-        _createElementVNode("div", _hoisted_22, [
-          _createElementVNode("div", _hoisted_23, [
+        _createElementVNode("div", _hoisted_25, [
+          _createElementVNode("div", _hoisted_26, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(slotMachine.value.reels || [], (item, index) => {
               return (_openBlock(), _createElementBlock("div", {
                 key: `reel-${index}`,
@@ -937,14 +919,14 @@ return (_ctx, _cache) => {
               }, _toDisplayString(item), 1))
             }), 128))
           ]),
-          _createElementVNode("div", _hoisted_24, [
+          _createElementVNode("div", _hoisted_27, [
             _withDirectives(_createElementVNode("input", {
               "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((spinCount).value = $event)),
               class: "emoji-number-input",
               type: "number",
               min: "1",
               max: Math.max(spinMax.value, 1)
-            }, null, 8, _hoisted_25), [
+            }, null, 8, _hoisted_28), [
               [_vModelText, spinCount.value]
             ]),
             _createVNode(_component_v_btn, {
@@ -962,9 +944,9 @@ return (_ctx, _cache) => {
           ])
         ])
       ]),
-      _createElementVNode("section", _hoisted_26, [
-        _hoisted_27,
-        _createElementVNode("div", _hoisted_28, [
+      _createElementVNode("section", _hoisted_29, [
+        _hoisted_30,
+        _createElementVNode("div", _hoisted_31, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bags.value, (bag) => {
             return (_openBlock(), _createElementBlock("article", {
               key: bag.tier,
@@ -982,15 +964,15 @@ return (_ctx, _cache) => {
                 class: "emoji-bag-name",
                 style: _normalizeStyle({ color: bag.badge_color || '' })
               }, _toDisplayString(bag.name), 5),
-              _createElementVNode("div", _hoisted_29, "持有 " + _toDisplayString(bag.quantity), 1),
-              _createElementVNode("div", _hoisted_30, [
+              _createElementVNode("div", _hoisted_32, "持有 " + _toDisplayString(bag.quantity), 1),
+              _createElementVNode("div", _hoisted_33, [
                 _withDirectives(_createElementVNode("input", {
                   "onUpdate:modelValue": $event => ((openCounts[bag.tier]) = $event),
                   class: "emoji-number-input",
                   type: "number",
                   min: "1",
                   max: Math.max(bag.open_max || 1, 1)
-                }, null, 8, _hoisted_31), [
+                }, null, 8, _hoisted_34), [
                   [_vModelText, openCounts[bag.tier]]
                 ]),
                 _createVNode(_component_v_btn, {
@@ -1007,16 +989,16 @@ return (_ctx, _cache) => {
                 }, 1032, ["loading", "disabled", "onClick"])
               ]),
               (bag.upgrade_rule)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_32, [
-                    _createElementVNode("div", _hoisted_33, [
-                      _hoisted_34,
+                ? (_openBlock(), _createElementBlock("div", _hoisted_35, [
+                    _createElementVNode("div", _hoisted_36, [
+                      _hoisted_37,
                       _withDirectives(_createElementVNode("input", {
                         "onUpdate:modelValue": $event => ((upgradeCounts[bag.upgrade_rule.key]) = $event),
                         class: "emoji-number-input",
                         type: "number",
                         min: "1",
                         max: Math.max(bag.upgrade_rule.max_times || 1, 1)
-                      }, null, 8, _hoisted_35), [
+                      }, null, 8, _hoisted_38), [
                         [_vModelText, upgradeCounts[bag.upgrade_rule.key]]
                       ]),
                       _createVNode(_component_v_btn, {
@@ -1032,16 +1014,16 @@ return (_ctx, _cache) => {
                         _: 2
                       }, 1032, ["loading", "disabled", "onClick"])
                     ]),
-                    _createElementVNode("div", _hoisted_36, _toDisplayString(bag.upgrade_rule.tip), 1)
+                    _createElementVNode("div", _hoisted_39, _toDisplayString(bag.upgrade_rule.tip), 1)
                   ]))
                 : _createCommentVNode("", true)
             ], 4))
           }), 128))
         ]),
         (pendingOpenVisible.value && pendingOpen.value.items?.length)
-          ? (_openBlock(), _createElementBlock("article", _hoisted_37, [
-              _createElementVNode("div", _hoisted_38, [
-                _hoisted_39,
+          ? (_openBlock(), _createElementBlock("article", _hoisted_40, [
+              _createElementVNode("div", _hoisted_41, [
+                _hoisted_42,
                 _createVNode(_component_v_btn, {
                   variant: "text",
                   size: "small",
@@ -1053,7 +1035,7 @@ return (_ctx, _cache) => {
                   _: 1
                 })
               ]),
-              _createElementVNode("div", _hoisted_40, [
+              _createElementVNode("div", _hoisted_43, [
                 _createElementVNode("span", null, _toDisplayString(pendingOpen.value.bag_name) + " x" + _toDisplayString(pendingOpen.value.bag_count), 1),
                 _createElementVNode("span", null, "已重开 " + _toDisplayString(pendingOpen.value.reroll_count || 0) + " 次", 1),
                 _createElementVNode("span", null, "下次重开消耗 " + _toDisplayString(pendingOpen.value.next_reroll_cost || 0) + " 魔力", 1)
@@ -1066,13 +1048,13 @@ return (_ctx, _cache) => {
                     key: `pending-${index}`,
                     class: "emoji-result-item"
                   }, [
-                    _createElementVNode("div", _hoisted_41, _toDisplayString(item.emoji), 1),
-                    _createElementVNode("div", _hoisted_42, "P" + _toDisplayString(item.points) + " · M" + _toDisplayString(item.magic), 1),
-                    _createElementVNode("div", _hoisted_43, "已有 " + _toDisplayString(item.owned_count), 1)
+                    _createElementVNode("div", _hoisted_44, _toDisplayString(item.emoji), 1),
+                    _createElementVNode("div", _hoisted_45, "P" + _toDisplayString(item.points) + " · M" + _toDisplayString(item.magic), 1),
+                    _createElementVNode("div", _hoisted_46, "已有 " + _toDisplayString(item.owned_count), 1)
                   ]))
                 }), 128))
               ], 2),
-              _createElementVNode("div", _hoisted_44, [
+              _createElementVNode("div", _hoisted_47, [
                 _createVNode(_component_v_btn, {
                   color: "primary",
                   variant: "flat",
@@ -1099,32 +1081,32 @@ return (_ctx, _cache) => {
             ]))
           : _createCommentVNode("", true)
       ]),
-      _createElementVNode("section", _hoisted_45, [
-        _hoisted_46,
-        _createElementVNode("div", _hoisted_47, [
+      _createElementVNode("section", _hoisted_48, [
+        _hoisted_49,
+        _createElementVNode("div", _hoisted_50, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(actorTabs.value, (tab) => {
             return (_openBlock(), _createElementBlock("button", {
               key: tab.tier,
               type: "button",
               class: _normalizeClass(["emoji-tier-chip", { active: String(selectedTier.value) === String(tab.tier) }]),
               onClick: $event => (selectedTier.value = String(tab.tier))
-            }, _toDisplayString(tab.name) + " " + _toDisplayString(tab.owned) + "/" + _toDisplayString(tab.total || '❓'), 11, _hoisted_48))
+            }, _toDisplayString(tab.name) + " " + _toDisplayString(tab.owned) + "/" + _toDisplayString(tab.total || '❓'), 11, _hoisted_51))
           }), 128))
         ]),
-        _createElementVNode("div", _hoisted_49, [
+        _createElementVNode("div", _hoisted_52, [
           (_openBlock(), _createElementBlock(_Fragment, null, _renderList(sortOptions, (item) => {
             return _createElementVNode("button", {
               key: item.key,
               type: "button",
               class: _normalizeClass(["emoji-sort-chip", { active: actorSort.value === item.key }]),
               onClick: $event => (actorSort.value = item.key)
-            }, _toDisplayString(item.label), 11, _hoisted_50)
+            }, _toDisplayString(item.label), 11, _hoisted_53)
           }), 64))
         ]),
         (!currentActors.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_51, "当前层级暂无可用演员"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_52, [
-              _createElementVNode("div", _hoisted_53, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_54, "当前层级暂无可用演员"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_55, [
+              _createElementVNode("div", _hoisted_56, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(visibleActors.value, (actor) => {
                   return (_openBlock(), _createElementBlock("button", {
                     key: actor.code,
@@ -1133,15 +1115,15 @@ return (_ctx, _cache) => {
                     disabled: stage.value.has_active || !actor.can_place || draftRemaining(actor.code) <= 0,
                     onClick: $event => (pickActor(actor))
                   }, [
-                    _createElementVNode("div", _hoisted_55, _toDisplayString(actor.emoji), 1),
-                    _createElementVNode("div", _hoisted_56, "P" + _toDisplayString(actor.points) + " · M" + _toDisplayString(actor.magic), 1),
-                    _createElementVNode("div", _hoisted_57, "x" + _toDisplayString(draftRemaining(actor.code)), 1)
-                  ], 8, _hoisted_54))
+                    _createElementVNode("div", _hoisted_58, _toDisplayString(actor.emoji), 1),
+                    _createElementVNode("div", _hoisted_59, "P" + _toDisplayString(actor.points) + " · M" + _toDisplayString(actor.magic), 1),
+                    _createElementVNode("div", _hoisted_60, "x" + _toDisplayString(draftRemaining(actor.code)), 1)
+                  ], 8, _hoisted_57))
                 }), 128))
               ])
             ])),
         (hasMoreActors.value || actorVisibleLimit.value > actorLimitStep)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_58, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_61, [
               (hasMoreActors.value)
                 ? (_openBlock(), _createBlock(_component_v_btn, {
                     key: 0,
@@ -1172,15 +1154,15 @@ return (_ctx, _cache) => {
             ]))
           : _createCommentVNode("", true)
       ]),
-      _createElementVNode("section", _hoisted_59, [
-        _createElementVNode("div", _hoisted_60, [
-          _hoisted_61,
-          _createElementVNode("div", _hoisted_62, [
+      _createElementVNode("section", _hoisted_62, [
+        _createElementVNode("div", _hoisted_63, [
+          _hoisted_64,
+          _createElementVNode("div", _hoisted_65, [
             _createElementVNode("span", null, "当前舞台：" + _toDisplayString(stage.value.current_effect_name || '未开始'), 1),
             _createElementVNode("span", null, _toDisplayString(stage.value.current_text || '当前无演出演员'), 1)
           ])
         ]),
-        _createElementVNode("div", _hoisted_63, [
+        _createElementVNode("div", _hoisted_66, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(effects.value, (effect) => {
             return (_openBlock(), _createElementBlock("article", {
               key: effect.key,
@@ -1190,20 +1172,20 @@ return (_ctx, _cache) => {
             }]),
               onClick: $event => (selectEffect(effect))
             }, [
-              _createElementVNode("div", _hoisted_65, _toDisplayString(effect.name), 1),
-              _createElementVNode("div", _hoisted_66, "积分+" + _toDisplayString(effect.point_bonus_pct) + "% · 魔力+" + _toDisplayString(effect.magic_bonus_pct) + "%", 1),
-              _createElementVNode("div", _hoisted_67, _toDisplayString(effect.duration_text || `${effect.duration_seconds || 0} 秒`), 1),
-              _createElementVNode("div", _hoisted_68, _toDisplayString(effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁'), 1)
-            ], 10, _hoisted_64))
+              _createElementVNode("div", _hoisted_68, _toDisplayString(effect.name), 1),
+              _createElementVNode("div", _hoisted_69, "积分+" + _toDisplayString(effect.point_bonus_pct) + "% · 魔力+" + _toDisplayString(effect.magic_bonus_pct) + "%", 1),
+              _createElementVNode("div", _hoisted_70, _toDisplayString(effect.duration_text || `${effect.duration_seconds || 0} 秒`), 1),
+              _createElementVNode("div", _hoisted_71, _toDisplayString(effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁'), 1)
+            ], 10, _hoisted_67))
           }), 128))
         ]),
-        _createElementVNode("div", _hoisted_69, [
-          _createElementVNode("div", _hoisted_70, [
-            (stage.value.has_active)
-              ? (_openBlock(), _createElementBlock("span", _hoisted_71, "演出剩余 " + _toDisplayString(stageRemainText.value), 1))
-              : (_openBlock(), _createElementBlock("span", _hoisted_72, "当前效果 " + _toDisplayString(selectedEffectName.value), 1))
-          ]),
+        _createElementVNode("div", _hoisted_72, [
           _createElementVNode("div", _hoisted_73, [
+            (stage.value.has_active)
+              ? (_openBlock(), _createElementBlock("span", _hoisted_74, "演出剩余 " + _toDisplayString(stageRemainText.value), 1))
+              : (_openBlock(), _createElementBlock("span", _hoisted_75, "当前效果 " + _toDisplayString(selectedEffectName.value), 1))
+          ]),
+          _createElementVNode("div", _hoisted_76, [
             _createVNode(_component_v_btn, {
               color: "warning",
               variant: "flat",
@@ -1239,20 +1221,20 @@ return (_ctx, _cache) => {
             }, 8, ["disabled"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_74, [
+        _createElementVNode("div", _hoisted_77, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(stageRows.value, (row) => {
             return (_openBlock(), _createElementBlock("article", {
               key: row.row_index,
               class: "emoji-row-card"
             }, [
-              _createElementVNode("div", _hoisted_75, [
+              _createElementVNode("div", _hoisted_78, [
                 _createElementVNode("div", null, [
                   _createElementVNode("strong", null, _toDisplayString(row.name), 1),
                   _createElementVNode("span", null, "（解锁声誉 " + _toDisplayString(row.unlock_points) + "）", 1)
                 ]),
                 _createElementVNode("div", null, _toDisplayString(row.unlocked ? `已开 ${row.slot_count}/${row.max_slots} 格` : '未解锁'), 1)
               ]),
-              _createElementVNode("div", _hoisted_76, [
+              _createElementVNode("div", _hoisted_79, [
                 (row.unlocked)
                   ? (_openBlock(), _createBlock(_component_v_btn, {
                       key: 0,
@@ -1270,7 +1252,7 @@ return (_ctx, _cache) => {
                   : _createCommentVNode("", true)
               ]),
               (row.unlocked)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_77, [
+                ? (_openBlock(), _createElementBlock("div", _hoisted_80, [
                     (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.slots, (slot) => {
                       return (_openBlock(), _createElementBlock("button", {
                         key: `${row.row_index}-${slot.slot_index}`,
@@ -1284,18 +1266,18 @@ return (_ctx, _cache) => {
                       }, [
                         (slot.filled)
                           ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
-                              _createElementVNode("div", _hoisted_79, _toDisplayString(slot.emoji), 1),
-                              _createElementVNode("div", _hoisted_80, "P" + _toDisplayString(slot.points) + " · M" + _toDisplayString(slot.magic), 1),
-                              _createElementVNode("div", _hoisted_81, _toDisplayString(slotRemainText(slot)), 1)
+                              _createElementVNode("div", _hoisted_82, _toDisplayString(slot.emoji), 1),
+                              _createElementVNode("div", _hoisted_83, "P" + _toDisplayString(slot.points) + " · M" + _toDisplayString(slot.magic), 1),
+                              _createElementVNode("div", _hoisted_84, _toDisplayString(slotRemainText(slot)), 1)
                             ], 64))
                           : (draftMap[slotKey(slot)])
                             ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
-                                _createElementVNode("div", _hoisted_82, _toDisplayString(draftMap[slotKey(slot)].emoji), 1),
-                                _createElementVNode("div", _hoisted_83, " P" + _toDisplayString(draftMap[slotKey(slot)].points) + " · M" + _toDisplayString(draftMap[slotKey(slot)].magic), 1),
-                                _hoisted_84
+                                _createElementVNode("div", _hoisted_85, _toDisplayString(draftMap[slotKey(slot)].emoji), 1),
+                                _createElementVNode("div", _hoisted_86, " P" + _toDisplayString(draftMap[slotKey(slot)].points) + " · M" + _toDisplayString(draftMap[slotKey(slot)].magic), 1),
+                                _hoisted_87
                               ], 64))
-                            : (_openBlock(), _createElementBlock("div", _hoisted_85, "待定"))
-                      ], 10, _hoisted_78))
+                            : (_openBlock(), _createElementBlock("div", _hoisted_88, "待定"))
+                      ], 10, _hoisted_81))
                     }), 128))
                   ]))
                 : _createCommentVNode("", true)
@@ -1303,23 +1285,23 @@ return (_ctx, _cache) => {
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_86, [
-        _hoisted_87,
+      _createElementVNode("section", _hoisted_89, [
+        _hoisted_90,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_88, "暂无执行历史"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_89, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_91, "暂无执行历史"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_92, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "emoji-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_90, [
+                  _createElementVNode("div", _hoisted_93, [
                     _createElementVNode("strong", null, _toDisplayString(item.title || '任务结果'), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_91, _toDisplayString((item.lines || []).join(' / ')), 1),
+                  _createElementVNode("div", _hoisted_94, _toDisplayString((item.lines || []).join(' / ')), 1),
                   (item.next_run)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_92, "下次运行 " + _toDisplayString(item.next_run), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_95, "下次运行 " + _toDisplayString(item.next_run), 1))
                     : _createCommentVNode("", true)
                 ]))
               }), 128))
@@ -1331,6 +1313,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-39529e99"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f597fa09"]]);
 
 export { PageView as default };

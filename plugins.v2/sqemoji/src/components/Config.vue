@@ -1,100 +1,117 @@
 <template>
   <div ref="rootEl" class="emoji-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="emoji-shell">
-      <section class="emoji-hero">
-        <div>
+      <header class="emoji-config-header">
+        <div class="emoji-header-copy">
           <div class="emoji-badge">SQ表情</div>
-          <h1 class="emoji-title">配置中心</h1>
-          <p class="emoji-subtitle">管理老虎机/开包时间、自动舞台演出和 Cookie 同步。</p>
+          <h1 class="emoji-page-title">SQ表情 · 插件配置</h1>
+          <p class="emoji-page-subtitle">老虎机、开包、舞台演出、获取执行记录。</p>
         </div>
-        <div class="emoji-actions">
+        <div class="emoji-header-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
           <v-btn variant="text" @click="emit('close')">关闭</v-btn>
         </div>
-      </section>
+      </header>
 
       <v-alert v-if="message.text" :type="message.type" variant="tonal">
         {{ message.text }}
       </v-alert>
 
-      <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">基础开关</div>
-            <h2>运行控制</h2>
-          </div>
-        </div>
+      <section class="emoji-settings-card">
+        <h2 class="emoji-settings-title">⚙️ 基本设置</h2>
         <div class="emoji-switch-grid">
-          <v-switch v-model="config.enabled" label="启用插件" color="success" hide-details />
-          <v-switch v-model="config.notify" label="发送通知" color="primary" hide-details />
-          <v-switch v-model="config.onlyonce" label="保存后执行一次" color="warning" hide-details />
-          <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
-          <v-switch v-model="config.auto_stage" label="自动舞台演出" color="deep-orange" hide-details />
-          <v-switch v-model="config.auto_spin" label="自动清空当日老虎机次数" color="deep-purple" hide-details />
-          <v-switch v-model="config.auto_open_bags" label="自动开包并自动收下" color="teal" hide-details />
-          <v-switch v-model="config.use_proxy" label="使用代理" color="secondary" hide-details />
-          <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.enabled" label="启用插件" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.use_proxy" label="使用代理" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.notify" label="开启通知" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.onlyonce" label="立即运行一次" color="#7c5cff" hide-details inset />
+          </div>
         </div>
       </section>
 
-      <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">调度策略</div>
-            <h2>时间配置</h2>
+      <section class="emoji-settings-card">
+        <h2 class="emoji-settings-title">🧩 功能设置</h2>
+        <div class="emoji-switch-grid">
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.auto_cookie" label="使用站点Cookie" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.auto_stage" label="自动舞台演出" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.auto_spin" label="自动老虎机" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.auto_open_bags" label="自动开包并收下" color="#7c5cff" hide-details inset />
+          </div>
+          <div class="emoji-switch-item">
+            <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="#7c5cff" hide-details inset />
           </div>
         </div>
+
+        <div class="emoji-field-grid">
+          <div class="emoji-field-block emoji-field-block-wide">
+            <div class="emoji-field-label">站点Cookie</div>
+            <v-textarea
+              v-model="config.cookie"
+              label="站点Cookie"
+              rows="4"
+              auto-grow
+              variant="outlined"
+              density="comfortable"
+              placeholder="例如 c_secure_pass=..."
+              :disabled="cookieReadonly"
+              :readonly="cookieReadonly"
+            />
+            <div class="emoji-note">
+              启用【使用站点Cookie】功能后，插件会自动获取已配置站点的cookie，关闭使用站点Cookie功能才可以手动改cookie。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="emoji-settings-card">
+        <h2 class="emoji-settings-title">⏰ 时间配置</h2>
         <VCronField
           v-model="config.spin_cron"
           label="老虎机/开包执行周期(cron)"
-          hint="例如：5 0 * * * 表示每天 00:05 执行老虎机和自动开包"
-          persistent-hint
-          density="compact"
+          density="comfortable"
           class="emoji-cron-field"
         />
-        <div class="emoji-form-grid">
-          <v-select
-            v-model="config.auto_stage_effect_key"
-            :items="effectOptions"
-            item-title="title"
-            item-value="value"
-            label="自动演出舞台效果"
-            variant="outlined"
-            density="comfortable"
-            :disabled="!config.auto_stage"
-          />
-        </div>
-        <div class="emoji-note">自动老虎机和自动开包按上面的 CRON 运行；舞台效果下拉只显示已解锁项。</div>
       </section>
 
-      <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">手动 Cookie</div>
-            <h2>Cookie 兜底</h2>
+      <section class="emoji-settings-card">
+        <h2 class="emoji-settings-title">🎭 演出设置</h2>
+        <div class="emoji-field-grid">
+          <div class="emoji-field-block">
+            <div class="emoji-field-label">演出舞台效果</div>
+            <v-select
+              v-model="config.auto_stage_effect_key"
+              :items="effectOptions"
+              item-title="title"
+              item-value="value"
+              label="演出舞台效果"
+              variant="outlined"
+              density="comfortable"
+              :disabled="!config.auto_stage"
+            />
           </div>
         </div>
-        <v-textarea
-          v-model="config.cookie"
-          label="SQ Cookie"
-          rows="6"
-          variant="outlined"
-          density="comfortable"
-          placeholder="例如 c_secure_pass=..."
-        />
-        <div class="emoji-note">
-          默认读取 <code>si-qi.xyz</code> 站点配置中的 Cookie。开启“优先使用站点 Cookie”后，会优先使用 MoviePilot 站点管理中的值。
-        </div>
       </section>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -107,7 +124,7 @@ const pluginBase = '/plugin/SQEmoji'
 const saving = ref(false)
 const rootEl = ref(null)
 const isDarkTheme = ref(false)
-const effectOptions = ref([{ title: '自动选择最佳舞台效果', value: 'auto' }])
+const effectOptions = ref([{ title: '自动选择演出舞台效果', value: 'auto' }])
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -130,6 +147,8 @@ const config = reactive({
   auto_stage_effect_key: 'auto',
 })
 
+const cookieReadonly = computed(() => !!config.auto_cookie)
+
 let themeObserver = null
 let mediaQuery = null
 
@@ -141,6 +160,8 @@ function flash(text, type = 'success') {
 function applyConfig(data = {}) {
   if (Array.isArray(data.effect_options) && data.effect_options.length) {
     effectOptions.value = data.effect_options
+  } else {
+    effectOptions.value = [{ title: '自动选择演出舞台效果', value: 'auto' }]
   }
   const { effect_options, capture_tips, ...rest } = data || {}
   Object.assign(config, { ...config, ...rest })
@@ -267,56 +288,64 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .emoji-config {
-  --emoji-bg: linear-gradient(180deg, #f7f0e2 0%, #f4f2ef 100%);
-  --emoji-card: rgba(255, 255, 255, 0.9);
-  --emoji-text: #5a330d;
-  --emoji-muted: #9b7855;
-  --emoji-border: rgba(232, 168, 104, 0.28);
-  --emoji-shadow: 0 18px 36px rgba(167, 120, 63, 0.08);
-  --emoji-accent: #df7a11;
-  --emoji-accent-soft: rgba(223, 122, 17, 0.12);
+  --emoji-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%);
+  --emoji-panel: rgba(255, 255, 255, 0.9);
+  --emoji-panel-strong: rgba(255, 255, 255, 0.98);
+  --emoji-text: #262638;
+  --emoji-muted: #76778b;
+  --emoji-border: rgba(129, 133, 164, 0.18);
+  --emoji-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
+  --emoji-accent: #7c5cff;
+  --emoji-accent-soft: rgba(124, 92, 255, 0.1);
   min-height: 100vh;
-  padding: 20px 0 32px;
+  padding: 20px 0 36px;
   background: var(--emoji-bg);
   color: var(--emoji-text);
 }
 
 .emoji-config.is-dark-theme {
-  --emoji-bg: linear-gradient(180deg, #181513 0%, #121010 100%);
-  --emoji-card: rgba(31, 24, 22, 0.92);
-  --emoji-text: #f8eadb;
-  --emoji-muted: #ccb298;
-  --emoji-border: rgba(255, 185, 106, 0.18);
-  --emoji-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
-  --emoji-accent: #ffb24c;
-  --emoji-accent-soft: rgba(255, 178, 76, 0.14);
+  --emoji-bg: radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%);
+  --emoji-panel: rgba(26, 28, 39, 0.92);
+  --emoji-panel-strong: rgba(19, 21, 30, 0.98);
+  --emoji-text: #f3f5ff;
+  --emoji-muted: #9fa7c4;
+  --emoji-border: rgba(124, 92, 255, 0.18);
+  --emoji-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  --emoji-accent: #8b6cff;
+  --emoji-accent-soft: rgba(139, 108, 255, 0.14);
+}
+
+.emoji-config,
+.emoji-config * {
+  box-sizing: border-box;
 }
 
 .emoji-shell {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0 16px;
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
-.emoji-hero,
-.emoji-panel {
+.emoji-config-header,
+.emoji-settings-card {
   border: 1px solid var(--emoji-border);
   border-radius: 24px;
-  background: var(--emoji-card);
+  background: var(--emoji-panel);
   box-shadow: var(--emoji-shadow);
-  padding: 20px;
 }
 
-.emoji-hero {
+.emoji-config-header {
+  padding: 26px 24px;
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 
 .emoji-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--emoji-accent-soft);
@@ -325,70 +354,144 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.emoji-title {
+.emoji-page-title {
   margin: 10px 0 6px;
-  font-size: clamp(28px, 4vw, 38px);
-  line-height: 1.05;
+  font-size: clamp(28px, 4vw, 36px);
+  line-height: 1.08;
 }
 
-.emoji-subtitle,
+.emoji-page-subtitle,
 .emoji-note {
   color: var(--emoji-muted);
 }
 
-.emoji-actions {
+.emoji-header-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 
-.emoji-panel-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.emoji-panel-head h2 {
-  margin: 6px 0 0;
-  font-size: 24px;
-}
-
-.emoji-panel-kicker {
-  font-size: 13px;
-  color: var(--emoji-muted);
-  font-weight: 700;
-}
-
-.emoji-switch-grid,
-.emoji-form-grid {
+.emoji-settings-card {
+  padding: 24px;
   display: grid;
-  gap: 14px 18px;
+  gap: 18px;
+}
+
+.emoji-settings-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .emoji-switch-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.emoji-form-grid {
+.emoji-switch-item {
+  min-height: 72px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--emoji-border);
+  background: var(--emoji-panel-strong);
+  display: flex;
+  align-items: center;
+}
+
+.emoji-field-grid {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.emoji-field-block {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--emoji-border);
+  background: var(--emoji-panel-strong);
+}
+
+.emoji-field-block-wide {
+  grid-column: 1 / -1;
+}
+
+.emoji-field-label {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--emoji-muted);
 }
 
 .emoji-note {
   margin-top: 12px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
-@media (max-width: 860px) {
-  .emoji-panel-head {
-    flex-direction: column;
-    align-items: flex-start;
+.emoji-cron-field {
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--emoji-border);
+  background: var(--emoji-panel-strong);
+}
+
+:deep(.emoji-config .v-field),
+:deep(.emoji-config .v-selection-control) {
+  color: var(--emoji-text);
+}
+
+:deep(.emoji-config .v-field) {
+  background: transparent;
+  border-radius: 16px;
+}
+
+:deep(.emoji-config .v-field__input),
+:deep(.emoji-config .v-label),
+:deep(.emoji-config .v-select__selection-text) {
+  color: var(--emoji-text);
+}
+
+:deep(.emoji-config .v-field--disabled) {
+  opacity: 0.76;
+}
+
+:deep(.emoji-config .v-selection-control__input > .v-icon),
+:deep(.emoji-config .v-switch__track) {
+  color: var(--emoji-accent);
+}
+
+:deep(.emoji-config .v-switch .v-label),
+:deep(.emoji-config .v-selection-control .v-label) {
+  color: var(--emoji-text);
+  opacity: 1;
+  font-weight: 600;
+}
+
+:deep(.emoji-config .v-alert) {
+  border-radius: 18px;
+}
+
+@media (max-width: 1080px) {
+  .emoji-switch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .emoji-shell {
+    padding: 0 10px;
   }
 
+  .emoji-config-header,
+  .emoji-settings-card {
+    padding: 20px 18px;
+    border-radius: 20px;
+  }
+
+  .emoji-header-actions,
   .emoji-switch-grid,
-  .emoji-form-grid {
+  .emoji-field-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -27,9 +27,9 @@ from app.schemas import NotificationType
 
 class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
-    plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
+    plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -1021,6 +1021,7 @@ class SQEmoji(_PluginBase):
             "user": state.get("user") or {},
             "spin": state.get("spin") or {},
             "bags": state.get("bags") or [],
+            "effects": state.get("effects") or [],
             "stage": state.get("stage") or {},
         }
 
@@ -1148,8 +1149,8 @@ class SQEmoji(_PluginBase):
     def _build_ui_state(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
         return {
             "schema_version": self.plugin_version,
-            "title": "表情演出",
-            "subtitle": "每日免费老虎机抽包、演员图鉴与舞台演出。",
+            "title": "思齐表情演出",
+            "subtitle": "老虎机、开包、舞台演出、获取执行记录。",
             "cookie_source": self._cookie_source,
             "summary": summary_lines,
             "next_run_time": self._format_ts(next_run),
@@ -1328,14 +1329,30 @@ class SQEmoji(_PluginBase):
         return result
 
     def _build_effect_options(self) -> List[Dict[str, Any]]:
-        options: List[Dict[str, Any]] = [{"title": "自动选择最佳舞台效果", "value": "auto"}]
+        options: List[Dict[str, Any]] = [{"title": "自动选择演出舞台效果", "value": "auto"}]
         state = self.get_data("state") or {}
-        for effect in self._iter_dicts(state.get("effects") or []):
+        effects = list(self._iter_dicts(state.get("effects") or []))
+        if not effects:
+            emoji_status = self.get_data("emoji_status") or {}
+            effects = list(self._iter_dicts(emoji_status.get("effects") or []))
+        if not effects and self._cookie:
+            try:
+                self._refresh_state(reason="config-options", record_run=False)
+            except Exception as err:
+                logger.warning("%s 刷新舞台效果选项失败：%s", self.plugin_name, self._get_error_detail(err))
+            state = self.get_data("state") or {}
+            effects = list(self._iter_dicts(state.get("effects") or []))
+            if not effects:
+                emoji_status = self.get_data("emoji_status") or {}
+                effects = list(self._iter_dicts(emoji_status.get("effects") or []))
+        seen_keys = {"auto"}
+        for effect in effects:
             key = str(effect.get("key") or "").strip()
-            if not key:
+            if not key or key in seen_keys:
                 continue
             if not bool(effect.get("unlocked")):
                 continue
+            seen_keys.add(key)
             options.append({
                 "title": str(effect.get("name") or key),
                 "value": key,
