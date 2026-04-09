@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_50e5bb66_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_d112f6f8_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-50e5bb66"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-d112f6f8"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -31,28 +31,18 @@ const _hoisted_9 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
   ])
 ], -1));
 const _hoisted_10 = { class: "emoji-form-grid" };
-const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动老虎机和自动开包会按上面的 CRON 运行；如果同轮产生了待收下结果，会在本轮继续自动收下。 ", -1));
-const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 自动舞台会在当前演出结束后自动收回并重新开演；下拉菜单只显示当前已经解锁的舞台效果。 ", -1));
-const _hoisted_13 = { class: "emoji-panel" };
-const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, "自动老虎机和自动开包按上面的 CRON 运行；舞台效果下拉只显示已解锁项。", -1));
+const _hoisted_12 = { class: "emoji-panel" };
+const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "手动 Cookie"),
     /*#__PURE__*/_createElementVNode("h2", null, "Cookie 兜底")
   ])
 ], -1));
-const _hoisted_15 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, [
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, [
   /*#__PURE__*/_createTextVNode(" 默认读取 "),
   /*#__PURE__*/_createElementVNode("code", null, "si-qi.xyz"),
   /*#__PURE__*/_createTextVNode(" 站点配置中的 Cookie。开启“优先使用站点 Cookie”后，会优先使用 MoviePilot 站点管理中的值。 ")
-], -1));
-const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("section", { class: "emoji-panel" }, [
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-head" }, [
-    /*#__PURE__*/_createElementVNode("div", null, [
-      /*#__PURE__*/_createElementVNode("div", { class: "emoji-panel-kicker" }, "功能说明"),
-      /*#__PURE__*/_createElementVNode("h2", null, "当前能力")
-    ])
-  ]),
-  /*#__PURE__*/_createElementVNode("div", { class: "emoji-note" }, " 当前版本已支持：状态页展示、每日老虎机手动/自动转动、表情包开包、重开、收下、表情包合成、舞台扩展、演员草拟排位、确认演出、收回演出，以及站点 Cookie 同步。 ")
 ], -1));
 
 const {onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
@@ -361,7 +351,7 @@ return (_ctx, _cache) => {
           _createVNode(_component_v_switch, {
             modelValue: config.use_proxy,
             "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.use_proxy) = $event)),
-            label: "使用系统代理",
+            label: "使用代理",
             color: "secondary",
             "hide-details": ""
           }, null, 8, ["modelValue"]),
@@ -398,11 +388,10 @@ return (_ctx, _cache) => {
             disabled: !config.auto_stage
           }, null, 8, ["modelValue", "items", "disabled"])
         ]),
-        _hoisted_11,
-        _hoisted_12
+        _hoisted_11
       ]),
-      _createElementVNode("section", _hoisted_13, [
-        _hoisted_14,
+      _createElementVNode("section", _hoisted_12, [
+        _hoisted_13,
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
           "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.cookie) = $event)),
@@ -412,15 +401,14 @@ return (_ctx, _cache) => {
           density: "comfortable",
           placeholder: "例如 c_secure_pass=..."
         }, null, 8, ["modelValue"]),
-        _hoisted_15
-      ]),
-      _hoisted_16
+        _hoisted_14
+      ])
     ])
   ], 2))
 }
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-50e5bb66"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d112f6f8"]]);
 
 export { ConfigView as default };

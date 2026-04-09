@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ac2a4cd1_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_39529e99_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ac2a4cd1"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-39529e99"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -1199,10 +1199,9 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("div", _hoisted_69, [
           _createElementVNode("div", _hoisted_70, [
-            _createElementVNode("span", null, "已草拟 " + _toDisplayString(draftCount.value) + " 位演员", 1),
             (stage.value.has_active)
               ? (_openBlock(), _createElementBlock("span", _hoisted_71, "演出剩余 " + _toDisplayString(stageRemainText.value), 1))
-              : (_openBlock(), _createElementBlock("span", _hoisted_72, "可选效果 " + _toDisplayString(selectedEffectName.value), 1))
+              : (_openBlock(), _createElementBlock("span", _hoisted_72, "当前效果 " + _toDisplayString(selectedEffectName.value), 1))
           ]),
           _createElementVNode("div", _hoisted_73, [
             _createVNode(_component_v_btn, {
@@ -1332,6 +1331,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ac2a4cd1"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-39529e99"]]);
 
 export { PageView as default };

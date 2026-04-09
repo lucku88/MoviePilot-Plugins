@@ -287,9 +287,8 @@
 
         <div class="emoji-stage-toolbar">
           <div class="emoji-stage-toolbar-left">
-            <span>已草拟 {{ draftCount }} 位演员</span>
             <span v-if="stage.has_active">演出剩余 {{ stageRemainText }}</span>
-            <span v-else>可选效果 {{ selectedEffectName }}</span>
+            <span v-else>当前效果 {{ selectedEffectName }}</span>
           </div>
           <div class="emoji-stage-toolbar-right">
             <v-btn

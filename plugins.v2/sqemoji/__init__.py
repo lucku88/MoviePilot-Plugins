@@ -29,7 +29,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "SQ表情老虎机、表情包开包与舞台演出，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -44,6 +44,7 @@ class SQEmoji(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     SUMMARY_LINE = "━━━━━━━━━━━━━━"
+    PRE_REFRESH_SECONDS = 60
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -73,6 +74,7 @@ class SQEmoji(_PluginBase):
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
+    _next_trigger_mode: str = ""
     _bootstrap_pending: bool = False
 
     def __init__(self):
@@ -95,6 +97,7 @@ class SQEmoji(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
+        self._load_saved_next_trigger_mode()
         self._bootstrap_pending = self._enabled and self._has_auto_jobs_enabled() and not self._next_trigger_time
 
         if self._onlyonce:
@@ -185,6 +188,17 @@ class SQEmoji(_PluginBase):
 
             self._ensure_cookie()
             session = self._build_session()
+
+            if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+                emoji_status = self._refresh_state(reason="pre-run-refresh", record_run=False)
+                logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
+                return {
+                    "success": True,
+                    "message": "运行前状态已刷新",
+                    "lines": [],
+                    "emoji_status": emoji_status,
+                    "status": self._build_status(auto_refresh=False),
+                }
 
             if not force and self._should_skip_run():
                 return {"success": True, "message": "未到计划触发时间，已跳过", "status": self._build_status(auto_refresh=False)}
@@ -620,12 +634,17 @@ class SQEmoji(_PluginBase):
         except Exception:
             return {}
 
-    def _refresh_state(self, reason: str = "", summary_lines: Optional[List[str]] = None) -> Dict[str, Any]:
+    def _refresh_state(
+        self,
+        reason: str = "",
+        summary_lines: Optional[List[str]] = None,
+        record_run: bool = True,
+    ) -> Dict[str, Any]:
         self._ensure_cookie()
         session = self._build_session()
         bundle = self._fetch_bundle(session)
         next_run = self._compute_next_run(bundle["state"])
-        return self._refresh_and_store_status(bundle["state"], next_run, summary_lines or [])
+        return self._refresh_and_store_status(bundle["state"], next_run, summary_lines or [], record_run=record_run)
 
     def _post_action(
         self,
@@ -976,13 +995,20 @@ class SQEmoji(_PluginBase):
             text="\n".join(chunks),
         )
 
-    def _refresh_and_store_status(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
+    def _refresh_and_store_status(
+        self,
+        state: Dict[str, Any],
+        next_run: Optional[int],
+        summary_lines: List[str],
+        record_run: bool = True,
+    ) -> Dict[str, Any]:
         self._schedule_next_run(next_run, reason="refresh-state")
         emoji_status = self._build_ui_state(state, next_run, summary_lines)
         self.save_data("emoji_status", emoji_status)
         self.save_data("state", self._build_state_record(state, next_run, summary_lines))
-        self.save_data("last_run", self._format_time(self._aware_now()))
-        self._append_history(summary_lines, next_run)
+        if record_run:
+            self.save_data("last_run", self._format_time(self._aware_now()))
+            self._append_history(summary_lines, next_run)
         return emoji_status
 
     def _build_state_record(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
@@ -1039,20 +1065,34 @@ class SQEmoji(_PluginBase):
         now = self._aware_now()
         return now + timedelta(seconds=self._skip_before_seconds) < next_run
 
+    def _is_pre_refresh_trigger(self) -> bool:
+        return (self._load_saved_next_trigger_mode() or "run") == "refresh"
+
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
         next_run_ts = self._safe_int(next_run_ts, 0)
         if next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
-            next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+            now = self._aware_now()
+            pre_refresh_time = next_run - timedelta(seconds=self.PRE_REFRESH_SECONDS)
+            if pre_refresh_time > now + timedelta(seconds=5):
+                next_trigger = pre_refresh_time
+                trigger_mode = "refresh"
+            else:
+                next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+                trigger_mode = "run"
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
+            self._next_trigger_mode = trigger_mode
             self.save_data("next_run_time", self._format_time(next_run))
             self.save_data("next_trigger_time", self._format_time(next_trigger))
+            self.save_data("next_trigger_mode", trigger_mode)
         else:
             self._next_run_time = None
             self._next_trigger_time = None
+            self._next_trigger_mode = "run"
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
+            self.save_data("next_trigger_mode", "")
         if self._enabled and self._has_auto_jobs_enabled():
             self._bootstrap_pending = False
             self._reregister_plugin(reason or "schedule-next-run")
@@ -1086,6 +1126,12 @@ class SQEmoji(_PluginBase):
             return self._next_trigger_time
         self._next_trigger_time = self._parse_datetime(self.get_data("next_trigger_time") or ((self.get_data("state") or {}).get("next_trigger_time")))
         return self._next_trigger_time
+
+    def _load_saved_next_trigger_mode(self) -> str:
+        if self._next_trigger_mode:
+            return self._next_trigger_mode
+        self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
+        return self._next_trigger_mode
 
     def _append_history(self, lines: List[str], next_run: Optional[int]):
         if not lines:

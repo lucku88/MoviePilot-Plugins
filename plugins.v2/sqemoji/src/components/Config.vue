@@ -34,7 +34,7 @@
           <v-switch v-model="config.auto_stage" label="自动舞台演出" color="deep-orange" hide-details />
           <v-switch v-model="config.auto_spin" label="自动清空当日老虎机次数" color="deep-purple" hide-details />
           <v-switch v-model="config.auto_open_bags" label="自动开包并自动收下" color="teal" hide-details />
-          <v-switch v-model="config.use_proxy" label="使用系统代理" color="secondary" hide-details />
+          <v-switch v-model="config.use_proxy" label="使用代理" color="secondary" hide-details />
           <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
         </div>
       </section>
@@ -66,12 +66,7 @@
             :disabled="!config.auto_stage"
           />
         </div>
-        <div class="emoji-note">
-          自动老虎机和自动开包会按上面的 CRON 运行；如果同轮产生了待收下结果，会在本轮继续自动收下。
-        </div>
-        <div class="emoji-note">
-          自动舞台会在当前演出结束后自动收回并重新开演；下拉菜单只显示当前已经解锁的舞台效果。
-        </div>
+        <div class="emoji-note">自动老虎机和自动开包按上面的 CRON 运行；舞台效果下拉只显示已解锁项。</div>
       </section>
 
       <section class="emoji-panel">
@@ -94,17 +89,6 @@
         </div>
       </section>
 
-      <section class="emoji-panel">
-        <div class="emoji-panel-head">
-          <div>
-            <div class="emoji-panel-kicker">功能说明</div>
-            <h2>当前能力</h2>
-          </div>
-        </div>
-        <div class="emoji-note">
-          当前版本已支持：状态页展示、每日老虎机手动/自动转动、表情包开包、重开、收下、表情包合成、舞台扩展、演员草拟排位、确认演出、收回演出，以及站点 Cookie 同步。
-        </div>
-      </section>
     </div>
   </div>
 </template>
