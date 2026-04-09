@@ -4,7 +4,7 @@
       <header class="emoji-config-header">
         <div class="emoji-header-copy">
           <div class="emoji-badge">SQ表情</div>
-          <h1 class="emoji-page-title">SQ表情 · 插件配置</h1>
+          <h1 class="emoji-page-title">插件配置</h1>
           <p class="emoji-page-subtitle">老虎机、开包、舞台演出、获取执行记录。</p>
         </div>
         <div class="emoji-header-actions">
@@ -167,7 +167,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim()
   if (!text) return ''
-  return text.length > 56 ? `${text.slice(0, 56)}...` : text
+  return text.length > 32 ? `${text.slice(0, 32)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -310,8 +310,8 @@ onBeforeUnmount(() => {
   --emoji-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
   --emoji-accent: #7c5cff;
   --emoji-accent-soft: rgba(124, 92, 255, 0.1);
-  min-height: 100vh;
-  padding: 20px 0 36px;
+  min-height: auto;
+  padding: 16px 0 18px;
   background: var(--emoji-bg);
   color: var(--emoji-text);
 }
@@ -338,7 +338,7 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   padding: 0 16px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .emoji-config-header,
@@ -350,9 +350,9 @@ onBeforeUnmount(() => {
 }
 
 .emoji-config-header {
-  padding: 26px 24px;
+  padding: 24px 22px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .emoji-badge {
@@ -381,13 +381,13 @@ onBeforeUnmount(() => {
 .emoji-header-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .emoji-settings-card {
-  padding: 24px;
+  padding: 20px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .emoji-settings-title {
@@ -399,7 +399,7 @@ onBeforeUnmount(() => {
 .emoji-switch-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .emoji-switch-grid-basic {
@@ -407,9 +407,9 @@ onBeforeUnmount(() => {
 }
 
 .emoji-switch-item {
-  min-height: 62px;
-  padding: 6px 12px;
-  border-radius: 18px;
+  min-height: 54px;
+  padding: 4px 10px;
+  border-radius: 16px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   display: flex;
@@ -419,27 +419,31 @@ onBeforeUnmount(() => {
 .emoji-field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .emoji-field-block {
-  padding: 16px;
-  border-radius: 20px;
+  padding: 14px;
+  border-radius: 18px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
+  display: grid;
+  align-content: start;
+  gap: 8px;
 }
 
 .emoji-field-label {
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--emoji-muted);
 }
 
 .emoji-note {
-  margin-top: 10px;
-  font-size: 13px;
-  line-height: 1.7;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .emoji-cron-field {
@@ -454,7 +458,7 @@ onBeforeUnmount(() => {
 
 :deep(.emoji-config .v-field) {
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 16px;
+  border-radius: 14px;
 }
 
 :deep(.emoji-config .v-field__input),
@@ -475,33 +479,44 @@ onBeforeUnmount(() => {
 }
 
 :deep(.emoji-config .emoji-switch-control .v-selection-control) {
-  min-height: 40px;
+  min-height: 32px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-label) {
   color: var(--emoji-text);
   opacity: 1;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-selection-control__wrapper) {
-  width: 40px;
-  height: 24px;
-  margin-right: 10px;
+  width: 34px;
+  height: 20px;
+  margin-right: 8px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-switch__track) {
-  min-width: 40px;
-  width: 40px;
-  height: 24px;
+  min-width: 34px;
+  width: 34px;
+  height: 20px;
   border-radius: 999px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-switch__thumb) {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
+}
+
+:deep(.emoji-config .v-field__input) {
+  min-height: 42px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 14px;
+}
+
+:deep(.emoji-config .v-field__outline) {
+  --v-field-border-opacity: 1;
 }
 
 :deep(.emoji-config .v-selection-control__input > .v-icon),
@@ -531,7 +546,7 @@ onBeforeUnmount(() => {
 
   .emoji-config-header,
   .emoji-settings-card {
-    padding: 20px 18px;
+    padding: 18px 16px;
     border-radius: 20px;
   }
 
@@ -543,3 +558,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

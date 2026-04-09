@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_11901e73_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_c8a83212_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-11901e73"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-c8a83212"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -115,7 +115,7 @@ const _hoisted_80 = {
   key: 0,
   class: "emoji-stage-slot-grid"
 };
-const _hoisted_81 = ["onClick"];
+const _hoisted_81 = ["title", "onClick"];
 const _hoisted_82 = { class: "emoji-stage-slot-emoji" };
 const _hoisted_83 = { class: "emoji-stage-slot-meta" };
 const _hoisted_84 = { class: "emoji-stage-slot-time" };
@@ -358,19 +358,87 @@ function formatCountdown(totalSeconds) {
 }
 
 function bagCardStyle(bag) {
+  const lightBagBackgrounds = {
+    1: '#eef6ff',
+    2: '#effff1',
+    3: '#fff7e7',
+    4: '#fff0f3',
+  };
+  const lightBagBorders = {
+    1: 'rgba(52, 134, 214, 0.24)',
+    2: 'rgba(39, 164, 75, 0.24)',
+    3: 'rgba(214, 139, 18, 0.24)',
+    4: 'rgba(207, 52, 82, 0.22)',
+  };
   const darkBagBackgrounds = {
     1: 'linear-gradient(180deg, rgba(33, 43, 56, 0.98) 0%, rgba(26, 34, 44, 0.96) 100%)',
     2: 'linear-gradient(180deg, rgba(27, 47, 37, 0.98) 0%, rgba(23, 39, 31, 0.96) 100%)',
     3: 'linear-gradient(180deg, rgba(52, 40, 19, 0.98) 0%, rgba(43, 34, 17, 0.96) 100%)',
     4: 'linear-gradient(180deg, rgba(55, 28, 38, 0.98) 0%, rgba(45, 23, 31, 0.96) 100%)',
   };
+  const darkBagBorders = {
+    1: 'rgba(98, 160, 255, 0.28)',
+    2: 'rgba(84, 211, 120, 0.22)',
+    3: 'rgba(242, 192, 86, 0.22)',
+    4: 'rgba(255, 124, 156, 0.2)',
+  };
+  const tier = Number(bag.tier || 0);
   return {
     '--bag-bg': isDarkTheme.value
-      ? (darkBagBackgrounds[Number(bag.tier || 0)] || 'rgba(42, 34, 30, 0.96)')
-      : (bag.bg_color || ''),
+      ? (darkBagBackgrounds[tier] || 'rgba(42, 34, 30, 0.96)')
+      : (lightBagBackgrounds[tier] || bag.bg_color || ''),
+    '--bag-border': isDarkTheme.value
+      ? (darkBagBorders[tier] || 'rgba(124, 92, 255, 0.18)')
+      : (lightBagBorders[tier] || 'rgba(129, 133, 164, 0.18)'),
     '--bag-badge': bag.badge_color || '',
     '--bag-muted': isDarkTheme.value ? 'rgba(248, 234, 219, 0.82)' : '',
   }
+}
+
+function stageSlotPalette(rowIndex) {
+  const lightPalettes = {
+    1: { bg: '#fff0f3', border: 'rgba(232, 109, 143, 0.34)', color: '#6f3850' },
+    2: { bg: '#effff1', border: 'rgba(90, 185, 108, 0.34)', color: '#2d6336' },
+    3: { bg: '#eef6ff', border: 'rgba(94, 149, 226, 0.34)', color: '#285585' },
+    4: { bg: '#fff7e7', border: 'rgba(226, 171, 69, 0.36)', color: '#7a5a15' },
+    5: { bg: '#f4efff', border: 'rgba(145, 118, 235, 0.34)', color: '#5a4695' },
+    default: { bg: '#f7f8fc', border: 'rgba(129, 133, 164, 0.2)', color: '#4b5063' },
+  };
+  const darkPalettes = {
+    1: { bg: 'rgba(124, 49, 84, 0.22)', border: 'rgba(255, 126, 165, 0.34)', color: '#ffd4e1' },
+    2: { bg: 'rgba(45, 93, 57, 0.24)', border: 'rgba(109, 226, 137, 0.3)', color: '#d7ffe1' },
+    3: { bg: 'rgba(37, 65, 102, 0.24)', border: 'rgba(112, 173, 255, 0.3)', color: '#dcecff' },
+    4: { bg: 'rgba(98, 73, 28, 0.26)', border: 'rgba(255, 205, 109, 0.3)', color: '#ffe9b3' },
+    5: { bg: 'rgba(79, 56, 118, 0.26)', border: 'rgba(176, 150, 255, 0.3)', color: '#ece3ff' },
+    default: { bg: 'rgba(255, 255, 255, 0.04)', border: 'rgba(124, 92, 255, 0.18)', color: '#f3f5ff' },
+  };
+  const paletteMap = isDarkTheme.value ? darkPalettes : lightPalettes;
+  return paletteMap[rowIndex] || paletteMap.default
+}
+
+function stageSlotStyle(row, slot) {
+  if (slot.filled) {
+    const palette = stageSlotPalette(Number(row.row_index || 0));
+    return {
+      '--stage-slot-bg': palette.bg,
+      '--stage-slot-border': palette.border,
+      '--stage-slot-color': palette.color,
+    }
+  }
+  if (draftMap[slotKey(slot)]) {
+    return {
+      '--stage-slot-bg': isDarkTheme.value ? 'rgba(255, 171, 64, 0.18)' : '#fff2de',
+      '--stage-slot-border': 'rgba(255, 171, 64, 0.42)',
+      '--stage-slot-color': isDarkTheme.value ? '#ffe0b6' : '#98632f',
+    }
+  }
+  return {}
+}
+
+function stageSlotTitle(slot) {
+  if (slot.filled) return slot.emoji || ''
+  if (draftMap[slotKey(slot)]) return '点击撤回草拟演员'
+  return '点击放置演员'
 }
 
 function showMoreActors() {
@@ -1262,6 +1330,8 @@ return (_ctx, _cache) => {
                   draft: !!draftMap[slotKey(slot)],
                   active: slot.filled,
                 }]),
+                        style: _normalizeStyle(stageSlotStyle(row, slot)),
+                        title: stageSlotTitle(slot),
                         onClick: $event => (handleStageSlot(row, slot))
                       }, [
                         (slot.filled)
@@ -1277,7 +1347,7 @@ return (_ctx, _cache) => {
                                 _hoisted_87
                               ], 64))
                             : (_openBlock(), _createElementBlock("div", _hoisted_88, "待定"))
-                      ], 10, _hoisted_81))
+                      ], 14, _hoisted_81))
                     }), 128))
                   ]))
                 : _createCommentVNode("", true)
@@ -1313,6 +1383,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-11901e73"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c8a83212"]]);
 
 export { PageView as default };

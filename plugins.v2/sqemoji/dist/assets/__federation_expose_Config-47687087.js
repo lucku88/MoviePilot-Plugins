@@ -1,17 +1,17 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_96395a45_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_96bc1e9a_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-96395a45"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-96bc1e9a"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-config-header" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-header-copy" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "emoji-badge" }, "SQ表情"),
-  /*#__PURE__*/_createElementVNode("h1", { class: "emoji-page-title" }, "SQ表情 · 插件配置"),
+  /*#__PURE__*/_createElementVNode("h1", { class: "emoji-page-title" }, "插件配置"),
   /*#__PURE__*/_createElementVNode("p", { class: "emoji-page-subtitle" }, "老虎机、开包、舞台演出、获取执行记录。")
 ], -1));
 const _hoisted_4 = { class: "emoji-header-actions" };
@@ -111,7 +111,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim();
   if (!text) return ''
-  return text.length > 56 ? `${text.slice(0, 56)}...` : text
+  return text.length > 32 ? `${text.slice(0, 32)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -477,6 +477,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-96395a45"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-96bc1e9a"]]);
 
 export { ConfigView as default };
