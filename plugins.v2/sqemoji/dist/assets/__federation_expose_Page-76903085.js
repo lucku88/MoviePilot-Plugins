@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_f597fa09_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_11901e73_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-f597fa09"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-11901e73"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -787,7 +787,7 @@ return (_ctx, _cache) => {
       _createElementVNode("section", _hoisted_2, [
         _createElementVNode("div", _hoisted_3, [
           _hoisted_4,
-          _createElementVNode("h1", _hoisted_5, _toDisplayString(emoji.value.title || '思齐表情演出'), 1),
+          _createElementVNode("h1", _hoisted_5, _toDisplayString(emoji.value.title || '表情演出'), 1),
           _createElementVNode("p", _hoisted_6, _toDisplayString(emoji.value.subtitle || '老虎机、开包、舞台演出、获取执行记录。'), 1),
           _createElementVNode("div", _hoisted_7, [
             _createElementVNode("span", _hoisted_8, "最近执行 " + _toDisplayString(status.last_run || '暂无'), 1),
@@ -1313,6 +1313,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f597fa09"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-11901e73"]]);
 
 export { PageView as default };

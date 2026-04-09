@@ -4,7 +4,7 @@
       <section class="emoji-hero">
         <div class="emoji-copy">
           <div class="emoji-badge">SQ表情</div>
-          <h1 class="emoji-title">{{ emoji.title || '思齐表情演出' }}</h1>
+          <h1 class="emoji-title">{{ emoji.title || '表情演出' }}</h1>
           <p class="emoji-subtitle">
             {{ emoji.subtitle || '老虎机、开包、舞台演出、获取执行记录。' }}
           </p>

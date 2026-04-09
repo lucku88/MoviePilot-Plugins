@@ -76,11 +76,12 @@
     "name": "SQ表情",
     "description": "老虎机、开包、舞台演出、获取执行记录。",
     "labels": "工具,自动化,表情",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.9": "将状态页标题统一为“表情演出”，并补做仓库隐私检查。",
       "v0.1.8": "继续收紧配置页开关与输入框，合并时间/演出设置到功能区，并补充 README 中的 SQ表情说明。",
       "v0.1.7": "重做状态页与配置页的深浅色样式、Cookie 交互和舞台效果选择，并修复已解锁舞台效果下拉项显示。",
       "v0.1.3": "通知中过滤自动收下结果，仅保留执行历史展示。",

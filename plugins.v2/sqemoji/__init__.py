@@ -29,7 +29,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -1149,7 +1149,7 @@ class SQEmoji(_PluginBase):
     def _build_ui_state(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
         return {
             "schema_version": self.plugin_version,
-            "title": "思齐表情演出",
+            "title": "表情演出",
             "subtitle": "老虎机、开包、舞台演出、获取执行记录。",
             "cookie_source": self._cookie_source,
             "summary": summary_lines,
