@@ -167,7 +167,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim()
   if (!text) return ''
-  return text.length > 32 ? `${text.slice(0, 32)}...` : text
+  return text.length > 22 ? `${text.slice(0, 22)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -311,8 +311,8 @@ onBeforeUnmount(() => {
   --emoji-accent: #7c5cff;
   --emoji-accent-soft: rgba(124, 92, 255, 0.1);
   min-height: auto;
-  padding: 16px 0 18px;
-  background: var(--emoji-bg);
+  padding: 10px 0 8px;
+  background: transparent;
   color: var(--emoji-text);
 }
 
@@ -334,25 +334,25 @@ onBeforeUnmount(() => {
 }
 
 .emoji-shell {
-  max-width: 1180px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .emoji-config-header,
 .emoji-settings-card {
   border: 1px solid var(--emoji-border);
-  border-radius: 24px;
+  border-radius: 20px;
   background: var(--emoji-panel);
   box-shadow: var(--emoji-shadow);
 }
 
 .emoji-config-header {
-  padding: 24px 22px;
+  padding: 18px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .emoji-badge {
@@ -369,7 +369,7 @@ onBeforeUnmount(() => {
 
 .emoji-page-title {
   margin: 10px 0 6px;
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: clamp(24px, 3.8vw, 32px);
   line-height: 1.08;
 }
 
@@ -380,14 +380,14 @@ onBeforeUnmount(() => {
 
 .emoji-header-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 10px;
 }
 
 .emoji-settings-card {
-  padding: 20px;
+  padding: 16px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .emoji-settings-title {
@@ -407,9 +407,9 @@ onBeforeUnmount(() => {
 }
 
 .emoji-switch-item {
-  min-height: 54px;
-  padding: 4px 10px;
-  border-radius: 16px;
+  min-height: 46px;
+  padding: 2px 8px;
+  border-radius: 14px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   display: flex;
@@ -419,18 +419,18 @@ onBeforeUnmount(() => {
 .emoji-field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   align-items: stretch;
 }
 
 .emoji-field-block {
-  padding: 14px;
-  border-radius: 18px;
+  padding: 12px;
+  border-radius: 16px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 6px;
 }
 
 .emoji-field-label {
@@ -441,9 +441,13 @@ onBeforeUnmount(() => {
 }
 
 .emoji-note {
-  margin-top: 2px;
+  margin-top: 0;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .emoji-cron-field {
@@ -479,40 +483,40 @@ onBeforeUnmount(() => {
 }
 
 :deep(.emoji-config .emoji-switch-control .v-selection-control) {
-  min-height: 32px;
+  min-height: 28px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-label) {
   color: var(--emoji-text);
   opacity: 1;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-selection-control__wrapper) {
-  width: 34px;
-  height: 20px;
-  margin-right: 8px;
+  width: 30px;
+  height: 18px;
+  margin-right: 6px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-switch__track) {
-  min-width: 34px;
-  width: 34px;
-  height: 20px;
+  min-width: 30px;
+  width: 30px;
+  height: 18px;
   border-radius: 999px;
 }
 
 :deep(.emoji-config .emoji-switch-control .v-switch__thumb) {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 :deep(.emoji-config .v-field__input) {
-  min-height: 42px;
+  min-height: 40px;
   padding-top: 0;
   padding-bottom: 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 :deep(.emoji-config .v-field__outline) {
@@ -558,4 +562,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

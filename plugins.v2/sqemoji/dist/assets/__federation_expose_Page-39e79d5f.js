@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_031d399c_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_b91ac248_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-031d399c"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-b91ac248"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -116,31 +116,33 @@ const _hoisted_80 = {
   class: "emoji-stage-slot-grid"
 };
 const _hoisted_81 = ["title", "onClick"];
-const _hoisted_82 = { class: "emoji-stage-slot-emoji" };
-const _hoisted_83 = { class: "emoji-stage-slot-meta" };
-const _hoisted_84 = { class: "emoji-stage-slot-time" };
-const _hoisted_85 = { class: "emoji-stage-slot-emoji" };
-const _hoisted_86 = { class: "emoji-stage-slot-meta" };
-const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-stage-slot-time" }, "点击撤回", -1));
-const _hoisted_88 = {
+const _hoisted_82 = {
+  key: 0,
+  class: "emoji-stage-slot-emoji"
+};
+const _hoisted_83 = {
+  key: 1,
+  class: "emoji-stage-slot-emoji"
+};
+const _hoisted_84 = {
   key: 2,
   class: "emoji-stage-slot-empty"
 };
-const _hoisted_89 = { class: "emoji-panel" };
-const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-section-head" }, [
+const _hoisted_85 = { class: "emoji-panel" };
+const _hoisted_86 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "emoji-section-head" }, [
   /*#__PURE__*/_createElementVNode("h2", { class: "emoji-section-title" }, "🧾 最近记录")
 ], -1));
-const _hoisted_91 = {
+const _hoisted_87 = {
   key: 0,
   class: "emoji-empty"
 };
-const _hoisted_92 = {
+const _hoisted_88 = {
   key: 1,
   class: "emoji-history-list"
 };
-const _hoisted_93 = { class: "emoji-history-top" };
-const _hoisted_94 = { class: "emoji-history-lines" };
-const _hoisted_95 = {
+const _hoisted_89 = { class: "emoji-history-top" };
+const _hoisted_90 = { class: "emoji-history-lines" };
+const _hoisted_91 = {
   key: 0,
   class: "emoji-history-next"
 };
@@ -744,15 +746,6 @@ function switchToConfig() {
   emit('switch', 'config');
 }
 
-function slotRemainText(slot) {
-  const endTs = Number(slot.remaining_end_ts || 0);
-  if (endTs) {
-    const remain = endTs - nowTs.value;
-    return remain > 0 ? formatCountdown(remain) : '可收回'
-  }
-  return slot.remaining_seconds ? formatCountdown(slot.remaining_seconds) : '进行中'
-}
-
 function findThemeNode() {
   let current = rootEl.value;
   while (current) {
@@ -1334,18 +1327,10 @@ return (_ctx, _cache) => {
                         onClick: $event => (handleStageSlot(row, slot))
                       }, [
                         (slot.filled)
-                          ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
-                              _createElementVNode("div", _hoisted_82, _toDisplayString(slot.emoji), 1),
-                              _createElementVNode("div", _hoisted_83, "P" + _toDisplayString(slot.points) + " · M" + _toDisplayString(slot.magic), 1),
-                              _createElementVNode("div", _hoisted_84, _toDisplayString(slotRemainText(slot)), 1)
-                            ], 64))
+                          ? (_openBlock(), _createElementBlock("div", _hoisted_82, _toDisplayString(slot.emoji), 1))
                           : (draftMap[slotKey(slot)])
-                            ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
-                                _createElementVNode("div", _hoisted_85, _toDisplayString(draftMap[slotKey(slot)].emoji), 1),
-                                _createElementVNode("div", _hoisted_86, " P" + _toDisplayString(draftMap[slotKey(slot)].points) + " · M" + _toDisplayString(draftMap[slotKey(slot)].magic), 1),
-                                _hoisted_87
-                              ], 64))
-                            : (_openBlock(), _createElementBlock("div", _hoisted_88, "待定"))
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_83, _toDisplayString(draftMap[slotKey(slot)].emoji), 1))
+                            : (_openBlock(), _createElementBlock("div", _hoisted_84, "待定"))
                       ], 14, _hoisted_81))
                     }), 128))
                   ]))
@@ -1354,23 +1339,23 @@ return (_ctx, _cache) => {
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_89, [
-        _hoisted_90,
+      _createElementVNode("section", _hoisted_85, [
+        _hoisted_86,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_91, "暂无执行历史"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_92, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_87, "暂无执行历史"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_88, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "emoji-history-item"
                 }, [
-                  _createElementVNode("div", _hoisted_93, [
+                  _createElementVNode("div", _hoisted_89, [
                     _createElementVNode("strong", null, _toDisplayString(item.title || '任务结果'), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_94, _toDisplayString((item.lines || []).join(' / ')), 1),
+                  _createElementVNode("div", _hoisted_90, _toDisplayString((item.lines || []).join(' / ')), 1),
                   (item.next_run)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_95, "下次运行 " + _toDisplayString(item.next_run), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_91, "下次运行 " + _toDisplayString(item.next_run), 1))
                     : _createCommentVNode("", true)
                 ]))
               }), 128))
@@ -1382,6 +1367,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-031d399c"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b91ac248"]]);
 
 export { PageView as default };

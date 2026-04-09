@@ -29,7 +29,7 @@ class SQEmoji(_PluginBase):
     plugin_name = "SQ表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqemoji_"
@@ -1435,12 +1435,17 @@ class SQEmoji(_PluginBase):
                 active = active_map.get((row_index, slot_index)) or {}
                 remaining = self._safe_int(active.get("remaining_seconds"), 0)
                 emoji_code = str(active.get("emoji_code") or "").strip()
-                slot_tier = (
-                    self._safe_int(active.get("tier"), 0)
-                    or self._safe_int(active.get("bag_tier"), 0)
-                    or self._safe_int(active.get("emoji_tier"), 0)
-                    or actor_tier_map.get(emoji_code, 0)
-                )
+                slot_tier = self._safe_int(active.get("data_tier"), 0)
+                if slot_tier <= 0:
+                    slot_tier = (
+                        self._safe_int(active.get("bag_tier"), 0)
+                        or self._safe_int(active.get("emoji_tier"), 0)
+                    )
+                if slot_tier <= 0:
+                    direct_tier = self._safe_int(active.get("tier"), 0)
+                    slot_tier = direct_tier if 1 <= direct_tier <= 4 else 0
+                if slot_tier <= 0 and emoji_code:
+                    slot_tier = actor_tier_map.get(emoji_code, 0)
                 row_slots.append({
                     "row_index": row_index,
                     "slot_index": slot_index,

@@ -340,15 +340,9 @@
               >
                 <template v-if="slot.filled">
                   <div class="emoji-stage-slot-emoji">{{ slot.emoji }}</div>
-                  <div class="emoji-stage-slot-meta">P{{ slot.points }} · M{{ slot.magic }}</div>
-                  <div class="emoji-stage-slot-time">{{ slotRemainText(slot) }}</div>
                 </template>
                 <template v-else-if="draftMap[slotKey(slot)]">
                   <div class="emoji-stage-slot-emoji">{{ draftMap[slotKey(slot)].emoji }}</div>
-                  <div class="emoji-stage-slot-meta">
-                    P{{ draftMap[slotKey(slot)].points }} · M{{ draftMap[slotKey(slot)].magic }}
-                  </div>
-                  <div class="emoji-stage-slot-time">点击撤回</div>
                 </template>
                 <template v-else>
                   <div class="emoji-stage-slot-empty">待定</div>
@@ -1079,7 +1073,7 @@ onBeforeUnmount(() => {
   --emoji-accent: #7c5cff;
   --emoji-accent-soft: rgba(124, 92, 255, 0.1);
   min-height: 100%;
-  padding: 20px 0 36px;
+  padding: 14px 0 22px;
   background: var(--emoji-bg);
   color: var(--emoji-text);
 }
@@ -1102,11 +1096,11 @@ onBeforeUnmount(() => {
 }
 
 .emoji-shell {
-  max-width: 1200px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: 0 14px;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .emoji-hero,
@@ -1119,14 +1113,14 @@ onBeforeUnmount(() => {
 .emoji-row-card,
 .emoji-history-item {
   border: 1px solid var(--emoji-border);
-  border-radius: 24px;
+  border-radius: 20px;
   background: var(--emoji-panel);
   box-shadow: var(--emoji-shadow);
 }
 
 .emoji-hero,
 .emoji-panel {
-  padding: 18px;
+  padding: 14px;
 }
 
 .emoji-panel,
@@ -1139,7 +1133,7 @@ onBeforeUnmount(() => {
 
 .emoji-hero {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .emoji-badge,
@@ -1163,7 +1157,7 @@ onBeforeUnmount(() => {
 
 .emoji-title {
   margin: 10px 0 6px;
-  font-size: clamp(26px, 4vw, 34px);
+  font-size: clamp(24px, 3.8vw, 30px);
   line-height: 1.05;
 }
 
@@ -1187,7 +1181,7 @@ onBeforeUnmount(() => {
 .emoji-history-list,
 .emoji-effect-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .emoji-hero-meta {
@@ -1195,11 +1189,11 @@ onBeforeUnmount(() => {
 }
 
 .emoji-meta-chip {
-  padding: 8px 14px;
+  padding: 7px 12px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   color: var(--emoji-text);
-  font-size: 13px;
+  font-size: 12px;
   justify-content: flex-start;
 }
 
@@ -1208,11 +1202,11 @@ onBeforeUnmount(() => {
 }
 
 .emoji-stat-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(176px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
 }
 
 .emoji-stat-card {
-  padding: 16px;
+  padding: 14px;
   text-align: center;
   background: var(--emoji-panel-strong);
 }
@@ -1224,8 +1218,8 @@ onBeforeUnmount(() => {
 }
 
 .emoji-stat-value {
-  margin-top: 10px;
-  font-size: clamp(24px, 4vw, 32px);
+  margin-top: 8px;
+  font-size: clamp(22px, 4vw, 28px);
   font-weight: 900;
 }
 
@@ -1237,9 +1231,9 @@ onBeforeUnmount(() => {
 .emoji-section-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .emoji-section-head-compact {
@@ -1249,7 +1243,7 @@ onBeforeUnmount(() => {
 .emoji-section-title,
 .emoji-subsection-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 900;
 }
 
@@ -1552,13 +1546,13 @@ onBeforeUnmount(() => {
 
 .emoji-stage-slot-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 5px;
 }
 
 .emoji-stage-slot {
-  min-height: 44px;
-  border-radius: 10px;
+  min-height: 38px;
+  border-radius: 8px;
   border: 1px dashed var(--stage-slot-border, var(--emoji-border));
   background: var(--stage-slot-bg, var(--emoji-panel));
   color: var(--stage-slot-color, var(--emoji-text));
@@ -1579,7 +1573,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-stage-slot-emoji {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
