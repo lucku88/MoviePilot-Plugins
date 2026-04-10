@@ -26,7 +26,7 @@ class SQFarm(_PluginBase):
     plugin_name = "SQ农场"
     plugin_desc = "收菜、种植、出售、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.4.12"
+    plugin_version = "0.4.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqfarm_"
@@ -40,6 +40,9 @@ class SQFarm(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     DEFAULT_CRON = "*/10 * * * *"
+    PRE_REFRESH_SECONDS = 60
+    IDLE_REFRESH_SECONDS = 12 * 60 * 60
+    MIN_TRIGGER_SECONDS = 5
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -70,6 +73,7 @@ class SQFarm(_PluginBase):
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
+    _next_trigger_mode: str = "run"
     _bootstrap_pending: bool = False
     _page_stat_cache: Optional[Dict[str, int]] = None
     _page_stat_cache_at: float = 0.0
@@ -105,6 +109,7 @@ class SQFarm(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
+        self._load_saved_next_trigger_mode()
         self._bootstrap_pending = self._enabled and not self._next_trigger_time
 
         if self._onlyonce:
@@ -156,11 +161,14 @@ class SQFarm(_PluginBase):
         if self._enabled:
             next_run = self._get_next_run_for_service()
             if next_run:
+                job_func = self._bootstrap_worker if self._bootstrap_pending else (
+                    self._refresh_worker if self._load_saved_next_trigger_mode() == "refresh" else self._auto_worker
+                )
                 services.append({
                     "id": "SQFarm_auto",
                     "name": "SQ农场初始化" if self._bootstrap_pending else "SQ农场智能调度",
                     "trigger": "date",
-                    "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
+                    "func": job_func,
                     "kwargs": {"run_date": next_run},
                 })
         return services
@@ -381,12 +389,24 @@ class SQFarm(_PluginBase):
     def _auto_worker(self):
         return self.run_job(force=True, reason="smart")
 
-    def _bootstrap_worker(self):
-        self._bootstrap_pending = False
+    def _refresh_worker(self):
         if not self._enabled:
             return {"success": False, "message": "插件未启用"}
         try:
-            farm_status = self._refresh_state(reason="bootstrap")
+            farm_status = self._refresh_state(reason="scheduled-refresh", record_run=False)
+            return {"success": True, "message": "农场状态已预刷新", "farm_status": farm_status}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 计划刷新失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _bootstrap_worker(self):
+        self._bootstrap_pending = False
+        now = self._aware_now()
+        if not self._enabled:
+            return {"success": False, "message": "插件未启用"}
+        try:
+            farm_status = self._refresh_state(reason="bootstrap", record_run=False)
             return {"success": True, "message": "已初始化农场状态", "farm_status": farm_status}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -395,7 +415,7 @@ class SQFarm(_PluginBase):
 
     def _refresh_data(self):
         try:
-            farm_status = self._refresh_state(reason="manual-refresh")
+            farm_status = self._refresh_state(reason="manual-refresh", record_run=False)
             return {"success": True, "message": "农场数据已刷新", "farm_status": farm_status, "status": self._build_status(auto_refresh=False)}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -485,10 +505,14 @@ class SQFarm(_PluginBase):
 
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         farm_status = self.get_data("farm_status") or {}
-        needs_refresh = not farm_status or farm_status.get("schema_version") != self.plugin_version
+        needs_refresh = (
+            not farm_status
+            or farm_status.get("schema_version") != self.plugin_version
+            or (self._enabled and not self._load_saved_next_trigger())
+        )
         if auto_refresh and self._enabled and needs_refresh:
             try:
-                farm_status = self._refresh_state(reason="status-init")
+                farm_status = self._refresh_state(reason="status-init", record_run=False)
             except Exception as err:
                 logger.warning("%s 初始化状态刷新失败：%s", self.plugin_name, err)
 
@@ -504,6 +528,7 @@ class SQFarm(_PluginBase):
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
+            "next_trigger_mode": self._load_saved_next_trigger_mode(),
             "last_run": self.get_data("last_run") or "",
             "farm_status": farm_status,
             "history": (self.get_data("history") or [])[:10],
@@ -543,7 +568,7 @@ class SQFarm(_PluginBase):
         self._reregister_plugin("save_config")
         if self._enabled:
             try:
-                self._refresh_state(reason="save-config")
+                self._refresh_state(reason="save-config", record_run=False)
             except Exception as err:
                 logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
         return {"success": True, "message": "配置已保存", "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
@@ -599,7 +624,7 @@ class SQFarm(_PluginBase):
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
 
-    def _refresh_state(self, reason: str = "refresh") -> Dict[str, Any]:
+    def _refresh_state(self, reason: str = "refresh", record_run: bool = False) -> Dict[str, Any]:
         self._ensure_cookie()
         if self._force_ipv4:
             urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
@@ -610,7 +635,8 @@ class SQFarm(_PluginBase):
         self.save_data("state", self._build_state_record(data, next_run, []))
         farm_status = self._build_ui_state(data, next_run, [])
         self.save_data("farm_status", farm_status)
-        self.save_data("last_run", self._format_time(self._aware_now()))
+        if record_run:
+            self.save_data("last_run", self._format_time(self._aware_now()))
         return farm_status
 
     def _get_seed_options(self) -> List[str]:
@@ -1081,29 +1107,41 @@ class SQFarm(_PluginBase):
         next_trigger = self._load_saved_next_trigger()
         now = self._aware_now()
         if next_trigger:
-            return next_trigger if next_trigger > now else now + timedelta(seconds=5)
+            return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
         if self._bootstrap_pending:
             return now + timedelta(seconds=8)
         return None
 
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
         self._bootstrap_pending = False
+        now = self._aware_now()
         if next_run_ts:
             next_run = self._aware_from_timestamp(next_run_ts)
-            next_trigger = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
-            if next_trigger < self._aware_now() + timedelta(seconds=5):
-                next_trigger = self._aware_now() + timedelta(seconds=5)
+            trigger_run_at = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
+            pre_refresh_at = trigger_run_at - timedelta(seconds=self.PRE_REFRESH_SECONDS)
+            if pre_refresh_at > now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+                next_trigger = pre_refresh_at
+                trigger_mode = "refresh"
+            else:
+                next_trigger = trigger_run_at
+                if next_trigger < now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+                    next_trigger = now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
+                trigger_mode = "run"
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
+            self._next_trigger_mode = trigger_mode
             self.save_data("next_run_time", self._format_time(next_run))
             self.save_data("next_trigger_time", self._format_time(next_trigger))
+            self.save_data("next_trigger_mode", trigger_mode)
             logger.info("INFO 最近收菜时间：%s", self._format_time(next_run))
             logger.info("INFO 计划触发时间：%s", self._format_time(next_trigger))
         else:
             self._next_run_time = None
-            self._next_trigger_time = None
+            self._next_trigger_time = now + timedelta(seconds=self.IDLE_REFRESH_SECONDS)
+            self._next_trigger_mode = "refresh"
             self.save_data("next_run_time", "")
-            self.save_data("next_trigger_time", "")
+            self.save_data("next_trigger_time", self._format_time(self._next_trigger_time))
+            self.save_data("next_trigger_mode", "refresh")
             logger.info("INFO 当前没有已识别的收菜时间，不注册下一次自动运行")
 
         if self._enabled:
@@ -1130,6 +1168,55 @@ class SQFarm(_PluginBase):
         raw = self.get_data("next_trigger_time") or ((self.get_data("state") or {}).get("next_trigger_time"))
         self._next_trigger_time = self._parse_datetime(raw)
         return self._next_trigger_time
+
+    def _load_saved_next_trigger_mode(self) -> str:
+        raw = self.get_data("next_trigger_mode") or ((self.get_data("state") or {}).get("next_trigger_mode")) or self._next_trigger_mode or "run"
+        self._next_trigger_mode = str(raw or "run")
+        return self._next_trigger_mode
+
+    def _get_next_run_for_service(self) -> Optional[datetime]:
+        next_trigger = self._load_saved_next_trigger()
+        now = self._aware_now()
+        if next_trigger:
+            return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
+        if self._bootstrap_pending:
+            return now + timedelta(seconds=8)
+        return None
+
+    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
+        self._bootstrap_pending = False
+        now = self._aware_now()
+        if next_run_ts:
+            next_run = self._aware_from_timestamp(next_run_ts)
+            trigger_run_at = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
+            pre_refresh_at = trigger_run_at - timedelta(seconds=self.PRE_REFRESH_SECONDS)
+            if pre_refresh_at > now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+                next_trigger = pre_refresh_at
+                trigger_mode = "refresh"
+            else:
+                next_trigger = trigger_run_at
+                if next_trigger < now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+                    next_trigger = now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
+                trigger_mode = "run"
+            self._next_run_time = next_run
+            self._next_trigger_time = next_trigger
+            self._next_trigger_mode = trigger_mode
+            self.save_data("next_run_time", self._format_time(next_run))
+            self.save_data("next_trigger_time", self._format_time(next_trigger))
+            self.save_data("next_trigger_mode", trigger_mode)
+            logger.info("INFO 最近收菜时间：%s", self._format_time(next_run))
+            logger.info("INFO 计划触发时间：%s (%s)", self._format_time(next_trigger), trigger_mode)
+        else:
+            self._next_run_time = None
+            self._next_trigger_time = now + timedelta(seconds=self.IDLE_REFRESH_SECONDS)
+            self._next_trigger_mode = "refresh"
+            self.save_data("next_run_time", "")
+            self.save_data("next_trigger_time", self._format_time(self._next_trigger_time))
+            self.save_data("next_trigger_mode", "refresh")
+            logger.info("INFO 当前没有已识别的收菜时间，%s 小时后自动刷新状态", int(self.IDLE_REFRESH_SECONDS / 3600))
+
+        if self._enabled:
+            self._reregister_plugin(reason or "schedule_next_run")
 
     def _count_empty_plots(self, data: dict) -> int:
         lands = data.get("lands") or []
@@ -1451,6 +1538,7 @@ class SQFarm(_PluginBase):
             "next_run_ts": int(next_run or 0),
             "next_run_time": self._format_ts(next_run) if next_run else "",
             "next_trigger_ts": int(self._next_trigger_time.timestamp()) if self._next_trigger_time else 0,
+            "next_trigger_mode": self._next_trigger_mode,
             "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "",
             "summary": summary_lines,
             "user": {

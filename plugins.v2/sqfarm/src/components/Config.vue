@@ -1,173 +1,116 @@
 <template>
-  <div ref="rootEl" class="sq-config" :class="{ 'is-dark-theme': isDarkTheme }">
-    <div class="sq-shell">
-      <section class="sq-hero">
-        <div class="sq-hero-copy">
-          <div class="sq-badge">SQ农场</div>
-          <h1 class="sq-title">配置中心</h1>
-          <p class="sq-subtitle">使用站点 Cookie、动态调度和 OCR 自动收菜，售出与种植都可以单独开关。</p>
+  <div ref="rootEl" class="farm-config" :class="{ 'is-dark-theme': isDarkTheme }">
+    <div class="farm-shell">
+      <header class="farm-hero">
+        <div class="farm-copy">
+          <div class="farm-badge">SQ农场</div>
+          <h1 class="farm-title">插件配置</h1>
+          <p class="farm-subtitle">收菜、种植、出售、获取执行记录。</p>
         </div>
-        <div class="sq-actions">
+        <div class="farm-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
           <v-btn variant="text" @click="closePlugin">关闭</v-btn>
         </div>
-      </section>
+      </header>
 
       <v-alert v-if="message.text" :type="message.type" variant="tonal">
         {{ message.text }}
       </v-alert>
 
-      <section class="sq-grid">
-        <article class="sq-panel">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">基础开关</div>
-              <h2>运行控制</h2>
-            </div>
+      <section class="farm-card">
+        <h2 class="farm-section-title">⚙️ 基本设置</h2>
+        <div class="farm-switch-grid farm-switch-grid-basic">
+          <div class="farm-switch-item">
+            <v-switch v-model="config.enabled" class="farm-switch" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="sq-switch-grid">
-            <v-switch v-model="config.enabled" label="启用插件" color="success" hide-details />
-            <v-switch v-model="config.notify" label="发送通知" color="primary" hide-details />
-            <v-switch v-model="config.onlyonce" label="保存后立即执行一次" color="warning" hide-details />
-            <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
-            <v-switch v-model="config.enable_sell" label="自动售出" color="secondary" hide-details />
-            <v-switch v-model="config.enable_plant" label="自动种植" color="secondary" hide-details />
-            <v-switch v-model="config.use_proxy" label="使用系统代理" color="info" hide-details />
-            <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
+          <div class="farm-switch-item">
+            <v-switch v-model="config.use_proxy" class="farm-switch" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
           </div>
-        </article>
+          <div class="farm-switch-item">
+            <v-switch v-model="config.notify" class="farm-switch" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="farm-switch-item">
+            <v-switch v-model="config.onlyonce" class="farm-switch" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
+      </section>
 
-        <article class="sq-panel">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">种植与调度</div>
-              <h2>策略配置</h2>
-            </div>
-          </div>
-          <v-select
-            v-model="config.prefer_seed"
-            :items="seedOptions"
-            label="优先种植"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-            :menu-props="{ maxHeight: 280 }"
-          />
-          <div class="sq-note">优先显示当前已解锁种子；如果站点状态还没拉到，会先显示默认种子列表。</div>
-          <div class="sq-note">插件不再固定轮询。启用或保存后会先获取一次农场信息，之后只在最近可收时间触发。</div>
-          <v-text-field
-            v-model="config.schedule_buffer_seconds"
-            label="智能调度缓冲秒数"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            class="mt-3"
-          />
-        </article>
+      <section class="farm-card">
+        <h2 class="farm-section-title">🧩 功能设置</h2>
 
-        <article class="sq-panel">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">网络与 OCR</div>
-              <h2>连接设置</h2>
-            </div>
+        <div class="farm-switch-grid">
+          <div class="farm-switch-item">
+            <v-switch v-model="config.auto_cookie" class="farm-switch" label="使用站点 Cookie" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <v-text-field
-            v-model="config.ocr_api_url"
-            label="OCR API 地址"
-            placeholder="http://ip:8089/api/tr-run/"
-            hint="OCR 仅用于批量收菜验证码识别。默认推荐 http://ip:8089/api/tr-run/，请把 ip 替换成 Docker 宿主机 IP。"
-            persistent-hint
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="config.random_delay_max_seconds"
-            label="随机延迟上限(秒)"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="config.http_timeout"
-            label="HTTP 超时(秒)"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="config.http_retry_times"
-            label="网络重试次数"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="config.http_retry_delay"
-            label="网络重试间隔(ms)"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="config.ocr_retry_times"
-            label="OCR 重试次数"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-          />
-        </article>
+          <div class="farm-switch-item">
+            <v-switch v-model="config.enable_sell" class="farm-switch" label="自动出售" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="farm-switch-item">
+            <v-switch v-model="config.enable_plant" class="farm-switch" label="自动种植" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
 
-        <article class="sq-panel">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">OCR 说明</div>
-              <h2>trwebocr 容器</h2>
+        <div class="farm-field-grid">
+          <div class="farm-field-card">
+            <div class="farm-field-title">站点 Cookie</div>
+            <v-text-field
+              v-model="cookieFieldValue"
+              label="站点 Cookie"
+              variant="outlined"
+              density="comfortable"
+              :disabled="cookieReadonly"
+              :readonly="cookieReadonly"
+              :placeholder="cookieReadonly ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...'"
+              hide-details="auto"
+            />
+            <div class="farm-field-note">
+              启用【使用站点 Cookie】后会自动读取已配置站点的 Cookie，关闭后才可以手动修改。
             </div>
           </div>
-          <v-alert type="info" variant="tonal" class="mb-3">
-            批量收菜验证码依赖 <code>trwebocr</code> 容器。未部署 OCR 时，插件仍可刷新状态；批量收菜失败后，插件会自动尝试逐坑位收菜兜底。
-          </v-alert>
-          <div class="sq-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>，这样批量收菜成功率最高。</div>
-          <div class="sq-note">逐坑位手动收菜和批量收菜失败后的兜底收菜，不依赖 OCR。</div>
-          <div class="sq-note">容器安装参考如下：</div>
-          <pre class="sq-code">{{ ocrComposeExample }}</pre>
-        </article>
 
-        <article class="sq-panel sq-panel-wide">
-          <div class="sq-panel-head">
-            <div>
-              <div class="sq-panel-kicker">手动 Cookie</div>
-              <h2>兜底配置</h2>
-            </div>
+          <div class="farm-field-card">
+            <div class="farm-field-title">优先种子</div>
+            <v-select
+              v-model="config.prefer_seed"
+              :items="seedOptions"
+              label="优先种子"
+              variant="outlined"
+              density="comfortable"
+              :menu-props="{ maxHeight: 280 }"
+              hide-details="auto"
+            />
           </div>
-          <v-textarea
-            v-model="config.cookie"
-            label="SQ Cookie"
-            rows="7"
-            variant="outlined"
-            density="comfortable"
-            placeholder="例如 c_secure_pass=..."
-          />
-          <div class="sq-note">
-            开启站点 Cookie 后，插件会优先读取 MoviePilot 站点管理中的 <code>si-qi.xyz</code> Cookie。
-            这里仍可作为手动兜底。
+
+          <div class="farm-field-card">
+            <div class="farm-field-title">OCR API 地址</div>
+            <v-text-field
+              v-model="config.ocr_api_url"
+              label="OCR API 地址"
+              variant="outlined"
+              density="comfortable"
+              placeholder="http://ip:8089/api/tr-run/"
+              hide-details="auto"
+            />
           </div>
-        </article>
+        </div>
+      </section>
+
+      <section class="farm-card">
+        <h2 class="farm-section-title">📝 OCR 说明</h2>
+        <div class="farm-note">
+          批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收菜失败后尝试逐坑位兜底收菜。
+        </div>
+        <div class="farm-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
+        <pre class="farm-code">{{ ocrComposeExample }}</pre>
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -193,12 +136,6 @@ const config = reactive({
   cookie: '',
   ocr_api_url: 'http://ip:8089/api/tr-run/',
   prefer_seed: '西红柿',
-  schedule_buffer_seconds: 5,
-  random_delay_max_seconds: 5,
-  http_timeout: 12,
-  http_retry_times: 3,
-  http_retry_delay: 1500,
-  ocr_retry_times: 2,
 })
 
 const ocrComposeExample = `version: '3.8'
@@ -209,65 +146,36 @@ services:
     ports:
       - "8089:8089"
     restart: always
-    volumes:
-      - ./data:/app/data
     environment:
-      - TZ=Asia/Shanghai
-    network_mode: bridge`
+      - TZ=Asia/Shanghai`
+
+const cookieReadonly = computed(() => !!config.auto_cookie)
+const cookieFieldValue = computed({
+  get() {
+    if (config.auto_cookie) {
+      return truncateCookie(config.cookie)
+    }
+    return config.cookie
+  },
+  set(value) {
+    if (!config.auto_cookie) {
+      config.cookie = value || ''
+    }
+  },
+})
 
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
 }
 
-function findThemeNode() {
-  let current = rootEl.value
-  while (current) {
-    if (current.getAttribute?.('data-theme')) {
-      return current
-    }
-    current = current.parentElement
-  }
-  if (document.body?.getAttribute('data-theme')) {
-    return document.body
-  }
-  if (document.documentElement?.getAttribute('data-theme')) {
-    return document.documentElement
-  }
-  return null
-}
-
-function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
-}
-
-function bindThemeObserver() {
-  themeObserver?.disconnect()
-  themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode()
-    if (nextNode && nextNode !== observedThemeNode) {
-      bindThemeObserver()
-      return
-    }
-    detectTheme()
-  })
-
-  observedThemeNode = findThemeNode()
-  if (observedThemeNode) {
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
-  }
-  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
-  }
+function truncateCookie(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
 function normalizeSeeds(items) {
@@ -300,7 +208,7 @@ async function loadStatusSeedOptions() {
     const res = await props.api.get('/plugin/SQFarm/status')
     applyStatusSeedOptions(res?.farm_status?.seed_shop)
   } catch (error) {
-    // 保留当前种子选项
+    // 保留当前种子列表
   }
 }
 
@@ -351,6 +259,79 @@ async function syncCookie() {
   }
 }
 
+function findThemeNode() {
+  let current = rootEl.value
+  while (current) {
+    if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
+    current = current.parentElement
+  }
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
+  return null
+}
+
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
+function detectTheme() {
+  const nodes = getThemeNodes()
+  const hasDark = nodes.some((node) => nodeHasDarkHint(node))
+  const hasLight = nodes.some((node) => nodeHasLightHint(node))
+  if (hasDark) {
+    isDarkTheme.value = true
+    return
+  }
+  if (hasLight) {
+    isDarkTheme.value = false
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+}
+
+function bindThemeObserver() {
+  themeObserver?.disconnect()
+  themeObserver = new MutationObserver(() => {
+    detectTheme()
+  })
+
+  for (const node of getThemeNodes()) {
+    themeObserver.observe(node, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-theme', 'class'],
+    })
+  }
+}
+
 function closePlugin() {
   emit('close')
 }
@@ -360,7 +341,6 @@ onMounted(() => {
   mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
   mediaQuery?.addEventListener?.('change', detectTheme)
   bindThemeObserver()
-
   loadConfig()
 })
 
@@ -371,199 +351,204 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.sq-config {
-  --sq-bg: linear-gradient(180deg, #f5efe4 0%, #fbf8f2 45%, #f7f4ee 100%);
-  --sq-surface: rgba(255, 255, 255, 0.82);
-  --sq-surface-strong: rgba(255, 252, 246, 0.96);
-  --sq-border: rgba(169, 138, 81, 0.18);
-  --sq-shadow: 0 20px 45px rgba(97, 75, 34, 0.08);
-  --sq-text: #2f281d;
-  --sq-subtle: #726754;
-  --sq-soft: #8e846f;
-  --sq-accent: #77b05d;
-  --sq-accent-strong: #4f8d3a;
-  --sq-accent-soft: rgba(119, 176, 93, 0.14);
+.farm-config {
+  --farm-bg: linear-gradient(180deg, #f4f5f8 0%, #fafafb 46%, #f2f4f8 100%);
+  --farm-surface: rgba(255, 255, 255, 0.86);
+  --farm-surface-strong: rgba(255, 255, 255, 0.96);
+  --farm-border: rgba(122, 134, 167, 0.16);
+  --farm-shadow: 0 20px 42px rgba(91, 102, 130, 0.1);
+  --farm-text: #2f3347;
+  --farm-subtle: #6e758e;
+  --farm-soft: #8d93aa;
+  --farm-accent: #7c5cff;
+  --farm-accent-soft: rgba(124, 92, 255, 0.12);
   min-height: 100%;
-  padding: clamp(18px, 2.6vw, 30px);
-  background: var(--sq-bg);
-  color: var(--sq-text);
+  padding: clamp(18px, 2.4vw, 28px);
+  background: var(--farm-bg);
+  color: var(--farm-text);
 }
 
-.sq-config.is-dark-theme {
-  --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
-  --sq-surface: rgba(24, 30, 29, 0.88);
-  --sq-surface-strong: rgba(28, 35, 33, 0.95);
-  --sq-border: rgba(133, 157, 123, 0.18);
-  --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
-  --sq-text: #edf3ea;
-  --sq-subtle: #b9c4b4;
-  --sq-soft: #8f9d91;
-  --sq-accent: #9dd37b;
-  --sq-accent-strong: #d1f0c2;
-  --sq-accent-soft: rgba(119, 176, 93, 0.18);
+.farm-config.is-dark-theme {
+  --farm-bg: linear-gradient(180deg, #171921 0%, #12151d 48%, #0d1017 100%);
+  --farm-surface: rgba(24, 28, 39, 0.88);
+  --farm-surface-strong: rgba(24, 28, 39, 0.96);
+  --farm-border: rgba(111, 122, 168, 0.2);
+  --farm-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
+  --farm-text: #eff1f7;
+  --farm-subtle: #b5bbd3;
+  --farm-soft: #868fae;
+  --farm-accent: #8c72ff;
+  --farm-accent-soft: rgba(124, 92, 255, 0.18);
 }
 
-.sq-shell {
-  max-width: 1320px;
+.farm-shell {
+  max-width: 1240px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.sq-hero,
-.sq-panel {
-  border: 1px solid var(--sq-border);
-  box-shadow: var(--sq-shadow);
+.farm-hero,
+.farm-card {
+  border: 1px solid var(--farm-border);
+  box-shadow: var(--farm-shadow);
 }
 
-.sq-hero {
-  padding: clamp(22px, 3vw, 34px);
-  border-radius: 30px;
+.farm-hero {
+  padding: clamp(22px, 3vw, 32px);
+  border-radius: 28px;
   background:
-    radial-gradient(circle at top right, rgba(136, 202, 115, 0.2), transparent 32%),
-    radial-gradient(circle at bottom left, rgba(255, 208, 119, 0.18), transparent 28%),
-    var(--sq-surface-strong);
+    radial-gradient(circle at top right, rgba(124, 92, 255, 0.14), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(255, 184, 0, 0.12), transparent 26%),
+    var(--farm-surface-strong);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px 24px;
   align-items: start;
 }
 
-.sq-badge {
+.farm-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: var(--sq-accent-soft);
-  color: var(--sq-accent-strong);
+  background: var(--farm-accent-soft);
+  color: var(--farm-accent);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
-.sq-title {
+.farm-title {
   margin: 14px 0 8px;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(30px, 4vw, 40px);
   line-height: 1.05;
   font-weight: 900;
 }
 
-.sq-subtitle {
+.farm-subtitle {
   margin: 0;
-  max-width: 680px;
-  color: var(--sq-subtle);
-  line-height: 1.7;
-  font-size: 14px;
+  color: var(--farm-subtle);
+  font-size: 15px;
 }
 
-.sq-actions {
+.farm-actions {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
 }
 
-.sq-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.sq-panel {
-  border-radius: 28px;
+.farm-card {
   padding: 22px;
-  background: var(--sq-surface);
-  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  background: var(--farm-surface);
+  backdrop-filter: blur(12px);
 }
 
-.sq-panel-wide {
-  grid-column: 1 / -1;
-}
-
-.sq-panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.sq-panel-kicker {
-  color: var(--sq-soft);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sq-panel-head h2 {
-  margin: 6px 0 0;
-  font-size: 24px;
+.farm-section-title {
+  margin: 0 0 18px;
+  font-size: 28px;
   line-height: 1.1;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.sq-switch-grid {
+.farm-switch-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px 20px;
+  gap: 14px;
 }
 
-.sq-note {
-  margin-top: 12px;
-  color: var(--sq-subtle);
+.farm-switch-grid-basic {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.farm-switch-item {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: 0 14px;
+  border: 1px solid var(--farm-border);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--farm-surface-strong) 92%, transparent);
+}
+
+.farm-switch :deep(.v-selection-control) {
+  min-height: 36px;
+}
+
+.farm-switch :deep(.v-selection-control__wrapper) {
+  transform: scale(0.82);
+  transform-origin: left center;
+}
+
+.farm-switch :deep(.v-label) {
+  opacity: 1;
+  color: var(--farm-text);
+  font-weight: 700;
+}
+
+.farm-field-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.farm-field-card {
+  min-height: 0;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid var(--farm-border);
+  background: color-mix(in srgb, var(--farm-surface-strong) 94%, transparent);
+}
+
+.farm-field-title {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--farm-subtle);
+}
+
+.farm-field-note,
+.farm-note {
+  color: var(--farm-subtle);
   font-size: 13px;
   line-height: 1.75;
 }
 
-.sq-code {
+.farm-field-note {
+  margin-top: 10px;
+}
+
+.farm-code {
   margin-top: 14px;
   padding: 16px 18px;
   border-radius: 18px;
-  background: rgba(244, 236, 220, 0.9);
-  border: 1px solid rgba(169, 138, 81, 0.16);
-  color: var(--sq-text);
+  border: 1px solid var(--farm-border);
+  background: rgba(245, 247, 252, 0.92);
+  color: var(--farm-text);
   font-size: 13px;
-  line-height: 1.65;
+  line-height: 1.6;
   overflow-x: auto;
 }
 
-.sq-config.is-dark-theme .sq-code {
-  background: rgba(34, 40, 39, 0.92);
+.farm-config.is-dark-theme .farm-code {
+  background: rgba(31, 36, 49, 0.92);
 }
 
-@media (max-width: 960px) {
-  .sq-hero,
-  .sq-grid {
+@media (max-width: 980px) {
+  .farm-hero {
     grid-template-columns: 1fr;
   }
 
-  .sq-actions {
+  .farm-actions {
     justify-content: flex-start;
   }
-}
 
-[data-theme="dark"] .sq-config,
-[data-theme="purple"] .sq-config,
-[data-theme="transparent"] .sq-config {
-  --sq-bg: linear-gradient(180deg, #141818 0%, #101413 48%, #0c100f 100%);
-  --sq-surface: rgba(24, 30, 29, 0.88);
-  --sq-surface-strong: rgba(28, 35, 33, 0.95);
-  --sq-border: rgba(133, 157, 123, 0.18);
-  --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
-  --sq-text: #edf3ea;
-  --sq-subtle: #b9c4b4;
-  --sq-soft: #8f9d91;
-  --sq-accent: #9dd37b;
-  --sq-accent-strong: #d1f0c2;
-  --sq-accent-soft: rgba(119, 176, 93, 0.18);
-}
-
-[data-theme="dark"] .sq-code,
-[data-theme="purple"] .sq-code,
-[data-theme="transparent"] .sq-code {
-  background: rgba(34, 40, 39, 0.92);
+  .farm-field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -18,7 +18,7 @@
         </div>
         <div class="sq-hero-meta">
           <div class="sq-meta-chip">计划触发 {{ farm.next_trigger_time || status.next_trigger_time || '等待下一次运行' }}</div>
-          <div class="sq-meta-chip">Cookie {{ farm.cookie_source || status.cookie_source || '未同步' }}</div>
+          <div class="sq-meta-chip">站点同步 {{ farm.cookie_source || status.cookie_source || '未同步' }}</div>
           <div class="sq-meta-chip">成熟 {{ readySlots.length }} 块</div>
           <div class="sq-meta-chip">空地 {{ emptySlots.length }} 块</div>
         </div>
@@ -283,26 +283,59 @@ function parseDateTime(value) {
 function findThemeNode() {
   let current = rootEl.value
   while (current) {
-    if (current.getAttribute?.('data-theme')) {
+    if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
       return current
     }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme')) {
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
     return document.body
   }
-  if (document.documentElement?.getAttribute('data-theme')) {
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
     return document.documentElement
   }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+  const nodes = getThemeNodes()
+  const hasDark = nodes.some((node) => nodeHasDarkHint(node))
+  const hasLight = nodes.some((node) => nodeHasLightHint(node))
+  if (hasDark) {
+    isDarkTheme.value = true
+    return
+  }
+  if (hasLight) {
+    isDarkTheme.value = false
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
 function loadDismissedSummaryKey() {
@@ -328,21 +361,16 @@ function dismissSummary() {
 function bindThemeObserver() {
   themeObserver?.disconnect()
   themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode()
-    if (nextNode && nextNode !== observedThemeNode) {
-      bindThemeObserver()
-      return
-    }
     detectTheme()
   })
 
   observedThemeNode = findThemeNode()
-  if (observedThemeNode) {
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] })
-  }
-  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] })
+  for (const node of getThemeNodes()) {
+    themeObserver.observe(node, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-theme', 'class'],
+    })
   }
 }
 
@@ -694,53 +722,53 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .sq-page {
-  --sq-bg: linear-gradient(180deg, #f4efe7 0%, #fbfaf7 40%, #f3f5f4 100%);
+  --sq-bg: linear-gradient(180deg, #f4f5f8 0%, #fafafb 46%, #f2f4f8 100%);
   --sq-surface: #ffffff;
-  --sq-surface-soft: #f8f6f1;
+  --sq-surface-soft: #f6f7fb;
   --sq-panel: rgba(255, 255, 255, 0.92);
-  --sq-border: rgba(157, 169, 176, 0.18);
-  --sq-shadow: 0 18px 40px rgba(74, 96, 117, 0.08);
-  --sq-text: #263238;
-  --sq-subtle: #66757f;
-  --sq-soft: #8a98a2;
-  --sq-accent: #66bb6a;
-  --sq-accent-soft: rgba(102, 187, 106, 0.12);
-  --sq-ready: linear-gradient(180deg, #ddf8d6 0%, #b5e59e 100%);
-  --sq-growing: linear-gradient(180deg, #ffe39a 0%, #f8c64f 100%);
-  --sq-empty: linear-gradient(180deg, #eef8ea 0%, #dbf1d3 100%);
-  --sq-expand: linear-gradient(180deg, #eef6f0 0%, #deecdf 100%);
-  --sq-locked: linear-gradient(180deg, #eff3f6 0%, #e4e9ee 100%);
+  --sq-border: rgba(122, 134, 167, 0.16);
+  --sq-shadow: 0 20px 42px rgba(91, 102, 130, 0.1);
+  --sq-text: #2f3347;
+  --sq-subtle: #6e758e;
+  --sq-soft: #8d93aa;
+  --sq-accent: #7c5cff;
+  --sq-accent-soft: rgba(124, 92, 255, 0.12);
+  --sq-ready: linear-gradient(180deg, #e6f6df 0%, #cfeebd 100%);
+  --sq-growing: linear-gradient(180deg, #fff0bf 0%, #ffd26a 100%);
+  --sq-empty: linear-gradient(180deg, #f3f6ff 0%, #e8eefc 100%);
+  --sq-expand: linear-gradient(180deg, #f4f6fb 0%, #ebeff8 100%);
+  --sq-locked: linear-gradient(180deg, #edf1f6 0%, #e1e7ef 100%);
   min-height: 100%;
-  padding: clamp(16px, 2vw, 24px);
+  padding: clamp(16px, 2vw, 22px);
   background: var(--sq-bg);
   color: var(--sq-text);
 }
 
 .sq-page.is-dark-theme {
-  --sq-bg: linear-gradient(180deg, #111616 0%, #151b1a 45%, #101515 100%);
-  --sq-surface: #1c2321;
-  --sq-surface-soft: #222b29;
-  --sq-panel: rgba(24, 31, 30, 0.92);
-  --sq-border: rgba(124, 148, 133, 0.22);
-  --sq-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
-  --sq-text: #edf3f0;
-  --sq-subtle: #b7c5bd;
-  --sq-soft: #8fa096;
-  --sq-accent: #9bd48a;
-  --sq-accent-soft: rgba(120, 187, 110, 0.18);
-  --sq-ready: linear-gradient(180deg, #49754c 0%, #5a9a63 100%);
-  --sq-growing: linear-gradient(180deg, #8f6b2c 0%, #b18632 100%);
-  --sq-empty: linear-gradient(180deg, #304a35 0%, #36553d 100%);
-  --sq-expand: linear-gradient(180deg, #31433a 0%, #395047 100%);
-  --sq-locked: linear-gradient(180deg, #333d42 0%, #3f4b52 100%);
+  --sq-bg: linear-gradient(180deg, #171921 0%, #12151d 48%, #0d1017 100%);
+  --sq-surface: #1b1f2b;
+  --sq-surface-soft: #232838;
+  --sq-panel: rgba(24, 28, 39, 0.92);
+  --sq-border: rgba(111, 122, 168, 0.2);
+  --sq-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
+  --sq-text: #eff1f7;
+  --sq-subtle: #b5bbd3;
+  --sq-soft: #868fae;
+  --sq-accent: #8c72ff;
+  --sq-accent-soft: rgba(124, 92, 255, 0.18);
+  --sq-ready: linear-gradient(180deg, #41653e 0%, #4c8454 100%);
+  --sq-growing: linear-gradient(180deg, #8b6b2f 0%, #b98b35 100%);
+  --sq-empty: linear-gradient(180deg, #2d3346 0%, #333b53 100%);
+  --sq-expand: linear-gradient(180deg, #353d52 0%, #3f4862 100%);
+  --sq-locked: linear-gradient(180deg, #31384a 0%, #3a4357 100%);
 }
 
 .sq-shell {
-  max-width: 1320px;
+  max-width: 1240px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .sq-hero,
@@ -752,11 +780,11 @@ onBeforeUnmount(() => {
 }
 
 .sq-hero {
-  padding: 24px;
-  border-radius: 28px;
+  padding: 22px;
+  border-radius: 26px;
   background:
-    radial-gradient(circle at top right, rgba(115, 200, 111, 0.18), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(255, 193, 7, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(124, 92, 255, 0.14), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(255, 184, 0, 0.12), transparent 26%),
     var(--sq-panel);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -779,7 +807,7 @@ onBeforeUnmount(() => {
 
 .sq-title {
   margin: 14px 0 8px;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(30px, 4vw, 40px);
   line-height: 1.05;
   font-weight: 900;
 }
@@ -811,9 +839,9 @@ onBeforeUnmount(() => {
 .sq-selected-seed {
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 16px;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 14px;
   background: var(--sq-surface-soft);
   color: var(--sq-subtle);
   border: 1px solid var(--sq-border);
@@ -824,12 +852,12 @@ onBeforeUnmount(() => {
 .sq-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .sq-stat-card {
-  border-radius: 22px;
-  padding: 18px;
+  border-radius: 20px;
+  padding: 16px;
   background: var(--sq-panel);
   text-align: center;
 }
@@ -846,8 +874,8 @@ onBeforeUnmount(() => {
 }
 
 .sq-panel {
-  padding: 20px;
-  border-radius: 24px;
+  padding: 18px;
+  border-radius: 22px;
   background: var(--sq-panel);
 }
 
@@ -873,7 +901,7 @@ onBeforeUnmount(() => {
 
 .sq-panel-head h2 {
   margin: 6px 0 0;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.15;
   font-weight: 800;
 }
@@ -888,8 +916,8 @@ onBeforeUnmount(() => {
 
 .sq-summary-line,
 .sq-history-item {
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 12px 14px;
+  border-radius: 16px;
   background: var(--sq-surface-soft);
   border: 1px solid var(--sq-border);
 }
@@ -909,17 +937,17 @@ onBeforeUnmount(() => {
 }
 
 .sq-bag-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
 }
 
 .sq-seed-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
 }
 
 .sq-bag-card,
 .sq-seed-card {
-  padding: 16px 14px;
-  border-radius: 18px;
+  padding: 14px 12px;
+  border-radius: 16px;
   background: var(--sq-surface-soft);
   border: 1px solid var(--sq-border);
   text-align: center;
@@ -1020,12 +1048,12 @@ onBeforeUnmount(() => {
 }
 
 .sq-farm-panel {
-  padding: 16px;
+  padding: 14px;
 }
 
 .sq-land-group {
-  padding: 12px;
-  border-radius: 20px;
+  padding: 10px;
+  border-radius: 18px;
   background: var(--sq-surface);
 }
 
@@ -1045,15 +1073,15 @@ onBeforeUnmount(() => {
 .sq-slot-grid {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .sq-slot {
   appearance: none;
   width: 100%;
-  min-height: 132px;
-  padding: 10px 8px 12px;
-  border-radius: 18px;
+  min-height: 122px;
+  padding: 9px 7px 10px;
+  border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;

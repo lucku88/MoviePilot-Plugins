@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_cc49b936_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_6987631d_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-cc49b936"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-6987631d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
@@ -145,7 +145,6 @@ const dismissedSummaryKey = ref('');
 let timer = null;
 let themeObserver = null;
 let mediaQuery = null;
-let observedThemeNode = null;
 
 const farm = computed(() => status.farm_status || {});
 const historyItems = computed(() => status.history || farm.value.history || []);
@@ -195,26 +194,59 @@ function parseDateTime(value) {
 function findThemeNode() {
   let current = rootEl.value;
   while (current) {
-    if (current.getAttribute?.('data-theme')) {
+    if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase();
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
       return current
     }
     current = current.parentElement;
   }
-  if (document.body?.getAttribute('data-theme')) {
+  const bodyClass = String(document.body?.className || '').toLowerCase();
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
     return document.body
   }
-  if (document.documentElement?.getAttribute('data-theme')) {
+  const rootClass = String(document.documentElement?.className || '').toLowerCase();
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
     return document.documentElement
   }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  const classValue = String(node?.className || '').toLowerCase();
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase();
+  const classValue = String(node?.className || '').toLowerCase();
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode();
-  const themeValue = themeNode?.getAttribute?.('data-theme') || '';
-  const darkThemes = new Set(['dark', 'purple', 'transparent']);
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark);
+  const nodes = getThemeNodes();
+  const hasDark = nodes.some((node) => nodeHasDarkHint(node));
+  const hasLight = nodes.some((node) => nodeHasLightHint(node));
+  if (hasDark) {
+    isDarkTheme.value = true;
+    return
+  }
+  if (hasLight) {
+    isDarkTheme.value = false;
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 }
 
 function loadDismissedSummaryKey() {
@@ -240,21 +272,16 @@ function dismissSummary() {
 function bindThemeObserver() {
   themeObserver?.disconnect();
   themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode();
-    if (nextNode && nextNode !== observedThemeNode) {
-      bindThemeObserver();
-      return
-    }
     detectTheme();
   });
 
-  observedThemeNode = findThemeNode();
-  if (observedThemeNode) {
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme'] });
-  }
-  themeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
-  if (document.body) {
-    themeObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-theme'] });
+  findThemeNode();
+  for (const node of getThemeNodes()) {
+    themeObserver.observe(node, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
   }
 }
 
@@ -674,7 +701,7 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("div", _hoisted_8, [
           _createElementVNode("div", _hoisted_9, "计划触发 " + _toDisplayString(farm.value.next_trigger_time || status.next_trigger_time || '等待下一次运行'), 1),
-          _createElementVNode("div", _hoisted_10, "Cookie " + _toDisplayString(farm.value.cookie_source || status.cookie_source || '未同步'), 1),
+          _createElementVNode("div", _hoisted_10, "站点同步 " + _toDisplayString(farm.value.cookie_source || status.cookie_source || '未同步'), 1),
           _createElementVNode("div", _hoisted_11, "成熟 " + _toDisplayString(readySlots.value.length) + " 块", 1),
           _createElementVNode("div", _hoisted_12, "空地 " + _toDisplayString(emptySlots.value.length) + " 块", 1)
         ])
@@ -886,6 +913,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cc49b936"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6987631d"]]);
 
 export { PageView as default };
