@@ -27,7 +27,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.12"
+    plugin_version = "0.1.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -235,18 +235,22 @@ class SQPill(_PluginBase):
             session = self._build_session()
             page = self._fetch_page_state(session)
 
+            scheduled_action = self._resolve_scheduled_action(force, reason)
+            run_brick = self._enable_brick and scheduled_action in {"all", "brick"}
+            run_beach = self._enable_beach and scheduled_action in {"all", "beach"}
+
             brick_result: Dict[str, Any] = {}
             beach_result: Dict[str, Any] = {}
             auto_result: Dict[str, Any] = {}
 
-            if self._enable_brick and page.get("brick", {}).get("ready"):
+            if run_brick and page.get("brick", {}).get("ready"):
                 brick_result = self._run_brick_flow(session, page.get("brick") or {})
-            elif self._enable_brick:
+            elif run_brick:
                 brick_result = {"message": page.get("brick", {}).get("status_text") or "今日搬砖已满"}
 
-            if self._enable_beach and page.get("beach", {}).get("ready"):
+            if run_beach and page.get("beach", {}).get("ready"):
                 beach_result = self._run_beach_flow(session)
-            elif self._enable_beach:
+            elif run_beach:
                 beach_result = {"message": page.get("beach", {}).get("status_text") or "沙滩冷却中"}
 
             final_page = self._fetch_stable_page_state(
@@ -258,11 +262,14 @@ class SQPill(_PluginBase):
             if beach_result.get("done") and (self._auto_craft or self._auto_exchange):
                 auto_result, final_page = self._run_auto_post_beach(session, final_page)
                 final_page = self._fetch_stable_page_state(session, previous_page=final_page)
-            retry_due_now = self._needs_retry_soon(final_page, brick_result, beach_result)
-            next_run = self._compute_next_run(final_page)
-            if retry_due_now:
+            retry_action = self._get_retry_action(final_page, brick_result, beach_result)
+            next_run, next_action = self._compute_next_plan(final_page)
+            if retry_action:
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
-                next_run = min(next_run, retry_ts) if next_run else retry_ts
+                if not next_run or retry_ts < next_run:
+                    next_run, next_action = retry_ts, retry_action
+                elif retry_ts == next_run:
+                    next_action = self._merge_trigger_actions(next_action, retry_action)
 
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
@@ -277,8 +284,8 @@ class SQPill(_PluginBase):
             if not has_action and not has_warning:
                 lines = ["ℹ️ 本次无可执行动作"]
 
-            self._schedule_next_run(next_run, reason)
-            pill_status = self._refresh_and_store_status(final_page, next_run, lines)
+            self._schedule_next_run(next_run, reason, next_action)
+            pill_status = self._refresh_and_store_status(final_page, next_run, lines, next_action=next_action)
             self._append_history("⚗️ SQ魔丸运行", lines)
 
             if self._notify and has_action:
@@ -429,6 +436,7 @@ class SQPill(_PluginBase):
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
+            "next_trigger_action": self._get_scheduled_action_label(),
             "last_run": self.get_data("last_run") or "",
             "pill_status": pill_status,
             "history": (self.get_data("history") or [])[:10],
@@ -436,7 +444,46 @@ class SQPill(_PluginBase):
         }
 
     def _is_pre_refresh_trigger(self) -> bool:
-        return (self._load_saved_next_trigger_mode() or "run") == "refresh"
+        mode, _ = self._parse_trigger_mode(self._load_saved_next_trigger_mode())
+        return mode == "refresh"
+
+    def _resolve_scheduled_action(self, force: bool, reason: str) -> str:
+        if force or reason != "schedule":
+            return "all"
+        return self._get_scheduled_action()
+
+    def _get_scheduled_action(self) -> str:
+        _, action = self._parse_trigger_mode(self._load_saved_next_trigger_mode())
+        return action
+
+    def _get_scheduled_action_label(self) -> str:
+        action = self._get_scheduled_action()
+        return {
+            "brick": "搬砖",
+            "beach": "清沙滩",
+            "all": "整轮执行",
+        }.get(action, "整轮执行")
+
+    def _parse_trigger_mode(self, raw_mode: Optional[str]) -> Tuple[str, str]:
+        mode_text = str(raw_mode or "run").strip().lower() or "run"
+        if ":" in mode_text:
+            mode, action = mode_text.split(":", 1)
+        else:
+            mode, action = mode_text, "all"
+        if mode not in {"run", "refresh"}:
+            mode = "run"
+        if action not in {"all", "brick", "beach"}:
+            action = "all"
+        return mode, action
+
+    def _merge_trigger_actions(self, primary: str, secondary: str) -> str:
+        first = primary if primary in {"brick", "beach", "all"} else ""
+        second = secondary if secondary in {"brick", "beach", "all"} else ""
+        if not first:
+            return second or "all"
+        if not second or first == second:
+            return first
+        return "all"
 
     def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
         return {
@@ -544,9 +591,9 @@ class SQPill(_PluginBase):
             urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         data = self._fetch_page_state(session)
-        next_run = self._compute_next_run(data)
-        self._schedule_next_run(next_run, reason)
-        return self._refresh_and_store_status(data, next_run, [], record_run=record_run)
+        next_run, next_action = self._compute_next_plan(data)
+        self._schedule_next_run(next_run, reason, next_action)
+        return self._refresh_and_store_status(data, next_run, [], record_run=record_run, next_action=next_action)
 
     def _ensure_cookie(self):
         if self._auto_cookie:
@@ -955,8 +1002,8 @@ class SQPill(_PluginBase):
         page = self._fetch_page_state(session)
         if not page.get("brick", {}).get("ready"):
             lines = [f"ℹ️ 搬砖：{page.get('brick', {}).get('status_text') or '今日搬砖已满'}"]
-            next_run = self._compute_next_run(page)
-            pill_status = self._refresh_and_store_status(page, next_run, lines)
+            next_run, next_action = self._compute_next_plan(page)
+            pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
             return {"pill_status": pill_status, "lines": lines}
 
         result = self._run_brick_flow(session, page.get("brick") or {})
@@ -965,11 +1012,14 @@ class SQPill(_PluginBase):
             previous_page=page,
             expect_brick_update=self._safe_int(result.get("moved"), 0) > 0,
         )
-        next_run = self._compute_next_run(page)
+        next_run, next_action = self._compute_next_plan(page)
         if page.get("brick", {}).get("ready") and (result.get("warning") or result.get("attempted")):
             retry_ts = int(time.time()) + self._ready_retry_seconds
-            next_run = min(next_run, retry_ts) if next_run else retry_ts
-        self._schedule_next_run(next_run, "manual-move")
+            if not next_run or retry_ts < next_run:
+                next_run, next_action = retry_ts, "brick"
+            elif retry_ts == next_run:
+                next_action = self._merge_trigger_actions(next_action, "brick")
+        self._schedule_next_run(next_run, "manual-move", next_action)
 
         lines = []
         if result.get("moved"):
@@ -989,7 +1039,7 @@ class SQPill(_PluginBase):
         if not lines:
             lines.append("ℹ️ 本次无可执行动作")
 
-        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("🧱 手动搬砖", lines)
         return {"pill_status": pill_status, "lines": lines}
 
@@ -1001,8 +1051,8 @@ class SQPill(_PluginBase):
         page = self._fetch_page_state(session)
         if not page.get("beach", {}).get("ready"):
             lines = [f"ℹ️ 沙滩：{page.get('beach', {}).get('status_text') or '沙滩冷却中'}"]
-            next_run = self._compute_next_run(page)
-            pill_status = self._refresh_and_store_status(page, next_run, lines)
+            next_run, next_action = self._compute_next_plan(page)
+            pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
             return {"pill_status": pill_status, "lines": lines}
 
         result = self._run_beach_flow(session)
@@ -1015,11 +1065,14 @@ class SQPill(_PluginBase):
         if result.get("done") and (self._auto_craft or self._auto_exchange):
             auto_result, page = self._run_auto_post_beach(session, page)
             page = self._fetch_stable_page_state(session, previous_page=page)
-        next_run = self._compute_next_run(page)
+        next_run, next_action = self._compute_next_plan(page)
         if page.get("beach", {}).get("ready") and result.get("warning"):
             retry_ts = int(time.time()) + self._ready_retry_seconds
-            next_run = min(next_run, retry_ts) if next_run else retry_ts
-        self._schedule_next_run(next_run, "manual-beach")
+            if not next_run or retry_ts < next_run:
+                next_run, next_action = retry_ts, "beach"
+            elif retry_ts == next_run:
+                next_action = self._merge_trigger_actions(next_action, "beach")
+        self._schedule_next_run(next_run, "manual-beach", next_action)
 
         lines = []
         items = result.get("items") or []
@@ -1034,7 +1087,7 @@ class SQPill(_PluginBase):
         if not lines:
             lines.append("ℹ️ 本次无可执行动作")
 
-        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("🏖️ 手动清沙滩", lines)
         return {"pill_status": pill_status, "lines": lines}
 
@@ -1062,8 +1115,8 @@ class SQPill(_PluginBase):
             raise ValueError(result.get("message") or result.get("msg") or "兑换失败")
 
         page = self._fetch_page_state(session)
-        next_run = self._compute_next_run(page)
-        self._schedule_next_run(next_run, "manual-exchange")
+        next_run, next_action = self._compute_next_plan(page)
+        self._schedule_next_run(next_run, "manual-exchange", next_action)
 
         gained = self._safe_int((result or {}).get("points_gained"), 0)
         lines = [f"💰 兑换：魔丸×{exchange_quantity}"]
@@ -1072,7 +1125,7 @@ class SQPill(_PluginBase):
         elif (result or {}).get("message"):
             lines.append(f"ℹ️ {(result or {}).get('message')}")
 
-        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("💰 手动兑换", lines)
         return {"pill_status": pill_status, "lines": lines}
 
@@ -1106,8 +1159,8 @@ class SQPill(_PluginBase):
             raise ValueError(result.get("message") or result.get("msg") or "炼造失败")
 
         page = self._fetch_page_state(session)
-        next_run = self._compute_next_run(page)
-        self._schedule_next_run(next_run, "manual-craft")
+        next_run, next_action = self._compute_next_plan(page)
+        self._schedule_next_run(next_run, "manual-craft", next_action)
 
         output_item = recipe_def["output_item"]
         icon = self.ITEM_ICON_MAP.get(output_item, "📦")
@@ -1115,7 +1168,7 @@ class SQPill(_PluginBase):
         if (result or {}).get("message"):
             lines.append(f"ℹ️ {(result or {}).get('message')}")
 
-        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("⚒️ 手动炼造", lines)
         return {"pill_status": pill_status, "lines": lines}
 
@@ -1157,14 +1210,14 @@ class SQPill(_PluginBase):
             )
 
         page = self._fetch_page_state(session)
-        next_run = self._compute_next_run(page)
-        self._schedule_next_run(next_run, "manual-craft-pill")
+        next_run, next_action = self._compute_next_plan(page)
+        self._schedule_next_run(next_run, "manual-craft-pill", next_action)
 
         lines = [f"⚗️ 一键炼造魔丸：{quantity}颗"]
         if executed_steps:
             lines.append(f"🧪 步骤：{'  '.join(executed_steps)}")
 
-        pill_status = self._refresh_and_store_status(page, next_run, lines)
+        pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("⚗️ 一键炼造魔丸", lines)
         return {"pill_status": pill_status, "lines": lines}
 
@@ -1380,6 +1433,17 @@ class SQPill(_PluginBase):
         beach_retry = bool(beach_result.get("warning")) and page.get("beach", {}).get("ready")
         return brick_retry or beach_retry
 
+    def _get_retry_action(self, page: Dict[str, Any], brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> str:
+        brick_retry = page.get("brick", {}).get("ready") and bool(brick_result.get("warning") or brick_result.get("attempted"))
+        beach_retry = bool(beach_result.get("warning")) and page.get("beach", {}).get("ready")
+        if brick_retry and beach_retry:
+            return "all"
+        if brick_retry:
+            return "brick"
+        if beach_retry:
+            return "beach"
+        return ""
+
     def _should_skip_run(self) -> bool:
         next_trigger = self._load_saved_next_trigger()
         if not next_trigger:
@@ -1395,23 +1459,24 @@ class SQPill(_PluginBase):
         now = self._aware_now()
         return next_trigger if next_trigger > now else now + timedelta(seconds=5)
 
-    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
+    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = "", next_action: str = "all"):
         next_run_ts = self._normalize_timestamp(next_run_ts, 0)
         if next_run_ts and not self._is_reasonable_future_ts(next_run_ts, int(time.time()) - 1):
             next_run_ts = 0
+        next_action = next_action if next_action in {"brick", "beach", "all"} else "all"
         if next_run_ts and next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
             now = self._aware_now()
             pre_refresh_time = next_run - timedelta(seconds=self.PRE_REFRESH_SECONDS)
             if pre_refresh_time > now + timedelta(seconds=5):
                 next_trigger = pre_refresh_time
-                trigger_mode = "refresh"
+                trigger_mode = f"refresh:{next_action}"
             else:
                 next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
                 min_trigger = now + timedelta(seconds=5)
                 if next_trigger < min_trigger:
                     next_trigger = min_trigger
-                trigger_mode = "run"
+                trigger_mode = f"run:{next_action}"
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
             self._next_trigger_mode = trigger_mode
@@ -1464,18 +1529,23 @@ class SQPill(_PluginBase):
         self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
         return self._next_trigger_mode
 
-    def _compute_next_run(self, data: dict) -> Optional[int]:
-        candidates: List[int] = []
+    def _compute_next_plan(self, data: dict) -> Tuple[Optional[int], str]:
+        candidates: List[Tuple[int, str]] = []
         server_now = self._resolve_server_now(data.get("server_now"))
         if self._enable_brick:
             brick_next = self._get_cron_next_ts(self._brick_cron, server_now)
             if self._is_reasonable_future_ts(brick_next, server_now):
-                candidates.append(brick_next)
+                candidates.append((brick_next, "brick"))
         if self._enable_beach:
             beach_next = self._normalize_timestamp((data.get("beach") or {}).get("next_ready_ts"), 0)
             if self._is_reasonable_future_ts(beach_next, server_now):
-                candidates.append(beach_next)
-        return min(candidates) if candidates else None
+                candidates.append((beach_next, "beach"))
+        if not candidates:
+            return None, "all"
+        next_run = min(item[0] for item in candidates)
+        actions = [item[1] for item in candidates if item[0] == next_run]
+        next_action = "all" if len(actions) > 1 else actions[0]
+        return next_run, next_action
 
     def _get_cron_next_ts(self, cron_expr: str, server_now: Optional[Any] = None) -> Optional[int]:
         expr = (cron_expr or "").strip()
@@ -1498,28 +1568,30 @@ class SQPill(_PluginBase):
         next_run: Optional[int],
         summary_lines: List[str],
         record_run: bool = True,
+        next_action: str = "all",
     ) -> Dict[str, Any]:
         lines = list(summary_lines or [])
-        self.save_data("state", self._build_state_record(data, next_run, lines))
-        pill_status = self._build_ui_state(data, next_run, lines)
+        self.save_data("state", self._build_state_record(data, next_run, lines, next_action))
+        pill_status = self._build_ui_state(data, next_run, lines, next_action)
         self.save_data("pill_status", pill_status)
         if record_run:
             self.save_data("last_run", self._format_time(self._aware_now()))
         return pill_status
 
-    def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> dict:
+    def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str], next_action: str = "all") -> dict:
         return {
             "schema_version": self.plugin_version,
             "time": self._format_time(self._aware_now()),
             "next_run_time": self._format_ts(next_run),
             "next_trigger_time": self._format_time(self._load_saved_next_trigger()),
+            "next_run_action": next_action,
             "summary": summary_lines,
             "stats": data.get("stats") or {},
             "brick": data.get("brick") or {},
             "beach": data.get("beach") or {},
         }
 
-    def _build_ui_state(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
+    def _build_ui_state(self, data: dict, next_run: Optional[int], summary_lines: List[str], next_action: str = "all") -> Dict[str, Any]:
         stats = data.get("stats") or {}
         exchange = data.get("exchange") or {}
         brick = data.get("brick") or {}
@@ -1538,9 +1610,15 @@ class SQPill(_PluginBase):
             "next_trigger_time": self._format_time(next_trigger),
             "next_run_ts": next_run or 0,
             "next_trigger_ts": int(next_trigger.timestamp()) if next_trigger else 0,
+            "next_run_action": next_action,
+            "next_run_action_label": {
+                "brick": "搬砖",
+                "beach": "清沙滩",
+                "all": "整轮执行",
+            }.get(next_action, "整轮执行"),
             "cookie_source": self._cookie_source,
             "page_note": (
-                f"搬砖按 CRON {self._brick_cron} 调度，沙滩按冷却时间动态调度。"
+                f"搬砖按 CRON {self._brick_cron} 独立调度，沙滩按冷却时间独立调度。"
                 f"{' 清沙滩后会自动炼造魔丸。' if self._auto_craft else ''}"
                 f"{' 清沙滩后会自动兑换魔力。' if self._auto_exchange else ''}"
             ),
