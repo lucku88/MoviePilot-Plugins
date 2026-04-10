@@ -13,6 +13,8 @@ develop-eggs/
 dist/
 !plugins.v2/sqfarm/dist/
 !plugins.v2/sqfarm/dist/**
+!plugins.v2/sqfarm2/dist/
+!plugins.v2/sqfarm2/dist/**
 !plugins.v2/sqpill/dist/
 !plugins.v2/sqpill/dist/**
 !plugins.v2/sqtoy/dist/
