@@ -55,11 +55,12 @@
     "name": "SQ玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.14": "补齐插件内部 plugin_version 与仓库索引版本，修复 MoviePilot 中 SQ玩偶 版本未正确更新的问题。",
       "v0.1.13": "浅色与深色主题背景改回对齐朱雀助手的灰白/深炭配色，修正此前偏暖米白的 SQ玩偶 页面样式。",
       "v0.1.12": "配置页改为自动回收/自动展出开关，移除动作参数和外展抢位开关，状态页去掉重复标题并收紧为更紧凑的浅色布局，同时放宽一轮内的回收与展出循环。",
       "v0.1.11": "补上运行前 1 分钟预刷新，移除等待窗口配置，并重做被抢占/提前收回的展位状态和 SQ表情风格界面。",
