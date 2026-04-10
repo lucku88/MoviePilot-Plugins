@@ -59,10 +59,10 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/"+d
 const exportSet = new Set(['Module', '__esModule', 'default', '_export_sfc']);
       let moduleMap = {
 "./Page":()=>{
-      dynamicLoadingCss(["style.css"]);
+      dynamicLoadingCss(["style-ae4e72fb.css"]);
       return __federation_import('./../__federation_expose_Page-aa876b58.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
 "./Config":()=>{
-      dynamicLoadingCss(["style.css"]);
+      dynamicLoadingCss(["style-ae4e72fb.css"]);
       return __federation_import('./../__federation_expose_Config-9d14147d.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};
     const seen = {};
     const dynamicLoadingCss = (cssFilePaths) => {
