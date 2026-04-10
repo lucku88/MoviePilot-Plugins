@@ -25,9 +25,9 @@ from app.schemas import NotificationType
 
 class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
-    plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
+    plugin_desc = "盲盒、回收、展出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -52,7 +52,8 @@ class SQToy(_PluginBase):
     _notify: bool = True
     _onlyonce: bool = False
     _auto_cookie: bool = True
-    _enable_target: bool = True
+    _auto_collect: bool = True
+    _auto_place: bool = True
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cookie: str = ""
@@ -70,8 +71,6 @@ class SQToy(_PluginBase):
     _collect_retry_delay: int = 1200
     _place_loop_limit: int = 10
     _place_retry_delay: int = 1500
-    _self_wait_window_seconds: int = 60
-    _remote_wait_window_seconds: int = 60
     _max_target_try: int = 3
 
     _next_run_time: Optional[datetime] = None
@@ -221,14 +220,14 @@ class SQToy(_PluginBase):
             if not state or not state.get("user"):
                 raise ValueError("获取玩偶页面失败，Cookie 可能失效")
 
-            self._collect_personal_slots(session, collect_names)
-            self._collect_remote_slots(session, state, collect_names)
-
-            bundle = self._fetch_bundle(session)
-            state = bundle["state"] or state
-            html = bundle["html"] or html
-            placed_times.extend(self._place_personal_slots(session, state, place_names))
-            if self._enable_target:
+            if self._auto_collect:
+                self._collect_personal_slots(session, collect_names)
+                self._collect_remote_slots(session, state, collect_names)
+                bundle = self._fetch_bundle(session)
+                state = bundle["state"] or state
+                html = bundle["html"] or html
+            if self._auto_place:
+                placed_times.extend(self._place_personal_slots(session, state, place_names))
                 bundle = self._fetch_bundle(session)
                 state = bundle["state"] or state
                 html = bundle["html"] or html
@@ -437,7 +436,8 @@ class SQToy(_PluginBase):
             "enabled": self._enabled,
             "notify": self._notify,
             "auto_cookie": self._auto_cookie,
-            "enable_target": self._enable_target,
+            "auto_collect": self._auto_collect,
+            "auto_place": self._auto_place,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -453,21 +453,11 @@ class SQToy(_PluginBase):
             "notify": self._notify,
             "onlyonce": self._onlyonce,
             "auto_cookie": self._auto_cookie,
-            "enable_target": self._enable_target,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
-            "schedule_buffer_seconds": self._schedule_buffer_seconds,
-            "random_delay_max_seconds": self._random_delay_max_seconds,
-            "http_timeout": self._http_timeout,
-            "http_retry_times": self._http_retry_times,
-            "http_retry_delay": self._http_retry_delay,
-            "skip_before_seconds": self._skip_before_seconds,
-            "collect_retry": self._collect_retry,
-            "collect_retry_delay": self._collect_retry_delay,
-            "place_loop_limit": self._place_loop_limit,
-            "place_retry_delay": self._place_retry_delay,
-            "max_target_try": self._max_target_try,
+            "auto_collect": self._auto_collect,
+            "auto_place": self._auto_place,
             "capture_tips": [] if include_options else None,
         }
 
@@ -497,21 +487,11 @@ class SQToy(_PluginBase):
             "notify": True,
             "onlyonce": False,
             "auto_cookie": True,
-            "enable_target": True,
+            "auto_collect": True,
+            "auto_place": True,
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
-            "schedule_buffer_seconds": 5,
-            "random_delay_max_seconds": 5,
-            "http_timeout": 12,
-            "http_retry_times": 3,
-            "http_retry_delay": 1500,
-            "skip_before_seconds": 60,
-            "collect_retry": 3,
-            "collect_retry_delay": 1200,
-            "place_loop_limit": 10,
-            "place_retry_delay": 1500,
-            "max_target_try": 3,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -519,7 +499,8 @@ class SQToy(_PluginBase):
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
         self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
-        self._enable_target = self._to_bool(config.get("enable_target", True))
+        self._auto_collect = self._to_bool(config.get("auto_collect", True))
+        self._auto_place = self._to_bool(config.get("auto_place", config.get("enable_target", True)))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
@@ -541,21 +522,11 @@ class SQToy(_PluginBase):
             "notify": self._notify,
             "onlyonce": self._onlyonce,
             "auto_cookie": self._auto_cookie,
-            "enable_target": self._enable_target,
+            "auto_collect": self._auto_collect,
+            "auto_place": self._auto_place,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
-            "schedule_buffer_seconds": self._schedule_buffer_seconds,
-            "random_delay_max_seconds": self._random_delay_max_seconds,
-            "http_timeout": self._http_timeout,
-            "http_retry_times": self._http_retry_times,
-            "http_retry_delay": self._http_retry_delay,
-            "skip_before_seconds": self._skip_before_seconds,
-            "collect_retry": self._collect_retry,
-            "collect_retry_delay": self._collect_retry_delay,
-            "place_loop_limit": self._place_loop_limit,
-            "place_retry_delay": self._place_retry_delay,
-            "max_target_try": self._max_target_try,
         })
 
     def _resolve_site_profile(self):
@@ -779,70 +750,67 @@ class SQToy(_PluginBase):
         return run()
 
     def _collect_personal_slots(self, session: requests.Session, collect_names: List[str]):
-        state = self._fetch_bundle(session)["state"]
-        self_list = sorted(
-            [
-                {"slot": slot, "sec": self._get_personal_remain_sec(slot)}
-                for slot in self._iter_dicts(state.get("personal_slots") or [])
-                if (slot.get("occupant") or {}).get("viewer_is_occupant")
-            ],
-            key=lambda item: item["sec"] if item["sec"] is not None else 10**9,
-        )
-        for item in self_list:
-            slot = item["slot"]
-            sec = item["sec"]
-            if sec is None or sec > self._self_wait_window_seconds:
-                continue
-            if sec > 0:
-                time.sleep(min(sec + 1, self._self_wait_window_seconds + 1))
+        while True:
             latest = self._fetch_bundle(session)["state"]
-            current = next(
-                (
-                    candidate
-                    for candidate in self._iter_dicts(latest.get("personal_slots") or [])
-                    if candidate.get("slot_index") == slot.get("slot_index")
-                    and (candidate.get("occupant") or {}).get("viewer_is_occupant")
-                ),
-                None,
+            ready_slots = sorted(
+                [
+                    slot
+                    for slot in self._iter_dicts(latest.get("personal_slots") or [])
+                    if (slot.get("occupant") or {}).get("viewer_is_occupant")
+                    and (self._get_personal_remain_sec(slot) is not None and self._get_personal_remain_sec(slot) <= 0)
+                ],
+                key=lambda item: self._get_personal_remain_sec(item) or 0,
             )
-            if not current:
-                continue
-            if self._get_personal_remain_sec(current) is not None and self._get_personal_remain_sec(current) <= 0:
-                if self._collect_with_retry(session, current.get("owner_id"), current.get("slot_index"), (current.get("occupant") or {}).get("doll_name")):
+            if not ready_slots:
+                break
+            collected_count = 0
+            for current in ready_slots:
+                if self._collect_with_retry(
+                    session,
+                    current.get("owner_id"),
+                    current.get("slot_index"),
+                    (current.get("occupant") or {}).get("doll_name"),
+                ):
                     collect_names.append((current.get("occupant") or {}).get("doll_name") or "未知玩偶")
+                    collected_count += 1
+            if collected_count <= 0:
+                break
 
     def _collect_remote_slots(self, session: requests.Session, state: Dict[str, Any], collect_names: List[str]):
-        remote_list = sorted(
-            [
-                {"item": item, "sec": self._get_remote_remain_sec(item)}
-                for item in self._iter_dicts(state.get("remote_deployments") or [])
-            ],
-            key=lambda item: item["sec"] if item["sec"] is not None else 10**9,
-        )
-        for item in remote_list:
-            remote = item["item"]
-            sec = item["sec"]
-            if sec is None or sec > self._remote_wait_window_seconds:
-                continue
-            if sec > 0:
-                time.sleep(min(sec + 1, self._remote_wait_window_seconds + 1))
-            try:
-                target = self._post_action(session, "view_target", {"target_id": remote.get("owner_id")}, retry_network=True).get("target") or {}
-            except Exception:
-                continue
-            candidate = self._pick_remote_candidate(target.get("slots") or [], remote)
-            if not candidate:
-                continue
-            occupant = candidate.get("occupant") or {}
-            remaining = self._safe_int(occupant.get("time_until_collect"), 1)
-            if remaining > 0 and self._safe_int(occupant.get("elapsed_seconds"), 0) < self._safe_int(occupant.get("display_seconds"), 0):
-                continue
-            if self._collect_with_retry(session, candidate.get("owner_id"), candidate.get("slot_index"), occupant.get("doll_name")):
-                collect_names.append(occupant.get("doll_name") or "未知玩偶")
+        while True:
+            latest = self._fetch_bundle(session)["state"]
+            remote_list = sorted(
+                [
+                    item
+                    for item in self._iter_dicts(latest.get("remote_deployments") or [])
+                    if self._get_remote_remain_sec(item) is not None and self._get_remote_remain_sec(item) <= 0
+                ],
+                key=lambda item: self._get_remote_remain_sec(item) or 0,
+            )
+            if not remote_list:
+                break
+            collected_count = 0
+            for remote in remote_list:
+                try:
+                    target = self._post_action(session, "view_target", {"target_id": remote.get("owner_id")}, retry_network=True).get("target") or {}
+                except Exception:
+                    continue
+                candidate = self._pick_remote_candidate(target.get("slots") or [], remote)
+                if not candidate:
+                    continue
+                occupant = candidate.get("occupant") or {}
+                remaining = self._safe_int(occupant.get("time_until_collect"), 1)
+                if remaining > 0 and self._safe_int(occupant.get("elapsed_seconds"), 0) < self._safe_int(occupant.get("display_seconds"), 0):
+                    continue
+                if self._collect_with_retry(session, candidate.get("owner_id"), candidate.get("slot_index"), occupant.get("doll_name")):
+                    collect_names.append(occupant.get("doll_name") or "未知玩偶")
+                    collected_count += 1
+            if collected_count <= 0:
+                break
 
     def _place_personal_slots(self, session: requests.Session, state: Dict[str, Any], place_names: List[str]) -> List[Dict[str, Any]]:
         placed_times: List[Dict[str, Any]] = []
-        for _ in range(self._place_loop_limit):
+        while True:
             current = self._fetch_bundle(session)["state"]
             idle_slots = [slot for slot in self._iter_dicts(current.get("personal_slots") or []) if not slot.get("occupant")]
             dolls = [dict(item) for item in self._iter_dicts(current.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
@@ -854,13 +822,23 @@ class SQToy(_PluginBase):
                 if doll_index >= len(dolls):
                     break
                 doll = dolls[doll_index]
-                placements.append({"owner_id": slot.get("owner_id"), "slot_index": slot.get("slot_index"), "doll_key": doll.get("doll_key"), "doll_name": doll.get("name"), "display_seconds": self._safe_int(doll.get("display_seconds"), 0)})
+                placements.append({
+                    "owner_id": slot.get("owner_id"),
+                    "slot_index": slot.get("slot_index"),
+                    "doll_key": doll.get("doll_key"),
+                    "doll_name": doll.get("name"),
+                    "display_seconds": self._safe_int(doll.get("display_seconds"), 0),
+                })
                 doll["available"] = self._safe_int(doll.get("available"), 0) - 1
                 if self._safe_int(doll.get("available"), 0) <= 0:
                     doll_index += 1
             if not placements:
                 break
-            result = self._post_action(session, "bulk_place_doll", {"placements": json.dumps([{"owner_id": p["owner_id"], "slot_index": p["slot_index"], "doll_key": p["doll_key"]} for p in placements], ensure_ascii=False)})
+            result = self._post_action(
+                session,
+                "bulk_place_doll",
+                {"placements": json.dumps([{"owner_id": p["owner_id"], "slot_index": p["slot_index"], "doll_key": p["doll_key"]} for p in placements], ensure_ascii=False)},
+            )
             if not result.get("success"):
                 break
             now_ts = int(time.time())
@@ -875,10 +853,11 @@ class SQToy(_PluginBase):
         remaining = [dict(item) for item in self._iter_dicts(state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
         if not remaining:
             return placed_times
-        attempt_limit = max(self._max_target_try, min(max(len(remaining) * 2, 6), 20))
-        for _ in range(attempt_limit):
-            if not remaining:
-                break
+        attempt_limit = max(24, len(remaining) * 6, self._max_target_try)
+        total_attempts = 0
+        no_progress_rounds = 0
+        while remaining and total_attempts < attempt_limit and no_progress_rounds < 6:
+            total_attempts += 1
             result = self._post_action(session, "random_target", {}, retry_network=True)
             target = result.get("target") or {}
             slots = [
@@ -887,6 +866,7 @@ class SQToy(_PluginBase):
                 if not slot.get("occupant") and not slot.get("cooldown_active")
             ]
             if not target or not slots:
+                no_progress_rounds += 1
                 continue
             placements = []
             doll_index = 0
@@ -894,7 +874,13 @@ class SQToy(_PluginBase):
                 if doll_index >= len(remaining):
                     break
                 doll = remaining[doll_index]
-                placements.append({"owner_id": slot.get("owner_id"), "slot_index": slot.get("slot_index"), "doll_key": doll.get("doll_key"), "doll_name": doll.get("name"), "display_seconds": self._safe_int(doll.get("display_seconds"), 0)})
+                placements.append({
+                    "owner_id": slot.get("owner_id"),
+                    "slot_index": slot.get("slot_index"),
+                    "doll_key": doll.get("doll_key"),
+                    "doll_name": doll.get("name"),
+                    "display_seconds": self._safe_int(doll.get("display_seconds"), 0),
+                })
                 doll["available"] = self._safe_int(doll.get("available"), 0) - 1
                 if self._safe_int(doll.get("available"), 0) <= 0:
                     doll_index += 1
@@ -907,6 +893,10 @@ class SQToy(_PluginBase):
                     place_names.append(item["doll_name"] or "未知玩偶")
                     placed_times.append({"time": now_ts + max(0, item["display_seconds"]), "label": f"本轮放置 外展 {item['doll_name'] or item['doll_key']}"})
             remaining = [item for item in remaining if self._safe_int(item.get("available"), 0) > 0]
+            if success_count > 0:
+                no_progress_rounds = 0
+            else:
+                no_progress_rounds += 1
             if success_count and remaining:
                 time.sleep(max(self._place_retry_delay / 1000.0, 0))
         return placed_times
@@ -1102,31 +1092,33 @@ class SQToy(_PluginBase):
     def _compute_next_run(self, state: Dict[str, Any], placed_times: Optional[List[Dict[str, Any]]] = None) -> Optional[int]:
         now_ts = int(time.time())
         candidates: List[int] = []
-        if self._needs_placement_retry(state):
+        if self._auto_place and self._needs_placement_retry(state):
             candidates.append(now_ts + self._placement_retry_seconds())
-        for slot in self._iter_dicts(state.get("personal_slots") or []):
-            if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
-                continue
-            sec = self._get_personal_remain_sec(slot)
-            if sec is None:
-                continue
-            candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
-        for remote in self._iter_dicts(state.get("remote_deployments") or []):
-            sec = self._get_remote_remain_sec(remote)
-            if sec is None:
-                continue
-            candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
-        for doll in self._iter_dicts(state.get("doll_inventory") or []):
-            if self._safe_int(doll.get("cooling_count"), 0) <= 0:
-                continue
-            cooldown_until = self._safe_int(doll.get("cooldown_until"), 0)
-            cooldown_remaining = self._safe_int(doll.get("cooldown_remaining"), 0)
-            if cooldown_until > 0:
-                candidates.append(cooldown_until)
-            elif cooldown_remaining > 0:
-                candidates.append(now_ts + cooldown_remaining)
-        for item in placed_times or []:
-            candidates.append(self._safe_int(item.get("time"), 0))
+        if self._auto_collect:
+            for slot in self._iter_dicts(state.get("personal_slots") or []):
+                if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
+                    continue
+                sec = self._get_personal_remain_sec(slot)
+                if sec is None:
+                    continue
+                candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
+            for remote in self._iter_dicts(state.get("remote_deployments") or []):
+                sec = self._get_remote_remain_sec(remote)
+                if sec is None:
+                    continue
+                candidates.append(now_ts + 5 if sec <= 0 else now_ts + sec)
+            for item in placed_times or []:
+                candidates.append(self._safe_int(item.get("time"), 0))
+        if self._auto_place:
+            for doll in self._iter_dicts(state.get("doll_inventory") or []):
+                if self._safe_int(doll.get("cooling_count"), 0) <= 0:
+                    continue
+                cooldown_until = self._safe_int(doll.get("cooldown_until"), 0)
+                cooldown_remaining = self._safe_int(doll.get("cooldown_remaining"), 0)
+                if cooldown_until > 0:
+                    candidates.append(cooldown_until)
+                elif cooldown_remaining > 0:
+                    candidates.append(now_ts + cooldown_remaining)
         candidates = [candidate for candidate in candidates if candidate > 0]
         return min(candidates) if candidates else now_ts + 6 * 3600
 
@@ -1134,13 +1126,15 @@ class SQToy(_PluginBase):
         return max(45, min(300, self._http_timeout * 3))
 
     def _needs_placement_retry(self, state: Dict[str, Any]) -> bool:
+        if not self._auto_place:
+            return False
         available_dolls = any(self._safe_int(item.get("available"), 0) > 0 for item in self._iter_dicts(state.get("doll_inventory") or []))
         if not available_dolls:
             return False
         has_idle_personal_slot = any(not slot.get("occupant") for slot in self._iter_dicts(state.get("personal_slots") or []))
         if has_idle_personal_slot:
             return True
-        return self._enable_target
+        return True
 
     def _should_skip_run(self) -> bool:
         next_run = self._load_saved_next_run()

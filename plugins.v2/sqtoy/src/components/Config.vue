@@ -45,14 +45,17 @@
             <v-switch v-model="config.auto_cookie" class="toy-switch-control" label="使用站点Cookie" color="#7c5cff" density="compact" hide-details inset />
           </div>
           <div class="toy-switch-item">
-            <v-switch v-model="config.enable_target" class="toy-switch-control" label="允许外展抢位" color="#7c5cff" density="compact" hide-details inset />
+            <v-switch v-model="config.auto_collect" class="toy-switch-control" label="自动回收" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="toy-switch-item">
+            <v-switch v-model="config.auto_place" class="toy-switch-control" label="自动展出" color="#7c5cff" density="compact" hide-details inset />
           </div>
           <div class="toy-switch-item">
             <v-switch v-model="config.force_ipv4" class="toy-switch-control" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
           </div>
         </div>
 
-        <div class="toy-field-grid">
+        <div class="toy-field-grid toy-field-grid-single">
           <div class="toy-field-block">
             <div class="toy-field-label">站点Cookie</div>
             <v-text-field
@@ -62,20 +65,9 @@
               density="comfortable"
               :disabled="cookieReadonly"
               :readonly="cookieReadonly"
-              :placeholder="cookieReadonly ? '使用站点Cookie后自动同步' : '例如 c_secure_pass=...'"
+              :placeholder="cookieReadonly ? '启用后自动同步已配置站点的 Cookie' : '例如 c_secure_pass=...'"
             />
             <div class="toy-note">启用【使用站点Cookie】后自动同步，关闭后才可手动填写。</div>
-          </div>
-
-          <div class="toy-field-block">
-            <div class="toy-field-label">动作参数</div>
-            <div class="toy-inline-grid">
-              <v-text-field v-model="config.collect_retry" label="回收重试次数" type="number" variant="outlined" density="comfortable" />
-              <v-text-field v-model="config.collect_retry_delay" label="回收重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
-              <v-text-field v-model="config.place_loop_limit" label="单轮放置循环上限" type="number" variant="outlined" density="comfortable" />
-              <v-text-field v-model="config.place_retry_delay" label="放置循环间隔(ms)" type="number" variant="outlined" density="comfortable" />
-              <v-text-field v-model="config.max_target_try" label="随机目标尝试次数" type="number" variant="outlined" density="comfortable" />
-            </div>
           </div>
         </div>
       </section>
@@ -103,21 +95,11 @@ const config = reactive({
   notify: true,
   onlyonce: false,
   auto_cookie: true,
-  enable_target: true,
+  auto_collect: true,
+  auto_place: true,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
-  schedule_buffer_seconds: 5,
-  random_delay_max_seconds: 5,
-  http_timeout: 12,
-  http_retry_times: 3,
-  http_retry_delay: 1500,
-  skip_before_seconds: 60,
-  collect_retry: 3,
-  collect_retry_delay: 1200,
-  place_loop_limit: 10,
-  place_retry_delay: 1500,
-  max_target_try: 3,
 })
 
 const cookieReadonly = computed(() => !!config.auto_cookie)
@@ -146,7 +128,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim()
   if (!text) return ''
-  return text.length > 22 ? `${text.slice(0, 22)}...` : text
+  return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -273,18 +255,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .toy-config {
-  min-height: 100vh;
-  --toy-bg-start: #f7f4ff;
-  --toy-bg-end: #f2e8ff;
-  --toy-panel: rgba(255, 255, 255, 0.9);
-  --toy-panel-strong: rgba(255, 255, 255, 0.98);
-  --toy-border: rgba(124, 92, 255, 0.2);
-  --toy-shadow: 0 24px 80px rgba(91, 72, 164, 0.12);
-  --toy-text-main: #2b2447;
-  --toy-text-soft: rgba(43, 36, 71, 0.72);
-  --toy-chip: rgba(124, 92, 255, 0.12);
+  min-height: 0;
+  --toy-bg-start: #fbf7f1;
+  --toy-bg-end: #f5efe6;
+  --toy-panel: rgba(255, 255, 255, 0.92);
+  --toy-panel-strong: rgba(255, 255, 255, 0.99);
+  --toy-border: rgba(232, 189, 135, 0.42);
+  --toy-shadow: 0 20px 56px rgba(196, 155, 108, 0.12);
+  --toy-text-main: #4a3420;
+  --toy-text-soft: rgba(74, 52, 32, 0.68);
+  --toy-chip: rgba(255, 190, 92, 0.14);
   background:
-    radial-gradient(circle at top left, rgba(140, 110, 255, 0.2), transparent 32%),
+    radial-gradient(circle at top left, rgba(255, 211, 158, 0.24), transparent 30%),
     linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
   color: var(--toy-text-main);
 }
@@ -309,9 +291,9 @@ onBeforeUnmount(() => {
 .toy-shell {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 18px 28px;
+  padding: 18px 18px 20px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .toy-config-header,
@@ -324,7 +306,7 @@ onBeforeUnmount(() => {
 }
 
 .toy-config-header {
-  padding: 26px 28px;
+  padding: 22px 24px;
   display: flex;
   gap: 18px;
   justify-content: space-between;
@@ -372,9 +354,9 @@ onBeforeUnmount(() => {
 }
 
 .toy-settings-card {
-  padding: 24px 26px;
+  padding: 20px 22px;
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .toy-settings-title {
@@ -385,8 +367,8 @@ onBeforeUnmount(() => {
 
 .toy-switch-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .toy-switch-grid-basic {
@@ -401,7 +383,7 @@ onBeforeUnmount(() => {
 }
 
 .toy-switch-item {
-  padding: 8px 14px;
+  padding: 6px 12px;
 }
 
 .toy-field-grid {
@@ -410,10 +392,14 @@ onBeforeUnmount(() => {
   gap: 14px;
 }
 
+.toy-field-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .toy-field-block {
-  padding: 16px 16px 14px;
+  padding: 14px 14px 12px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .toy-field-label {
@@ -445,19 +431,19 @@ onBeforeUnmount(() => {
 }
 
 :deep(.toy-config .toy-switch-control .v-selection-control__wrapper) {
-  width: 38px;
-  height: 22px;
+  width: 34px;
+  height: 20px;
 }
 
 :deep(.toy-config .toy-switch-control .v-switch__track) {
-  height: 22px;
-  min-width: 38px;
+  height: 20px;
+  min-width: 34px;
   border-radius: 999px;
 }
 
 :deep(.toy-config .toy-switch-control .v-switch__thumb) {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 :deep(.toy-config .v-field) {
@@ -466,7 +452,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.toy-config .v-field__input) {
-  min-height: 46px;
+  min-height: 42px;
   color: var(--toy-text-main);
 }
 

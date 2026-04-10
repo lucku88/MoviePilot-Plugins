@@ -37,7 +37,6 @@
       <section v-if="showSummary" class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">本次摘要</div>
             <h2>任务结果</h2>
           </div>
           <v-btn variant="text" size="small" @click="dismissSummary">关闭</v-btn>
@@ -50,7 +49,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">盲盒商店</div>
             <h2>玩偶盲盒商店</h2>
           </div>
         </div>
@@ -85,7 +83,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">我的盲盒</div>
             <h2>我的盲盒</h2>
           </div>
         </div>
@@ -112,7 +109,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">玩偶柜子</div>
             <h2>玩偶柜子</h2>
           </div>
         </div>
@@ -167,7 +163,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">我的展柜</div>
             <h2>我的展柜</h2>
           </div>
         </div>
@@ -216,7 +211,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">外展抢位</div>
             <h2>抢占他人展位</h2>
           </div>
         </div>
@@ -280,7 +274,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">外展记录</div>
             <h2>我的外展记录</h2>
           </div>
         </div>
@@ -300,7 +293,6 @@
       <section class="toy-panel">
         <div class="toy-panel-head">
           <div>
-            <div class="toy-panel-kicker">最近记录</div>
             <h2>执行历史</h2>
           </div>
         </div>
@@ -866,17 +858,17 @@ onBeforeUnmount(() => {
 <style scoped>
 .toy-page {
   min-height: 100vh;
-  --toy-bg-start: #f7f4ff;
-  --toy-bg-end: #efe8ff;
-  --toy-panel: rgba(255, 255, 255, 0.9);
-  --toy-panel-strong: rgba(255, 255, 255, 0.98);
-  --toy-border: rgba(124, 92, 255, 0.18);
-  --toy-chip: rgba(124, 92, 255, 0.12);
-  --toy-text-main: #2b2447;
-  --toy-text-soft: rgba(43, 36, 71, 0.72);
-  --toy-shadow: 0 24px 80px rgba(91, 72, 164, 0.12);
+  --toy-bg-start: #fbf7f1;
+  --toy-bg-end: #f5efe6;
+  --toy-panel: rgba(255, 255, 255, 0.92);
+  --toy-panel-strong: rgba(255, 255, 255, 0.99);
+  --toy-border: rgba(232, 189, 135, 0.38);
+  --toy-chip: rgba(255, 190, 92, 0.14);
+  --toy-text-main: #4a3420;
+  --toy-text-soft: rgba(74, 52, 32, 0.68);
+  --toy-shadow: 0 20px 56px rgba(196, 155, 108, 0.12);
   background:
-    radial-gradient(circle at top left, rgba(140, 110, 255, 0.18), transparent 34%),
+    radial-gradient(circle at top left, rgba(255, 211, 158, 0.24), transparent 32%),
     linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
   color: var(--toy-text-main);
 }
@@ -899,11 +891,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-shell {
-  max-width: 1380px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 24px 18px 36px;
+  padding: 18px 16px 24px;
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .toy-hero,
@@ -923,7 +915,7 @@ onBeforeUnmount(() => {
 
 .toy-hero,
 .toy-panel {
-  padding: 24px 26px;
+  padding: 20px 22px;
 }
 
 .toy-hero {
@@ -955,27 +947,27 @@ onBeforeUnmount(() => {
 }
 
 .toy-title {
-  margin: 12px 0 8px;
-  font-size: clamp(34px, 4vw, 48px);
+  margin: 10px 0 6px;
+  font-size: clamp(30px, 3.8vw, 42px);
   line-height: 1.05;
   letter-spacing: -0.03em;
 }
 
 .toy-subtitle {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--toy-text-soft);
 }
 
 .toy-hero-meta {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .toy-hero-meta span {
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 999px;
   background: var(--toy-panel-strong);
   border: 1px solid var(--toy-border);
@@ -986,7 +978,7 @@ onBeforeUnmount(() => {
 .toy-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
   align-items: center;
 }
@@ -994,11 +986,11 @@ onBeforeUnmount(() => {
 .toy-overview-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .toy-overview-card {
-  padding: 20px;
+  padding: 16px;
   text-align: center;
 }
 
@@ -1011,9 +1003,9 @@ onBeforeUnmount(() => {
 }
 
 .toy-overview-value {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 800;
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .toy-overview-desc {
@@ -1027,14 +1019,14 @@ onBeforeUnmount(() => {
 .toy-panel-head {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-start;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .toy-panel-head h2 {
-  margin: 8px 0 0;
-  font-size: 28px;
+  margin: 0;
+  font-size: 24px;
 }
 
 .toy-summary-list,
@@ -1045,7 +1037,7 @@ onBeforeUnmount(() => {
 
 .toy-summary-line,
 .toy-history-item {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--toy-border);
   border-radius: 18px;
   background: var(--toy-panel-strong);
@@ -1054,11 +1046,11 @@ onBeforeUnmount(() => {
 .toy-box-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .toy-box-card {
-  padding: 18px;
+  padding: 16px;
   text-align: center;
   background: var(--toy-panel-strong);
 }
@@ -1086,15 +1078,15 @@ onBeforeUnmount(() => {
 }
 
 .toy-box-name {
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 800;
 }
 
 .toy-box-desc {
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 8px;
+  font-size: 13px;
   color: var(--toy-text-soft);
-  min-height: 40px;
+  min-height: 36px;
 }
 
 .toy-box-lock {
@@ -1107,10 +1099,10 @@ onBeforeUnmount(() => {
 .toy-box-actions,
 .toy-search {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   justify-content: center;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .toy-number-input,
@@ -1128,8 +1120,8 @@ onBeforeUnmount(() => {
 .toy-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-bottom: 14px;
+  gap: 10px 16px;
+  margin-bottom: 12px;
 }
 
 .toy-sort-group {
@@ -1149,8 +1141,8 @@ onBeforeUnmount(() => {
 }
 
 .toy-selected-bar {
-  margin-bottom: 16px;
-  padding: 12px 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
   border-radius: 16px;
   background: var(--toy-panel-strong);
   border: 1px solid var(--toy-border);
@@ -1164,11 +1156,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
 }
 
 .toy-slot-grid {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
 .toy-remote-grid {
@@ -1178,7 +1170,7 @@ onBeforeUnmount(() => {
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
-  padding: 18px;
+  padding: 15px;
   text-align: center;
   background: var(--toy-panel-strong);
 }
@@ -1206,25 +1198,25 @@ onBeforeUnmount(() => {
 }
 
 .toy-slot-media {
-  width: 108px;
-  height: 108px;
-  margin: 0 auto 12px;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 10px;
   display: grid;
   place-items: center;
-  border-radius: 24px;
-  background: rgba(124, 92, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 190, 92, 0.1);
 }
 
 .toy-doll-placeholder,
 .toy-slot-empty {
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 12px;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 10px;
   display: grid;
   place-items: center;
-  font-size: 40px;
-  background: rgba(124, 92, 255, 0.08);
-  border-radius: 20px;
+  font-size: 36px;
+  background: rgba(255, 190, 92, 0.1);
+  border-radius: 18px;
 }
 
 .toy-doll-quality {
@@ -1238,7 +1230,7 @@ onBeforeUnmount(() => {
 .toy-doll-name,
 .toy-slot-name,
 .toy-remote-owner {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -1255,8 +1247,8 @@ onBeforeUnmount(() => {
 .toy-doll-count,
 .toy-slot-tip,
 .toy-history-time {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 6px;
+  font-size: 12px;
   color: var(--toy-text-soft);
 }
 
@@ -1286,14 +1278,14 @@ onBeforeUnmount(() => {
   background: var(--toy-chip);
   font-size: 12px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .toy-slot-progress {
-  margin: 14px 0 12px;
-  height: 8px;
+  margin: 12px 0 10px;
+  height: 7px;
   border-radius: 999px;
-  background: rgba(124, 92, 255, 0.12);
+  background: rgba(255, 190, 92, 0.14);
   overflow: hidden;
 }
 
@@ -1304,11 +1296,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-slot-activity {
-  margin: 0 auto 14px;
-  padding: 8px 14px;
+  margin: 0 auto 12px;
+  padding: 7px 12px;
   font-size: 12px;
   font-weight: 700;
-  background: rgba(124, 92, 255, 0.1);
+  background: rgba(255, 190, 92, 0.14);
   color: var(--toy-text-main);
 }
 
@@ -1355,7 +1347,7 @@ onBeforeUnmount(() => {
 }
 
 .toy-empty {
-  padding: 28px 16px;
+  padding: 22px 14px;
   border: 1px dashed var(--toy-border);
   border-radius: 18px;
   text-align: center;
@@ -1378,7 +1370,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 720px) {
   .toy-shell {
-    padding: 16px 12px 24px;
+    padding: 14px 10px 20px;
   }
 
   .toy-hero,

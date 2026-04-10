@@ -25,7 +25,7 @@ from app.schemas import NotificationType
 
 class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
-    plugin_desc = "SQ魔丸自动搬砖、清理沙滩，并支持清沙滩后自动炼造魔丸和自动兑换魔力。"
+    plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
     plugin_version = "0.1.10"
     plugin_author = "lucku88"

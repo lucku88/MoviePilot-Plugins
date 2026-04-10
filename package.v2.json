@@ -1,7 +1,7 @@
 {
   "SQFarm": {
     "name": "SQ农场",
-    "description": "SQ农场自动收菜、售出、种植，支持 Vue 面板、动态调度和站点 Cookie 同步。",
+    "description": "收菜、种植、出售、获取执行记录。",
     "labels": "工具,自动化,农场",
     "version": "0.4.12",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
@@ -31,7 +31,7 @@
   },
   "SQPill": {
     "name": "SQ魔丸",
-    "description": "SQ魔丸自动搬砖、清理沙滩，并支持清沙滩后自动炼造魔丸和自动兑换魔力。",
+    "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
     "labels": "工具,自动化,魔丸",
     "version": "0.1.10",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
@@ -53,13 +53,14 @@
   },
   "SQToy": {
     "name": "SQ玩偶",
-    "description": "SQ玩偶回收、展出与外展，支持 Vue 状态页、动态调度和站点 Cookie 同步。",
+    "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.12": "配置页改为自动回收/自动展出开关，移除动作参数和外展抢位开关，状态页去掉重复标题并收紧为更紧凑的浅色布局，同时放宽一轮内的回收与展出循环。",
       "v0.1.11": "补上运行前 1 分钟预刷新，移除等待窗口配置，并重做被抢占/提前收回的展位状态和 SQ表情风格界面。",
       "v0.1.9": "我的展柜概览改为按站点实际公式计算总展位上限和奖励加成，修复仍显示 3/3 和 +0% 的问题。",
       "v0.1.8": "补充我的展柜统计的页面元素兜底解析，修复展位上限与奖励加成显示不准确的问题。",

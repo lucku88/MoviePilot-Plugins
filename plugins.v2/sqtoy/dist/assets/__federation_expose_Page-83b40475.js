@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_aaec338d_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_cb9af6fc_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-aaec338d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-cb9af6fc"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -32,14 +32,12 @@ const _hoisted_14 = {
 };
 const _hoisted_15 = { class: "toy-panel-head" };
 const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "本次摘要"),
   /*#__PURE__*/_createElementVNode("h2", null, "任务结果")
 ], -1));
 const _hoisted_17 = { class: "toy-summary-list" };
 const _hoisted_18 = { class: "toy-panel" };
 const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "盲盒商店"),
     /*#__PURE__*/_createElementVNode("h2", null, "玩偶盲盒商店")
   ])
 ], -1));
@@ -63,7 +61,6 @@ const _hoisted_27 = ["onUpdate:modelValue"];
 const _hoisted_28 = { class: "toy-panel" };
 const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "我的盲盒"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的盲盒")
   ])
 ], -1));
@@ -83,7 +80,6 @@ const _hoisted_36 = ["onUpdate:modelValue", "max"];
 const _hoisted_37 = { class: "toy-panel" };
 const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "玩偶柜子"),
     /*#__PURE__*/_createElementVNode("h2", null, "玩偶柜子")
   ])
 ], -1));
@@ -125,7 +121,6 @@ const _hoisted_61 = {
 const _hoisted_62 = { class: "toy-panel" };
 const _hoisted_63 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "我的展柜"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的展柜")
   ])
 ], -1));
@@ -150,7 +145,6 @@ const _hoisted_75 = { class: "toy-slot-progress" };
 const _hoisted_76 = { class: "toy-panel" };
 const _hoisted_77 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "外展抢位"),
     /*#__PURE__*/_createElementVNode("h2", null, "抢占他人展位")
   ])
 ], -1));
@@ -191,7 +185,6 @@ const _hoisted_96 = { class: "toy-slot-progress" };
 const _hoisted_97 = { class: "toy-panel" };
 const _hoisted_98 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "外展记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "我的外展记录")
   ])
 ], -1));
@@ -211,7 +204,6 @@ const _hoisted_105 = { class: "toy-remote-meta" };
 const _hoisted_106 = { class: "toy-panel" };
 const _hoisted_107 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "toy-panel-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
 ], -1));
@@ -1359,6 +1351,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-aaec338d"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cb9af6fc"]]);
 
 export { PageView as default };

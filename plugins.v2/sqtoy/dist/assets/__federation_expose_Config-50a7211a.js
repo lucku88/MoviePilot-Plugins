@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_29e41fca_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_6e969b33_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-29e41fca"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-6e969b33"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-config-header" };
 const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-header-copy" }, [
@@ -28,13 +28,11 @@ const _hoisted_14 = { class: "toy-switch-grid" };
 const _hoisted_15 = { class: "toy-switch-item" };
 const _hoisted_16 = { class: "toy-switch-item" };
 const _hoisted_17 = { class: "toy-switch-item" };
-const _hoisted_18 = { class: "toy-field-grid" };
-const _hoisted_19 = { class: "toy-field-block" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-field-label" }, "站点Cookie", -1));
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-note" }, "启用【使用站点Cookie】后自动同步，关闭后才可手动填写。", -1));
-const _hoisted_22 = { class: "toy-field-block" };
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-field-label" }, "动作参数", -1));
-const _hoisted_24 = { class: "toy-inline-grid" };
+const _hoisted_18 = { class: "toy-switch-item" };
+const _hoisted_19 = { class: "toy-field-grid toy-field-grid-single" };
+const _hoisted_20 = { class: "toy-field-block" };
+const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-field-label" }, "站点Cookie", -1));
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "toy-note" }, "启用【使用站点Cookie】后自动同步，关闭后才可手动填写。", -1));
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -65,21 +63,11 @@ const config = reactive({
   notify: true,
   onlyonce: false,
   auto_cookie: true,
-  enable_target: true,
+  auto_collect: true,
+  auto_place: true,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
-  schedule_buffer_seconds: 5,
-  random_delay_max_seconds: 5,
-  http_timeout: 12,
-  http_retry_times: 3,
-  http_retry_delay: 1500,
-  skip_before_seconds: 60,
-  collect_retry: 3,
-  collect_retry_delay: 1200,
-  place_loop_limit: 10,
-  place_retry_delay: 1500,
-  max_target_try: 3,
 });
 
 const cookieReadonly = computed(() => !!config.auto_cookie);
@@ -108,7 +96,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim();
   if (!text) return ''
-  return text.length > 22 ? `${text.slice(0, 22)}...` : text
+  return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -371,10 +359,10 @@ return (_ctx, _cache) => {
           ]),
           _createElementVNode("div", _hoisted_16, [
             _createVNode(_component_v_switch, {
-              modelValue: config.enable_target,
-              "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.enable_target) = $event)),
+              modelValue: config.auto_collect,
+              "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.auto_collect) = $event)),
               class: "toy-switch-control",
-              label: "允许外展抢位",
+              label: "自动回收",
               color: "#7c5cff",
               density: "compact",
               "hide-details": "",
@@ -383,8 +371,20 @@ return (_ctx, _cache) => {
           ]),
           _createElementVNode("div", _hoisted_17, [
             _createVNode(_component_v_switch, {
+              modelValue: config.auto_place,
+              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.auto_place) = $event)),
+              class: "toy-switch-control",
+              label: "自动展出",
+              color: "#7c5cff",
+              density: "compact",
+              "hide-details": "",
+              inset: ""
+            }, null, 8, ["modelValue"])
+          ]),
+          _createElementVNode("div", _hoisted_18, [
+            _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
-              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.force_ipv4) = $event)),
+              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.force_ipv4) = $event)),
               class: "toy-switch-control",
               label: "优先 IPv4",
               color: "#7c5cff",
@@ -394,65 +394,20 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_18, [
-          _createElementVNode("div", _hoisted_19, [
-            _hoisted_20,
+        _createElementVNode("div", _hoisted_19, [
+          _createElementVNode("div", _hoisted_20, [
+            _hoisted_21,
             _createVNode(_component_v_text_field, {
               modelValue: cookieFieldValue.value,
-              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((cookieFieldValue).value = $event)),
+              "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((cookieFieldValue).value = $event)),
               label: "站点Cookie",
               variant: "outlined",
               density: "comfortable",
               disabled: cookieReadonly.value,
               readonly: cookieReadonly.value,
-              placeholder: cookieReadonly.value ? '使用站点Cookie后自动同步' : '例如 c_secure_pass=...'
+              placeholder: cookieReadonly.value ? '启用后自动同步已配置站点的 Cookie' : '例如 c_secure_pass=...'
             }, null, 8, ["modelValue", "disabled", "readonly", "placeholder"]),
-            _hoisted_21
-          ]),
-          _createElementVNode("div", _hoisted_22, [
-            _hoisted_23,
-            _createElementVNode("div", _hoisted_24, [
-              _createVNode(_component_v_text_field, {
-                modelValue: config.collect_retry,
-                "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.collect_retry) = $event)),
-                label: "回收重试次数",
-                type: "number",
-                variant: "outlined",
-                density: "comfortable"
-              }, null, 8, ["modelValue"]),
-              _createVNode(_component_v_text_field, {
-                modelValue: config.collect_retry_delay,
-                "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.collect_retry_delay) = $event)),
-                label: "回收重试间隔(ms)",
-                type: "number",
-                variant: "outlined",
-                density: "comfortable"
-              }, null, 8, ["modelValue"]),
-              _createVNode(_component_v_text_field, {
-                modelValue: config.place_loop_limit,
-                "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.place_loop_limit) = $event)),
-                label: "单轮放置循环上限",
-                type: "number",
-                variant: "outlined",
-                density: "comfortable"
-              }, null, 8, ["modelValue"]),
-              _createVNode(_component_v_text_field, {
-                modelValue: config.place_retry_delay,
-                "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.place_retry_delay) = $event)),
-                label: "放置循环间隔(ms)",
-                type: "number",
-                variant: "outlined",
-                density: "comfortable"
-              }, null, 8, ["modelValue"]),
-              _createVNode(_component_v_text_field, {
-                modelValue: config.max_target_try,
-                "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.max_target_try) = $event)),
-                label: "随机目标尝试次数",
-                type: "number",
-                variant: "outlined",
-                density: "comfortable"
-              }, null, 8, ["modelValue"])
-            ])
+            _hoisted_22
           ])
         ])
       ])
@@ -462,6 +417,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-29e41fca"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6e969b33"]]);
 
 export { ConfigView as default };
