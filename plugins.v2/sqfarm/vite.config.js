@@ -1,59 +1,10 @@
-import fs from 'node:fs'
-import path from 'node:path'
-
-import federation from '@originjs/vite-plugin-federation'
-import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-
-function sqfarmAssetIsolation() {
-  return {
-    name: 'sqfarm-asset-isolation',
-    closeBundle() {
-      const distDir = path.resolve(__dirname, 'dist/assets')
-      const originalCss = path.join(distDir, 'style.css')
-      const isolatedCssName = 'sqfarm-style.css'
-      const isolatedCss = path.join(distDir, isolatedCssName)
-
-      if (!fs.existsSync(originalCss)) {
-        return
-      }
-
-      if (fs.existsSync(isolatedCss)) {
-        fs.rmSync(isolatedCss, { force: true })
-      }
-      fs.renameSync(originalCss, isolatedCss)
-
-      const patchTargets = []
-      const queue = [distDir]
-      while (queue.length) {
-        const current = queue.shift()
-        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-          const fullPath = path.join(current, entry.name)
-          if (entry.isDirectory()) {
-            queue.push(fullPath)
-            continue
-          }
-          if (/\.(js|html)$/i.test(entry.name)) {
-            patchTargets.push(fullPath)
-          }
-        }
-      }
-
-      for (const filePath of patchTargets) {
-        const content = fs.readFileSync(filePath, 'utf-8')
-        if (!content.includes('style.css')) {
-          continue
-        }
-        fs.writeFileSync(filePath, content.replaceAll('style.css', isolatedCssName), 'utf-8')
-      }
-    },
-  }
-}
+import vue from '@vitejs/plugin-vue'
+import federation from '@originjs/vite-plugin-federation'
 
 export default defineConfig({
   plugins: [
     vue(),
-    sqfarmAssetIsolation(),
     federation({
       name: 'SQFarm',
       filename: 'remoteEntry.js',
@@ -79,7 +30,7 @@ export default defineConfig({
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name]-[hash].js',
-        assetFileNames: '[name]-[hash][extname]',
+        assetFileNames: '[name][extname]',
       },
     },
   },

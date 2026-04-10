@@ -1,11 +1,11 @@
 {
   "name": "sqfarm",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs=require('fs');const src='dist/assets/style.css';const dest='dist/assets/assets/style.css';if(fs.existsSync(src)){fs.mkdirSync('dist/assets/assets',{recursive:true});fs.copyFileSync(src,dest);}\"",
     "preview": "vite preview"
   },
   "dependencies": {
