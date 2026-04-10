@@ -27,7 +27,7 @@ class SQPill(_PluginBase):
     plugin_name = "SQ魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqpill_"
@@ -37,6 +37,7 @@ class SQPill(_PluginBase):
     DEFAULT_SITE_URL = "https://si-qi.xyz"
     DEFAULT_SITE_DOMAIN = "si-qi.xyz"
     DEFAULT_BRICK_CRON = "5 0 * * *"
+    PRE_REFRESH_SECONDS = 60
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -102,6 +103,7 @@ class SQPill(_PluginBase):
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
+    _next_trigger_mode: str = "run"
     _bootstrap_pending: bool = False
 
     def __init__(self):
@@ -210,6 +212,17 @@ class SQPill(_PluginBase):
             if self._force_ipv4:
                 urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
+            if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+                pill_status = self._refresh_state(reason="pre-run-refresh", record_run=False)
+                logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
+                return {
+                    "success": True,
+                    "message": "运行前状态已刷新",
+                    "lines": [],
+                    "pill_status": pill_status,
+                    "status": self._build_status(auto_refresh=False),
+                }
+
             rand_delay = random.randint(0, max(0, self._random_delay_max_seconds))
             if rand_delay:
                 logger.info("INFO 随机延迟 %s 秒后执行...", rand_delay)
@@ -298,7 +311,7 @@ class SQPill(_PluginBase):
         return self.run_job(force=True, reason="onlyonce")
 
     def _auto_worker(self):
-        return self.run_job(force=True, reason="smart")
+        return self.run_job(force=False, reason="schedule")
 
     def _bootstrap_worker(self):
         self._bootstrap_pending = False
@@ -422,6 +435,9 @@ class SQPill(_PluginBase):
             "config": self._get_config(),
         }
 
+    def _is_pre_refresh_trigger(self) -> bool:
+        return (self._load_saved_next_trigger_mode() or "run") == "refresh"
+
     def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
         return {
             "enabled": self._enabled,
@@ -522,7 +538,7 @@ class SQPill(_PluginBase):
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
 
-    def _refresh_state(self, reason: str = "refresh") -> Dict[str, Any]:
+    def _refresh_state(self, reason: str = "refresh", record_run: bool = True) -> Dict[str, Any]:
         self._ensure_cookie()
         if self._force_ipv4:
             urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
@@ -530,7 +546,7 @@ class SQPill(_PluginBase):
         data = self._fetch_page_state(session)
         next_run = self._compute_next_run(data)
         self._schedule_next_run(next_run, reason)
-        return self._refresh_and_store_status(data, next_run, [])
+        return self._refresh_and_store_status(data, next_run, [], record_run=record_run)
 
     def _ensure_cookie(self):
         if self._auto_cookie:
@@ -1373,7 +1389,11 @@ class SQPill(_PluginBase):
     def _get_next_run_for_service(self) -> Optional[datetime]:
         if self._bootstrap_pending:
             return self._aware_now() + timedelta(seconds=3)
-        return self._load_saved_next_trigger()
+        next_trigger = self._next_trigger_time or self._load_saved_next_trigger()
+        if not next_trigger:
+            return None
+        now = self._aware_now()
+        return next_trigger if next_trigger > now else now + timedelta(seconds=5)
 
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
         next_run_ts = self._normalize_timestamp(next_run_ts, 0)
@@ -1381,18 +1401,32 @@ class SQPill(_PluginBase):
             next_run_ts = 0
         if next_run_ts and next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
-            next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+            now = self._aware_now()
+            pre_refresh_time = next_run - timedelta(seconds=self.PRE_REFRESH_SECONDS)
+            if pre_refresh_time > now + timedelta(seconds=5):
+                next_trigger = pre_refresh_time
+                trigger_mode = "refresh"
+            else:
+                next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+                min_trigger = now + timedelta(seconds=5)
+                if next_trigger < min_trigger:
+                    next_trigger = min_trigger
+                trigger_mode = "run"
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
+            self._next_trigger_mode = trigger_mode
             self.save_data("next_run_time", self._format_time(next_run))
             self.save_data("next_trigger_time", self._format_time(next_trigger))
+            self.save_data("next_trigger_mode", trigger_mode)
             logger.info("INFO 最近可执行时间：%s", self._format_time(next_run))
             logger.info("INFO 计划触发时间：%s", self._format_time(next_trigger))
         else:
             self._next_run_time = None
             self._next_trigger_time = None
+            self._next_trigger_mode = "run"
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
+            self.save_data("next_trigger_mode", "")
             logger.info("INFO 当前没有已识别的下一次执行时间")
 
         if self._enabled:
@@ -1424,6 +1458,12 @@ class SQPill(_PluginBase):
         self._next_trigger_time = self._parse_datetime(raw)
         return self._next_trigger_time
 
+    def _load_saved_next_trigger_mode(self) -> str:
+        if self._next_trigger_mode:
+            return self._next_trigger_mode
+        self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
+        return self._next_trigger_mode
+
     def _compute_next_run(self, data: dict) -> Optional[int]:
         candidates: List[int] = []
         server_now = self._resolve_server_now(data.get("server_now"))
@@ -1452,12 +1492,19 @@ class SQPill(_PluginBase):
             logger.warning("%s CRON 表达式无效：%s | %s", self.plugin_name, expr, err)
             return None
 
-    def _refresh_and_store_status(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
+    def _refresh_and_store_status(
+        self,
+        data: dict,
+        next_run: Optional[int],
+        summary_lines: List[str],
+        record_run: bool = True,
+    ) -> Dict[str, Any]:
         lines = list(summary_lines or [])
         self.save_data("state", self._build_state_record(data, next_run, lines))
         pill_status = self._build_ui_state(data, next_run, lines)
         self.save_data("pill_status", pill_status)
-        self.save_data("last_run", self._format_time(self._aware_now()))
+        if record_run:
+            self.save_data("last_run", self._format_time(self._aware_now()))
         return pill_status
 
     def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> dict:
