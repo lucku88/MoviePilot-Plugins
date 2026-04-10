@@ -4,14 +4,14 @@
       <section class="pill-hero">
         <div class="pill-copy">
           <div class="pill-badge">SQ魔丸</div>
-          <h1 class="pill-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
+          <h1 class="pill-title">{{ pill.title || '魔丸工坊' }}</h1>
           <p class="pill-subtitle">
-            {{ pill.subtitle || '自动搬砖、自动清沙滩，支持清沙滩后自动炼造和自动兑换。' }}
+            {{ pill.subtitle || '兑换、搬砖、清沙滩、炼造、获取执行记录。' }}
           </p>
           <div class="pill-hero-meta">
-            <span>最近执行 {{ status.last_run || '暂无' }}</span>
-            <span>下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
-            <span>Cookie {{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
+            <span class="pill-meta-chip">最近执行 {{ status.last_run || '暂无' }}</span>
+            <span class="pill-meta-chip">下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
+            <span class="pill-meta-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
         </div>
         <div class="pill-actions">
@@ -214,7 +214,6 @@ const pluginBase = '/plugin/SQPill'
 let timer = null
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
 let pendingRefreshTimer = null
 
 const pill = computed(() => status.pill_status || {})
@@ -459,34 +458,69 @@ function findThemeNode() {
   let current = rootEl.value
   while (current) {
     if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+  const nodes = getThemeNodes()
+  if (nodes.some(nodeHasDarkHint)) {
+    isDarkTheme.value = true
+    return
+  }
+  if (nodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
 function bindThemeObserver() {
-  themeObserver?.disconnect()
-  themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode()
-    if (nextNode && nextNode !== observedThemeNode) {
-      bindThemeObserver()
-      return
-    }
-    detectTheme()
-  })
-  observedThemeNode = findThemeNode()
-  if (observedThemeNode) {
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme', 'class'] })
+  detectTheme()
+  if (window.MutationObserver) {
+    themeObserver = new MutationObserver(detectTheme)
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] })
+    })
+  }
+  if (window.matchMedia) {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    mediaQuery.addEventListener?.('change', detectTheme)
   }
 }
 
@@ -511,13 +545,8 @@ function tick() {
 }
 
 onMounted(async () => {
-  detectTheme()
   bindThemeObserver()
   loadDismissedSummaryKey()
-  if (window.matchMedia) {
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener?.('change', detectTheme)
-  }
   await loadStatus()
   timer = window.setInterval(tick, 1000)
 })
@@ -536,20 +565,19 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .pill-page {
-  --pill-bg: linear-gradient(180deg, #f7f2e8 0%, #f0ece2 100%);
-  --pill-card: rgba(255, 255, 255, 0.88);
-  --pill-card-strong: #ffffff;
-  --pill-text: #203135;
-  --pill-muted: #60757c;
-  --pill-border: rgba(60, 83, 84, 0.16);
-  --pill-shadow: 0 16px 30px rgba(90, 78, 36, 0.08);
-  --pill-accent: #ff8f3d;
-  --pill-accent-soft: rgba(255, 143, 61, 0.14);
-  min-height: 100%;
-  padding: 20px 0 32px;
-  background: var(--pill-bg);
+  --pill-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%);
+  --pill-card: rgba(255, 255, 255, 0.9);
+  --pill-card-strong: rgba(255, 255, 255, 0.98);
+  --pill-text: #262638;
+  --pill-muted: #76778b;
+  --pill-border: rgba(129, 133, 164, 0.18);
+  --pill-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
+  --pill-accent: #7c5cff;
+  --pill-accent-soft: rgba(124, 92, 255, 0.1);
+  min-height: auto;
+  padding: 10px 0 8px;
+  background: transparent;
   color: var(--pill-text);
-  overflow-x: hidden;
 }
 
 .pill-page,
@@ -558,31 +586,31 @@ onBeforeUnmount(() => {
 }
 
 .pill-page.is-dark-theme {
-  --pill-bg: linear-gradient(180deg, #151b1b 0%, #101515 100%);
-  --pill-card: rgba(26, 34, 34, 0.92);
-  --pill-card-strong: #1f2727;
-  --pill-text: #f2f0e7;
-  --pill-muted: #98aca8;
-  --pill-border: rgba(166, 192, 183, 0.16);
-  --pill-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
-  --pill-accent: #ffb24c;
-  --pill-accent-soft: rgba(255, 178, 76, 0.18);
+  --pill-bg: radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%);
+  --pill-card: rgba(26, 28, 39, 0.92);
+  --pill-card-strong: rgba(19, 21, 30, 0.98);
+  --pill-text: #f3f5ff;
+  --pill-muted: #9fa7c4;
+  --pill-border: rgba(124, 92, 255, 0.18);
+  --pill-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  --pill-accent: #8b6cff;
+  --pill-accent-soft: rgba(139, 108, 255, 0.14);
 }
 
 .pill-shell {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1100px;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 16px;
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .pill-hero,
 .pill-panel {
-  border-radius: 28px;
-  padding: 20px;
+  border-radius: 18px;
+  padding: 16px;
   background: var(--pill-card);
   border: 1px solid var(--pill-border);
   box-shadow: var(--pill-shadow);
@@ -598,7 +626,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  padding: 7px 12px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -611,7 +639,7 @@ onBeforeUnmount(() => {
 
 .pill-title {
   margin: 10px 0 6px;
-  font-size: clamp(24px, 3.4vw, 36px);
+  font-size: clamp(24px, 3.2vw, 32px);
   line-height: 1.05;
 }
 
@@ -619,6 +647,16 @@ onBeforeUnmount(() => {
 .pill-panel-note,
 .pill-history-lines {
   color: var(--pill-muted);
+}
+
+.pill-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-card-strong);
 }
 
 .pill-hero-meta,
@@ -632,12 +670,12 @@ onBeforeUnmount(() => {
 }
 
 .pill-hero-meta {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   font-size: 13px;
 }
 
 .pill-actions {
-  grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(104px, 100%), 1fr));
 }
 
 .pill-stat-grid {
@@ -649,13 +687,13 @@ onBeforeUnmount(() => {
 .pill-history-item,
 .pill-inventory-card,
 .pill-tool-block {
-  border-radius: 22px;
+  border-radius: 16px;
   border: 1px solid var(--pill-border);
   background: var(--pill-card-strong);
 }
 
 .pill-stat-card {
-  padding: 18px;
+  padding: 16px;
 }
 
 .pill-stat-label,
@@ -667,8 +705,8 @@ onBeforeUnmount(() => {
 }
 
 .pill-stat-value {
-  margin-top: 10px;
-  font-size: clamp(26px, 4vw, 38px);
+  margin-top: 8px;
+  font-size: clamp(24px, 3.8vw, 34px);
   font-weight: 900;
 }
 
@@ -682,7 +720,7 @@ onBeforeUnmount(() => {
 
 .pill-panel-head h2 {
   margin: 6px 0 0;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .pill-summary-list {
@@ -692,7 +730,7 @@ onBeforeUnmount(() => {
 
 .pill-summary-line,
 .pill-history-item {
-  padding: 16px 18px;
+  padding: 14px 16px;
 }
 
 .pill-action-grid {
@@ -701,7 +739,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-status-card {
-  padding: 18px;
+  padding: 16px;
 }
 
 .pill-status-chip {
@@ -720,13 +758,13 @@ onBeforeUnmount(() => {
 }
 
 .pill-status-title {
-  font-size: clamp(24px, 3.4vw, 34px);
+  font-size: clamp(22px, 3vw, 30px);
   font-weight: 900;
   line-height: 1.05;
 }
 
 .pill-status-countdown {
-  font-size: clamp(18px, 2vw, 22px);
+  font-size: clamp(16px, 1.9vw, 20px);
   font-weight: 800;
   color: var(--pill-accent);
 }
@@ -739,7 +777,7 @@ onBeforeUnmount(() => {
 }
 
 .pill-tool-block {
-  padding: 14px 16px;
+  padding: 14px;
   display: grid;
   gap: 12px;
 }
@@ -783,13 +821,13 @@ onBeforeUnmount(() => {
   border-radius: 14px;
   background: var(--pill-card-strong);
   color: var(--pill-text);
-  padding: 12px 14px;
+  padding: 10px 12px;
   outline: none;
 }
 
 .pill-number-input:focus {
-  border-color: rgba(255, 143, 61, 0.5);
-  box-shadow: 0 0 0 3px rgba(255, 143, 61, 0.12);
+  border-color: rgba(124, 92, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.12);
 }
 
 .pill-inventory-grid {
@@ -829,9 +867,13 @@ onBeforeUnmount(() => {
 }
 
 .pill-empty {
-  padding: 24px;
+  padding: 20px;
   text-align: center;
   color: var(--pill-muted);
+}
+
+:deep(.pill-page .v-alert) {
+  border-radius: 18px;
 }
 
 @media (max-width: 860px) {
@@ -843,13 +885,13 @@ onBeforeUnmount(() => {
 
 @media (max-width: 720px) {
   .pill-shell {
-    padding: 0 8px;
+    padding: 0 10px;
   }
 
   .pill-hero,
   .pill-panel {
-    padding: 18px;
-    border-radius: 22px;
+    padding: 16px;
+    border-radius: 18px;
   }
 
   .pill-panel-head {

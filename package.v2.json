@@ -33,11 +33,12 @@
     "name": "SQ魔丸",
     "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
     "labels": "工具,自动化,魔丸",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.11": "精简配置页，移除网络设置、搬砖节奏和当前说明区块，同时让 SQ魔丸 的状态页与配置页主题和排版对齐朱雀助手风格。",
       "v0.1.10": "修复网络超时后的异常收尾和自动重试日志，避免 LoggerManager.exception 导致调度任务中断。",
       "v0.1.9": "通知统一为分隔线报告，仅在本次存在实际动作时发送。",
       "v0.1.8": "简化状态页与配置页文案和布局。",

@@ -1,169 +1,122 @@
 <template>
   <div ref="rootEl" class="pill-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="pill-shell">
-      <section class="pill-hero">
-        <div>
+      <header class="pill-config-header">
+        <div class="pill-header-copy">
           <div class="pill-badge">SQ魔丸</div>
-          <h1 class="pill-title">配置中心</h1>
-          <p class="pill-subtitle">
-            搬砖按 CRON 运行，沙滩按冷却时间动态调度。自动炼造和自动兑换会在清沙滩后按当前配置执行。
-          </p>
+          <h1 class="pill-page-title">插件配置</h1>
+          <p class="pill-page-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
         </div>
-        <div class="pill-actions">
+        <div class="pill-header-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
           <v-btn variant="text" @click="emit('close')">关闭</v-btn>
         </div>
-      </section>
+      </header>
 
-      <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">
+      <v-alert v-if="message.text" :type="message.type" variant="tonal">
         {{ message.text }}
       </v-alert>
 
-      <section class="pill-grid">
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">基础开关</div>
-              <h2>运行控制</h2>
-            </div>
+      <section class="pill-settings-card">
+        <h2 class="pill-settings-title">⚙️ 基本设置</h2>
+        <div class="pill-switch-grid pill-switch-grid-basic">
+          <div class="pill-switch-item">
+            <v-switch v-model="config.enabled" class="pill-switch-control" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-grid">
-            <v-switch v-model="config.enabled" label="启用插件" color="success" hide-details />
-            <v-switch v-model="config.notify" label="发送通知" color="primary" hide-details />
-            <v-switch v-model="config.onlyonce" label="保存后执行一次" color="warning" hide-details />
-            <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
-            <v-switch v-model="config.enable_brick" label="自动搬砖" color="deep-orange" hide-details />
-            <v-switch v-model="config.enable_beach" label="自动清沙滩" color="teal" hide-details />
-            <v-switch v-model="config.auto_craft" label="自动炼造魔丸" color="deep-purple" hide-details />
-            <v-switch v-model="config.auto_exchange" label="自动兑换魔力" color="amber" hide-details />
-            <v-switch v-model="config.use_proxy" label="使用系统代理" color="info" hide-details />
-            <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
+          <div class="pill-switch-item">
+            <v-switch v-model="config.use_proxy" class="pill-switch-control" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
           </div>
-        </article>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.notify" class="pill-switch-control" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.onlyonce" class="pill-switch-control" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
+      </section>
 
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">调度策略</div>
-              <h2>时间配置</h2>
-            </div>
-          </div>
-          <VCronField
-            v-model="config.brick_cron"
-            label="执行周期(cron)"
-            hint="例如：5 0 * * * 表示每天 00:05 执行搬砖"
-            persistent-hint
-            density="compact"
-            class="pill-cron-field"
-          />
-          <div class="pill-form-grid pill-form-grid-2">
-            <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.ready_retry_seconds" label="快速重试秒数" type="number" variant="outlined" density="comfortable" />
-          </div>
-          <div class="pill-note">
-            搬砖严格按上面的 CRON 运行，默认每天 00:05。沙滩不走 CRON，而是按页面返回的冷却时间自动调度。
-          </div>
-        </article>
+      <section class="pill-settings-card">
+        <h2 class="pill-settings-title">🧩 功能设置</h2>
 
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">自动处理</div>
-              <h2>炼造与兑换</h2>
+        <div class="pill-switch-grid">
+          <div class="pill-switch-item">
+            <v-switch v-model="config.auto_cookie" class="pill-switch-control" label="使用站点Cookie" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.enable_brick" class="pill-switch-control" label="搬砖" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.enable_beach" class="pill-switch-control" label="清沙滩" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.auto_craft" class="pill-switch-control" label="炼造" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.auto_exchange" class="pill-switch-control" label="兑换" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="pill-switch-item">
+            <v-switch v-model="config.force_ipv4" class="pill-switch-control" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
+
+        <div class="pill-field-grid">
+          <div class="pill-field-block">
+            <div class="pill-field-label">站点Cookie</div>
+            <v-text-field
+              v-model="cookieFieldValue"
+              label="站点Cookie"
+              variant="outlined"
+              density="comfortable"
+              :disabled="cookieReadonly"
+              :readonly="cookieReadonly"
+              :placeholder="cookieReadonly ? '启用站点Cookie后自动同步' : '例如 c_secure_pass=...'"
+            />
+            <div class="pill-note">
+              启用【使用站点Cookie】后会自动读取已配置站点的 Cookie，关闭后才可手动修改。
             </div>
           </div>
-          <div class="pill-form-grid">
+
+          <div class="pill-field-block">
+            <div class="pill-field-label">执行周期</div>
+            <VCronField
+              v-model="config.brick_cron"
+              label="搬砖执行周期(cron)"
+              density="comfortable"
+              class="pill-cron-field"
+            />
+          </div>
+
+          <div class="pill-field-block">
+            <div class="pill-field-label">保留材料数量</div>
             <v-text-field
               v-model="config.reserve_material_count"
-              label="自动时每种材料保留数量"
+              label="每种材料保留数量"
               type="number"
               variant="outlined"
               density="comfortable"
             />
+          </div>
+
+          <div class="pill-field-block">
+            <div class="pill-field-label">保留魔丸数量</div>
             <v-text-field
               v-model="config.reserve_magic_pill_count"
-              label="自动时保留魔丸数量"
+              label="魔丸保留数量"
               type="number"
               variant="outlined"
               density="comfortable"
             />
           </div>
-          <div class="pill-note">
-            开启自动炼造或自动兑换后，插件会在清沙滩成功后按当前库存执行，不额外创建新的运行周期。
-          </div>
-        </article>
-
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">搬砖节奏</div>
-              <h2>动作配置</h2>
-            </div>
-          </div>
-          <div class="pill-form-grid">
-            <v-text-field v-model="config.move_delay_min_ms" label="搬砖间隔最小毫秒" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.move_delay_max_ms" label="搬砖间隔最大毫秒" type="number" variant="outlined" density="comfortable" />
-          </div>
-          <div class="pill-note">
-            每天搬砖次数固定按 50 次处理；若本轮搬完后页面仍显示未达上限，会在 60 秒后自动重试。
-          </div>
-        </article>
-
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">网络设置</div>
-              <h2>连接参数</h2>
-            </div>
-          </div>
-          <div class="pill-form-grid">
-            <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
-          </div>
-        </article>
-
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">手动 Cookie</div>
-              <h2>兜底配置</h2>
-            </div>
-          </div>
-          <v-textarea
-            v-model="config.cookie"
-            label="SQ Cookie"
-            rows="6"
-            variant="outlined"
-            density="comfortable"
-            placeholder="例如 c_secure_pass=..."
-          />
-          <div class="pill-note">
-            默认站点固定为 <code>si-qi.xyz</code>。开启站点 Cookie 同步后，插件会优先读取 MoviePilot 站点管理里的 Cookie。
-          </div>
-        </article>
-
-        <article class="pill-panel pill-panel-wide">
-          <div class="pill-panel-head">
-            <div>
-              <div class="pill-panel-kicker">当前说明</div>
-              <h2>功能状态</h2>
-            </div>
-          </div>
-          <div class="pill-note">
-            当前版本支持自动搬砖、自动清沙滩、手动兑换魔力、一键炼造魔丸，以及清沙滩后自动炼造与自动兑换。物品栏只用于展示当前数量。
-          </div>
-        </article>
+        </div>
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -202,13 +155,33 @@ const config = reactive({
   reserve_magic_pill_count: 0,
 })
 
+const cookieReadonly = computed(() => !!config.auto_cookie)
+const cookieFieldValue = computed({
+  get() {
+    if (config.auto_cookie) {
+      return truncateCookie(config.cookie)
+    }
+    return config.cookie
+  },
+  set(value) {
+    if (!config.auto_cookie) {
+      config.cookie = value || ''
+    }
+  },
+})
+
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function truncateCookie(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text.length > 22 ? `${text.slice(0, 22)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -253,69 +226,110 @@ function findThemeNode() {
   let current = rootEl.value
   while (current) {
     if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme')) return document.body
-  if (document.documentElement?.getAttribute('data-theme')) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function nodeHasDarkHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
+}
+
+function nodeHasLightHint(node) {
+  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
+}
+
 function detectTheme() {
-  const themeNode = findThemeNode()
-  const themeValue = themeNode?.getAttribute?.('data-theme') || ''
-  const darkThemes = new Set(['dark', 'purple', 'transparent'])
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  isDarkTheme.value = darkThemes.has(themeValue) || (!themeValue && !!prefersDark)
+  const nodes = getThemeNodes()
+  if (nodes.some(nodeHasDarkHint)) {
+    isDarkTheme.value = true
+    return
+  }
+  if (nodes.some(nodeHasLightHint)) {
+    isDarkTheme.value = false
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
 function bindThemeObserver() {
-  themeObserver?.disconnect()
-  themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode()
-    if (nextNode && nextNode !== observedThemeNode) {
-      bindThemeObserver()
-      return
-    }
-    detectTheme()
-  })
-  observedThemeNode = findThemeNode()
-  if (observedThemeNode) {
-    themeObserver.observe(observedThemeNode, { attributes: true, attributeFilter: ['data-theme', 'class'] })
-  }
-}
-
-onMounted(async () => {
   detectTheme()
-  bindThemeObserver()
+  if (window.MutationObserver) {
+    themeObserver = new MutationObserver(detectTheme)
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] })
+    })
+  }
   if (window.matchMedia) {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     mediaQuery.addEventListener?.('change', detectTheme)
   }
+}
+
+onMounted(async () => {
+  bindThemeObserver()
   await loadConfig()
 })
 
 onBeforeUnmount(() => {
-  themeObserver?.disconnect()
+  themeObserver?.disconnect?.()
   mediaQuery?.removeEventListener?.('change', detectTheme)
 })
 </script>
 
 <style scoped>
 .pill-config {
-  --pill-bg: linear-gradient(180deg, #f7f2e8 0%, #f0ece2 100%);
-  --pill-card: rgba(255, 255, 255, 0.88);
-  --pill-card-strong: #ffffff;
-  --pill-text: #203135;
-  --pill-muted: #60757c;
-  --pill-border: rgba(60, 83, 84, 0.16);
-  --pill-shadow: 0 16px 30px rgba(90, 78, 36, 0.08);
-  --pill-accent: #ff8f3d;
-  --pill-accent-soft: rgba(255, 143, 61, 0.14);
-  min-height: 100%;
-  padding: 20px 0 32px;
-  background: var(--pill-bg);
+  --pill-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%);
+  --pill-panel: rgba(255, 255, 255, 0.9);
+  --pill-panel-strong: rgba(255, 255, 255, 0.98);
+  --pill-text: #262638;
+  --pill-muted: #76778b;
+  --pill-border: rgba(129, 133, 164, 0.18);
+  --pill-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
+  --pill-accent: #7c5cff;
+  --pill-accent-soft: rgba(124, 92, 255, 0.1);
+  min-height: auto;
+  padding: 10px 0 8px;
+  background: transparent;
   color: var(--pill-text);
-  overflow-x: hidden;
+}
+
+.pill-config.is-dark-theme {
+  --pill-bg: radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%);
+  --pill-panel: rgba(26, 28, 39, 0.92);
+  --pill-panel-strong: rgba(19, 21, 30, 0.98);
+  --pill-text: #f3f5ff;
+  --pill-muted: #9fa7c4;
+  --pill-border: rgba(124, 92, 255, 0.18);
+  --pill-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  --pill-accent: #8b6cff;
+  --pill-accent-soft: rgba(139, 108, 255, 0.14);
 }
 
 .pill-config,
@@ -323,136 +337,225 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-.pill-config.is-dark-theme {
-  --pill-bg: linear-gradient(180deg, #151b1b 0%, #101515 100%);
-  --pill-card: rgba(26, 34, 34, 0.92);
-  --pill-card-strong: #1f2727;
-  --pill-text: #f2f0e7;
-  --pill-muted: #98aca8;
-  --pill-border: rgba(166, 192, 183, 0.16);
-  --pill-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
-  --pill-accent: #ffb24c;
-  --pill-accent-soft: rgba(255, 178, 76, 0.18);
-}
-
 .pill-shell {
-  width: 100%;
-  max-width: 1080px;
-  min-width: 0;
-  padding: 0 12px;
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 0 16px;
   display: grid;
-  gap: 20px;
+  gap: 14px;
 }
 
-.pill-hero,
-.pill-panel {
-  border-radius: 28px;
-  padding: 22px;
-  background: var(--pill-card);
+.pill-config-header,
+.pill-settings-card {
   border: 1px solid var(--pill-border);
+  border-radius: 18px;
+  background: var(--pill-panel);
   box-shadow: var(--pill-shadow);
 }
 
-.pill-hero {
+.pill-config-header {
+  padding: 16px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .pill-badge {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
-  padding: 8px 14px;
+  justify-content: center;
+  padding: 6px 12px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
   background: var(--pill-accent-soft);
   color: var(--pill-accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.pill-title {
+.pill-page-title {
   margin: 10px 0 6px;
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: clamp(24px, 3.8vw, 32px);
+  line-height: 1.08;
 }
 
-.pill-subtitle,
+.pill-page-subtitle,
 .pill-note {
   color: var(--pill-muted);
 }
 
-.pill-actions,
-.pill-grid,
-.pill-switch-grid,
-.pill-form-grid {
+.pill-header-actions {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 10px;
 }
 
-.pill-actions {
-  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+.pill-settings-card {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
 }
 
-.pill-grid {
-  grid-template-columns: 1fr;
-}
-
-.pill-panel-wide {
-  grid-column: 1 / -1;
-}
-
-.pill-panel-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.pill-panel-head h2 {
-  margin: 6px 0 0;
-  font-size: 26px;
-}
-
-.pill-panel-kicker {
-  color: var(--pill-muted);
-  font-size: 13px;
-  font-weight: 700;
+.pill-settings-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .pill-switch-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.pill-form-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+.pill-switch-grid-basic {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.pill-form-grid-2 {
-  margin-top: 14px;
+.pill-switch-item {
+  min-height: 44px;
+  padding: 2px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-panel-strong);
+  display: flex;
+  align-items: center;
+}
+
+.pill-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.pill-field-block {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-panel-strong);
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.pill-field-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pill-muted);
+}
+
+.pill-note {
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .pill-cron-field {
-  width: 100%;
+  padding: 0;
+  background: transparent;
 }
 
-@media (max-width: 880px) {
-  .pill-grid {
-    grid-template-columns: 1fr;
-  }
+:deep(.pill-config .v-field),
+:deep(.pill-config .v-selection-control) {
+  color: var(--pill-text);
+}
 
+:deep(.pill-config .v-field) {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 14px;
+}
+
+:deep(.pill-config .v-field__input),
+:deep(.pill-config .v-label),
+:deep(.pill-config .v-select__selection-text),
+:deep(.pill-config .v-field__outline),
+:deep(.pill-config .v-field__append-inner) {
+  color: var(--pill-text);
+}
+
+:deep(.pill-config .v-field--disabled) {
+  opacity: 0.82;
+}
+
+:deep(.pill-config .pill-switch-control) {
+  width: 100%;
+  margin: 0;
+}
+
+:deep(.pill-config .pill-switch-control .v-selection-control) {
+  min-height: 28px;
+}
+
+:deep(.pill-config .pill-switch-control .v-label) {
+  color: var(--pill-text);
+  opacity: 1;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+:deep(.pill-config .pill-switch-control .v-selection-control__wrapper) {
+  width: 30px;
+  height: 18px;
+  margin-right: 6px;
+}
+
+:deep(.pill-config .pill-switch-control .v-switch__track) {
+  min-width: 30px;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+:deep(.pill-config .pill-switch-control .v-switch__thumb) {
+  width: 12px;
+  height: 12px;
+}
+
+:deep(.pill-config .v-field__input) {
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 13px;
+}
+
+:deep(.pill-config .v-field__outline) {
+  --v-field-border-opacity: 1;
+}
+
+:deep(.pill-config .v-selection-control__input > .v-icon),
+:deep(.pill-config .v-switch__track) {
+  color: var(--pill-accent);
+}
+
+:deep(.pill-config .v-alert) {
+  border-radius: 18px;
+}
+
+@media (max-width: 1080px) {
+  .pill-switch-grid,
+  .pill-switch-grid-basic,
+  .pill-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
   .pill-shell {
-    padding: 0 8px;
+    padding: 0 10px;
   }
 
-  .pill-hero,
-  .pill-panel {
-    padding: 18px;
-    border-radius: 22px;
+  .pill-config-header,
+  .pill-settings-card {
+    padding: 18px 16px;
+    border-radius: 20px;
   }
 
-  .pill-panel-head {
-    flex-direction: column;
+  .pill-header-actions,
+  .pill-switch-grid,
+  .pill-switch-grid-basic,
+  .pill-field-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
