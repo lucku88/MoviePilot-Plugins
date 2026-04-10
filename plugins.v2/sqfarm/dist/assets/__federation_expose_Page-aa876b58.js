@@ -1,16 +1,14 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_6987631d_lang = '';
+const Page_vue_vue_type_style_index_0_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-6987631d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "sq-shell" };
 const _hoisted_2 = { class: "sq-hero" };
 const _hoisted_3 = { class: "sq-hero-copy" };
-const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-badge" }, "SQ农场", -1));
+const _hoisted_4 = /*#__PURE__*/_createElementVNode("div", { class: "sq-badge" }, "SQ农场", -1);
 const _hoisted_5 = { class: "sq-title" };
 const _hoisted_6 = { class: "sq-subtitle" };
 const _hoisted_7 = { class: "sq-actions" };
@@ -27,18 +25,18 @@ const _hoisted_16 = {
   class: "sq-panel"
 };
 const _hoisted_17 = { class: "sq-panel-head" };
-const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_18 = /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "本次摘要"),
   /*#__PURE__*/_createElementVNode("h2", null, "任务结果")
-], -1));
+], -1);
 const _hoisted_19 = { class: "sq-summary-list" };
 const _hoisted_20 = { class: "sq-panel" };
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_21 = /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "收获背包"),
     /*#__PURE__*/_createElementVNode("h2", null, "当前库存")
   ])
-], -1));
+], -1);
 const _hoisted_22 = {
   key: 0,
   class: "sq-empty"
@@ -57,10 +55,10 @@ const _hoisted_30 = ["max", "value", "disabled", "onInput"];
 const _hoisted_31 = ["disabled", "onClick"];
 const _hoisted_32 = { class: "sq-panel" };
 const _hoisted_33 = { class: "sq-panel-head sq-panel-head-wrap" };
-const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_34 = /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "种子商店"),
   /*#__PURE__*/_createElementVNode("h2", null, "选择种子后点击空地种植")
-], -1));
+], -1);
 const _hoisted_35 = { class: "sq-shop-actions" };
 const _hoisted_36 = { class: "sq-selected-seed" };
 const _hoisted_37 = { key: 0 };
@@ -73,12 +71,12 @@ const _hoisted_43 = { class: "sq-seed-line" };
 const _hoisted_44 = { class: "sq-seed-line" };
 const _hoisted_45 = { class: "sq-seed-note" };
 const _hoisted_46 = { class: "sq-panel sq-farm-panel" };
-const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_47 = /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "农场坑位"),
     /*#__PURE__*/_createElementVNode("h2", null, "分组状态")
   ])
-], -1));
+], -1);
 const _hoisted_48 = { class: "sq-land-stack" };
 const _hoisted_49 = { class: "sq-group-head" };
 const _hoisted_50 = { class: "sq-group-name" };
@@ -92,12 +90,12 @@ const _hoisted_57 = { class: "sq-slot-icon" };
 const _hoisted_58 = { class: "sq-slot-name" };
 const _hoisted_59 = { class: "sq-slot-time" };
 const _hoisted_60 = { class: "sq-panel" };
-const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
+const _hoisted_61 = /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "sq-panel-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", null, "执行历史")
   ])
-], -1));
+], -1);
 const _hoisted_62 = {
   key: 0,
   class: "sq-empty"
@@ -913,6 +911,5 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6987631d"]]);
 
-export { PageView as default };
+export { _sfc_main as default };

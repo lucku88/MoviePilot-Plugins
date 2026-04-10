@@ -1,50 +1,48 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_7dfb3d42_lang = '';
+const Config_vue_vue_type_style_index_0_lang = '';
 
-const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-7dfb3d42"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "farm-shell" };
 const _hoisted_2 = { class: "farm-hero" };
-const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-copy" }, [
+const _hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "farm-copy" }, [
   /*#__PURE__*/_createElementVNode("div", { class: "farm-badge" }, "SQ农场"),
   /*#__PURE__*/_createElementVNode("h1", { class: "farm-title" }, "插件配置"),
   /*#__PURE__*/_createElementVNode("p", { class: "farm-subtitle" }, "收菜、种植、出售、获取执行记录。")
-], -1));
+], -1);
 const _hoisted_4 = { class: "farm-actions" };
 const _hoisted_5 = { class: "farm-card" };
-const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "⚙️ 基本设置", -1));
+const _hoisted_6 = /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "⚙️ 基本设置", -1);
 const _hoisted_7 = { class: "farm-switch-grid farm-switch-grid-basic" };
 const _hoisted_8 = { class: "farm-switch-item" };
 const _hoisted_9 = { class: "farm-switch-item" };
 const _hoisted_10 = { class: "farm-switch-item" };
 const _hoisted_11 = { class: "farm-switch-item" };
 const _hoisted_12 = { class: "farm-card" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "🧩 功能设置", -1));
+const _hoisted_13 = /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "🧩 功能设置", -1);
 const _hoisted_14 = { class: "farm-switch-grid" };
 const _hoisted_15 = { class: "farm-switch-item" };
 const _hoisted_16 = { class: "farm-switch-item" };
 const _hoisted_17 = { class: "farm-switch-item" };
 const _hoisted_18 = { class: "farm-field-grid" };
 const _hoisted_19 = { class: "farm-field-card" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "站点 Cookie", -1));
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-field-note" }, " 启用【使用站点 Cookie】后会自动读取已配置站点的 Cookie，关闭后才可以手动修改。 ", -1));
+const _hoisted_20 = /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "站点 Cookie", -1);
+const _hoisted_21 = /*#__PURE__*/_createElementVNode("div", { class: "farm-field-note" }, " 启用【使用站点 Cookie】后会自动读取已配置站点的 Cookie，关闭后才可以手动修改。 ", -1);
 const _hoisted_22 = { class: "farm-field-card" };
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "优先种子", -1));
+const _hoisted_23 = /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "优先种子", -1);
 const _hoisted_24 = { class: "farm-field-card" };
-const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "OCR API 地址", -1));
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "📝 OCR 说明", -1));
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-note" }, " 批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收菜失败后尝试逐坑位兜底收菜。 ", -1));
-const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "farm-note" }, [
+const _hoisted_25 = /*#__PURE__*/_createElementVNode("div", { class: "farm-field-title" }, "OCR API 地址", -1);
+const _hoisted_26 = /*#__PURE__*/_createElementVNode("h2", { class: "farm-section-title" }, "📝 OCR 说明", -1);
+const _hoisted_27 = /*#__PURE__*/_createElementVNode("div", { class: "farm-note" }, " 批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收菜失败后尝试逐坑位兜底收菜。 ", -1);
+const _hoisted_28 = /*#__PURE__*/_createElementVNode("div", { class: "farm-note" }, [
   /*#__PURE__*/_createTextVNode("推荐先部署 "),
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
   /*#__PURE__*/_createTextVNode("，再把 OCR 地址填成 "),
   /*#__PURE__*/_createElementVNode("code", null, "http://ip:8089/api/tr-run/"),
   /*#__PURE__*/_createTextVNode("。")
-], -1));
+], -1);
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -513,6 +511,5 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-7dfb3d42"]]);
 
-export { ConfigView as default };
+export { _sfc_main as default };

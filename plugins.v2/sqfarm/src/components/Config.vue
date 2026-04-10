@@ -350,7 +350,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style>
 .farm-config {
   --farm-bg: linear-gradient(180deg, #f4f5f8 0%, #fafafb 46%, #f2f4f8 100%);
   --farm-surface: rgba(255, 255, 255, 0.86);
@@ -474,16 +474,16 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--farm-surface-strong) 92%, transparent);
 }
 
-.farm-switch :deep(.v-selection-control) {
+.farm-switch .v-selection-control {
   min-height: 36px;
 }
 
-.farm-switch :deep(.v-selection-control__wrapper) {
+.farm-switch .v-selection-control__wrapper {
   transform: scale(0.82);
   transform-origin: left center;
 }
 
-.farm-switch :deep(.v-label) {
+.farm-switch .v-label {
   opacity: 1;
   color: var(--farm-text);
   font-weight: 700;

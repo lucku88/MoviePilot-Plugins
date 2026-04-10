@@ -3,11 +3,12 @@
     "name": "SQ农场",
     "description": "收菜、种植、出售、获取执行记录。",
     "labels": "工具,自动化,农场",
-    "version": "0.4.13",
+    "version": "0.4.14",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.4.14": "修复状态页与配置页在 MoviePilot 中布局失效的问题，改为全局前缀样式并保持主题适配。",
       "v0.4.13": "调整为无收菜时间时按12小时兜底刷新、正式运行前1分钟预刷新，并重做状态页与配置页布局。",
       "v0.4.12": "修复定时触发时网络超时导致的异常收尾和调度中断，失败后会自动补一次短延迟重试。",
       "v0.4.11": "收菜通知改为优先使用 harvest_all 接口返回的 inventory 明细，避免日志条数不足导致的汇总不准。",
