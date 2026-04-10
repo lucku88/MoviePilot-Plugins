@@ -27,7 +27,7 @@ class SQToy(_PluginBase):
     plugin_name = "SQ玩偶"
     plugin_desc = "SQ玩偶自动回收、展出与外展，支持 Vue 面板、动态调度和站点 Cookie 同步。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.10"
+    plugin_version = "0.1.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "sqtoy_"
@@ -41,6 +41,7 @@ class SQToy(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     SUMMARY_LINE = "━━━━━━━━━━━━━━"
+    PRE_REFRESH_SECONDS = 60
 
     QUALITY_ORDER = {"珍稀": 4, "稀有": 4, "特别": 3, "高级": 2, "入门": 1}
 
@@ -75,6 +76,7 @@ class SQToy(_PluginBase):
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
+    _next_trigger_mode: str = ""
     _bootstrap_pending: bool = False
 
     def __init__(self):
@@ -97,6 +99,7 @@ class SQToy(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
+        self._load_saved_next_trigger_mode()
         self._bootstrap_pending = self._enabled and not self._next_trigger_time
 
         if self._onlyonce:
@@ -195,6 +198,17 @@ class SQToy(_PluginBase):
             if rand_delay:
                 logger.info("INFO 随机延迟 %s 秒后执行...", rand_delay)
                 time.sleep(rand_delay)
+
+            if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+                toy_status = self._refresh_state(reason="pre-run-refresh")
+                logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
+                return {
+                    "success": True,
+                    "message": "运行前状态已刷新",
+                    "lines": [],
+                    "toy_status": toy_status,
+                    "status": self._build_status(auto_refresh=False),
+                }
 
             if not force and self._should_skip_run():
                 logger.info("INFO 未到计划触发时间，跳过本次运行")
@@ -453,8 +467,6 @@ class SQToy(_PluginBase):
             "collect_retry_delay": self._collect_retry_delay,
             "place_loop_limit": self._place_loop_limit,
             "place_retry_delay": self._place_retry_delay,
-            "self_wait_window_seconds": self._self_wait_window_seconds,
-            "remote_wait_window_seconds": self._remote_wait_window_seconds,
             "max_target_try": self._max_target_try,
             "capture_tips": [] if include_options else None,
         }
@@ -499,8 +511,6 @@ class SQToy(_PluginBase):
             "collect_retry_delay": 1200,
             "place_loop_limit": 10,
             "place_retry_delay": 1500,
-            "self_wait_window_seconds": 60,
-            "remote_wait_window_seconds": 60,
             "max_target_try": 3,
         }
 
@@ -523,8 +533,6 @@ class SQToy(_PluginBase):
         self._collect_retry_delay = max(0, self._safe_int(config.get("collect_retry_delay"), 1200))
         self._place_loop_limit = max(1, self._safe_int(config.get("place_loop_limit"), 10))
         self._place_retry_delay = max(0, self._safe_int(config.get("place_retry_delay"), 1500))
-        self._self_wait_window_seconds = max(0, self._safe_int(config.get("self_wait_window_seconds"), 60))
-        self._remote_wait_window_seconds = max(0, self._safe_int(config.get("remote_wait_window_seconds"), 60))
         self._max_target_try = max(1, self._safe_int(config.get("max_target_try"), 3))
 
     def _update_config(self):
@@ -547,8 +555,6 @@ class SQToy(_PluginBase):
             "collect_retry_delay": self._collect_retry_delay,
             "place_loop_limit": self._place_loop_limit,
             "place_retry_delay": self._place_retry_delay,
-            "self_wait_window_seconds": self._self_wait_window_seconds,
-            "remote_wait_window_seconds": self._remote_wait_window_seconds,
             "max_target_try": self._max_target_try,
         })
 
@@ -905,22 +911,6 @@ class SQToy(_PluginBase):
                 time.sleep(max(self._place_retry_delay / 1000.0, 0))
         return placed_times
 
-    def _collect_with_retry(self, session: requests.Session, owner_id: Any, slot_index: Any, doll_name: Optional[str]) -> bool:
-        owner_id = self._safe_int(owner_id, 0)
-        slot_index = self._safe_int(slot_index, -1)
-        if owner_id <= 0 or slot_index < 0:
-            return False
-        for attempt in range(1, self._collect_retry + 1):
-            try:
-                result = self._post_action(session, "collect_slot", {"owner_id": owner_id, "slot_index": slot_index})
-                if result.get("success"):
-                    return True
-            except Exception as err:
-                logger.warning("%s 回收失败（%s/%s）：%s | %s", self.plugin_name, attempt, self._collect_retry, doll_name or "未知玩偶", self._get_error_detail(err))
-            if attempt < self._collect_retry:
-                time.sleep(max(self._collect_retry_delay / 1000.0, 0))
-        return False
-
     def _pick_remote_candidate(self, slots: List[dict], remote: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         owned = [slot for slot in self._iter_dicts(slots or []) if (slot.get("occupant") or {}).get("viewer_is_occupant")]
         for candidate in owned:
@@ -953,20 +943,20 @@ class SQToy(_PluginBase):
                 detail = self._strip_html(result.get("message") or result.get("msg") or "")
                 if detail:
                     logger.warning(
-                        "%s 鍥炴敹杩斿洖澶辫触锛?s/%s锛夛細%s | %s",
+                        "%s 回收返回失败（%s/%s）：%s | %s",
                         self.plugin_name,
                         attempt,
                         self._collect_retry,
-                        doll_name or "鏈煡鐜╁伓",
+                        doll_name or "未知玩偶",
                         detail,
                     )
             except Exception as err:
                 logger.warning(
-                    "%s 鍥炴敹澶辫触锛?s/%s锛夛細%s | %s",
+                    "%s 回收失败（%s/%s）：%s | %s",
                     self.plugin_name,
                     attempt,
                     self._collect_retry,
-                    doll_name or "鏈煡鐜╁伓",
+                    doll_name or "未知玩偶",
                     self._get_error_detail(err),
                 )
                 if self._confirm_collect_success(session, owner_id, slot_index, doll_name):
@@ -986,9 +976,9 @@ class SQToy(_PluginBase):
             latest = self._fetch_bundle(session)["state"] or {}
         except Exception as err:
             logger.warning(
-                "%s 鍥炴敹鐘舵€佺‘璁ゅけ璐ワ細%s | %s",
+                "%s 回收状态确认失败：%s | %s",
                 self.plugin_name,
-                doll_name or "鏈煡鐜╁伓",
+                doll_name or "未知玩偶",
                 self._get_error_detail(err),
             )
             return False
@@ -1006,9 +996,9 @@ class SQToy(_PluginBase):
             occupant = personal_slot.get("occupant") or {}
             if not occupant or not occupant.get("viewer_is_occupant"):
                 logger.info(
-                    "%s 鍥炴敹鐘舵€佸凡纭锛%s锛堟寜鏈€鏂扮姸鎬佽瀹氬凡鎴愬姛锛?",
+                    "%s 回收状态已确认：%s（按最新状态判定已成功）",
                     self.plugin_name,
-                    doll_name or "鏈煡鐜╁伓",
+                    doll_name or "未知玩偶",
                 )
                 return True
             return False
@@ -1024,9 +1014,9 @@ class SQToy(_PluginBase):
                 return False
 
         logger.info(
-            "%s 鍥炴敹鐘舵€佸凡纭锛%s锛堟寜鏈€鏂扮姸鎬佽瀹氬凡鎴愬姛锛?",
+            "%s 回收状态已确认：%s（按最新状态判定已成功）",
             self.plugin_name,
-            doll_name or "鏈煡鐜╁伓",
+            doll_name or "未知玩偶",
         )
         return True
 
@@ -1159,23 +1149,37 @@ class SQToy(_PluginBase):
         now = self._aware_now()
         return now + timedelta(seconds=self._skip_before_seconds) < next_run
 
+    def _is_pre_refresh_trigger(self) -> bool:
+        return (self._load_saved_next_trigger_mode() or "run") == "refresh"
+
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
         next_run_ts = self._safe_int(next_run_ts, 0)
         if next_run_ts > 0:
             next_run = self._aware_from_timestamp(next_run_ts)
-            next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
-            min_trigger = self._aware_now() + timedelta(seconds=5)
-            if next_trigger < min_trigger:
-                next_trigger = min_trigger
+            now = self._aware_now()
+            pre_refresh_time = next_run - timedelta(seconds=self.PRE_REFRESH_SECONDS)
+            if pre_refresh_time > now + timedelta(seconds=5):
+                next_trigger = pre_refresh_time
+                trigger_mode = "refresh"
+            else:
+                next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+                min_trigger = now + timedelta(seconds=5)
+                if next_trigger < min_trigger:
+                    next_trigger = min_trigger
+                trigger_mode = "run"
             self._next_run_time = next_run
             self._next_trigger_time = next_trigger
+            self._next_trigger_mode = trigger_mode
             self.save_data("next_run_time", self._format_time(next_run))
             self.save_data("next_trigger_time", self._format_time(next_trigger))
+            self.save_data("next_trigger_mode", trigger_mode)
         else:
             self._next_run_time = None
             self._next_trigger_time = None
+            self._next_trigger_mode = "run"
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
+            self.save_data("next_trigger_mode", "")
         if self._enabled:
             self._bootstrap_pending = not bool(next_run_ts)
             self._reregister_plugin(reason or "schedule-next-run")
@@ -1212,6 +1216,12 @@ class SQToy(_PluginBase):
         self._next_trigger_time = self._parse_datetime(self.get_data("next_trigger_time") or ((self.get_data("state") or {}).get("next_trigger_time")))
         return self._next_trigger_time
 
+    def _load_saved_next_trigger_mode(self) -> str:
+        if self._next_trigger_mode:
+            return self._next_trigger_mode
+        self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
+        return self._next_trigger_mode
+
     def _append_history(self, lines: List[str], next_run: Optional[int]):
         if not lines:
             return
@@ -1238,7 +1248,7 @@ class SQToy(_PluginBase):
         return {
             "schema_version": self.plugin_version,
             "title": "玩偶抢曝光",
-            "subtitle": "盲盒抽玩偶、自动回收、个人展位与外展抢位。",
+            "subtitle": "盲盒、回收、展出、获取执行记录。",
             "cookie_source": self._cookie_source,
             "summary": summary_lines,
             "next_run_time": self._format_ts(next_run),
@@ -1385,58 +1395,149 @@ class SQToy(_PluginBase):
 
     def _build_personal_slots(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         cards: List[Dict[str, Any]] = []
+        viewer_name = self._strip_html((state.get("user") or {}).get("username") or "")
         for slot in self._iter_dicts(state.get("personal_slots") or []):
-            occupant = slot.get("occupant") or {}
-            name = occupant.get("doll_name") or ""
-            meta = doll_map.get(name, {})
-            remaining = self._get_personal_remain_sec(slot)
-            cards.append({
-                "slot_index": self._safe_int(slot.get("slot_index"), 0),
-                "owner_id": self._safe_int(slot.get("owner_id"), 0),
-                "empty": not bool(occupant),
-                "status": str(occupant.get("status") or slot.get("state") or ""),
-                "doll_name": name,
-                "image": self._absolute_url(occupant.get("doll_icon") or meta.get("image") or ""),
-                "quality": occupant.get("quality") or meta.get("quality") or "",
-                "owner_name": self._strip_html(state.get("user", {}).get("username") or ""),
-                "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else "已可回收",
-                "remaining_seconds": remaining if remaining is not None else None,
-                "remaining_end_ts": self._get_future_ts(0, remaining),
-                "progress": self._calc_slot_progress(slot),
-                "reward_text": f"曝光+{self._safe_int(occupant.get('exposure_reward') or occupant.get('final_exposure_reward'), 0)} 魔力+{self._safe_int(occupant.get('magic_reward') or occupant.get('final_magic_reward'), 0)}",
-                "viewer_is_occupant": bool(occupant.get("viewer_is_occupant")),
-                "can_collect": remaining is not None and remaining <= 0 and bool(occupant.get("viewer_is_occupant")),
-            })
+            cards.append(
+                self._build_slot_card(
+                    slot=slot,
+                    doll_map=doll_map,
+                    remaining=self._get_personal_remain_sec(slot),
+                    fallback_owner_name=viewer_name,
+                    blocked_label="被抢占",
+                )
+            )
         return cards
 
     def _build_target_panel(self, target: Dict[str, Any]) -> Dict[str, Any]:
         if not target:
             return {}
         slots = []
+        target_name = self._strip_html(target.get("username") or target.get("name") or "")
         for slot in self._iter_dicts(target.get("slots") or []):
             occupant = slot.get("occupant") or {}
-            remaining = self._safe_int(occupant.get("time_until_collect"), 0)
-            slots.append({
-                "owner_id": self._safe_int(slot.get("owner_id"), 0),
-                "slot_index": self._safe_int(slot.get("slot_index"), 0),
-                "empty": not bool(occupant),
-                "cooldown_active": bool(slot.get("cooldown_active")),
-                "doll_name": occupant.get("doll_name") or "",
-                "image": self._absolute_url(occupant.get("doll_icon") or ""),
-                "quality": occupant.get("quality") or "",
-                "viewer_is_occupant": bool(occupant.get("viewer_is_occupant")),
-                "can_collect": bool(occupant.get("viewer_is_occupant")) and (remaining <= 0 or self._safe_int(occupant.get("elapsed_seconds"), 0) >= self._safe_int(occupant.get("display_seconds"), 0)),
-                "remaining_text": self._format_duration(remaining) if remaining > 0 else "空位可抢",
-                "remaining_seconds": remaining,
-                "remaining_end_ts": self._get_future_ts(0, remaining),
-                "state_text": occupant.get("status") or slot.get("status") or ("空位" if not occupant else "展出中"),
-            })
+            remaining = self._safe_int(occupant.get("time_until_collect"), 0) if occupant else None
+            slots.append(
+                self._build_slot_card(
+                    slot=slot,
+                    doll_map={},
+                    remaining=remaining,
+                    fallback_owner_name=target_name,
+                    blocked_label="已被占用",
+                    allow_empty=True,
+                )
+            )
         return {
             "owner_id": self._safe_int(target.get("user_id") or target.get("owner_id"), 0),
-            "username": self._strip_html(target.get("username") or target.get("name") or ""),
+            "username": target_name,
             "slots": slots,
             "slot_count": len(slots),
         }
+
+    def _build_slot_card(
+        self,
+        slot: Dict[str, Any],
+        doll_map: Dict[str, Dict[str, Any]],
+        remaining: Optional[int],
+        fallback_owner_name: str = "",
+        blocked_label: str = "已被占用",
+        allow_empty: bool = False,
+    ) -> Dict[str, Any]:
+        occupant = slot.get("occupant") or {}
+        name = occupant.get("doll_name") or ""
+        meta = doll_map.get(name, {})
+        viewer_is_occupant = bool(occupant.get("viewer_is_occupant"))
+        empty = not bool(occupant)
+        can_collect = bool(viewer_is_occupant) and remaining is not None and remaining <= 0
+        action = self._build_slot_action_state(
+            empty=empty,
+            cooldown_active=bool(slot.get("cooldown_active")),
+            viewer_is_occupant=viewer_is_occupant,
+            can_collect=can_collect,
+            blocked_label=blocked_label,
+        )
+        owner_name = self._resolve_slot_owner_name(
+            slot,
+            occupant,
+            fallback_owner_name if viewer_is_occupant else "",
+        )
+        if occupant and not owner_name and not viewer_is_occupant:
+            owner_name = "其他用户"
+        state_text = self._strip_html(
+            occupant.get("status")
+            or occupant.get("state_text")
+            or slot.get("status")
+            or slot.get("state")
+            or ("空位" if empty else "正在展出中")
+        )
+        return {
+            "slot_index": self._safe_int(slot.get("slot_index"), 0),
+            "owner_id": self._safe_int(slot.get("owner_id"), 0),
+            "empty": empty,
+            "cooldown_active": bool(slot.get("cooldown_active")),
+            "status": str(occupant.get("status") or slot.get("state") or ""),
+            "status_text": state_text,
+            "doll_name": name,
+            "image": self._absolute_url(occupant.get("doll_icon") or meta.get("image") or ""),
+            "quality": occupant.get("quality") or meta.get("quality") or "",
+            "owner_name": owner_name,
+            "remaining_text": self._format_duration(remaining) if remaining is not None and remaining > 0 else ("已可回收" if viewer_is_occupant and not empty else ""),
+            "remaining_seconds": remaining if remaining is not None else None,
+            "remaining_end_ts": self._get_future_ts(0, remaining),
+            "progress": self._calc_slot_progress(slot),
+            "reward_text": f"曝光+{self._safe_int(occupant.get('exposure_reward') or occupant.get('final_exposure_reward'), 0)} 魔力+{self._safe_int(occupant.get('magic_reward') or occupant.get('final_magic_reward'), 0)}" if occupant else "",
+            "viewer_is_occupant": viewer_is_occupant,
+            "can_collect": can_collect,
+            "is_other_occupant": bool(occupant) and not viewer_is_occupant,
+            "activity_text": self._build_slot_activity_text(empty, viewer_is_occupant, can_collect, bool(slot.get("cooldown_active"))),
+            "action_label": action["label"],
+            "action_kind": action["kind"],
+            "action_disabled": action["disabled"],
+            "allow_empty": allow_empty,
+        }
+
+    def _build_slot_action_state(
+        self,
+        empty: bool,
+        cooldown_active: bool,
+        viewer_is_occupant: bool,
+        can_collect: bool,
+        blocked_label: str,
+    ) -> Dict[str, Any]:
+        if empty:
+            if cooldown_active:
+                return {"label": "冷却中", "kind": "cooldown", "disabled": True}
+            return {"label": "", "kind": "empty", "disabled": False}
+        if not viewer_is_occupant:
+            return {"label": blocked_label, "kind": "blocked", "disabled": True}
+        if can_collect:
+            return {"label": "收回玩偶", "kind": "ready", "disabled": False}
+        return {"label": "提前收回", "kind": "early", "disabled": False}
+
+    def _build_slot_activity_text(self, empty: bool, viewer_is_occupant: bool, can_collect: bool, cooldown_active: bool) -> str:
+        if empty:
+            return "展位冷却中" if cooldown_active else "空位可上架"
+        if viewer_is_occupant and can_collect:
+            return "展出完成，可以收回玩偶"
+        return "正在展出中，获取曝光中..."
+
+    def _resolve_slot_owner_name(self, slot: Dict[str, Any], occupant: Dict[str, Any], fallback: str = "") -> str:
+        candidates = [
+            occupant.get("owner_name"),
+            occupant.get("owner_username"),
+            occupant.get("username"),
+            occupant.get("user_name"),
+            occupant.get("display_name"),
+            slot.get("occupant_owner_name"),
+            slot.get("owner_name"),
+            slot.get("username"),
+            slot.get("name"),
+            fallback,
+        ]
+        for value in candidates:
+            text = self._strip_html(value or "")
+            if text:
+                return text
+        return ""
 
     def _build_remote_records(self, state: Dict[str, Any], doll_map: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         records: List[Dict[str, Any]] = []

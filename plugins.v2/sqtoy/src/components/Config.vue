@@ -1,127 +1,90 @@
 <template>
   <div ref="rootEl" class="toy-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="toy-shell">
-      <section class="toy-hero">
-        <div>
+      <header class="toy-config-header">
+        <div class="toy-header-copy">
           <div class="toy-badge">SQ玩偶</div>
-          <h1 class="toy-title">配置中心</h1>
-          <p class="toy-subtitle">自动回收、自展位放置、外展抢位和站点 Cookie 同步都可以在这里调整。</p>
+          <h1 class="toy-page-title">插件配置</h1>
+          <p class="toy-page-subtitle">盲盒、回收、展出、获取执行记录。</p>
         </div>
-        <div class="toy-actions">
+        <div class="toy-header-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
           <v-btn variant="text" @click="emit('close')">关闭</v-btn>
         </div>
-      </section>
+      </header>
 
-      <v-alert v-if="message.text" :type="message.type" variant="tonal" class="mb-4">
+      <v-alert v-if="message.text" :type="message.type" variant="tonal">
         {{ message.text }}
       </v-alert>
 
-      <section class="toy-grid">
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">基础开关</div>
-              <h2>运行控制</h2>
-            </div>
+      <section class="toy-settings-card">
+        <h2 class="toy-settings-title">⚙️ 基本设置</h2>
+        <div class="toy-switch-grid toy-switch-grid-basic">
+          <div class="toy-switch-item">
+            <v-switch v-model="config.enabled" class="toy-switch-control" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="toy-switch-grid">
-            <v-switch v-model="config.enabled" label="启用插件" color="success" hide-details />
-            <v-switch v-model="config.notify" label="发送通知" color="primary" hide-details />
-            <v-switch v-model="config.onlyonce" label="保存后执行一次" color="warning" hide-details />
-            <v-switch v-model="config.auto_cookie" label="优先使用站点 Cookie" color="info" hide-details />
-            <v-switch v-model="config.enable_target" label="允许外展抢位" color="deep-orange" hide-details />
-            <v-switch v-model="config.use_proxy" label="使用系统代理" color="secondary" hide-details />
-            <v-switch v-model="config.force_ipv4" label="优先 IPv4" color="secondary" hide-details />
+          <div class="toy-switch-item">
+            <v-switch v-model="config.use_proxy" class="toy-switch-control" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
           </div>
-        </article>
+          <div class="toy-switch-item">
+            <v-switch v-model="config.notify" class="toy-switch-control" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="toy-switch-item">
+            <v-switch v-model="config.onlyonce" class="toy-switch-control" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
+      </section>
 
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">调度策略</div>
-              <h2>动态调度</h2>
-            </div>
-          </div>
-          <div class="toy-form-grid">
-            <v-text-field v-model="config.schedule_buffer_seconds" label="调度缓冲秒数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.skip_before_seconds" label="提前跳过阈值(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.self_wait_window_seconds" label="自展位等待窗口(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.remote_wait_window_seconds" label="外展等待窗口(秒)" type="number" variant="outlined" density="comfortable" />
-          </div>
-          <div class="toy-note">插件不走固定 CRON，而是根据最近可回收时间动态注册下一次运行。未识别到时间时，会在启用或刷新后先拉一次页面状态。</div>
-        </article>
+      <section class="toy-settings-card">
+        <h2 class="toy-settings-title">🧩 功能设置</h2>
 
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">回收与展出</div>
-              <h2>动作参数</h2>
-            </div>
+        <div class="toy-switch-grid">
+          <div class="toy-switch-item">
+            <v-switch v-model="config.auto_cookie" class="toy-switch-control" label="使用站点Cookie" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="toy-form-grid">
-            <v-text-field v-model="config.collect_retry" label="回收重试次数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.collect_retry_delay" label="回收重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.place_loop_limit" label="单轮放置循环上限" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.place_retry_delay" label="放置循环间隔(ms)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.max_target_try" label="随机目标尝试次数" type="number" variant="outlined" density="comfortable" />
+          <div class="toy-switch-item">
+            <v-switch v-model="config.enable_target" class="toy-switch-control" label="允许外展抢位" color="#7c5cff" density="compact" hide-details inset />
           </div>
-        </article>
+          <div class="toy-switch-item">
+            <v-switch v-model="config.force_ipv4" class="toy-switch-control" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
 
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">网络参数</div>
-              <h2>连接设置</h2>
-            </div>
+        <div class="toy-field-grid">
+          <div class="toy-field-block">
+            <div class="toy-field-label">站点Cookie</div>
+            <v-text-field
+              v-model="cookieFieldValue"
+              label="站点Cookie"
+              variant="outlined"
+              density="comfortable"
+              :disabled="cookieReadonly"
+              :readonly="cookieReadonly"
+              :placeholder="cookieReadonly ? '使用站点Cookie后自动同步' : '例如 c_secure_pass=...'"
+            />
+            <div class="toy-note">启用【使用站点Cookie】后自动同步，关闭后才可手动填写。</div>
           </div>
-          <div class="toy-form-grid">
-            <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟上限(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_timeout" label="HTTP 超时(秒)" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_retry_times" label="GET 重试次数" type="number" variant="outlined" density="comfortable" />
-            <v-text-field v-model="config.http_retry_delay" label="GET 重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
-          </div>
-        </article>
 
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">手动 Cookie</div>
-              <h2>Cookie 兜底</h2>
+          <div class="toy-field-block">
+            <div class="toy-field-label">动作参数</div>
+            <div class="toy-inline-grid">
+              <v-text-field v-model="config.collect_retry" label="回收重试次数" type="number" variant="outlined" density="comfortable" />
+              <v-text-field v-model="config.collect_retry_delay" label="回收重试间隔(ms)" type="number" variant="outlined" density="comfortable" />
+              <v-text-field v-model="config.place_loop_limit" label="单轮放置循环上限" type="number" variant="outlined" density="comfortable" />
+              <v-text-field v-model="config.place_retry_delay" label="放置循环间隔(ms)" type="number" variant="outlined" density="comfortable" />
+              <v-text-field v-model="config.max_target_try" label="随机目标尝试次数" type="number" variant="outlined" density="comfortable" />
             </div>
           </div>
-          <v-textarea
-            v-model="config.cookie"
-            label="SQ Cookie"
-            rows="6"
-            variant="outlined"
-            density="comfortable"
-            placeholder="例如 c_secure_pass=..."
-          />
-          <div class="toy-note">默认站点固定为 <code>si-qi.xyz</code>。如果开启“优先使用站点 Cookie”，插件会优先读取 MoviePilot 站点管理中的 Cookie。</div>
-        </article>
-
-        <article class="toy-panel">
-          <div class="toy-panel-head">
-            <div>
-              <div class="toy-panel-kicker">当前说明</div>
-              <h2>功能状态</h2>
-            </div>
-          </div>
-          <div class="toy-note">
-            当前版本已支持：状态展示、自动回收、自展位放置、随机外展、按用户名或 ID 查看目标展台、盲盒购买与开启、手动收回和手动上架。<br />
-            站点固定为 <code>si-qi.xyz</code>，开启“优先使用站点 Cookie”后会优先读取 MoviePilot 站点管理中的 Cookie。
-          </div>
-        </article>
+        </div>
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -154,25 +117,41 @@ const config = reactive({
   collect_retry_delay: 1200,
   place_loop_limit: 10,
   place_retry_delay: 1500,
-  self_wait_window_seconds: 60,
-  remote_wait_window_seconds: 60,
   max_target_try: 3,
+})
+
+const cookieReadonly = computed(() => !!config.auto_cookie)
+const cookieFieldValue = computed({
+  get() {
+    if (config.auto_cookie) {
+      return truncateCookie(config.cookie)
+    }
+    return config.cookie
+  },
+  set(value) {
+    if (!config.auto_cookie) {
+      config.cookie = value || ''
+    }
+  },
 })
 
 let themeObserver = null
 let mediaQuery = null
-let observedThemeNode = null
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
 }
 
+function truncateCookie(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text.length > 22 ? `${text.slice(0, 22)}...` : text
+}
+
 function applyConfig(data = {}) {
-  Object.assign(config, {
-    ...config,
-    ...data,
-  })
+  const { capture_tips, ...rest } = data || {}
+  Object.assign(config, { ...config, ...rest })
 }
 
 async function loadConfig() {
@@ -209,11 +188,21 @@ async function syncCookie() {
 function findThemeNode() {
   let current = rootEl.value
   while (current) {
-    if (current.getAttribute?.('data-theme') || current.className) return current
+    if (current.getAttribute?.('data-theme')) return current
+    const classValue = String(current.className || '').toLowerCase()
+    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
+      return current
+    }
     current = current.parentElement
   }
-  if (document.body?.getAttribute('data-theme') || document.body?.className) return document.body
-  if (document.documentElement?.getAttribute('data-theme') || document.documentElement?.className) return document.documentElement
+  const bodyClass = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
+    return document.body
+  }
+  const rootClass = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
+    return document.documentElement
+  }
   return null
 }
 
@@ -223,29 +212,29 @@ function getThemeNodes() {
 
 function nodeHasDarkHint(node) {
   const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  if (['dark', 'purple', 'transparent'].includes(themeValue)) {
-    return true
-  }
-  const className = String(node?.className || '').toLowerCase()
-  return ['v-theme--dark', 'theme--dark', 'theme-dark', 'dark'].some((token) => className.includes(token))
+  const classValue = String(node?.className || '').toLowerCase()
+  return ['dark', 'purple', 'transparent'].includes(themeValue)
+    || classValue.includes('dark')
+    || classValue.includes('theme-dark')
+    || classValue.includes('v-theme--dark')
 }
 
 function nodeHasLightHint(node) {
   const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  if (['light'].includes(themeValue)) {
-    return true
-  }
-  const className = String(node?.className || '').toLowerCase()
-  return ['v-theme--light', 'theme--light', 'theme-light', 'light'].some((token) => className.includes(token))
+  const classValue = String(node?.className || '').toLowerCase()
+  return themeValue === 'light'
+    || classValue.includes('light')
+    || classValue.includes('theme-light')
+    || classValue.includes('v-theme--light')
 }
 
 function detectTheme() {
-  const themeNodes = getThemeNodes()
-  if (themeNodes.some(nodeHasDarkHint)) {
+  const nodes = getThemeNodes()
+  if (nodes.some(nodeHasDarkHint)) {
     isDarkTheme.value = true
     return
   }
-  if (themeNodes.some(nodeHasLightHint)) {
+  if (nodes.some(nodeHasLightHint)) {
     isDarkTheme.value = false
     return
   }
@@ -253,27 +242,17 @@ function detectTheme() {
 }
 
 function bindThemeObserver() {
-  themeObserver?.disconnect?.()
   detectTheme()
-  observedThemeNode = findThemeNode()
-  if (!window.MutationObserver) {
-    return
-  }
-  themeObserver = new MutationObserver(() => {
-    const nextNode = findThemeNode()
-    if (nextNode !== observedThemeNode) {
-      bindThemeObserver()
-      return
-    }
-    detectTheme()
-  })
-  getThemeNodes().forEach((node) => {
-    themeObserver.observe(node, {
-      attributes: true,
-      subtree: node === document.documentElement || node === document.body,
-      attributeFilter: ['data-theme', 'class'],
+  if (window.MutationObserver) {
+    themeObserver = new MutationObserver(detectTheme)
+    getThemeNodes().forEach((node) => {
+      themeObserver.observe(node, {
+        attributes: true,
+        subtree: node === document.documentElement || node === document.body,
+        attributeFilter: ['data-theme', 'class'],
+      })
     })
-  })
+  }
 }
 
 onMounted(async () => {
@@ -293,28 +272,237 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.toy-config { min-height: 100vh; background: linear-gradient(180deg, #fff8f1 0%, #f7efe8 100%); color: #402616; }
-.toy-config.is-dark-theme { background: linear-gradient(180deg, #141313 0%, #1b1716 100%); color: #f7ebdf; }
-.toy-shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 18px; }
-.toy-hero, .toy-panel { border: 1px solid rgba(255, 165, 93, 0.28); border-radius: 24px; background: rgba(255,255,255,0.82); box-shadow: 0 18px 48px rgba(255, 166, 102, 0.08); }
-.is-dark-theme .toy-hero, .is-dark-theme .toy-panel { background: rgba(27, 24, 22, 0.88); box-shadow: none; border-color: rgba(255, 171, 111, 0.16); }
-.toy-hero, .toy-panel { padding: 22px; }
-.toy-hero { display: grid; grid-template-columns: 1.4fr auto; gap: 20px; align-items: center; }
-.toy-badge { display: inline-flex; padding: 6px 12px; border-radius: 999px; background: rgba(255, 155, 72, 0.18); color: #d96a21; font-size: 13px; font-weight: 700; }
-.toy-title { margin: 12px 0 8px; font-size: 40px; line-height: 1.05; }
-.toy-subtitle { margin: 0; font-size: 15px; opacity: 0.86; }
-.toy-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-.toy-grid { display: grid; gap: 18px; }
-.toy-panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
-.toy-panel-head h2 { margin: 8px 0 0; font-size: 30px; }
-.toy-panel-kicker { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.72; }
-.toy-switch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; }
-.toy-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.toy-note { font-size: 14px; line-height: 1.8; opacity: 0.82; }
+.toy-config {
+  min-height: 100vh;
+  --toy-bg-start: #f7f4ff;
+  --toy-bg-end: #f2e8ff;
+  --toy-panel: rgba(255, 255, 255, 0.9);
+  --toy-panel-strong: rgba(255, 255, 255, 0.98);
+  --toy-border: rgba(124, 92, 255, 0.2);
+  --toy-shadow: 0 24px 80px rgba(91, 72, 164, 0.12);
+  --toy-text-main: #2b2447;
+  --toy-text-soft: rgba(43, 36, 71, 0.72);
+  --toy-chip: rgba(124, 92, 255, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(140, 110, 255, 0.2), transparent 32%),
+    linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
+  color: var(--toy-text-main);
+}
 
-@media (max-width: 900px) {
-  .toy-hero { grid-template-columns: 1fr; }
-  .toy-actions { justify-content: flex-start; }
-  .toy-switch-grid, .toy-form-grid { grid-template-columns: 1fr; }
+.toy-config.is-dark-theme {
+  --toy-bg-start: #12131d;
+  --toy-bg-end: #171828;
+  --toy-panel: rgba(26, 28, 39, 0.92);
+  --toy-panel-strong: rgba(19, 21, 30, 0.98);
+  --toy-border: rgba(124, 92, 255, 0.22);
+  --toy-shadow: 0 28px 90px rgba(7, 10, 20, 0.46);
+  --toy-text-main: #f3efff;
+  --toy-text-soft: rgba(243, 239, 255, 0.72);
+  --toy-chip: rgba(124, 92, 255, 0.18);
+}
+
+.toy-config,
+.toy-config * {
+  box-sizing: border-box;
+}
+
+.toy-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 18px 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.toy-config-header,
+.toy-settings-card {
+  border: 1px solid var(--toy-border);
+  border-radius: 28px;
+  background: var(--toy-panel);
+  box-shadow: var(--toy-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.toy-config-header {
+  padding: 26px 28px;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.toy-header-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.toy-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--toy-chip);
+  color: #8b6cff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.toy-page-title {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 54px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.toy-page-subtitle,
+.toy-note {
+  margin: 0;
+  color: var(--toy-text-soft);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.toy-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.toy-settings-card {
+  padding: 24px 26px;
+  display: grid;
+  gap: 18px;
+}
+
+.toy-settings-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.toy-switch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.toy-switch-grid-basic {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.toy-switch-item,
+.toy-field-block {
+  border: 1px solid var(--toy-border);
+  border-radius: 22px;
+  background: var(--toy-panel-strong);
+}
+
+.toy-switch-item {
+  padding: 8px 14px;
+}
+
+.toy-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr);
+  gap: 14px;
+}
+
+.toy-field-block {
+  padding: 16px 16px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.toy-field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--toy-text-soft);
+}
+
+.toy-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:deep(.toy-config .toy-switch-control) {
+  margin: 0;
+  min-height: auto;
+}
+
+:deep(.toy-config .toy-switch-control .v-selection-control) {
+  min-height: auto;
+}
+
+:deep(.toy-config .toy-switch-control .v-label) {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--toy-text-main);
+  opacity: 1;
+}
+
+:deep(.toy-config .toy-switch-control .v-selection-control__wrapper) {
+  width: 38px;
+  height: 22px;
+}
+
+:deep(.toy-config .toy-switch-control .v-switch__track) {
+  height: 22px;
+  min-width: 38px;
+  border-radius: 999px;
+}
+
+:deep(.toy-config .toy-switch-control .v-switch__thumb) {
+  width: 16px;
+  height: 16px;
+}
+
+:deep(.toy-config .v-field) {
+  border-radius: 16px;
+  background: transparent;
+}
+
+:deep(.toy-config .v-field__input) {
+  min-height: 46px;
+  color: var(--toy-text-main);
+}
+
+:deep(.toy-config .v-label) {
+  color: var(--toy-text-soft);
+}
+
+@media (max-width: 1080px) {
+  .toy-switch-grid-basic,
+  .toy-switch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toy-field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .toy-shell {
+    padding: 16px 12px 20px;
+  }
+
+  .toy-config-header {
+    padding: 20px;
+    flex-direction: column;
+  }
+
+  .toy-header-actions {
+    justify-content: flex-start;
+  }
+
+  .toy-switch-grid-basic,
+  .toy-switch-grid,
+  .toy-inline-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

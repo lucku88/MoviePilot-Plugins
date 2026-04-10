@@ -5,11 +5,11 @@
         <div class="toy-copy">
           <div class="toy-badge">SQ玩偶</div>
           <h1 class="toy-title">{{ toy.title || '玩偶抢曝光' }}</h1>
-          <p class="toy-subtitle">{{ toy.subtitle || '盲盒抽玩偶、自动回收、个人展位与外展抢位。' }}</p>
+          <p class="toy-subtitle">{{ toy.subtitle || '盲盒、回收、展出、获取执行记录。' }}</p>
           <div class="toy-hero-meta">
             <span>最近执行 {{ status.last_run || '暂无' }}</span>
             <span>下次运行 {{ toy.next_run_time || '等待刷新' }}</span>
-            <span>Cookie {{ toy.cookie_source || status.cookie_source || '未同步' }}</span>
+            <span>{{ toy.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
         </div>
         <div class="toy-actions">
@@ -172,7 +172,16 @@
           </div>
         </div>
         <div class="toy-slot-grid">
-          <article v-for="slot in personalSlots" :key="`personal-${slot.slot_index}`" class="toy-slot-card" :class="{ empty: slot.empty }">
+          <article
+            v-for="slot in personalSlots"
+            :key="`personal-${slot.slot_index}`"
+            class="toy-slot-card"
+            :class="{
+              empty: slot.empty,
+              'is-stolen': slot.is_other_occupant,
+              'is-ready': slotActionKind(slot) === 'ready',
+            }"
+          >
             <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
             <template v-if="slot.empty">
               <div class="toy-slot-empty">空展位</div>
@@ -180,18 +189,24 @@
               <v-btn color="deep-orange" variant="flat" :disabled="!selectedDoll || loading" @click="placePersonal(slot)">上架所选玩偶</v-btn>
             </template>
             <template v-else>
-              <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+              <div class="toy-slot-media">
+                <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                <div v-else class="toy-slot-empty">🧸</div>
+              </div>
               <div class="toy-slot-name">{{ slot.doll_name }}</div>
+              <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
               <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
               <div class="toy-slot-meta">{{ slot.reward_text }}</div>
               <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
+              <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
               <v-btn
-                color="primary"
+                :color="slotActionColor(slot)"
                 variant="flat"
                 :loading="loading"
+                :disabled="loading || !slot.viewer_is_occupant"
                 @click="collectSlot(slot)"
               >
-                {{ slot.can_collect ? '收回玩偶' : '尝试收回' }}
+                {{ slotActionLabel(slot) }}
               </v-btn>
             </template>
           </article>
@@ -216,19 +231,45 @@
         <div v-else class="toy-target-panel">
           <div class="toy-target-head">{{ targetPanel.username }} · {{ targetPanel.slot_count }} 个展位</div>
           <div class="toy-slot-grid">
-            <article v-for="slot in targetPanel.slots" :key="`target-${slot.owner_id}-${slot.slot_index}`" class="toy-slot-card" :class="{ empty: slot.empty }">
+            <article
+              v-for="slot in targetPanel.slots"
+              :key="`target-${slot.owner_id}-${slot.slot_index}`"
+              class="toy-slot-card"
+              :class="{
+                empty: slot.empty,
+                'is-stolen': slot.is_other_occupant,
+                'is-ready': slotActionKind(slot) === 'ready',
+              }"
+            >
               <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
               <template v-if="slot.empty && !slot.cooldown_active">
                 <div class="toy-slot-empty">空位可抢</div>
                 <div class="toy-slot-tip">{{ selectedDoll ? `抢占为 ${selectedDoll.name}` : '先选择玩偶' }}</div>
                 <v-btn color="deep-orange" variant="flat" :disabled="!selectedDoll || loading" @click="placeTarget(slot)">抢占展位</v-btn>
               </template>
+              <template v-else-if="slot.empty && slot.cooldown_active">
+                <div class="toy-slot-empty">⏳</div>
+                <div class="toy-slot-tip">展位冷却中</div>
+                <v-btn color="grey-darken-1" variant="flat" disabled>冷却中</v-btn>
+              </template>
               <template v-else>
-                <div class="toy-slot-name">{{ slot.doll_name || slot.state_text }}</div>
+                <div class="toy-slot-media">
+                  <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                  <div v-else class="toy-slot-empty">🧸</div>
+                </div>
+                <div class="toy-slot-name">{{ slot.doll_name || slot.status_text }}</div>
+                <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
                 <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
-                <div class="toy-slot-meta">{{ slot.state_text }}</div>
-                <v-btn v-if="slot.viewer_is_occupant" color="primary" variant="flat" :disabled="loading" @click="collectSlot(slot)">
-                  {{ slot.can_collect ? '收回玩偶' : '尝试收回' }}
+                <div v-if="slot.reward_text" class="toy-slot-meta">{{ slot.reward_text }}</div>
+                <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
+                <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
+                <v-btn
+                  :color="targetSlotActionColor(slot)"
+                  variant="flat"
+                  :disabled="loading || !slot.viewer_is_occupant"
+                  @click="collectSlot(slot)"
+                >
+                  {{ targetSlotActionLabel(slot) }}
                 </v-btn>
               </template>
             </article>
@@ -670,6 +711,65 @@ function bindThemeObserver() {
   })
 }
 
+function slotActionKind(slot) {
+  if (!slot) return 'empty'
+  if (slot.empty) {
+    return slot.cooldown_active ? 'cooldown' : 'empty'
+  }
+  if (!slot.viewer_is_occupant) {
+    return 'blocked'
+  }
+  const endTs = Number(slot.remaining_end_ts || 0)
+  if (slot.can_collect || (endTs && endTs - nowTs.value <= 0)) {
+    return 'ready'
+  }
+  return 'early'
+}
+
+function slotActionLabel(slot) {
+  const kind = slotActionKind(slot)
+  if (kind === 'ready') return '收回玩偶'
+  if (kind === 'early') return '提前收回'
+  return slot?.action_label || '被抢占'
+}
+
+function slotActionColor(slot) {
+  const kind = slotActionKind(slot)
+  if (kind === 'ready') return 'success'
+  if (kind === 'early') return 'amber-darken-2'
+  if (kind === 'blocked') return 'grey-darken-1'
+  return 'deep-orange'
+}
+
+function targetSlotActionLabel(slot) {
+  const kind = slotActionKind(slot)
+  if (kind === 'blocked') {
+    return slot?.action_label || '已被占用'
+  }
+  return slotActionLabel(slot)
+}
+
+function targetSlotActionColor(slot) {
+  const kind = slotActionKind(slot)
+  if (kind === 'blocked') return 'grey-darken-1'
+  return slotActionColor(slot)
+}
+
+function slotActivityText(slot) {
+  if (!slot) return ''
+  if (slot.empty) {
+    return slot.cooldown_active ? '展位冷却中' : '空位可上架'
+  }
+  const kind = slotActionKind(slot)
+  if (kind === 'ready') {
+    return '展出完成，可以收回玩偶'
+  }
+  if (kind === 'blocked') {
+    return '正在展出中，获取曝光中...'
+  }
+  return slot?.activity_text || '正在展出中，获取曝光中...'
+}
+
 function formatRemain(seconds) {
   const sec = Math.max(0, Number(seconds) || 0)
   if (!sec) return '现在可回收'
@@ -698,9 +798,12 @@ function slotRemainText(slot) {
   const endTs = Number(slot?.remaining_end_ts || 0)
   if (endTs) {
     const remain = endTs - nowTs.value
-    return remain > 0 ? formatRemain(remain) : '已可回收'
+    return remain > 0 ? `距完成 ${formatRemain(remain)}` : '已可回收'
   }
-  return slot?.remaining_text || '已可回收'
+  const fallback = String(slot?.remaining_text || '')
+  if (!fallback) return slot?.viewer_is_occupant ? '已可回收' : (slot?.status_text || '')
+  if (fallback === '已可回收' || fallback.startsWith('距完成')) return fallback
+  return `距完成 ${fallback}`
 }
 
 function targetRemainText(slot) {
@@ -710,21 +813,30 @@ function targetRemainText(slot) {
   if (slot.empty && !slot.cooldown_active) {
     return '空位可抢'
   }
+  if (slot.empty && slot.cooldown_active) {
+    return '展位冷却中'
+  }
   const endTs = Number(slot.remaining_end_ts || 0)
   if (endTs) {
     const remain = endTs - nowTs.value
-    return remain > 0 ? formatRemain(remain) : '已可回收'
+    return remain > 0 ? `距完成 ${formatRemain(remain)}` : '已可回收'
   }
-  return slot.remaining_text || slot.state_text || ''
+  const fallback = String(slot.remaining_text || '')
+  if (!fallback) return slot.status_text || ''
+  if (fallback === '已可回收' || fallback.startsWith('距完成')) return fallback
+  return `距完成 ${fallback}`
 }
 
 function remoteRemainText(item) {
   const endTs = Number(item?.remaining_end_ts || 0)
   if (endTs) {
     const remain = endTs - nowTs.value
-    return remain > 0 ? formatRemain(remain) : '已可回收'
+    return remain > 0 ? `距完成 ${formatRemain(remain)}` : '已可回收'
   }
-  return item?.remaining_text || '已可回收'
+  const fallback = String(item?.remaining_text || '')
+  if (!fallback) return '已可回收'
+  if (fallback === '已可回收' || fallback.startsWith('距完成')) return fallback
+  return `距完成 ${fallback}`
 }
 
 onMounted(async () => {
@@ -752,90 +864,545 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.toy-page { min-height: 100vh; background: linear-gradient(180deg, #fff8f1 0%, #f7efe8 100%); color: #402616; }
-.toy-page.is-dark-theme { background: linear-gradient(180deg, #141313 0%, #1b1716 100%); color: #f7ebdf; }
-.toy-shell { max-width: 1480px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 18px; }
-.toy-hero, .toy-panel, .toy-overview-card, .toy-box-card, .toy-doll-card, .toy-slot-card, .toy-remote-card, .toy-history-item {
-  border: 1px solid rgba(255, 165, 93, 0.28); border-radius: 24px; background: rgba(255,255,255,0.82);
-  box-shadow: 0 18px 48px rgba(255, 166, 102, 0.08);
+.toy-page {
+  min-height: 100vh;
+  --toy-bg-start: #f7f4ff;
+  --toy-bg-end: #efe8ff;
+  --toy-panel: rgba(255, 255, 255, 0.9);
+  --toy-panel-strong: rgba(255, 255, 255, 0.98);
+  --toy-border: rgba(124, 92, 255, 0.18);
+  --toy-chip: rgba(124, 92, 255, 0.12);
+  --toy-text-main: #2b2447;
+  --toy-text-soft: rgba(43, 36, 71, 0.72);
+  --toy-shadow: 0 24px 80px rgba(91, 72, 164, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(140, 110, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
+  color: var(--toy-text-main);
 }
-.is-dark-theme .toy-hero, .is-dark-theme .toy-panel, .is-dark-theme .toy-overview-card, .is-dark-theme .toy-box-card, .is-dark-theme .toy-doll-card, .is-dark-theme .toy-slot-card, .is-dark-theme .toy-remote-card, .is-dark-theme .toy-history-item {
-  background: rgba(27, 24, 22, 0.88); box-shadow: none; border-color: rgba(255, 171, 111, 0.16);
+
+.toy-page.is-dark-theme {
+  --toy-bg-start: #12131d;
+  --toy-bg-end: #171828;
+  --toy-panel: rgba(26, 28, 39, 0.92);
+  --toy-panel-strong: rgba(19, 21, 30, 0.98);
+  --toy-border: rgba(124, 92, 255, 0.22);
+  --toy-chip: rgba(124, 92, 255, 0.2);
+  --toy-text-main: #f3efff;
+  --toy-text-soft: rgba(243, 239, 255, 0.7);
+  --toy-shadow: 0 28px 90px rgba(7, 10, 20, 0.46);
 }
-.toy-hero, .toy-panel { padding: 22px; }
-.toy-hero { display: grid; grid-template-columns: 1.5fr auto; gap: 20px; align-items: center; }
-.toy-badge, .toy-chip, .toy-overview-desc, .toy-doll-quality, .toy-doll-cooldown, .toy-slot-index {
-  display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;
+
+.toy-page,
+.toy-page * {
+  box-sizing: border-box;
 }
-.toy-badge { padding: 6px 12px; font-size: 13px; font-weight: 700; background: rgba(255, 155, 72, 0.18); color: #d96a21; }
-.toy-title { margin: 12px 0 8px; font-size: 42px; line-height: 1.05; }
-.toy-subtitle { margin: 0; font-size: 15px; opacity: 0.86; }
-.toy-hero-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 13px; opacity: 0.78; }
-.toy-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; align-items: center; }
-.toy-overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.toy-overview-card { padding: 20px; text-align: center; }
-.toy-overview-label, .toy-panel-kicker { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.72; }
-.toy-overview-value { font-size: 38px; font-weight: 800; margin: 10px 0; }
-.toy-overview-desc { margin: 6px auto 0; padding: 6px 12px; background: rgba(255, 164, 88, 0.12); color: inherit; font-size: 12px; }
-.toy-panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
-.toy-panel-head h2 { margin: 8px 0 0; font-size: 32px; }
-.toy-summary-list, .toy-history-list { display: grid; gap: 12px; }
-.toy-summary-line, .toy-history-item { padding: 16px 18px; }
-.toy-box-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-.toy-box-card { padding: 18px; text-align: center; }
-.toy-box-card.locked { opacity: 0.68; }
-.toy-box-card.compact { padding: 16px; }
-.toy-box-image { width: 112px; height: 150px; object-fit: contain; margin: 0 auto 12px; display: block; }
-.toy-box-image.small { width: 84px; height: 112px; }
-.toy-box-name { font-size: 22px; font-weight: 800; }
-.toy-box-desc { margin-top: 10px; font-size: 14px; opacity: 0.82; min-height: 42px; }
-.toy-box-lock { display: block; margin-top: 8px; color: #da6b3a; font-size: 13px; }
-.toy-box-actions, .toy-search { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 16px; }
-.toy-number-input, .toy-text-input {
-  width: 100%; min-width: 0; border: 1px solid rgba(255, 165, 93, 0.35); background: rgba(255,255,255,0.72);
-  color: inherit; border-radius: 12px; padding: 10px 12px; outline: none;
+
+.toy-shell {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 24px 18px 36px;
+  display: grid;
+  gap: 18px;
 }
-.is-dark-theme .toy-number-input, .is-dark-theme .toy-text-input { background: rgba(255,255,255,0.04); }
-.toy-toolbar { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 14px; }
-.toy-sort-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.toy-chip { border: 0; padding: 8px 12px; background: rgba(255, 166, 84, 0.14); color: inherit; cursor: pointer; font-size: 13px; }
-.toy-selected-bar { margin-bottom: 16px; padding: 12px 16px; border-radius: 16px; background: rgba(255, 165, 93, 0.08); }
-.toy-cabinet-grid, .toy-slot-grid, .toy-remote-grid { display: grid; gap: 16px; }
-.toy-cabinet-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.toy-slot-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.toy-remote-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
-.toy-doll-card, .toy-slot-card, .toy-remote-card { padding: 18px; text-align: center; }
-.toy-doll-card.selected { outline: 2px solid rgba(255, 150, 62, 0.8); }
-.toy-doll-card.disabled { opacity: 0.75; }
-.toy-doll-image, .toy-slot-image, .toy-remote-image { width: 96px; height: 96px; object-fit: contain; margin: 0 auto 12px; display: block; }
-.toy-doll-placeholder, .toy-slot-empty { width: 96px; height: 96px; margin: 0 auto 12px; display: grid; place-items: center; font-size: 40px; background: rgba(255, 164, 88, 0.08); border-radius: 20px; }
-.toy-doll-quality { margin: 0 auto 10px; padding: 6px 12px; background: rgba(255, 166, 84, 0.2); font-size: 12px; font-weight: 700; }
-.toy-doll-name, .toy-slot-name, .toy-remote-owner { font-size: 22px; font-weight: 800; }
-.toy-doll-meta, .toy-slot-meta, .toy-remote-meta, .toy-doll-count, .toy-slot-tip, .toy-history-time { margin-top: 8px; font-size: 13px; opacity: 0.8; }
-.toy-doll-cooldown { margin-top: 10px; padding: 7px 12px; background: rgba(126, 126, 126, 0.18); font-size: 12px; }
-.toy-history-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 13px; }
-.toy-history-lines, .toy-history-top span { font-size: 12px; opacity: 0.78; }
-.toy-slot-index { padding: 6px 12px; background: rgba(255, 166, 84, 0.14); font-size: 12px; font-weight: 700; margin-bottom: 14px; }
-.toy-slot-progress { margin: 14px 0; height: 8px; border-radius: 999px; background: rgba(255, 165, 93, 0.14); overflow: hidden; }
-.toy-slot-progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb56f 0%, #ff8747 100%); }
-.toy-target-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
-.toy-target-panel { display: grid; gap: 14px; }
-.toy-target-head { font-size: 18px; font-weight: 800; }
-.toy-history-message { font-size: 15px; }
-.toy-history-time { margin-top: 8px; }
-.toy-empty { padding: 28px 16px; border: 1px dashed rgba(255, 165, 93, 0.4); border-radius: 18px; text-align: center; opacity: 0.76; }
+
+.toy-hero,
+.toy-panel,
+.toy-overview-card,
+.toy-box-card,
+.toy-doll-card,
+.toy-slot-card,
+.toy-remote-card,
+.toy-history-item {
+  border: 1px solid var(--toy-border);
+  border-radius: 28px;
+  background: var(--toy-panel);
+  box-shadow: var(--toy-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.toy-hero,
+.toy-panel {
+  padding: 24px 26px;
+}
+
+.toy-hero {
+  display: grid;
+  grid-template-columns: 1.4fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+.toy-badge,
+.toy-chip,
+.toy-overview-desc,
+.toy-doll-quality,
+.toy-doll-cooldown,
+.toy-slot-index,
+.toy-slot-activity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.toy-badge {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--toy-chip);
+  color: #8b6cff;
+}
+
+.toy-title {
+  margin: 12px 0 8px;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.toy-subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--toy-text-soft);
+}
+
+.toy-hero-meta {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toy-hero-meta span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--toy-panel-strong);
+  border: 1px solid var(--toy-border);
+  font-size: 12px;
+  color: var(--toy-text-soft);
+}
+
+.toy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.toy-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.toy-overview-card {
+  padding: 20px;
+  text-align: center;
+}
+
+.toy-overview-label,
+.toy-panel-kicker {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--toy-text-soft);
+}
+
+.toy-overview-value {
+  font-size: 36px;
+  font-weight: 800;
+  margin: 10px 0;
+}
+
+.toy-overview-desc {
+  margin: 6px auto 0;
+  padding: 7px 12px;
+  background: var(--toy-chip);
+  color: var(--toy-text-main);
+  font-size: 12px;
+}
+
+.toy-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.toy-panel-head h2 {
+  margin: 8px 0 0;
+  font-size: 28px;
+}
+
+.toy-summary-list,
+.toy-history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.toy-summary-line,
+.toy-history-item {
+  padding: 14px 16px;
+  border: 1px solid var(--toy-border);
+  border-radius: 18px;
+  background: var(--toy-panel-strong);
+}
+
+.toy-box-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.toy-box-card {
+  padding: 18px;
+  text-align: center;
+  background: var(--toy-panel-strong);
+}
+
+.toy-box-card.locked,
+.toy-doll-card.disabled {
+  opacity: 0.7;
+}
+
+.toy-box-card.compact {
+  padding: 16px;
+}
+
+.toy-box-image {
+  width: 108px;
+  height: 148px;
+  object-fit: contain;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.toy-box-image.small {
+  width: 82px;
+  height: 108px;
+}
+
+.toy-box-name {
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.toy-box-desc {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--toy-text-soft);
+  min-height: 40px;
+}
+
+.toy-box-lock {
+  display: block;
+  margin-top: 8px;
+  color: #ff7c7c;
+  font-size: 13px;
+}
+
+.toy-box-actions,
+.toy-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.toy-number-input,
+.toy-text-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--toy-border);
+  background: var(--toy-panel-strong);
+  color: inherit;
+  border-radius: 14px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.toy-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 14px;
+}
+
+.toy-sort-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.toy-chip {
+  border: 1px solid var(--toy-border);
+  padding: 8px 12px;
+  background: var(--toy-panel-strong);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toy-selected-bar {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--toy-panel-strong);
+  border: 1px solid var(--toy-border);
+}
+
+.toy-cabinet-grid,
+.toy-slot-grid,
+.toy-remote-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.toy-cabinet-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.toy-slot-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.toy-remote-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.toy-doll-card,
+.toy-slot-card,
+.toy-remote-card {
+  padding: 18px;
+  text-align: center;
+  background: var(--toy-panel-strong);
+}
+
+.toy-doll-card.selected {
+  outline: 2px solid rgba(124, 92, 255, 0.75);
+}
+
+.toy-slot-card.is-stolen {
+  border-color: rgba(255, 145, 111, 0.42);
+}
+
+.toy-slot-card.is-ready {
+  border-color: rgba(58, 197, 110, 0.34);
+}
+
+.toy-doll-image,
+.toy-slot-image,
+.toy-remote-image {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+.toy-slot-media {
+  width: 108px;
+  height: 108px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: rgba(124, 92, 255, 0.08);
+}
+
+.toy-doll-placeholder,
+.toy-slot-empty {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  background: rgba(124, 92, 255, 0.08);
+  border-radius: 20px;
+}
+
+.toy-doll-quality {
+  margin: 0 auto 10px;
+  padding: 6px 12px;
+  background: var(--toy-chip);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.toy-doll-name,
+.toy-slot-name,
+.toy-remote-owner {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.toy-slot-owner {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff5e8a;
+}
+
+.toy-doll-meta,
+.toy-slot-meta,
+.toy-remote-meta,
+.toy-doll-count,
+.toy-slot-tip,
+.toy-history-time {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--toy-text-soft);
+}
+
+.toy-doll-cooldown {
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: rgba(126, 126, 126, 0.16);
+  font-size: 12px;
+}
+
+.toy-history-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.toy-history-lines,
+.toy-history-top span {
+  font-size: 12px;
+  color: var(--toy-text-soft);
+}
+
+.toy-slot-index {
+  padding: 6px 12px;
+  background: var(--toy-chip);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.toy-slot-progress {
+  margin: 14px 0 12px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.12);
+  overflow: hidden;
+}
+
+.toy-slot-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd27b 0%, #ff8a4c 100%);
+}
+
+.toy-slot-activity {
+  margin: 0 auto 14px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(124, 92, 255, 0.1);
+  color: var(--toy-text-main);
+}
+
+.toy-slot-activity.is-ready {
+  background: rgba(58, 197, 110, 0.16);
+  color: #20a254;
+}
+
+.toy-slot-activity.is-early {
+  background: rgba(255, 184, 77, 0.2);
+  color: #ca7a00;
+}
+
+.toy-slot-activity.is-blocked,
+.toy-slot-activity.is-cooldown {
+  background: rgba(146, 152, 176, 0.14);
+  color: var(--toy-text-soft);
+}
+
+.toy-target-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.toy-target-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.toy-target-head {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.toy-history-message {
+  font-size: 15px;
+}
+
+.toy-history-time {
+  margin-top: 8px;
+}
+
+.toy-empty {
+  padding: 28px 16px;
+  border: 1px dashed var(--toy-border);
+  border-radius: 18px;
+  text-align: center;
+  color: var(--toy-text-soft);
+}
 
 @media (max-width: 1100px) {
-  .toy-hero { grid-template-columns: 1fr; }
-  .toy-actions { justify-content: flex-start; }
-  .toy-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toy-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .toy-actions {
+    justify-content: flex-start;
+  }
+
+  .toy-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-@media (max-width: 640px) {
-  .toy-shell { padding: 14px 10px 28px; }
-  .toy-title { font-size: 32px; }
-  .toy-panel-head h2 { font-size: 26px; }
-  .toy-overview-grid { grid-template-columns: 1fr; }
-  .toy-box-grid, .toy-cabinet-grid, .toy-slot-grid, .toy-remote-grid { grid-template-columns: 1fr; }
+@media (max-width: 720px) {
+  .toy-shell {
+    padding: 16px 12px 24px;
+  }
+
+  .toy-hero,
+  .toy-panel {
+    padding: 18px;
+  }
+
+  .toy-title {
+    font-size: 32px;
+  }
+
+  .toy-panel-head h2 {
+    font-size: 24px;
+  }
+
+  .toy-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toy-box-grid,
+  .toy-cabinet-grid,
+  .toy-slot-grid,
+  .toy-remote-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
