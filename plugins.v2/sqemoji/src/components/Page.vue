@@ -183,6 +183,7 @@
             type="button"
             class="emoji-tier-chip"
             :class="{ active: String(selectedTier) === String(tab.tier) }"
+            :style="tierChipStyle(tab)"
             @click="selectedTier = String(tab.tier)"
           >
             {{ tab.name }} {{ tab.owned }}/{{ tab.total || '❓' }}
@@ -203,13 +204,14 @@
         </div>
 
         <div v-if="!currentActors.length" class="emoji-empty">当前层级暂无可用演员</div>
-        <div v-else class="emoji-actor-scroll">
+        <div v-else class="emoji-actor-scroll" :class="{ expanded: actorVisibleLimit >= sortedActors.length }">
           <div class="emoji-actor-grid">
             <button
               v-for="actor in visibleActors"
               :key="actor.code"
               type="button"
               class="emoji-actor-card"
+              :style="actorCardStyle(actor)"
               :disabled="stage.has_active || !actor.can_place || draftRemaining(actor.code) <= 0"
               @click="pickActor(actor)"
             >
@@ -227,7 +229,7 @@
             size="small"
             @click="showMoreActors"
           >
-            显示更多 {{ remainingActorCount }} 个
+            显示全部剩余 {{ remainingActorCount }} 个
           </v-btn>
           <v-btn
             v-if="actorVisibleLimit > actorLimitStep"
@@ -261,9 +263,9 @@
             @click="selectEffect(effect)"
           >
             <div class="emoji-effect-title">{{ effect.name }}</div>
-            <div class="emoji-effect-meta">积分+{{ effect.point_bonus_pct }}% · 魔力+{{ effect.magic_bonus_pct }}%</div>
-            <div class="emoji-effect-meta">{{ effect.duration_text || `${effect.duration_seconds || 0} 秒` }}</div>
-            <div class="emoji-effect-meta">{{ effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁' }}</div>
+            <div class="emoji-effect-boost">积分+{{ effect.point_bonus_pct }}% · 魔力+{{ effect.magic_bonus_pct }}%</div>
+            <div class="emoji-effect-subline">{{ effect.duration_text || `${effect.duration_seconds || 0} 秒` }}</div>
+            <div class="emoji-effect-unlock">{{ effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁' }}</div>
           </article>
         </div>
 
@@ -633,6 +635,24 @@ function stageSlotPalette(tier) {
   return paletteMap[tier] || paletteMap.default
 }
 
+function tierChipStyle(tab) {
+  const palette = stageSlotPalette(Number(tab?.tier || 0))
+  return {
+    '--tier-chip-bg': palette.bg,
+    '--tier-chip-border': palette.border,
+    '--tier-chip-color': palette.color,
+  }
+}
+
+function actorCardStyle(actor) {
+  const palette = stageSlotPalette(Number(actor?.tier || selectedTier.value || 0))
+  return {
+    '--actor-card-bg': palette.bg,
+    '--actor-card-border': palette.border,
+    '--actor-card-color': palette.color,
+  }
+}
+
 function stageSlotStyle(row, slot) {
   if (slot.filled) {
     const palette = stageSlotPalette(Number(slot.tier || 0))
@@ -660,7 +680,7 @@ function stageSlotTitle(slot) {
 }
 
 function showMoreActors() {
-  actorVisibleLimit.value += actorLimitStep
+  actorVisibleLimit.value = sortedActors.value.length || actorLimitStep
 }
 
 function collapseActors() {
@@ -1427,12 +1447,22 @@ onBeforeUnmount(() => {
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   color: var(--emoji-text);
-  padding: 8px 12px;
+  padding: 7px 11px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.emoji-tier-chip.active,
+.emoji-tier-chip {
+  border-color: var(--tier-chip-border, var(--emoji-border));
+  background: var(--tier-chip-bg, var(--emoji-panel-strong));
+  color: var(--tier-chip-color, var(--emoji-text));
+}
+
+.emoji-tier-chip.active {
+  box-shadow: inset 0 0 0 1px rgba(124, 92, 255, 0.28);
+  transform: translateY(-1px);
+}
+
 .emoji-sort-chip.active {
   background: var(--emoji-accent-soft);
   color: var(--emoji-accent);
@@ -1444,23 +1474,29 @@ onBeforeUnmount(() => {
   padding-right: 4px;
 }
 
+.emoji-actor-scroll.expanded {
+  max-height: none;
+  overflow: visible;
+}
+
 .emoji-actor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 4px;
 }
 
 .emoji-actor-card {
-  padding: 6px 4px;
+  padding: 5px 3px;
   text-align: center;
   cursor: pointer;
-  border: 1px solid rgba(104, 161, 255, 0.3);
-  border-radius: 12px;
-  background: rgba(245, 250, 255, 0.74);
+  border: 1px solid var(--actor-card-border, rgba(104, 161, 255, 0.3));
+  border-radius: 10px;
+  background: var(--actor-card-bg, rgba(245, 250, 255, 0.74));
+  color: var(--actor-card-color, var(--emoji-text));
 }
 
 .emoji-page.is-dark-theme .emoji-actor-card {
-  background: rgba(35, 40, 56, 0.9);
+  background: var(--actor-card-bg, rgba(35, 40, 56, 0.9));
 }
 
 .emoji-actor-actions {
@@ -1477,7 +1513,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-actor-main {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
@@ -1490,15 +1526,24 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.emoji-actor-attr,
+.emoji-actor-count {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
 .emoji-effect-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   margin-bottom: 14px;
 }
 
 .emoji-effect-card {
-  padding: 12px;
+  padding: 12px 14px;
   cursor: pointer;
   background: var(--emoji-panel-strong);
+  display: grid;
+  gap: 5px;
+  align-content: start;
 }
 
 .emoji-effect-card.active {
@@ -1512,9 +1557,22 @@ onBeforeUnmount(() => {
 }
 
 .emoji-effect-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
-  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.emoji-effect-boost {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--emoji-text);
+}
+
+.emoji-effect-subline,
+.emoji-effect-unlock {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--emoji-muted);
 }
 
 .emoji-stage-toolbar {
