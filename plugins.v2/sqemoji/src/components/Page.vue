@@ -357,7 +357,7 @@
 
       <section class="emoji-panel">
         <div class="emoji-section-head">
-          <h2 class="emoji-section-title">🧾 最近记录</h2>
+          <h2 class="emoji-section-title">🧾 执行历史</h2>
         </div>
         <div v-if="!historyItems.length" class="emoji-empty">暂无执行历史</div>
         <div v-else class="emoji-history-list">
@@ -1116,11 +1116,11 @@ onBeforeUnmount(() => {
 }
 
 .emoji-shell {
-  max-width: 1120px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 14px;
+  padding: 0 16px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .emoji-hero,
@@ -1133,14 +1133,14 @@ onBeforeUnmount(() => {
 .emoji-row-card,
 .emoji-history-item {
   border: 1px solid var(--emoji-border);
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--emoji-panel);
   box-shadow: var(--emoji-shadow);
 }
 
 .emoji-hero,
 .emoji-panel {
-  padding: 14px;
+  padding: 16px;
 }
 
 .emoji-panel,
@@ -1176,8 +1176,8 @@ onBeforeUnmount(() => {
 }
 
 .emoji-title {
-  margin: 10px 0 6px;
-  font-size: clamp(24px, 3.8vw, 30px);
+  margin: 8px 0 4px;
+  font-size: clamp(24px, 3.6vw, 30px);
   line-height: 1.05;
 }
 
@@ -1226,7 +1226,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-stat-card {
-  padding: 14px;
+  padding: 16px 14px;
   text-align: center;
   background: var(--emoji-panel-strong);
 }
@@ -1263,7 +1263,7 @@ onBeforeUnmount(() => {
 .emoji-section-title,
 .emoji-subsection-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -1317,7 +1317,6 @@ onBeforeUnmount(() => {
 .emoji-inline-row,
 .emoji-upgrade-row,
 .emoji-result-actions,
-.emoji-tier-tabs,
 .emoji-sort-tabs,
 .emoji-stage-toolbar,
 .emoji-stage-toolbar-left,
@@ -1331,6 +1330,12 @@ onBeforeUnmount(() => {
 
 .slot-actions {
   justify-content: center;
+}
+
+.emoji-tier-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .emoji-number-input {
@@ -1447,15 +1452,18 @@ onBeforeUnmount(() => {
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
   color: var(--emoji-text);
-  padding: 7px 11px;
+  padding: 8px 12px;
   cursor: pointer;
   font-size: 12px;
 }
 
 .emoji-tier-chip {
+  width: 100%;
+  min-height: 42px;
   border-color: var(--tier-chip-border, var(--emoji-border));
   background: var(--tier-chip-bg, var(--emoji-panel-strong));
   color: var(--tier-chip-color, var(--emoji-text));
+  line-height: 1.35;
 }
 
 .emoji-tier-chip.active {
@@ -1538,11 +1546,11 @@ onBeforeUnmount(() => {
 }
 
 .emoji-effect-card {
-  padding: 12px 14px;
+  padding: 14px;
   cursor: pointer;
   background: var(--emoji-panel-strong);
   display: grid;
-  gap: 5px;
+  gap: 6px;
   align-content: start;
 }
 
@@ -1586,7 +1594,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-row-card {
-  padding: 14px;
+  padding: 16px;
   background: var(--emoji-panel-strong);
 }
 
@@ -1687,13 +1695,13 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .emoji-shell {
-    padding: 0 8px;
+    padding: 0 10px;
   }
 
   .emoji-hero,
   .emoji-panel {
-    padding: 18px;
-    border-radius: 20px;
+    padding: 14px;
+    border-radius: 18px;
   }
 
   .emoji-hero-meta,
@@ -1706,6 +1714,10 @@ onBeforeUnmount(() => {
 
   .slot-reels {
     max-width: none;
+  }
+
+  .emoji-tier-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
