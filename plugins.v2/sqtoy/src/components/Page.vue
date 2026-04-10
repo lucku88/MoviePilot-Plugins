@@ -858,31 +858,34 @@ onBeforeUnmount(() => {
 <style scoped>
 .toy-page {
   min-height: 100vh;
-  --toy-bg-start: #fbf7f1;
-  --toy-bg-end: #f5efe6;
-  --toy-panel: rgba(255, 255, 255, 0.92);
-  --toy-panel-strong: rgba(255, 255, 255, 0.99);
-  --toy-border: rgba(232, 189, 135, 0.38);
-  --toy-chip: rgba(255, 190, 92, 0.14);
-  --toy-text-main: #4a3420;
-  --toy-text-soft: rgba(74, 52, 32, 0.68);
-  --toy-shadow: 0 20px 56px rgba(196, 155, 108, 0.12);
+  --toy-bg-start: #ffffff;
+  --toy-bg-end: #eef1f7;
+  --toy-panel: rgba(255, 255, 255, 0.9);
+  --toy-panel-strong: rgba(255, 255, 255, 0.98);
+  --toy-border: rgba(129, 133, 164, 0.18);
+  --toy-chip: rgba(124, 92, 255, 0.1);
+  --toy-text-main: #262638;
+  --toy-text-soft: rgba(118, 119, 139, 0.92);
+  --toy-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
   background:
-    radial-gradient(circle at top left, rgba(255, 211, 158, 0.24), transparent 32%),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%),
     linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
   color: var(--toy-text-main);
 }
 
 .toy-page.is-dark-theme {
-  --toy-bg-start: #12131d;
-  --toy-bg-end: #171828;
+  --toy-bg-start: #212534;
+  --toy-bg-end: #14161f;
   --toy-panel: rgba(26, 28, 39, 0.92);
   --toy-panel-strong: rgba(19, 21, 30, 0.98);
-  --toy-border: rgba(124, 92, 255, 0.22);
-  --toy-chip: rgba(124, 92, 255, 0.2);
-  --toy-text-main: #f3efff;
-  --toy-text-soft: rgba(243, 239, 255, 0.7);
-  --toy-shadow: 0 28px 90px rgba(7, 10, 20, 0.46);
+  --toy-border: rgba(124, 92, 255, 0.18);
+  --toy-chip: rgba(139, 108, 255, 0.14);
+  --toy-text-main: #f3f5ff;
+  --toy-text-soft: rgba(159, 167, 196, 0.92);
+  --toy-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  background:
+    radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%),
+    linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
 }
 
 .toy-page,
