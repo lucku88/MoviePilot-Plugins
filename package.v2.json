@@ -39,11 +39,12 @@
     "name": "SQ魔丸",
     "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
     "labels": "工具,自动化,魔丸",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.14": "放宽 SQ魔丸 状态页与配置页主容器宽度，减少左右留白，让卡片排版更接近 SQ玩偶 / SQ表情。",
       "v0.1.13": "Split auto scheduling into separate brick/beach actions so beach runs no longer also trigger brick.",
       "v0.1.12": "新增运行前 1 分钟预刷新状态的内置补充调度，用于在动态运行前先更新一轮 SQ魔丸 状态识别。",
       "v0.1.11": "精简配置页，移除网络设置、搬砖节奏和当前说明区块，同时让 SQ魔丸 的状态页与配置页主题和排版对齐朱雀助手风格。",

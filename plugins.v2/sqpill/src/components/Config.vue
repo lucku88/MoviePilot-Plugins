@@ -338,9 +338,9 @@ onBeforeUnmount(() => {
 }
 
 .pill-shell {
-  max-width: 1100px;
+  max-width: 1220px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 10px;
   display: grid;
   gap: 14px;
 }
