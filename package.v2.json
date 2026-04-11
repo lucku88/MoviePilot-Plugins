@@ -55,11 +55,12 @@
     "name": "Vue-魔丸",
     "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
     "labels": "工具,自动化,魔丸,Vue",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "继续收紧 Vue-魔丸 的顶部 Hero、统计卡、库存卡和执行历史卡片层级，去掉物品栏的重复标题，让整体信息密度更接近 Vue-农场 风格。",
       "v0.1.1": "重做 Vue-魔丸 状态页与配置页视觉，统一成和 Vue-农场 一致的紧凑卡片式布局，并补齐多主题风格适配。",
       "v0.1.0": "首版发布，独立为 Vue-魔丸 插件，提供兑换、搬砖、清沙滩、炼造、执行历史和站点 Cookie 同步页面。"
     }

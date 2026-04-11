@@ -6,13 +6,15 @@
           <div class="vp-badge">Vue-魔丸</div>
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
           <p class="vp-subtitle">{{ pill.subtitle || '兑换、搬砖、清沙滩、炼造、获取执行记录。' }}</p>
-          <div class="vp-chips">
+
+          <div class="vp-chip-row">
             <span class="vp-chip">最近执行 {{ status.last_run || '暂无' }}</span>
             <span class="vp-chip">下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
             <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
             <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
         </div>
+
         <div class="vp-actions">
           <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
           <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
@@ -30,6 +32,11 @@
         <article v-for="item in overview" :key="item.label" class="vp-card vp-stat">
           <div class="vp-kicker">{{ item.label }}</div>
           <div class="vp-value">{{ item.value }}</div>
+        </article>
+        <article class="vp-card vp-stat vp-stat-focus">
+          <div class="vp-kicker">库存快照</div>
+          <div class="vp-value">{{ inventoryTotal }}</div>
+          <div class="vp-stat-note">物品 {{ inventoryKinds }} 类</div>
         </article>
       </section>
 
@@ -58,8 +65,14 @@
           <div class="vp-title-strong">{{ brickHeadline }}</div>
           <div class="vp-countdown">{{ brickCountdownText }}</div>
           <div class="vp-facts">
-            <div class="vp-fact"><span class="vp-kicker">今日进度</span><strong>{{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</strong></div>
-            <div class="vp-fact"><span class="vp-kicker">下次模式</span><strong>{{ pill.next_run_action_label || '整轮执行' }}</strong></div>
+            <div class="vp-fact">
+              <span class="vp-kicker">今日进度</span>
+              <strong>{{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</strong>
+            </div>
+            <div class="vp-fact">
+              <span class="vp-kicker">下次模式</span>
+              <strong>{{ pill.next_run_action_label || '整轮执行' }}</strong>
+            </div>
           </div>
         </article>
 
@@ -74,8 +87,14 @@
           <div class="vp-title-strong">{{ beachHeadline }}</div>
           <div class="vp-countdown">{{ beachCountdownText }}</div>
           <div class="vp-facts">
-            <div class="vp-fact"><span class="vp-kicker">当前结果</span><strong>{{ beach.status_text || (beach.ready ? '已就绪' : '等待冷却') }}</strong></div>
-            <div class="vp-fact"><span class="vp-kicker">自动后续</span><strong>{{ autoFollowText }}</strong></div>
+            <div class="vp-fact">
+              <span class="vp-kicker">当前结果</span>
+              <strong>{{ beach.status_text || (beach.ready ? '已就绪' : '等待冷却') }}</strong>
+            </div>
+            <div class="vp-fact">
+              <span class="vp-kicker">自动后续</span>
+              <strong>{{ autoFollowText }}</strong>
+            </div>
           </div>
         </article>
       </section>
@@ -83,16 +102,18 @@
       <section class="vp-card vp-panel stash">
         <div class="vp-head">
           <div>
-            <div class="vp-kicker">物品栏</div>
             <h2 class="vp-section-title">当前库存</h2>
           </div>
-          <div class="vp-note">材料、工具和魔丸都会在这里汇总显示。</div>
+          <div class="vp-note">材料、工具和魔丸会在这里汇总显示。</div>
         </div>
 
         <div class="vp-tool-grid">
           <article class="vp-tool craft">
             <div class="vp-tool-title">⚗️ 一键炼造魔丸</div>
-            <div class="vp-note">最大可炼造 {{ magicPillMax }} 颗<span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span></div>
+            <div class="vp-note">
+              最大可炼造 {{ magicPillMax }} 颗
+              <span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span>
+            </div>
             <div class="vp-inline">
               <label class="vp-field">
                 <span>数量</span>
@@ -119,9 +140,13 @@
         <div v-if="pill.inventory?.empty" class="vp-empty">{{ pill.inventory?.empty_text }}</div>
         <div v-else class="vp-items">
           <article v-for="item in inventoryItems" :key="item.name" class="vp-item" :class="{ active: item.has_items }" :style="itemToneStyle(item)">
-            <div class="vp-item-icon">{{ item.icon }}</div>
-            <div class="vp-item-name">{{ item.name }}</div>
-            <div class="vp-item-count">{{ item.count }}</div>
+            <div class="vp-item-icon-wrap">
+              <div class="vp-item-icon">{{ item.icon }}</div>
+            </div>
+            <div class="vp-item-body">
+              <div class="vp-item-name">{{ item.name }}</div>
+              <div class="vp-item-count">{{ item.count }}</div>
+            </div>
           </article>
         </div>
       </section>
@@ -129,7 +154,6 @@
       <section class="vp-card vp-panel history">
         <div class="vp-head">
           <div>
-            <div class="vp-kicker">最近记录</div>
             <h2 class="vp-section-title">执行历史</h2>
           </div>
         </div>
@@ -140,7 +164,7 @@
               <strong>{{ item.title }}</strong>
               <span>{{ item.time }}</span>
             </div>
-            <div class="vp-note">{{ (item.lines || []).join(' / ') }}</div>
+            <div class="vp-history-lines">{{ (item.lines || []).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -192,6 +216,8 @@ const beachReadyTs = computed(() => Number(beach.value.next_ready_ts || 0) || pa
 const exchangePriceText = computed(() => (exchange.value.pill_price ? `${exchange.value.pill_price} 魔力/颗` : '待识别'))
 const exchangeQuantity = ref('1')
 const pillCraftQuantity = ref('1')
+const inventoryKinds = computed(() => inventoryItems.value.length)
+const inventoryTotal = computed(() => inventoryItems.value.reduce((sum, item) => sum + Number(item.count || 0), 0))
 
 const autoFollowText = computed(() => {
   const actions = []
@@ -221,12 +247,18 @@ function normalizePositiveInt(value, fallback = 1) {
   const parsed = Number.parseInt(value, 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
-function flash(text, type = 'success') { message.text = text; message.type = type }
+
+function flash(text, type = 'success') {
+  message.text = text
+  message.type = type
+}
+
 function parseDateTime(value) {
   if (!value || typeof value !== 'string') return 0
   const parsed = Date.parse(value.replace(/-/g, '/'))
   return Number.isNaN(parsed) ? 0 : Math.floor(parsed / 1000)
 }
+
 function formatCountdown(totalSeconds) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0))
   const hours = Math.floor(safeSeconds / 3600)
@@ -234,28 +266,46 @@ function formatCountdown(totalSeconds) {
   const seconds = safeSeconds % 60
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
+
 function toneRgbByName(name) {
   const text = String(name || '')
   if (text.includes('砖')) return '255,119,64'
   if (text.includes('木')) return '171,121,79'
-  if (text.includes('塑料') || text.includes('袋') || text.includes('瓶')) return '78,151,255'
+  if (text.includes('塑料') || text.includes('胶') || text.includes('瓶')) return '78,151,255'
   if (text.includes('螺丝') || text.includes('旧电池') || text.includes('能量')) return '82,183,110'
   if (text.includes('铜')) return '226,165,98'
   if (text.includes('工具')) return '104,122,255'
   if (text.includes('魔丸胚胎')) return '255,132,179'
   if (text.includes('魔丸')) return '139,108,255'
-  if (text.includes('蚯蚓')) return '74,194,173'
+  if (text.includes('蟑螂')) return '74,194,173'
   return '124,92,255'
 }
-function itemToneStyle(item) { return { '--vp-tone-rgb': toneRgbByName(item?.name) } }
-function closePlugin() { if (showSummary.value) dismissSummary(); emit('close') }
+
+function itemToneStyle(item) {
+  return { '--vp-tone-rgb': toneRgbByName(item?.name) }
+}
+
+function closePlugin() {
+  if (showSummary.value) dismissSummary()
+  emit('close')
+}
+
 function dismissSummary() {
   const key = summaryKey.value
   dismissedSummaryKey.value = key
-  if (typeof window !== 'undefined' && window.sessionStorage) key ? window.sessionStorage.setItem('vuepill-dismissed-summary', key) : window.sessionStorage.removeItem('vuepill-dismissed-summary')
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    key ? window.sessionStorage.setItem('vuepill-dismissed-summary', key) : window.sessionStorage.removeItem('vuepill-dismissed-summary')
+  }
 }
-function loadDismissedSummaryKey() { dismissedSummaryKey.value = typeof window !== 'undefined' && window.sessionStorage ? (window.sessionStorage.getItem('vuepill-dismissed-summary') || '') : '' }
-async function loadStatus() { applyStatusPayload(await props.api.get(`${pluginBase}/status`)) }
+
+function loadDismissedSummaryKey() {
+  dismissedSummaryKey.value = typeof window !== 'undefined' && window.sessionStorage ? (window.sessionStorage.getItem('vuepill-dismissed-summary') || '') : ''
+}
+
+async function loadStatus() {
+  applyStatusPayload(await props.api.get(`${pluginBase}/status`))
+}
+
 function applyStatusPayload(payload = {}) {
   const nextStatus = payload?.status?.pill_status || payload?.pill_status || {}
   if (Object.keys(nextStatus).length) status.pill_status = nextStatus
@@ -268,11 +318,23 @@ function applyStatusPayload(payload = {}) {
   if (brickResetTs.value && nowTs.value >= brickResetTs.value) lastBrickCooldownRefreshTs.value = brickResetTs.value
   if (beachReadyTs.value && nowTs.value >= beachReadyTs.value) lastBeachCooldownRefreshTs.value = beachReadyTs.value
 }
-async function silentRefreshStatus() { try { await loadStatus() } catch (error) { console.warn('[VuePill] silent refresh failed', error) } }
+
+async function silentRefreshStatus() {
+  try {
+    await loadStatus()
+  } catch (error) {
+    console.warn('[VuePill] silent refresh failed', error)
+  }
+}
+
 function scheduleFollowUpRefresh(delay = 1200) {
   if (pendingRefreshTimer) window.clearTimeout(pendingRefreshTimer)
-  pendingRefreshTimer = window.setTimeout(() => { pendingRefreshTimer = null; silentRefreshStatus() }, delay)
+  pendingRefreshTimer = window.setTimeout(() => {
+    pendingRefreshTimer = null
+    silentRefreshStatus()
+  }, delay)
 }
+
 async function doAction(action, { silent = false } = {}) {
   loading.value = true
   try {
@@ -287,11 +349,13 @@ async function doAction(action, { silent = false } = {}) {
     loading.value = false
   }
 }
+
 async function refreshData() { await doAction(() => props.api.post(`${pluginBase}/refresh`)) }
 async function runNow() { await doAction(() => props.api.post(`${pluginBase}/run`)) }
 async function syncCookie() { await doAction(() => props.api.get(`${pluginBase}/cookie`)) }
 async function moveBricks() { await doAction(() => props.api.post(`${pluginBase}/move-bricks`)) }
 async function cleanBeach() { await doAction(() => props.api.post(`${pluginBase}/clean-beach`)) }
+
 async function exchangePoints() {
   if (!exchange.value.action_ready) return flash('当前没有可兑换的魔丸', 'warning')
   const limit = Math.max(normalizePositiveInt(exchange.value.max_count, 1), 1)
@@ -299,13 +363,18 @@ async function exchangePoints() {
   exchangeQuantity.value = String(quantity)
   await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }))
 }
-function setPillCraftMax() { if (magicPillMax.value) pillCraftQuantity.value = String(magicPillMax.value) }
+
+function setPillCraftMax() {
+  if (magicPillMax.value) pillCraftQuantity.value = String(magicPillMax.value)
+}
+
 async function craftMagicPill() {
   if (!magicPillMax.value) return flash('当前材料不足，无法炼造魔丸', 'warning')
   const quantity = Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), magicPillMax.value)
   pillCraftQuantity.value = String(quantity)
   await doAction(() => props.api.post(`${pluginBase}/craft-max-pill`, { quantity }))
 }
+
 function findThemeNode() {
   let current = rootEl.value
   while (current) {
@@ -320,23 +389,30 @@ function findThemeNode() {
   if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) return document.documentElement
   return null
 }
-function getThemeNodes() { return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))] }
+
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
 function nodeHasDarkHint(node) {
   const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
   const classValue = String(node?.className || '').toLowerCase()
   return ['dark', 'purple', 'transparent'].includes(themeValue) || classValue.includes('dark') || classValue.includes('theme-dark') || classValue.includes('v-theme--dark')
 }
+
 function nodeHasLightHint(node) {
   const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
   const classValue = String(node?.className || '').toLowerCase()
   return themeValue === 'light' || classValue.includes('light') || classValue.includes('theme-light') || classValue.includes('v-theme--light')
 }
+
 function detectTheme() {
   const nodes = getThemeNodes()
   if (nodes.some(nodeHasDarkHint)) return (isDarkTheme.value = true)
   if (nodes.some(nodeHasLightHint)) return (isDarkTheme.value = false)
   isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
+
 function bindThemeObserver() {
   detectTheme()
   if (window.MutationObserver) {
@@ -348,15 +424,34 @@ function bindThemeObserver() {
     mediaQuery.addEventListener?.('change', detectTheme)
   }
 }
+
 function tick() {
   nowTs.value = Math.floor(Date.now() / 1000)
-  if (nextRunTs.value && nowTs.value >= nextRunTs.value && lastRunAutoRefreshTs.value !== nextRunTs.value) { lastRunAutoRefreshTs.value = nextRunTs.value; doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true }) }
-  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && lastTriggerAutoRefreshTs.value !== nextTriggerTs.value) { lastTriggerAutoRefreshTs.value = nextTriggerTs.value; doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true }) }
-  if (brickResetTs.value && nowTs.value >= brickResetTs.value && lastBrickCooldownRefreshTs.value !== brickResetTs.value) { lastBrickCooldownRefreshTs.value = brickResetTs.value; silentRefreshStatus() }
-  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value && lastBeachCooldownRefreshTs.value !== beachReadyTs.value) { lastBeachCooldownRefreshTs.value = beachReadyTs.value; silentRefreshStatus() }
+  if (nextRunTs.value && nowTs.value >= nextRunTs.value && lastRunAutoRefreshTs.value !== nextRunTs.value) {
+    lastRunAutoRefreshTs.value = nextRunTs.value
+    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
+  }
+  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && lastTriggerAutoRefreshTs.value !== nextTriggerTs.value) {
+    lastTriggerAutoRefreshTs.value = nextTriggerTs.value
+    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
+  }
+  if (brickResetTs.value && nowTs.value >= brickResetTs.value && lastBrickCooldownRefreshTs.value !== brickResetTs.value) {
+    lastBrickCooldownRefreshTs.value = brickResetTs.value
+    silentRefreshStatus()
+  }
+  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value && lastBeachCooldownRefreshTs.value !== beachReadyTs.value) {
+    lastBeachCooldownRefreshTs.value = beachReadyTs.value
+    silentRefreshStatus()
+  }
 }
 
-onMounted(async () => { bindThemeObserver(); loadDismissedSummaryKey(); await loadStatus(); timer = window.setInterval(tick, 1000) })
+onMounted(async () => {
+  bindThemeObserver()
+  loadDismissedSummaryKey()
+  await loadStatus()
+  timer = window.setInterval(tick, 1000)
+})
+
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
   if (pendingRefreshTimer) window.clearTimeout(pendingRefreshTimer)
@@ -366,60 +461,76 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.vp-page{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
-.vp-page.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
+.vp-page{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--panel-soft:rgba(255,255,255,.72);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
+.vp-page.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--panel-soft:rgba(34,36,50,.72);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
 .vp-page,.vp-page *{box-sizing:border-box}
 .vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 .vp-card{padding:16px}
-.vp-hero{display:grid;gap:14px;background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(420px,.8fr);align-items:start;gap:18px;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
 .vp-badge,.vp-chip,.vp-state{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
 .vp-badge{width:fit-content;padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
-.vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
-.vp-subtitle,.vp-note,.vp-history-top span,.vp-kicker,.vp-tool .vp-note{color:var(--muted)}
-.vp-subtitle{margin:0;font-size:14px;line-height:1.7}
-.vp-chips,.vp-actions,.vp-stats,.vp-list,.vp-items,.vp-tool-grid,.vp-facts{display:grid;gap:12px}
-.vp-chips{margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.vp-chip{min-height:36px;justify-content:flex-start;padding:8px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600}
-.vp-actions{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
-.vp-stats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-.vp-stat{padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%),var(--panel-strong)}
-.vp-value{margin-top:8px;font-size:clamp(22px,3vw,30px);font-weight:900}
+.vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
+.vp-subtitle,.vp-note,.vp-history-top span,.vp-kicker,.vp-tool .vp-note,.vp-history-lines,.vp-stat-note{color:var(--muted)}
+.vp-subtitle{margin:0;font-size:14px;line-height:1.7;max-width:720px}
+.vp-chip-row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}
+.vp-chip{min-height:38px;justify-content:flex-start;padding:8px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600}
+.vp-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-self:stretch;gap:10px}
+.vp-actions :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
+.vp-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.vp-stat{padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%),var(--panel-strong);position:relative;overflow:hidden}
+.vp-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(124,92,255,.22)}
+.vp-stat:nth-child(1)::before{background:rgba(124,92,255,.42)}
+.vp-stat:nth-child(2)::before{background:rgba(255,160,67,.42)}
+.vp-stat:nth-child(3)::before{background:rgba(76,132,255,.42)}
+.vp-stat:nth-child(4)::before{background:rgba(34,197,171,.42)}
+.vp-stat-focus{background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 42%),var(--panel-strong)}
+.vp-value{margin-top:10px;font-size:clamp(22px,3vw,30px);font-weight:900;line-height:1}
+.vp-stat-note{margin-top:8px;font-size:12px;font-weight:600}
 .vp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
 .vp-head.compact{align-items:center}
-.vp-section-title{margin:4px 0 0;font-size:20px;font-weight:900}
+.vp-section-title{margin:0;font-size:20px;font-weight:900;line-height:1.15}
 .vp-summary{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-list{display:grid;gap:12px}
 .vp-list-item,.vp-history{padding:14px 16px;background:var(--panel-strong)}
 .vp-grid-2{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .vp-panel.brick{background:linear-gradient(135deg,rgba(255,160,67,.14) 0%,transparent 42%),var(--panel)}
 .vp-panel.beach{background:linear-gradient(135deg,rgba(34,197,171,.12) 0%,transparent 42%),var(--panel)}
-.vp-panel.stash,.vp-panel.history{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-panel.stash{background:radial-gradient(circle at top left,rgba(124,92,255,.12) 0%,transparent 36%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-panel.history{background:linear-gradient(135deg,rgba(99,102,241,.12) 0%,transparent 44%),var(--panel)}
 .vp-state{min-height:30px;padding:0 12px;font-size:12px;font-weight:800;color:#88612b;background:rgba(255,179,76,.16)}
 .vp-state.ready{color:#1d8c57;background:rgba(47,193,120,.16)}
 .vp-title-strong{font-size:clamp(24px,3vw,32px);line-height:1.04;font-weight:900}
 .vp-countdown{margin-top:8px;font-size:clamp(16px,1.9vw,20px);font-weight:900;color:var(--accent)}
-.vp-facts{margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.vp-facts{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px}
 .vp-fact{padding:12px;border-radius:16px;border:1px solid var(--border);background:var(--panel-strong);display:grid;gap:6px}
 .vp-fact strong{font-size:15px}
-.vp-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
+.vp-tool-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
 .vp-tool{padding:14px;display:grid;gap:12px;background:var(--panel-strong)}
-.vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.12) 0%,transparent 48%),var(--panel-strong)}
-.vp-tool.exchange{background:linear-gradient(135deg,rgba(255,171,64,.12) 0%,transparent 48%),var(--panel-strong)}
+.vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.14) 0%,transparent 48%),var(--panel-strong)}
+.vp-tool.exchange{background:linear-gradient(135deg,rgba(255,171,64,.14) 0%,transparent 48%),var(--panel-strong)}
 .vp-tool-title{font-size:16px;font-weight:900}
 .vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
 .vp-field{min-width:120px;display:grid;gap:8px;font-size:13px;color:var(--muted)}
 .vp-input{width:100%;height:40px;padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--panel);color:var(--text);outline:none}
 .vp-input:focus{border-color:rgba(124,92,255,.48);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
-.vp-items{grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}
-.vp-item{position:relative;overflow:hidden;padding:12px 8px;display:grid;gap:6px;text-align:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.14) 0%,transparent 58%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.22)}
-.vp-item::after{content:'';position:absolute;left:12px;right:12px;bottom:0;height:3px;border-radius:999px 999px 0 0;background:rgba(var(--vp-tone-rgb,124,92,255),.24)}
+.vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.vp-item{position:relative;overflow:hidden;padding:10px 10px 9px;display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.14) 0%,transparent 62%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.24)}
+.vp-item::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(var(--vp-tone-rgb,124,92,255),.4)}
 .vp-item.active{box-shadow:0 14px 28px rgba(17,24,39,.08)}
-.vp-item-icon{font-size:18px}
-.vp-item-name{font-size:12px;font-weight:800;line-height:1.35}
-.vp-item-count{font-size:15px;font-weight:900}
-.vp-history-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
+.vp-item-icon-wrap{display:grid;place-items:center}
+.vp-item-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(var(--vp-tone-rgb,124,92,255),.14);box-shadow:inset 0 0 0 1px rgba(var(--vp-tone-rgb,124,92,255),.16)}
+.vp-item-body{min-width:0;display:grid;gap:4px}
+.vp-item-name{font-size:12px;font-weight:800;line-height:1.3;word-break:break-all}
+.vp-item-count{font-size:16px;font-weight:900;line-height:1}
+.vp-history{position:relative;overflow:hidden;padding:15px 16px 14px 18px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
+.vp-history::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,rgba(124,92,255,.54) 0%,rgba(99,102,241,.18) 100%)}
+.vp-history-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.vp-history-top strong{font-size:14px;line-height:1.45}
+.vp-history-top span{font-size:12px;white-space:nowrap}
+.vp-history-lines{font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1080px){.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
-@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-chips,.vp-actions,.vp-stats,.vp-facts,.vp-items{grid-template-columns:1fr}}
+@media (max-width:1120px){.vp-hero{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
+@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-chip-row,.vp-facts,.vp-items,.vp-stats,.vp-actions{grid-template-columns:1fr}}
 </style>
