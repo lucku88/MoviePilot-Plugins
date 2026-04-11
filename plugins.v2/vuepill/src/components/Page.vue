@@ -2,18 +2,10 @@
   <div ref="rootEl" class="vp-page" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="vp-shell">
       <section class="vp-card vp-hero">
-        <div class="vp-hero-topbar">
+        <div class="vp-copy">
           <div class="vp-badge">Vue-魔丸</div>
-          <div class="vp-hero-utility">
-            <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
-            <v-btn variant="text" class="vp-close-btn" @click="closePlugin">关闭</v-btn>
-          </div>
-        </div>
-
-        <div class="vp-hero-bottom">
-          <div class="vp-copy">
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
-          <p class="vp-subtitle">{{ pill.subtitle || '兑换、搬砖、清沙滩、炼造、获取执行记录。' }}</p>
+          <p class="vp-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
 
           <div class="vp-chip-row">
             <span class="vp-chip">最近执行 {{ status.last_run || '暂无' }}</span>
@@ -21,15 +13,16 @@
             <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
             <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
-          </div>
+        </div>
 
-          <div class="vp-actions">
-            <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
-            <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
-            <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
-            <v-btn color="deep-orange" variant="flat" :loading="loading" @click="moveBricks">立即搬砖</v-btn>
-            <v-btn color="teal" variant="flat" :loading="loading" @click="cleanBeach">清理沙滩</v-btn>
-          </div>
+        <div class="vp-actions">
+          <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
+          <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
+          <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
+          <v-btn color="deep-orange" variant="flat" :loading="loading" @click="moveBricks">立即搬砖</v-btn>
+          <v-btn color="teal" variant="flat" :loading="loading" @click="cleanBeach">清理沙滩</v-btn>
+          <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
+          <v-btn variant="text" class="vp-close-btn" @click="closePlugin">关闭</v-btn>
         </div>
       </section>
 
@@ -474,21 +467,17 @@ onBeforeUnmount(() => {
 .vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 .vp-card{padding:16px}
-.vp-hero{display:grid;gap:16px;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
-.vp-hero-topbar,.vp-hero-bottom{display:grid;gap:14px}
-.vp-hero-topbar{grid-template-columns:auto 1fr;align-items:center}
-.vp-hero-utility{display:flex;justify-content:flex-end;align-items:center;gap:8px}
-.vp-close-btn{margin-left:auto}
-.vp-hero-bottom{grid-template-columns:minmax(0,1.18fr) minmax(380px,.82fr);align-items:start}
+.vp-hero{display:grid;grid-template-columns:minmax(0,1.16fr) minmax(430px,.84fr);align-items:start;gap:18px;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
 .vp-badge,.vp-chip,.vp-state{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
 .vp-badge{width:fit-content;padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
 .vp-subtitle,.vp-note,.vp-history-top span,.vp-kicker,.vp-tool .vp-note,.vp-history-lines,.vp-stat-note{color:var(--muted)}
 .vp-subtitle{margin:0;font-size:14px;line-height:1.7;max-width:720px}
-.vp-chip-row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}
-.vp-chip{min-height:38px;justify-content:flex-start;padding:8px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600}
-.vp-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-self:stretch;gap:10px}
+.vp-chip-row{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));margin-top:14px}
+.vp-chip{min-height:34px;justify-content:flex-start;padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:11px;font-weight:600}
+.vp-actions{display:grid;grid-template-columns:repeat(7,minmax(0,max-content));justify-content:end;align-items:start;gap:10px}
 .vp-actions :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
+.vp-close-btn{justify-self:end}
 .vp-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .vp-stat{padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%),var(--panel-strong);position:relative;overflow:hidden}
 .vp-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(124,92,255,.22)}
@@ -542,7 +531,7 @@ onBeforeUnmount(() => {
 .vp-history-top span{font-size:12px;white-space:nowrap}
 .vp-history-lines{font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1120px){.vp-hero-bottom{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
-@media (max-width:920px){.vp-head,.vp-history-top,.vp-hero-topbar{flex-direction:column;align-items:flex-start}.vp-hero-topbar{display:flex}.vp-hero-utility{width:100%;justify-content:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1120px){.vp-hero{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(4,minmax(0,1fr));justify-content:stretch}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
+@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-chip-row,.vp-facts,.vp-items,.vp-stats,.vp-actions{grid-template-columns:1fr}}
 </style>
