@@ -39,11 +39,12 @@
     "name": "Vue-农场",
     "description": "收菜、种植、出售、获取执行记录。",
     "labels": "工具,自动化,农场,Vue",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "去掉 Vue-农场 状态页区块里的重复标题文案，收获背包、种子商店、农场坑位和执行历史统一改成单标题显示。",
       "v0.1.1": "重做 Vue-农场 状态页与配置页视觉，改为更紧凑的卡片式布局，并补齐对 MoviePilot 多主题风格的自适应。",
       "v0.1.0": "首版发布，独立为 Vue-农场 插件，提供收菜、种植、出售、执行历史和站点 Cookie 同步页面。"
     }

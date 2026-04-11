@@ -42,8 +42,7 @@
       <section v-if="showSummary" class="vf-card vf-summary">
         <div class="vf-head compact">
           <div>
-            <div class="vf-kicker">本次摘要</div>
-            <h2 class="vf-section-title">任务结果</h2>
+            <h2 class="vf-section-title">本次摘要</h2>
           </div>
           <v-btn variant="text" size="small" @click="dismissSummary">关闭</v-btn>
         </div>
@@ -56,8 +55,7 @@
         <article class="vf-card vf-panel green">
           <div class="vf-head">
             <div>
-              <div class="vf-kicker">收获背包</div>
-              <h2 class="vf-section-title">当前库存</h2>
+              <h2 class="vf-section-title">收获背包</h2>
             </div>
             <div class="vf-note">可出售作物 {{ inventoryItems.length }} 项</div>
           </div>
@@ -83,8 +81,7 @@
         <article class="vf-card vf-panel amber">
           <div class="vf-head">
             <div>
-              <div class="vf-kicker">种子商店</div>
-              <h2 class="vf-section-title">种植面板</h2>
+              <h2 class="vf-section-title">种子商店</h2>
             </div>
             <div class="vf-note">当前种子：<strong v-if="selectedSeed">{{ selectedSeed.icon }} {{ selectedSeed.name }}</strong><strong v-else>未选择</strong></div>
           </div>
@@ -107,8 +104,7 @@
       <section class="vf-card vf-panel blue">
         <div class="vf-head">
           <div>
-            <div class="vf-kicker">农场坑位</div>
-            <h2 class="vf-section-title">分组状态</h2>
+            <h2 class="vf-section-title">农场坑位</h2>
           </div>
           <div class="vf-note">成熟可收、空地可种，其余坑位展示状态</div>
         </div>
@@ -144,7 +140,6 @@
       <section class="vf-card vf-panel slate">
         <div class="vf-head">
           <div>
-            <div class="vf-kicker">最近记录</div>
             <h2 class="vf-section-title">执行历史</h2>
           </div>
         </div>

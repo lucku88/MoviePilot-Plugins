@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_b61f3983_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_1e7e421d_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-b61f3983"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-1e7e421d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -34,16 +34,14 @@ const _hoisted_22 = {
 };
 const _hoisted_23 = { class: "vf-head compact" };
 const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "本次摘要"),
-  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "任务结果")
+  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "本次摘要")
 ], -1));
 const _hoisted_25 = { class: "vf-list" };
 const _hoisted_26 = { class: "vf-grid-2" };
 const _hoisted_27 = { class: "vf-card vf-panel green" };
 const _hoisted_28 = { class: "vf-head" };
 const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "收获背包"),
-  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "当前库存")
+  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "收获背包")
 ], -1));
 const _hoisted_30 = { class: "vf-note" };
 const _hoisted_31 = {
@@ -67,8 +65,7 @@ const _hoisted_42 = ["disabled", "onClick"];
 const _hoisted_43 = { class: "vf-card vf-panel amber" };
 const _hoisted_44 = { class: "vf-head" };
 const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "种子商店"),
-  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "种植面板")
+  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "种子商店")
 ], -1));
 const _hoisted_46 = { class: "vf-note" };
 const _hoisted_47 = { key: 0 };
@@ -84,8 +81,7 @@ const _hoisted_56 = { class: "vf-seed-note" };
 const _hoisted_57 = { class: "vf-card vf-panel blue" };
 const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "农场坑位"),
-    /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "分组状态")
+    /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "农场坑位")
   ]),
   /*#__PURE__*/_createElementVNode("div", { class: "vf-note" }, "成熟可收、空地可种，其余坑位展示状态")
 ], -1));
@@ -104,7 +100,6 @@ const _hoisted_70 = { class: "vf-slot-time" };
 const _hoisted_71 = { class: "vf-card vf-panel slate" };
 const _hoisted_72 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
-    /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "最近记录"),
     /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "执行历史")
   ])
 ], -1));
@@ -793,6 +788,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b61f3983"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1e7e421d"]]);
 
 export { PageView as default };
