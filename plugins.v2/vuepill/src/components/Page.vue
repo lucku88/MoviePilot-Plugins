@@ -52,12 +52,25 @@
 
       <section class="vp-grid-2">
         <article class="vp-card vp-panel brick">
-          <div class="vp-head">
+          <div class="vp-head vp-head-action">
             <div>
               <div class="vp-kicker">搬砖工坊</div>
               <h2 class="vp-section-title">搬砖状态</h2>
             </div>
-            <span class="vp-state" :class="{ ready: brick.ready }">{{ brick.ready ? '可执行' : '冷却中' }}</span>
+            <div class="vp-card-action-slot">
+              <v-btn
+                v-if="brick.ready"
+                color="deep-orange"
+                variant="flat"
+                size="small"
+                class="vp-card-action-btn"
+                :loading="loading"
+                @click="moveBricks"
+              >
+                立即搬砖
+              </v-btn>
+              <span v-else class="vp-state">冷却中</span>
+            </div>
           </div>
           <div class="vp-title-strong">{{ brickHeadline }}</div>
           <div class="vp-countdown">{{ brickCountdownText }}</div>
@@ -71,27 +84,28 @@
               <strong>{{ pill.next_run_action_label || '整轮执行' }}</strong>
             </div>
           </div>
-          <div class="vp-panel-actions">
-            <v-btn
-              v-if="brick.ready"
-              color="deep-orange"
-              variant="flat"
-              :loading="loading"
-              @click="moveBricks"
-            >
-              立即搬砖
-            </v-btn>
-            <v-btn v-else color="amber" variant="tonal" disabled>冷却中</v-btn>
-          </div>
         </article>
 
         <article class="vp-card vp-panel beach">
-          <div class="vp-head">
+          <div class="vp-head vp-head-action">
             <div>
               <div class="vp-kicker">沙滩捡破烂</div>
               <h2 class="vp-section-title">沙滩状态</h2>
             </div>
-            <span class="vp-state" :class="{ ready: beach.ready }">{{ beach.ready ? '可清理' : '冷却中' }}</span>
+            <div class="vp-card-action-slot">
+              <v-btn
+                v-if="beach.ready"
+                color="teal"
+                variant="flat"
+                size="small"
+                class="vp-card-action-btn"
+                :loading="loading"
+                @click="cleanBeach"
+              >
+                清理沙滩
+              </v-btn>
+              <span v-else class="vp-state">冷却中</span>
+            </div>
           </div>
           <div class="vp-title-strong">{{ beachHeadline }}</div>
           <div class="vp-countdown">{{ beachCountdownText }}</div>
@@ -104,18 +118,6 @@
               <span class="vp-kicker">自动后续</span>
               <strong>{{ autoFollowText }}</strong>
             </div>
-          </div>
-          <div class="vp-panel-actions">
-            <v-btn
-              v-if="beach.ready"
-              color="teal"
-              variant="flat"
-              :loading="loading"
-              @click="cleanBeach"
-            >
-              清理沙滩
-            </v-btn>
-            <v-btn v-else color="amber" variant="tonal" disabled>冷却中</v-btn>
           </div>
         </article>
       </section>
@@ -488,7 +490,7 @@ onBeforeUnmount(() => {
 .vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 .vp-card{padding:16px}
-.vp-hero,.vp-head,.vp-history-top,.vp-chip-row,.vp-panel-actions{display:flex;gap:10px;flex-wrap:wrap}
+.vp-hero,.vp-head,.vp-chip-row{display:flex;gap:10px;flex-wrap:wrap}
 .vp-hero{justify-content:space-between;align-items:flex-start;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
 .vp-copy{flex:1;min-width:0}
 .vp-badge,.vp-chip,.vp-state{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
@@ -513,6 +515,7 @@ onBeforeUnmount(() => {
 .vp-value{margin-top:10px;font-size:clamp(22px,3vw,30px);font-weight:900;line-height:1}
 .vp-stat-note{margin-top:8px;font-size:12px;font-weight:600}
 .vp-head{justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.vp-head-action{align-items:center}
 .vp-head.compact{align-items:center}
 .vp-section-title{margin:0;font-size:20px;font-weight:900;line-height:1.15}
 .vp-summary{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
@@ -530,8 +533,8 @@ onBeforeUnmount(() => {
 .vp-facts{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px}
 .vp-fact{padding:12px;border-radius:16px;border:1px solid var(--border);background:var(--panel-strong);display:grid;gap:6px}
 .vp-fact strong{font-size:15px}
-.vp-panel-actions{margin-top:14px}
-.vp-panel-actions :deep(.v-btn){min-height:40px;border-radius:14px;font-weight:800;min-width:132px}
+.vp-card-action-slot{display:flex;align-items:center;justify-content:flex-end;min-width:118px}
+.vp-card-action-btn{min-height:34px;border-radius:999px;font-weight:800;min-width:118px}
 .vp-tool-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
 .vp-tool{padding:14px;display:grid;gap:12px;background:var(--panel-strong)}
 .vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.14) 0%,transparent 48%),var(--panel-strong)}
@@ -552,12 +555,12 @@ onBeforeUnmount(() => {
 .vp-item-count{font-size:17px;font-weight:900;line-height:1}
 .vp-history{position:relative;overflow:hidden;padding:15px 16px 14px 18px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
 .vp-history::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,rgba(124,92,255,.54) 0%,rgba(99,102,241,.18) 100%)}
-.vp-history-top{justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.vp-history-top strong{flex:1;min-width:0;font-size:14px;line-height:1.45}
+.vp-history-top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:nowrap;margin-bottom:0}
+.vp-history-top strong{flex:1;min-width:0;font-size:14px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vp-history-top span{font-size:12px;white-space:nowrap}
-.vp-history-lines{font-size:12px;line-height:1.7}
+.vp-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
 @media (max-width:1120px){.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
-@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-facts,.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-panel-actions :deep(.v-btn){min-width:0;flex:1 1 100%}}
+@media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-facts,.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
 </style>

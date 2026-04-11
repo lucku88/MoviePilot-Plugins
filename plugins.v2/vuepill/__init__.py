@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.7"
+    plugin_version = "0.1.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -938,9 +938,10 @@ class VuePill(_PluginBase):
         brick_state = brick_state or {}
         daily_limit = max(1, self._safe_int(brick_state.get("daily_limit"), 50))
         daily_bricks = max(0, self._safe_int(brick_state.get("daily_bricks"), 0))
-        max_loops = max(0, min(50, daily_limit - daily_bricks))
+        remaining_quota = max(0, daily_limit - daily_bricks)
+        loop_cap = max(1, min(300, (remaining_quota if remaining_quota > 0 else daily_limit) * 6))
 
-        for _ in range(max_loops):
+        for _ in range(loop_cap):
             attempted = True
             try:
                 result = self._post_action(session, "move_brick", retry_network=False)
@@ -949,9 +950,13 @@ class VuePill(_PluginBase):
                 break
 
             if result and result.get("success"):
-                moved = self._safe_int(result.get("bricks_moved"), 1)
-                total_moved += max(1, moved)
                 last_message = (result.get("message") or "").strip()
+                moved = self._safe_int(result.get("bricks_moved"), 0)
+                if moved <= 0:
+                    if any(token in last_message for token in ("已满", "上限", "不能", "冷却", "结束")):
+                        break
+                    moved = 1
+                total_moved += moved
                 delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
                 if delay_ms > 0:
                     time.sleep(delay_ms / 1000.0)
@@ -1023,7 +1028,7 @@ class VuePill(_PluginBase):
 
         lines = []
         if result.get("moved"):
-            lines.append(f"🧱 搬砖：{result.get('moved')}块")
+            lines.append(f"🧱 搬砖：🧱砖块×{result.get('moved')}")
         if result.get("warning"):
             lines.append(f"⚠️ 搬砖失败：{result.get('warning')}")
         elif result.get("message") and not result.get("moved"):
@@ -1715,6 +1720,14 @@ class VuePill(_PluginBase):
                 return first_line.replace("ℹ️ 沙滩：", "🏖️手动沙滩：", 1), history_lines[1:]
             if first_line.startswith("⚠️ 清沙滩失败："):
                 return first_line.replace("⚠️ 清沙滩失败：", "🏖️手动沙滩失败：", 1), history_lines[1:]
+
+        if title == "🧱 手动搬砖":
+            if first_line.startswith("🧱 搬砖："):
+                return first_line.replace("🧱 搬砖：", "🧱手动搬砖：", 1), history_lines[1:]
+            if first_line.startswith("ℹ️ 搬砖："):
+                return first_line.replace("ℹ️ 搬砖：", "🧱手动搬砖：", 1), history_lines[1:]
+            if first_line.startswith("⚠️ 搬砖失败："):
+                return first_line.replace("⚠️ 搬砖失败：", "🧱手动搬砖失败：", 1), history_lines[1:]
 
         return history_title, history_lines
 
