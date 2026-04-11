@@ -5,7 +5,6 @@
         <div class="vp-copy">
           <div class="vp-badge">Vue-魔丸</div>
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
-          <p class="vp-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
 
           <div class="vp-chip-row">
             <span class="vp-chip">最近执行 {{ status.last_run || '暂无' }}</span>
@@ -473,11 +472,13 @@ onBeforeUnmount(() => {
 .vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
 .vp-subtitle,.vp-note,.vp-history-top span,.vp-kicker,.vp-tool .vp-note,.vp-history-lines,.vp-stat-note{color:var(--muted)}
 .vp-subtitle{margin:0;font-size:14px;line-height:1.7;max-width:720px}
-.vp-chip-row{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));margin-top:14px}
-.vp-chip{min-height:34px;justify-content:flex-start;padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:11px;font-weight:600}
-.vp-actions{display:grid;grid-template-columns:repeat(7,minmax(0,max-content));justify-content:end;align-items:start;gap:10px}
+.vp-chip-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.vp-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600;justify-content:flex-start}
+.vp-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:12px;align-self:start}
 .vp-actions :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
-.vp-close-btn{justify-self:end}
+.vp-actions :deep(.v-btn--variant-flat){min-width:132px}
+.vp-actions :deep(.v-btn--variant-text){min-width:auto;padding-inline:6px}
+.vp-close-btn{margin-left:0}
 .vp-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .vp-stat{padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%),var(--panel-strong);position:relative;overflow:hidden}
 .vp-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(124,92,255,.22)}
@@ -531,7 +532,7 @@ onBeforeUnmount(() => {
 .vp-history-top span{font-size:12px;white-space:nowrap}
 .vp-history-lines{font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1120px){.vp-hero{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(4,minmax(0,1fr));justify-content:stretch}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
-@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-chip-row,.vp-facts,.vp-items,.vp-stats,.vp-actions{grid-template-columns:1fr}}
+@media (max-width:1120px){.vp-hero{grid-template-columns:1fr}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
+@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-actions{justify-content:flex-start}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-facts,.vp-items,.vp-stats{grid-template-columns:1fr}.vp-actions{gap:10px}.vp-actions :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
 </style>
