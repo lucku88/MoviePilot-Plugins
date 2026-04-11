@@ -35,6 +35,18 @@
       "v0.1.0": "首版发布。"
     }
   },
+  "VueFarm": {
+    "name": "Vue-农场",
+    "description": "收菜、种植、出售、获取执行记录。",
+    "labels": "工具,自动化,农场,Vue",
+    "version": "0.1.0",
+    "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
+    "author": "lucku88",
+    "level": 1,
+    "history": {
+      "v0.1.0": "首版发布，独立为 Vue-农场 插件，提供收菜、种植、出售、执行历史和站点 Cookie 同步页面。"
+    }
+  },
   "SQPill": {
     "name": "SQ魔丸",
     "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
