@@ -1,112 +1,111 @@
 <template>
-  <div ref="rootEl" class="pill-config" :class="{ 'is-dark-theme': isDarkTheme }">
-    <div class="pill-shell">
-      <header class="pill-config-header">
-        <div class="pill-header-copy">
-          <div class="pill-badge">Vue-魔丸</div>
-          <h1 class="pill-page-title">插件配置</h1>
-          <p class="pill-page-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
+  <div ref="rootEl" class="vp-config" :class="{ 'is-dark-theme': isDarkTheme }">
+    <div class="vp-shell">
+      <header class="vp-card vp-hero">
+        <div class="vp-copy">
+          <div class="vp-badge">Vue-魔丸</div>
+          <h1 class="vp-title">插件配置</h1>
+          <p class="vp-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
         </div>
-        <div class="pill-header-actions">
+        <div class="vp-actions">
           <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
-          <v-btn variant="text" @click="emit('close')">关闭</v-btn>
+          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
         </div>
       </header>
 
-      <v-alert v-if="message.text" :type="message.type" variant="tonal">
-        {{ message.text }}
-      </v-alert>
+      <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
 
-      <section class="pill-settings-card">
-        <h2 class="pill-settings-title">⚙️ 基本设置</h2>
-        <div class="pill-switch-grid pill-switch-grid-basic">
-          <div class="pill-switch-item">
-            <v-switch v-model="config.enabled" class="pill-switch-control" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
+      <section class="vp-card">
+        <h2 class="vp-section-title">⚙️ 基本设置</h2>
+        <div class="vp-switch-grid">
+          <div class="vp-switch-card">
+            <v-switch v-model="config.enabled" class="vp-switch" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.use_proxy" class="pill-switch-control" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.use_proxy" class="vp-switch" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.notify" class="pill-switch-control" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.notify" class="vp-switch" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.onlyonce" class="pill-switch-control" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.onlyonce" class="vp-switch" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
           </div>
         </div>
       </section>
 
-      <section class="pill-settings-card">
-        <h2 class="pill-settings-title">🧩 功能设置</h2>
+      <section class="vp-card vp-panel">
+        <h2 class="vp-section-title">🧩 功能设置</h2>
 
-        <div class="pill-switch-grid">
-          <div class="pill-switch-item">
-            <v-switch v-model="config.auto_cookie" class="pill-switch-control" label="使用站点Cookie" color="#7c5cff" density="compact" hide-details inset />
+        <div class="vp-switch-grid">
+          <div class="vp-switch-card">
+            <v-switch v-model="config.auto_cookie" class="vp-switch" label="使用站点 Cookie" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.enable_brick" class="pill-switch-control" label="搬砖" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.enable_brick" class="vp-switch" label="搬砖" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.enable_beach" class="pill-switch-control" label="清沙滩" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.enable_beach" class="vp-switch" label="清沙滩" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.auto_craft" class="pill-switch-control" label="炼造" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.auto_craft" class="vp-switch" label="炼造" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.auto_exchange" class="pill-switch-control" label="兑换" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.auto_exchange" class="vp-switch" label="兑换" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="pill-switch-item">
-            <v-switch v-model="config.force_ipv4" class="pill-switch-control" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
+          <div class="vp-switch-card">
+            <v-switch v-model="config.force_ipv4" class="vp-switch" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
           </div>
         </div>
 
-        <div class="pill-field-grid">
-          <div class="pill-field-block">
-            <div class="pill-field-label">站点Cookie</div>
+        <div class="vp-field-grid">
+          <div class="vp-field-card vp-field-span-2">
+            <div class="vp-field-label">站点 Cookie</div>
             <v-text-field
               v-model="cookieFieldValue"
-              label="站点Cookie"
+              label="站点 Cookie"
               variant="outlined"
               density="comfortable"
               :disabled="cookieReadonly"
               :readonly="cookieReadonly"
-              :placeholder="cookieReadonly ? '启用站点Cookie后自动同步' : '例如 c_secure_pass=...'"
+              :placeholder="cookieReadonly ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...'"
+              hide-details="auto"
             />
-            <div class="pill-note">
-              启用【使用站点Cookie】后会自动读取已配置站点的 Cookie，关闭后才可手动修改。
-            </div>
+            <div class="vp-note">启用【使用站点 Cookie】后自动读取站点配置，关闭后才可手动修改。</div>
           </div>
 
-          <div class="pill-field-block">
-            <div class="pill-field-label">执行周期</div>
+          <div class="vp-field-card">
+            <div class="vp-field-label">执行周期</div>
             <VCronField
               v-model="config.brick_cron"
               label="搬砖执行周期(cron)"
               density="comfortable"
-              class="pill-cron-field"
+              class="vp-cron-field"
             />
           </div>
 
-          <div class="pill-field-block">
-            <div class="pill-field-label">保留材料数量</div>
+          <div class="vp-field-card">
+            <div class="vp-field-label">保留材料数量</div>
             <v-text-field
               v-model="config.reserve_material_count"
               label="每种材料保留数量"
               type="number"
               variant="outlined"
               density="comfortable"
+              hide-details="auto"
             />
           </div>
 
-          <div class="pill-field-block">
-            <div class="pill-field-label">保留魔丸数量</div>
+          <div class="vp-field-card">
+            <div class="vp-field-label">保留魔丸数量</div>
             <v-text-field
               v-model="config.reserve_magic_pill_count"
               label="魔丸保留数量"
               type="number"
               variant="outlined"
               density="comfortable"
+              hide-details="auto"
             />
           </div>
         </div>
@@ -158,15 +157,11 @@ const config = reactive({
 const cookieReadonly = computed(() => !!config.auto_cookie)
 const cookieFieldValue = computed({
   get() {
-    if (config.auto_cookie) {
-      return truncateCookie(config.cookie)
-    }
+    if (config.auto_cookie) return truncateCookie(config.cookie)
     return config.cookie
   },
   set(value) {
-    if (!config.auto_cookie) {
-      config.cookie = value || ''
-    }
+    if (!config.auto_cookie) config.cookie = value || ''
   },
 })
 
@@ -181,7 +176,7 @@ function flash(text, type = 'success') {
 function truncateCookie(value) {
   const text = String(value || '').trim()
   if (!text) return ''
-  return text.length > 22 ? `${text.slice(0, 22)}...` : text
+  return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
 function applyConfig(data = {}) {
@@ -292,6 +287,10 @@ function bindThemeObserver() {
   }
 }
 
+function closePlugin() {
+  emit('close')
+}
+
 onMounted(async () => {
   bindThemeObserver()
   await loadConfig()
@@ -304,259 +303,40 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.pill-config {
-  --pill-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%);
-  --pill-panel: rgba(255, 255, 255, 0.9);
-  --pill-panel-strong: rgba(255, 255, 255, 0.98);
-  --pill-text: #262638;
-  --pill-muted: #76778b;
-  --pill-border: rgba(129, 133, 164, 0.18);
-  --pill-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
-  --pill-accent: #7c5cff;
-  --pill-accent-soft: rgba(124, 92, 255, 0.1);
-  min-height: auto;
-  padding: 10px 0 8px;
-  background: transparent;
-  color: var(--pill-text);
-}
-
-.pill-config.is-dark-theme {
-  --pill-bg: radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%);
-  --pill-panel: rgba(26, 28, 39, 0.92);
-  --pill-panel-strong: rgba(19, 21, 30, 0.98);
-  --pill-text: #f3f5ff;
-  --pill-muted: #9fa7c4;
-  --pill-border: rgba(124, 92, 255, 0.18);
-  --pill-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
-  --pill-accent: #8b6cff;
-  --pill-accent-soft: rgba(139, 108, 255, 0.14);
-}
-
-.pill-config,
-.pill-config * {
-  box-sizing: border-box;
-}
-
-.pill-shell {
-  max-width: 1220px;
-  margin: 0 auto;
-  padding: 0 10px;
-  display: grid;
-  gap: 14px;
-}
-
-.pill-config-header,
-.pill-settings-card {
-  border: 1px solid var(--pill-border);
-  border-radius: 18px;
-  background: var(--pill-panel);
-  box-shadow: var(--pill-shadow);
-}
-
-.pill-config-header {
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-}
-
-.pill-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--pill-accent-soft);
-  color: var(--pill-accent);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pill-page-title {
-  margin: 10px 0 6px;
-  font-size: clamp(24px, 3.8vw, 32px);
-  line-height: 1.08;
-}
-
-.pill-page-subtitle,
-.pill-note {
-  color: var(--pill-muted);
-}
-
-.pill-header-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-  gap: 10px;
-}
-
-.pill-settings-card {
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-}
-
-.pill-settings-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.pill-switch-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.pill-switch-grid-basic {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.pill-switch-item {
-  min-height: 44px;
-  padding: 2px 8px;
-  border-radius: 14px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-panel-strong);
-  display: flex;
-  align-items: center;
-}
-
-.pill-field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  align-items: stretch;
-}
-
-.pill-field-block {
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-panel-strong);
-  display: grid;
-  align-content: start;
-  gap: 8px;
-}
-
-.pill-field-label {
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--pill-muted);
-}
-
-.pill-note {
-  margin-top: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.pill-cron-field {
-  padding: 0;
-  background: transparent;
-}
-
-:deep(.pill-config .v-field),
-:deep(.pill-config .v-selection-control) {
-  color: var(--pill-text);
-}
-
-:deep(.pill-config .v-field) {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 14px;
-}
-
-:deep(.pill-config .v-field__input),
-:deep(.pill-config .v-label),
-:deep(.pill-config .v-select__selection-text),
-:deep(.pill-config .v-field__outline),
-:deep(.pill-config .v-field__append-inner) {
-  color: var(--pill-text);
-}
-
-:deep(.pill-config .v-field--disabled) {
-  opacity: 0.82;
-}
-
-:deep(.pill-config .pill-switch-control) {
-  width: 100%;
-  margin: 0;
-}
-
-:deep(.pill-config .pill-switch-control .v-selection-control) {
-  min-height: 28px;
-}
-
-:deep(.pill-config .pill-switch-control .v-label) {
-  color: var(--pill-text);
-  opacity: 1;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-:deep(.pill-config .pill-switch-control .v-selection-control__wrapper) {
-  width: 30px;
-  height: 18px;
-  margin-right: 6px;
-}
-
-:deep(.pill-config .pill-switch-control .v-switch__track) {
-  min-width: 30px;
-  width: 30px;
-  height: 18px;
-  border-radius: 999px;
-}
-
-:deep(.pill-config .pill-switch-control .v-switch__thumb) {
-  width: 12px;
-  height: 12px;
-}
-
-:deep(.pill-config .v-field__input) {
-  min-height: 40px;
-  padding-top: 0;
-  padding-bottom: 0;
-  font-size: 13px;
-}
-
-:deep(.pill-config .v-field__outline) {
-  --v-field-border-opacity: 1;
-}
-
-:deep(.pill-config .v-selection-control__input > .v-icon),
-:deep(.pill-config .v-switch__track) {
-  color: var(--pill-accent);
-}
-
-:deep(.pill-config .v-alert) {
-  border-radius: 18px;
-}
-
-@media (max-width: 1080px) {
-  .pill-switch-grid,
-  .pill-switch-grid-basic,
-  .pill-field-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .pill-shell {
-    padding: 0 10px;
-  }
-
-  .pill-config-header,
-  .pill-settings-card {
-    padding: 18px 16px;
-    border-radius: 20px;
-  }
-
-  .pill-header-actions,
-  .pill-switch-grid,
-  .pill-switch-grid-basic,
-  .pill-field-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.vp-config{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
+.vp-config.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
+.vp-config,.vp-config *{box-sizing:border-box}
+.vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
+.vp-card{padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+.vp-hero,.vp-actions,.vp-switch-grid,.vp-field-grid{display:grid;gap:12px}
+.vp-hero{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-badge{display:inline-flex;align-items:center;justify-content:center;width:fit-content;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+.vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
+.vp-subtitle,.vp-note{color:var(--muted)}
+.vp-subtitle{margin:0;font-size:14px;line-height:1.7}
+.vp-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+.vp-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
+.vp-panel{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-switch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vp-switch-card,.vp-field-card{padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel-strong)}
+.vp-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vp-field-span-2{grid-column:span 2}
+.vp-field-label{margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.vp-note{font-size:12px;line-height:1.65}
+.vp-cron-field{padding:0;background:transparent}
+:deep(.vp-config .v-field),:deep(.vp-config .v-selection-control){color:var(--text)}
+:deep(.vp-config .v-field){background:rgba(255,255,255,.02);border-radius:14px}
+:deep(.vp-config .v-field__input),:deep(.vp-config .v-label),:deep(.vp-config .v-select__selection-text),:deep(.vp-config .v-field__outline),:deep(.vp-config .v-field__append-inner){color:var(--text)}
+:deep(.vp-config .v-field--disabled){opacity:.82}
+:deep(.vp-config .vp-switch){width:100%;margin:0}
+:deep(.vp-config .vp-switch .v-selection-control){min-height:28px}
+:deep(.vp-config .vp-switch .v-label){opacity:1;font-weight:600;font-size:12px;line-height:1.35}
+:deep(.vp-config .vp-switch .v-selection-control__wrapper){width:30px;height:18px;margin-right:6px}
+:deep(.vp-config .vp-switch .v-switch__track){min-width:30px;width:30px;height:18px;border-radius:999px}
+:deep(.vp-config .vp-switch .v-switch__thumb){width:12px;height:12px}
+:deep(.vp-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
+:deep(.vp-config .v-field__outline){--v-field-border-opacity:1}
+:deep(.vp-config .v-selection-control__input > .v-icon),:deep(.vp-config .v-switch__track){color:var(--accent)}
+@media (max-width:1080px){.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-field-span-2{grid-column:span 2}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-actions,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr}.vp-field-span-2{grid-column:auto}}
 </style>
-
