@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -289,7 +289,7 @@ class VuePill(_PluginBase):
             self._append_history("⚗️ Vue-魔丸运行", lines)
 
             if self._notify and has_action:
-                title = "【⚗️Vue-魔丸】 任务报告"
+                title = "【⚗️魔丸报告 】"
                 self.post_message(
                     mtype=NotificationType.Plugin,
                     title=title,
@@ -1077,7 +1077,7 @@ class VuePill(_PluginBase):
         lines = []
         items = result.get("items") or []
         if items:
-            lines.append(f"🏖️ 清沙滩：{self._format_item_lines(items)}")
+            lines.append(f"🏖️ 沙滩：{self._format_item_lines(items)}")
         if result.get("warning"):
             lines.append(f"⚠️ 清沙滩失败：{result.get('warning')}")
         elif result.get("message") and not items:
@@ -1682,17 +1682,12 @@ class VuePill(_PluginBase):
         return lines, has_action, has_warning
 
     def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        primary_lines = [line for line in lines if line.startswith(("🧱", "🏖️"))]
-        secondary_lines = [line for line in lines if line.startswith(("⚗️", "💰", "✨"))]
-        warning_lines = [line for line in lines if line.startswith(("⚠️", "ℹ️"))]
+        report_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "✅", "✨"))]
+        if not report_lines:
+            report_lines = [line for line in lines if not line.startswith("ℹ️")]
         chunks = [self.SUMMARY_LINE]
-        if primary_lines:
-            chunks.extend(primary_lines)
-            chunks.append(self.SUMMARY_LINE)
-        if secondary_lines or warning_lines:
-            chunks.extend(secondary_lines)
-            chunks.extend(warning_lines)
-            chunks.append(self.SUMMARY_LINE)
+        chunks.extend(report_lines)
+        chunks.append(self.SUMMARY_LINE)
         chunks.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
         chunks.append(self.SUMMARY_LINE)
         return "\n".join(chunks)
@@ -1705,15 +1700,21 @@ class VuePill(_PluginBase):
 
         first_line = history_lines[0]
         if title == "⚗️ Vue-魔丸运行" and first_line.startswith(("🏖️ ", "🧱 ", "💰 ", "⚒️ ", "⚗️ ", "ℹ️ ", "⚠️ ")):
-            return first_line, history_lines[1:]
+            history_title = first_line
+            history_title = history_title.replace("🏖️ 沙滩：", "🏖️沙滩：", 1)
+            history_title = history_title.replace("🧱 搬砖：", "🧱搬砖：", 1)
+            history_title = history_title.replace("💰 兑换：", "💰兑换：", 1)
+            history_title = history_title.replace("⚒️ 炼造：", "⚒️炼造：", 1)
+            history_title = history_title.replace("⚗️ 魔丸：", "⚗️魔丸：", 1)
+            return history_title, history_lines[1:]
 
         if title == "🏖️ 手动清沙滩":
-            if first_line.startswith("🏖️ 清沙滩："):
-                return first_line.replace("🏖️ 清沙滩：", "🏖️ 手动沙滩：", 1), history_lines[1:]
+            if first_line.startswith("🏖️ 沙滩："):
+                return first_line.replace("🏖️ 沙滩：", "🏖️手动沙滩：", 1), history_lines[1:]
             if first_line.startswith("ℹ️ 沙滩："):
-                return first_line.replace("ℹ️ 沙滩：", "🏖️ 手动沙滩：", 1), history_lines[1:]
+                return first_line.replace("ℹ️ 沙滩：", "🏖️手动沙滩：", 1), history_lines[1:]
             if first_line.startswith("⚠️ 清沙滩失败："):
-                return first_line.replace("⚠️ 清沙滩失败：", "🏖️ 手动沙滩失败：", 1), history_lines[1:]
+                return first_line.replace("⚠️ 清沙滩失败：", "🏖️手动沙滩失败：", 1), history_lines[1:]
 
         return history_title, history_lines
 
