@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_3e04fc3e_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_ea08bba6_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-3e04fc3e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-ea08bba6"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -87,32 +87,38 @@ const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_59 = { class: "vf-group-stack" };
 const _hoisted_60 = { class: "vf-group-head" };
-const _hoisted_61 = { class: "vf-group-name" };
-const _hoisted_62 = { class: "vf-group-sub" };
-const _hoisted_63 = { class: "vf-slot-grid" };
-const _hoisted_64 = ["disabled", "onClick"];
-const _hoisted_65 = { class: "vf-slot-top" };
-const _hoisted_66 = { class: "vf-slot-index" };
-const _hoisted_67 = { class: "vf-slot-badge" };
-const _hoisted_68 = { class: "vf-slot-icon" };
-const _hoisted_69 = { class: "vf-slot-name" };
-const _hoisted_70 = { class: "vf-slot-time" };
-const _hoisted_71 = { class: "vf-card vf-panel slate" };
-const _hoisted_72 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
+const _hoisted_61 = { class: "vf-group-main" };
+const _hoisted_62 = { class: "vf-group-name-row" };
+const _hoisted_63 = { class: "vf-group-name" };
+const _hoisted_64 = { class: "vf-group-count" };
+const _hoisted_65 = { class: "vf-group-sub" };
+const _hoisted_66 = { class: "vf-group-pill-row" };
+const _hoisted_67 = { class: "vf-group-pill ready" };
+const _hoisted_68 = { class: "vf-group-pill empty" };
+const _hoisted_69 = { class: "vf-slot-grid" };
+const _hoisted_70 = ["disabled", "onClick"];
+const _hoisted_71 = { class: "vf-slot-top" };
+const _hoisted_72 = { class: "vf-slot-index" };
+const _hoisted_73 = { class: "vf-slot-badge" };
+const _hoisted_74 = { class: "vf-slot-icon" };
+const _hoisted_75 = { class: "vf-slot-name" };
+const _hoisted_76 = { class: "vf-slot-time" };
+const _hoisted_77 = { class: "vf-card vf-panel slate" };
+const _hoisted_78 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "执行历史")
   ])
 ], -1));
-const _hoisted_73 = {
+const _hoisted_79 = {
   key: 0,
   class: "vf-empty"
 };
-const _hoisted_74 = {
+const _hoisted_80 = {
   key: 1,
   class: "vf-list"
 };
-const _hoisted_75 = { class: "vf-history-top" };
-const _hoisted_76 = { class: "vf-history-lines" };
+const _hoisted_81 = { class: "vf-history-top" };
+const _hoisted_82 = { class: "vf-history-lines" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -319,6 +325,14 @@ function slotToneStyle(slot) {
   if (state === 'expand') return { '--vf-slot-rgb': '255,171,64' }
   if (state === 'locked') return { '--vf-slot-rgb': '148,163,184' }
   return { '--vf-slot-rgb': toneRgbByName(slot?.title || slot?.name || '') }
+}
+
+function groupReadyCount(group) {
+  return (group?.slots || []).filter((slot) => slot.state === 'ready').length
+}
+
+function groupEmptyCount(group) {
+  return (group?.slots || []).filter((slot) => slot.state === 'empty').length
 }
 
 function getSellQuantity(item) {
@@ -762,10 +776,19 @@ return (_ctx, _cache) => {
               class: "vf-group"
             }, [
               _createElementVNode("header", _hoisted_60, [
-                _createElementVNode("div", _hoisted_61, _toDisplayString(group.name), 1),
-                _createElementVNode("div", _hoisted_62, _toDisplayString(group.subtitle), 1)
+                _createElementVNode("div", _hoisted_61, [
+                  _createElementVNode("div", _hoisted_62, [
+                    _createElementVNode("div", _hoisted_63, _toDisplayString(group.name), 1),
+                    _createElementVNode("span", _hoisted_64, _toDisplayString((group.slots || []).length) + " 块", 1)
+                  ]),
+                  _createElementVNode("div", _hoisted_65, _toDisplayString(group.subtitle), 1)
+                ]),
+                _createElementVNode("div", _hoisted_66, [
+                  _createElementVNode("span", _hoisted_67, "成熟 " + _toDisplayString(groupReadyCount(group)), 1),
+                  _createElementVNode("span", _hoisted_68, "空地 " + _toDisplayString(groupEmptyCount(group)), 1)
+                ])
               ]),
-              _createElementVNode("div", _hoisted_63, [
+              _createElementVNode("div", _hoisted_69, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(group.slots, (slot) => {
                   return (_openBlock(), _createElementBlock("button", {
                     key: `${group.id}-${slot.slot_index}`,
@@ -775,35 +798,35 @@ return (_ctx, _cache) => {
                     disabled: loading.value || actingSlotKey.value === slotKey(slot),
                     onClick: $event => (handleSlotClick(slot))
                   }, [
-                    _createElementVNode("div", _hoisted_65, [
-                      _createElementVNode("span", _hoisted_66, "#" + _toDisplayString(slot.slot_index), 1),
-                      _createElementVNode("span", _hoisted_67, _toDisplayString(slot.badge), 1)
+                    _createElementVNode("div", _hoisted_71, [
+                      _createElementVNode("span", _hoisted_72, "#" + _toDisplayString(slot.slot_index), 1),
+                      _createElementVNode("span", _hoisted_73, _toDisplayString(slot.badge), 1)
                     ]),
-                    _createElementVNode("div", _hoisted_68, _toDisplayString(slot.icon), 1),
-                    _createElementVNode("div", _hoisted_69, _toDisplayString(slot.title), 1),
-                    _createElementVNode("div", _hoisted_70, _toDisplayString(slotText(slot)), 1)
-                  ], 14, _hoisted_64))
+                    _createElementVNode("div", _hoisted_74, _toDisplayString(slot.icon), 1),
+                    _createElementVNode("div", _hoisted_75, _toDisplayString(slot.title), 1),
+                    _createElementVNode("div", _hoisted_76, _toDisplayString(slotText(slot)), 1)
+                  ], 14, _hoisted_70))
                 }), 128))
               ])
             ]))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_71, [
-        _hoisted_72,
+      _createElementVNode("section", _hoisted_77, [
+        _hoisted_78,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_73, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_74, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_79, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_80, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "vf-history"
                 }, [
-                  _createElementVNode("div", _hoisted_75, [
+                  _createElementVNode("div", _hoisted_81, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_76, _toDisplayString((item.lines || []).join(' / ')), 1)
+                  _createElementVNode("div", _hoisted_82, _toDisplayString((item.lines || []).join(' / ')), 1)
                 ]))
               }), 128))
             ]))
@@ -814,6 +837,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3e04fc3e"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ea08bba6"]]);
 
 export { PageView as default };
