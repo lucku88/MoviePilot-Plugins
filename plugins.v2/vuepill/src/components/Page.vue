@@ -2,8 +2,16 @@
   <div ref="rootEl" class="vp-page" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="vp-shell">
       <section class="vp-card vp-hero">
-        <div class="vp-copy">
+        <div class="vp-hero-topbar">
           <div class="vp-badge">Vue-魔丸</div>
+          <div class="vp-hero-utility">
+            <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
+            <v-btn variant="text" class="vp-close-btn" @click="closePlugin">关闭</v-btn>
+          </div>
+        </div>
+
+        <div class="vp-hero-bottom">
+          <div class="vp-copy">
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
           <p class="vp-subtitle">{{ pill.subtitle || '兑换、搬砖、清沙滩、炼造、获取执行记录。' }}</p>
 
@@ -13,16 +21,15 @@
             <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
             <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
           </div>
-        </div>
+          </div>
 
-        <div class="vp-actions">
-          <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
-          <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
-          <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
-          <v-btn color="deep-orange" variant="flat" :loading="loading" @click="moveBricks">立即搬砖</v-btn>
-          <v-btn color="teal" variant="flat" :loading="loading" @click="cleanBeach">清理沙滩</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
-          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+          <div class="vp-actions">
+            <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
+            <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
+            <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
+            <v-btn color="deep-orange" variant="flat" :loading="loading" @click="moveBricks">立即搬砖</v-btn>
+            <v-btn color="teal" variant="flat" :loading="loading" @click="cleanBeach">清理沙滩</v-btn>
+          </div>
         </div>
       </section>
 
@@ -467,7 +474,12 @@ onBeforeUnmount(() => {
 .vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 .vp-card{padding:16px}
-.vp-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(420px,.8fr);align-items:start;gap:18px;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
+.vp-hero{display:grid;gap:16px;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
+.vp-hero-topbar,.vp-hero-bottom{display:grid;gap:14px}
+.vp-hero-topbar{grid-template-columns:auto 1fr;align-items:center}
+.vp-hero-utility{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.vp-close-btn{margin-left:auto}
+.vp-hero-bottom{grid-template-columns:minmax(0,1.18fr) minmax(380px,.82fr);align-items:start}
 .vp-badge,.vp-chip,.vp-state{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
 .vp-badge{width:fit-content;padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
@@ -514,15 +526,15 @@ onBeforeUnmount(() => {
 .vp-field{min-width:120px;display:grid;gap:8px;font-size:13px;color:var(--muted)}
 .vp-input{width:100%;height:40px;padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--panel);color:var(--text);outline:none}
 .vp-input:focus{border-color:rgba(124,92,255,.48);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
-.vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
-.vp-item{position:relative;overflow:hidden;padding:10px 10px 9px;display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.14) 0%,transparent 62%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.24)}
+.vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+.vp-item{position:relative;overflow:hidden;padding:10px 10px 9px;display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.18) 0%,transparent 70%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.28)}
 .vp-item::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(var(--vp-tone-rgb,124,92,255),.4)}
 .vp-item.active{box-shadow:0 14px 28px rgba(17,24,39,.08)}
 .vp-item-icon-wrap{display:grid;place-items:center}
-.vp-item-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(var(--vp-tone-rgb,124,92,255),.14);box-shadow:inset 0 0 0 1px rgba(var(--vp-tone-rgb,124,92,255),.16)}
+.vp-item-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:rgba(var(--vp-tone-rgb,124,92,255),.2);box-shadow:inset 0 0 0 1px rgba(var(--vp-tone-rgb,124,92,255),.22)}
 .vp-item-body{min-width:0;display:grid;gap:4px}
 .vp-item-name{font-size:12px;font-weight:800;line-height:1.3;word-break:break-all}
-.vp-item-count{font-size:16px;font-weight:900;line-height:1}
+.vp-item-count{font-size:17px;font-weight:900;line-height:1}
 .vp-history{position:relative;overflow:hidden;padding:15px 16px 14px 18px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
 .vp-history::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,rgba(124,92,255,.54) 0%,rgba(99,102,241,.18) 100%)}
 .vp-history-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
@@ -530,7 +542,7 @@ onBeforeUnmount(() => {
 .vp-history-top span{font-size:12px;white-space:nowrap}
 .vp-history-lines{font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1120px){.vp-hero{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
-@media (max-width:920px){.vp-head,.vp-history-top{flex-direction:column;align-items:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1120px){.vp-hero-bottom{grid-template-columns:1fr}.vp-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}}
+@media (max-width:920px){.vp-head,.vp-history-top,.vp-hero-topbar{flex-direction:column;align-items:flex-start}.vp-hero-topbar{display:flex}.vp-hero-utility{width:100%;justify-content:flex-start}.vp-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-chip-row,.vp-facts,.vp-items,.vp-stats,.vp-actions{grid-template-columns:1fr}}
 </style>

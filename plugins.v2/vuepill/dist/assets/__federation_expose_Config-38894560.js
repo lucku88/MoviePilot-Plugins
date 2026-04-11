@@ -1,46 +1,48 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_ee4f7795_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_14d8dc9e_lang = '';
 
 const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ee4f7795"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-14d8dc9e"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
-const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-copy" }, [
-  /*#__PURE__*/_createElementVNode("div", { class: "vp-badge" }, "Vue-魔丸"),
+const _hoisted_3 = { class: "vp-hero-topbar" };
+const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-badge" }, "Vue-魔丸", -1));
+const _hoisted_5 = { class: "vp-hero-bottom" };
+const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-copy" }, [
   /*#__PURE__*/_createElementVNode("h1", { class: "vp-title" }, "插件配置"),
   /*#__PURE__*/_createElementVNode("p", { class: "vp-subtitle" }, "兑换、搬砖、清沙滩、炼造、获取执行记录。")
 ], -1));
-const _hoisted_4 = { class: "vp-actions" };
-const _hoisted_5 = { class: "vp-card" };
-const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "⚙️ 基本设置", -1));
-const _hoisted_7 = { class: "vp-switch-grid" };
-const _hoisted_8 = { class: "vp-switch-card" };
-const _hoisted_9 = { class: "vp-switch-card" };
-const _hoisted_10 = { class: "vp-switch-card" };
+const _hoisted_7 = { class: "vp-actions" };
+const _hoisted_8 = { class: "vp-card" };
+const _hoisted_9 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "⚙️ 基本设置", -1));
+const _hoisted_10 = { class: "vp-switch-grid" };
 const _hoisted_11 = { class: "vp-switch-card" };
-const _hoisted_12 = { class: "vp-card vp-panel" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "🧩 功能设置", -1));
-const _hoisted_14 = { class: "vp-switch-grid" };
-const _hoisted_15 = { class: "vp-switch-card" };
-const _hoisted_16 = { class: "vp-switch-card" };
-const _hoisted_17 = { class: "vp-switch-card" };
+const _hoisted_12 = { class: "vp-switch-card" };
+const _hoisted_13 = { class: "vp-switch-card" };
+const _hoisted_14 = { class: "vp-switch-card" };
+const _hoisted_15 = { class: "vp-card vp-panel" };
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "🧩 功能设置", -1));
+const _hoisted_17 = { class: "vp-switch-grid" };
 const _hoisted_18 = { class: "vp-switch-card" };
 const _hoisted_19 = { class: "vp-switch-card" };
 const _hoisted_20 = { class: "vp-switch-card" };
-const _hoisted_21 = { class: "vp-field-grid" };
-const _hoisted_22 = { class: "vp-field-card vp-field-span-2" };
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "站点 Cookie", -1));
-const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-note" }, "启用【使用站点 Cookie】后自动读取站点配置，关闭后才可手动修改。", -1));
-const _hoisted_25 = { class: "vp-field-card" };
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "执行周期", -1));
-const _hoisted_27 = { class: "vp-field-card" };
-const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留材料数量", -1));
-const _hoisted_29 = { class: "vp-field-card" };
-const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留魔丸数量", -1));
+const _hoisted_21 = { class: "vp-switch-card" };
+const _hoisted_22 = { class: "vp-switch-card" };
+const _hoisted_23 = { class: "vp-switch-card" };
+const _hoisted_24 = { class: "vp-field-grid" };
+const _hoisted_25 = { class: "vp-field-card vp-field-span-2" };
+const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "站点 Cookie", -1));
+const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-note" }, "启用【使用站点 Cookie】后自动读取站点配置，关闭后才可手动修改。", -1));
+const _hoisted_28 = { class: "vp-field-card" };
+const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "执行周期", -1));
+const _hoisted_30 = { class: "vp-field-card" };
+const _hoisted_31 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留材料数量", -1));
+const _hoisted_32 = { class: "vp-field-card" };
+const _hoisted_33 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留魔丸数量", -1));
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -252,41 +254,11 @@ return (_ctx, _cache) => {
   }, [
     _createElementVNode("div", _hoisted_1, [
       _createElementVNode("header", _hoisted_2, [
-        _hoisted_3,
-        _createElementVNode("div", _hoisted_4, [
+        _createElementVNode("div", _hoisted_3, [
+          _hoisted_4,
           _createVNode(_component_v_btn, {
             variant: "text",
-            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("返回状态页")
-            ]),
-            _: 1
-          }),
-          _createVNode(_component_v_btn, {
-            color: "warning",
-            variant: "flat",
-            loading: saving.value,
-            onClick: syncCookie
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("同步 Cookie")
-            ]),
-            _: 1
-          }, 8, ["loading"]),
-          _createVNode(_component_v_btn, {
-            color: "primary",
-            variant: "flat",
-            loading: saving.value,
-            onClick: saveConfig
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("保存")
-            ]),
-            _: 1
-          }, 8, ["loading"]),
-          _createVNode(_component_v_btn, {
-            variant: "text",
+            class: "vp-close-btn",
             onClick: closePlugin
           }, {
             default: _withCtx(() => [
@@ -294,6 +266,42 @@ return (_ctx, _cache) => {
             ]),
             _: 1
           })
+        ]),
+        _createElementVNode("div", _hoisted_5, [
+          _hoisted_6,
+          _createElementVNode("div", _hoisted_7, [
+            _createVNode(_component_v_btn, {
+              variant: "text",
+              onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
+            }, {
+              default: _withCtx(() => [
+                _createTextVNode("返回状态页")
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_v_btn, {
+              color: "warning",
+              variant: "flat",
+              loading: saving.value,
+              onClick: syncCookie
+            }, {
+              default: _withCtx(() => [
+                _createTextVNode("同步 Cookie")
+              ]),
+              _: 1
+            }, 8, ["loading"]),
+            _createVNode(_component_v_btn, {
+              color: "primary",
+              variant: "flat",
+              loading: saving.value,
+              onClick: saveConfig
+            }, {
+              default: _withCtx(() => [
+                _createTextVNode("保存")
+              ]),
+              _: 1
+            }, 8, ["loading"])
+          ])
         ])
       ]),
       (message.text)
@@ -309,10 +317,10 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_5, [
-        _hoisted_6,
-        _createElementVNode("div", _hoisted_7, [
-          _createElementVNode("div", _hoisted_8, [
+      _createElementVNode("section", _hoisted_8, [
+        _hoisted_9,
+        _createElementVNode("div", _hoisted_10, [
+          _createElementVNode("div", _hoisted_11, [
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((config.enabled) = $event)),
@@ -324,7 +332,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_9, [
+          _createElementVNode("div", _hoisted_12, [
             _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.use_proxy) = $event)),
@@ -336,7 +344,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_10, [
+          _createElementVNode("div", _hoisted_13, [
             _createVNode(_component_v_switch, {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.notify) = $event)),
@@ -348,7 +356,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_11, [
+          _createElementVNode("div", _hoisted_14, [
             _createVNode(_component_v_switch, {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.onlyonce) = $event)),
@@ -362,10 +370,10 @@ return (_ctx, _cache) => {
           ])
         ])
       ]),
-      _createElementVNode("section", _hoisted_12, [
-        _hoisted_13,
-        _createElementVNode("div", _hoisted_14, [
-          _createElementVNode("div", _hoisted_15, [
+      _createElementVNode("section", _hoisted_15, [
+        _hoisted_16,
+        _createElementVNode("div", _hoisted_17, [
+          _createElementVNode("div", _hoisted_18, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_cookie,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.auto_cookie) = $event)),
@@ -377,7 +385,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_16, [
+          _createElementVNode("div", _hoisted_19, [
             _createVNode(_component_v_switch, {
               modelValue: config.enable_brick,
               "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.enable_brick) = $event)),
@@ -389,7 +397,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_17, [
+          _createElementVNode("div", _hoisted_20, [
             _createVNode(_component_v_switch, {
               modelValue: config.enable_beach,
               "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.enable_beach) = $event)),
@@ -401,7 +409,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_18, [
+          _createElementVNode("div", _hoisted_21, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_craft,
               "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.auto_craft) = $event)),
@@ -413,7 +421,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_19, [
+          _createElementVNode("div", _hoisted_22, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_exchange,
               "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.auto_exchange) = $event)),
@@ -425,7 +433,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_20, [
+          _createElementVNode("div", _hoisted_23, [
             _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
               "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.force_ipv4) = $event)),
@@ -438,9 +446,9 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_21, [
-          _createElementVNode("div", _hoisted_22, [
-            _hoisted_23,
+        _createElementVNode("div", _hoisted_24, [
+          _createElementVNode("div", _hoisted_25, [
+            _hoisted_26,
             _createVNode(_component_v_text_field, {
               modelValue: cookieFieldValue.value,
               "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((cookieFieldValue).value = $event)),
@@ -452,10 +460,10 @@ return (_ctx, _cache) => {
               placeholder: cookieReadonly.value ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...',
               "hide-details": "auto"
             }, null, 8, ["modelValue", "disabled", "readonly", "placeholder"]),
-            _hoisted_24
+            _hoisted_27
           ]),
-          _createElementVNode("div", _hoisted_25, [
-            _hoisted_26,
+          _createElementVNode("div", _hoisted_28, [
+            _hoisted_29,
             _createVNode(_component_VCronField, {
               modelValue: config.brick_cron,
               "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.brick_cron) = $event)),
@@ -464,8 +472,8 @@ return (_ctx, _cache) => {
               class: "vp-cron-field"
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_27, [
-            _hoisted_28,
+          _createElementVNode("div", _hoisted_30, [
+            _hoisted_31,
             _createVNode(_component_v_text_field, {
               modelValue: config.reserve_material_count,
               "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.reserve_material_count) = $event)),
@@ -476,8 +484,8 @@ return (_ctx, _cache) => {
               "hide-details": "auto"
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_29, [
-            _hoisted_30,
+          _createElementVNode("div", _hoisted_32, [
+            _hoisted_33,
             _createVNode(_component_v_text_field, {
               modelValue: config.reserve_magic_pill_count,
               "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.reserve_magic_pill_count) = $event)),
@@ -496,6 +504,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ee4f7795"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-14d8dc9e"]]);
 
 export { ConfigView as default };

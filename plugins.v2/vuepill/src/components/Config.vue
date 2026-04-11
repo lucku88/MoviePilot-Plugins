@@ -2,16 +2,20 @@
   <div ref="rootEl" class="vp-config" :class="{ 'is-dark-theme': isDarkTheme }">
     <div class="vp-shell">
       <header class="vp-card vp-hero">
-        <div class="vp-copy">
+        <div class="vp-hero-topbar">
           <div class="vp-badge">Vue-魔丸</div>
+          <v-btn variant="text" class="vp-close-btn" @click="closePlugin">关闭</v-btn>
+        </div>
+        <div class="vp-hero-bottom">
+          <div class="vp-copy">
           <h1 class="vp-title">插件配置</h1>
           <p class="vp-subtitle">兑换、搬砖、清沙滩、炼造、获取执行记录。</p>
-        </div>
-        <div class="vp-actions">
-          <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
-          <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
-          <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
-          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+          </div>
+          <div class="vp-actions">
+            <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
+            <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
+            <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
+          </div>
         </div>
       </header>
 
@@ -308,13 +312,16 @@ onBeforeUnmount(() => {
 .vp-config,.vp-config *{box-sizing:border-box}
 .vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vp-card{padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
-.vp-hero,.vp-actions,.vp-switch-grid,.vp-field-grid{display:grid;gap:12px}
+.vp-hero,.vp-actions,.vp-switch-grid,.vp-field-grid,.vp-hero-topbar,.vp-hero-bottom{display:grid;gap:12px}
 .vp-hero{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vp-hero-topbar{grid-template-columns:auto 1fr;align-items:center}
+.vp-hero-bottom{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);align-items:start}
 .vp-badge{display:inline-flex;align-items:center;justify-content:center;width:fit-content;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
 .vp-subtitle,.vp-note{color:var(--muted)}
 .vp-subtitle{margin:0;font-size:14px;line-height:1.7}
-.vp-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+.vp-close-btn{margin-left:auto}
+.vp-actions{grid-template-columns:repeat(3,minmax(0,1fr));align-self:start}
 .vp-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
 .vp-panel{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
 .vp-switch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -337,6 +344,6 @@ onBeforeUnmount(() => {
 :deep(.vp-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
 :deep(.vp-config .v-field__outline){--v-field-border-opacity:1}
 :deep(.vp-config .v-selection-control__input > .v-icon),:deep(.vp-config .v-switch__track){color:var(--accent)}
-@media (max-width:1080px){.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-field-span-2{grid-column:span 2}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-actions,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr}.vp-field-span-2{grid-column:auto}}
+@media (max-width:1080px){.vp-hero-bottom,.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-hero-bottom{grid-template-columns:1fr}.vp-field-span-2{grid-column:span 2}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-hero-topbar{grid-template-columns:1fr}.vp-close-btn{margin-left:0}.vp-actions,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr}.vp-field-span-2{grid-column:auto}}
 </style>
