@@ -1,177 +1,115 @@
 <template>
-  <div class="sqfarm-config-page">
-    <div class="sqfarm-config-shell">
-      <v-card class="sqfarm-config-card" rounded="xl" flat>
-        <v-card-text class="sqfarm-config-hero">
-          <div class="sqfarm-config-copy">
-            <div class="sqfarm-config-badge">Vue-农场</div>
-            <h1 class="sqfarm-config-title">插件配置</h1>
-            <p class="sqfarm-config-subtitle">收菜、种植、出售、获取执行记录。</p>
+  <div ref="rootEl" class="vuefarm-config" :class="{ 'is-dark-theme': isDarkTheme }">
+    <div class="vfc-shell">
+      <header class="vfc-card vfc-hero">
+        <div class="vfc-copy">
+          <div class="vfc-badge">Vue-农场</div>
+          <h1 class="vfc-title">插件配置</h1>
+          <p class="vfc-subtitle">收菜、种植、出售、获取执行记录。</p>
+        </div>
+        <div class="vfc-action-grid">
+          <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
+          <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
+          <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
+          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+        </div>
+      </header>
+
+      <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
+
+      <section class="vfc-card">
+        <h2 class="vfc-section-title">⚙️ 基本设置</h2>
+        <div class="vfc-switch-grid">
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.enabled" class="vfc-switch" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="sqfarm-config-actions">
-            <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
-            <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
-            <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
-            <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.use_proxy" class="vfc-switch" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
           </div>
-        </v-card-text>
-      </v-card>
-
-      <v-alert
-        v-if="message.text"
-        :type="message.type"
-        variant="tonal"
-        rounded="xl"
-      >
-        {{ message.text }}
-      </v-alert>
-
-      <v-card class="sqfarm-config-card" rounded="xl" flat>
-        <v-card-item>
-          <template #prepend>
-            <div class="sqfarm-config-kicker">基本设置</div>
-          </template>
-          <v-card-title>基础开关</v-card-title>
-        </v-card-item>
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="6" xl="3">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.enabled" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-            <v-col cols="12" md="6" xl="3">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.use_proxy" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-            <v-col cols="12" md="6" xl="3">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.notify" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-            <v-col cols="12" md="6" xl="3">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.onlyonce" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
-
-      <v-card class="sqfarm-config-card" rounded="xl" flat>
-        <v-card-item>
-          <template #prepend>
-            <div class="sqfarm-config-kicker">功能设置</div>
-          </template>
-          <v-card-title>农场流程</v-card-title>
-        </v-card-item>
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="4">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.auto_cookie" label="使用站点 Cookie" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.enable_sell" label="自动出售" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="sqfarm-switch-card">
-                <v-switch v-model="config.enable_plant" label="自动种植" color="#7c5cff" density="compact" hide-details inset />
-              </div>
-            </v-col>
-          </v-row>
-
-          <v-row class="mt-1">
-            <v-col cols="12" lg="4">
-              <div class="sqfarm-field-card">
-                <div class="sqfarm-field-title">站点 Cookie</div>
-                <v-text-field
-                  v-model="cookieFieldValue"
-                  label="站点 Cookie"
-                  variant="outlined"
-                  density="comfortable"
-                  :disabled="cookieReadonly"
-                  :readonly="cookieReadonly"
-                  :placeholder="cookieReadonly ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...'"
-                  hide-details="auto"
-                />
-                <div class="sqfarm-field-note">启用后自动读取站点 Cookie，关闭后才可手动修改。</div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" lg="4">
-              <div class="sqfarm-field-card">
-                <div class="sqfarm-field-title">优先种子</div>
-                <v-select
-                  v-model="config.prefer_seed"
-                  :items="seedOptions"
-                  label="优先种子"
-                  variant="outlined"
-                  density="comfortable"
-                  :menu-props="{ maxHeight: 280 }"
-                  hide-details="auto"
-                />
-              </div>
-            </v-col>
-
-            <v-col cols="12" lg="4">
-              <div class="sqfarm-field-card">
-                <div class="sqfarm-field-title">OCR API 地址</div>
-                <v-text-field
-                  v-model="config.ocr_api_url"
-                  label="OCR API 地址"
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="http://ip:8089/api/tr-run/"
-                  hide-details="auto"
-                />
-              </div>
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
-
-      <v-card class="sqfarm-config-card" rounded="xl" flat>
-        <v-card-item>
-          <template #prepend>
-            <div class="sqfarm-config-kicker">OCR 说明</div>
-          </template>
-          <v-card-title>验证码识别</v-card-title>
-        </v-card-item>
-        <v-card-text>
-          <div class="sqfarm-field-note">
-            批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收获失败后尝试逐坑位兜底收菜。
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.notify" class="vfc-switch" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <div class="sqfarm-field-note">
-            推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.onlyonce" class="vfc-switch" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
           </div>
-          <pre class="sqfarm-code">{{ ocrComposeExample }}</pre>
-        </v-card-text>
-      </v-card>
+        </div>
+      </section>
+
+      <section class="vfc-card">
+        <h2 class="vfc-section-title">🧩 功能设置</h2>
+        <div class="vfc-switch-grid">
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.auto_cookie" class="vfc-switch" label="使用站点 Cookie" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.enable_sell" class="vfc-switch" label="自动出售" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.enable_plant" class="vfc-switch" label="自动种植" color="#7c5cff" density="compact" hide-details inset />
+          </div>
+        </div>
+
+        <div class="vfc-field-grid">
+          <div class="vfc-field-card">
+            <div class="vfc-field-label">站点 Cookie</div>
+            <v-text-field
+              v-model="cookieFieldValue"
+              label="站点 Cookie"
+              variant="outlined"
+              density="comfortable"
+              :disabled="cookieReadonly"
+              :readonly="cookieReadonly"
+              :placeholder="cookieReadonly ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...'"
+              hide-details="auto"
+            />
+            <div class="vfc-note">启用后自动读取站点 Cookie，关闭后才可手动修改。</div>
+          </div>
+
+          <div class="vfc-field-card">
+            <div class="vfc-field-label">优先种子</div>
+            <v-select
+              v-model="config.prefer_seed"
+              :items="seedOptions"
+              label="优先种子"
+              variant="outlined"
+              density="comfortable"
+              :menu-props="{ maxHeight: 280 }"
+              hide-details="auto"
+            />
+          </div>
+
+          <div class="vfc-field-card">
+            <div class="vfc-field-label">OCR API 地址</div>
+            <v-text-field
+              v-model="config.ocr_api_url"
+              label="OCR API 地址"
+              variant="outlined"
+              density="comfortable"
+              placeholder="http://ip:8089/api/tr-run/"
+              hide-details="auto"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="vfc-card">
+        <h2 class="vfc-section-title">📘 OCR 说明</h2>
+        <div class="vfc-note">批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收获失败后尝试逐坑位兜底收菜。</div>
+        <div class="vfc-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
+        <pre class="vfc-code">{{ ocrComposeExample }}</pre>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-const props = defineProps({
-  initialConfig: {
-    type: Object,
-    default: () => ({}),
-  },
-  api: {
-    type: Object,
-    default: () => ({}),
-  },
-})
-
+const props = defineProps({ initialConfig: { type: Object, default: () => ({}) }, api: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['switch', 'close'])
 
+const rootEl = ref(null)
+const isDarkTheme = ref(false)
 const saving = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const seedOptions = ref(['西红柿'])
@@ -203,17 +141,16 @@ services:
 const cookieReadonly = computed(() => !!config.auto_cookie)
 const cookieFieldValue = computed({
   get() {
-    if (config.auto_cookie) {
-      return truncateCookie(config.cookie)
-    }
+    if (config.auto_cookie) return truncateCookie(config.cookie)
     return config.cookie
   },
   set(value) {
-    if (!config.auto_cookie) {
-      config.cookie = value || ''
-    }
+    if (!config.auto_cookie) config.cookie = value || ''
   },
 })
+
+let themeObserver = null
+let mediaQuery = null
 
 function flash(text, type = 'success') {
   message.text = text
@@ -227,14 +164,8 @@ function truncateCookie(value) {
 }
 
 function normalizeSeeds(items) {
-  const normalized = (items || [])
-    .map((item) => (typeof item === 'string' ? item : item?.value || item?.name || ''))
-    .filter(Boolean)
-
-  if (config.prefer_seed && !normalized.includes(config.prefer_seed)) {
-    normalized.unshift(config.prefer_seed)
-  }
-
+  const normalized = (items || []).map((item) => (typeof item === 'string' ? item : item?.value || item?.name || '')).filter(Boolean)
+  if (config.prefer_seed && !normalized.includes(config.prefer_seed)) normalized.unshift(config.prefer_seed)
   return normalized.length ? normalized : ['西红柿', '萝卜', '玉米', '茄子', '蘑菇', '樱桃']
 }
 
@@ -243,21 +174,15 @@ function applySeedOptions(items) {
 }
 
 function applyStatusSeedOptions(seedShop) {
-  const unlocked = (seedShop || [])
-    .filter((seed) => seed.unlocked && seed.name)
-    .map((seed) => seed.name)
-  if (unlocked.length) {
-    applySeedOptions(unlocked)
-  }
+  const unlocked = (seedShop || []).filter((seed) => seed.unlocked && seed.name).map((seed) => seed.name)
+  if (unlocked.length) applySeedOptions(unlocked)
 }
 
 async function loadStatusSeedOptions() {
   try {
     const res = await props.api.get('/plugin/VueFarm/status')
     applyStatusSeedOptions(res?.farm_status?.seed_shop)
-  } catch (error) {
-    // 保留当前种子列表
-  }
+  } catch (error) {}
 }
 
 async function loadConfig() {
@@ -280,9 +205,7 @@ async function saveConfig() {
       applySeedOptions(res.config.seed_options)
     }
     flash(res.message || '配置已保存')
-    if (config.onlyonce) {
-      config.onlyonce = false
-    }
+    if (config.onlyonce) config.onlyonce = false
   } catch (error) {
     flash(error?.message || '保存失败', 'error')
   } finally {
@@ -307,150 +230,107 @@ async function syncCookie() {
   }
 }
 
+function findThemeNode() {
+  let current = rootEl.value
+  while (current) {
+    if (current.getAttribute?.('data-theme')) return current
+    const cls = String(current.className || '').toLowerCase()
+    if (cls.includes('theme') || cls.includes('v-theme--') || cls.includes('dark') || cls.includes('light')) return current
+    current = current.parentElement
+  }
+  const bodyCls = String(document.body?.className || '').toLowerCase()
+  if (document.body?.getAttribute('data-theme') || bodyCls.includes('theme') || bodyCls.includes('v-theme--') || bodyCls.includes('dark') || bodyCls.includes('light')) return document.body
+  const rootCls = String(document.documentElement?.className || '').toLowerCase()
+  if (document.documentElement?.getAttribute('data-theme') || rootCls.includes('theme') || rootCls.includes('v-theme--') || rootCls.includes('dark') || rootCls.includes('light')) return document.documentElement
+  return null
+}
+
+function getThemeNodes() {
+  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
+}
+
+function detectTheme() {
+  const nodes = getThemeNodes()
+  const isDark = nodes.some((node) => {
+    const theme = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+    const cls = String(node?.className || '').toLowerCase()
+    return ['dark', 'purple', 'transparent'].includes(theme) || cls.includes('dark') || cls.includes('theme-dark') || cls.includes('v-theme--dark')
+  })
+  if (isDark) {
+    isDarkTheme.value = true
+    return
+  }
+  const isLight = nodes.some((node) => {
+    const theme = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
+    const cls = String(node?.className || '').toLowerCase()
+    return theme === 'light' || cls.includes('light') || cls.includes('theme-light') || cls.includes('v-theme--light')
+  })
+  if (isLight) {
+    isDarkTheme.value = false
+    return
+  }
+  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+}
+
+function bindThemeObserver() {
+  detectTheme()
+  if (window.MutationObserver) {
+    themeObserver = new MutationObserver(detectTheme)
+    getThemeNodes().forEach((node) => themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] }))
+  }
+  if (window.matchMedia) {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    mediaQuery.addEventListener?.('change', detectTheme)
+  }
+}
+
 function closePlugin() {
   emit('close')
 }
 
-onMounted(() => {
-  loadConfig()
+onMounted(async () => {
+  bindThemeObserver()
+  await loadConfig()
+})
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect?.()
+  mediaQuery?.removeEventListener?.('change', detectTheme)
 })
 </script>
 
 <style scoped>
-.sqfarm-config-page {
-  min-height: 100%;
-  padding: 20px;
-  color: rgb(var(--v-theme-on-surface));
-  background:
-    radial-gradient(circle at top right, rgb(var(--v-theme-primary) / 0.08), transparent 26%),
-    radial-gradient(circle at bottom left, rgb(var(--v-theme-warning) / 0.08), transparent 24%);
-}
-
-.sqfarm-config-shell {
-  max-width: 1240px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sqfarm-config-card {
-  border: 1px solid rgb(var(--v-theme-on-surface) / 0.08);
-  background: rgb(var(--v-theme-surface) / 0.88) !important;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 18px 40px rgb(15 23 42 / 0.08);
-}
-
-.sqfarm-config-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.sqfarm-config-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgb(var(--v-theme-primary) / 0.12);
-  color: rgb(var(--v-theme-primary));
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.sqfarm-config-title {
-  margin: 14px 0 8px;
-  font-size: clamp(34px, 4vw, 42px);
-  line-height: 1.05;
-  font-weight: 900;
-}
-
-.sqfarm-config-subtitle {
-  margin: 0;
-  color: rgb(var(--v-theme-on-surface-variant));
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.sqfarm-config-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.sqfarm-config-kicker {
-  color: rgb(var(--v-theme-on-surface-variant));
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sqfarm-switch-card,
-.sqfarm-field-card {
-  height: 100%;
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgb(var(--v-theme-on-surface) / 0.08);
-  background: rgb(var(--v-theme-surface-bright) / 0.74);
-}
-
-.sqfarm-switch-card :deep(.v-selection-control) {
-  min-height: 36px;
-}
-
-.sqfarm-switch-card :deep(.v-selection-control__wrapper) {
-  transform: scale(0.82);
-  transform-origin: left center;
-}
-
-.sqfarm-switch-card :deep(.v-label) {
-  opacity: 1;
-  color: rgb(var(--v-theme-on-surface));
-  font-weight: 700;
-}
-
-.sqfarm-field-title {
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 800;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
-
-.sqfarm-field-note {
-  margin-top: 10px;
-  color: rgb(var(--v-theme-on-surface-variant));
-  font-size: 13px;
-  line-height: 1.75;
-}
-
-.sqfarm-code {
-  margin-top: 14px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid rgb(var(--v-theme-on-surface) / 0.08);
-  background: rgb(var(--v-theme-surface-bright) / 0.74);
-  color: rgb(var(--v-theme-on-surface));
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-x: auto;
-}
-
-@media (max-width: 980px) {
-  .sqfarm-config-page {
-    padding: 16px;
-  }
-
-  .sqfarm-config-hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .sqfarm-config-actions {
-    justify-content: flex-start;
-  }
-}
+.vuefarm-config{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
+.vuefarm-config.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
+.vuefarm-config,.vuefarm-config *{box-sizing:border-box}
+.vfc-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
+.vfc-card{padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+.vfc-hero{display:grid;gap:14px;background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
+.vfc-badge{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+.vfc-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
+.vfc-subtitle,.vfc-note{color:var(--muted)}
+.vfc-subtitle{margin:0;font-size:14px;line-height:1.7}
+.vfc-action-grid,.vfc-switch-grid,.vfc-field-grid{display:grid;gap:12px}
+.vfc-action-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.vfc-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
+.vfc-switch-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.vfc-switch-card,.vfc-field-card{padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel-strong)}
+.vfc-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vfc-field-label{margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.vfc-note{font-size:12px;line-height:1.65}
+.vfc-code{margin-top:14px;padding:16px 18px;border-radius:18px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:13px;line-height:1.6;overflow-x:auto}
+:deep(.vuefarm-config .v-field),:deep(.vuefarm-config .v-selection-control){color:var(--text)}
+:deep(.vuefarm-config .v-field){background:rgba(255,255,255,.02);border-radius:14px}
+:deep(.vuefarm-config .v-field__input),:deep(.vuefarm-config .v-label),:deep(.vuefarm-config .v-select__selection-text),:deep(.vuefarm-config .v-field__outline),:deep(.vuefarm-config .v-field__append-inner){color:var(--text)}
+:deep(.vuefarm-config .v-field--disabled){opacity:.82}
+:deep(.vuefarm-config .v-selection-control){min-height:28px}
+:deep(.vuefarm-config .v-label){opacity:1;font-weight:600;font-size:12px;line-height:1.35}
+:deep(.vuefarm-config .v-selection-control__wrapper){width:30px;height:18px;margin-right:6px}
+:deep(.vuefarm-config .v-switch__track){min-width:30px;width:30px;height:18px;border-radius:999px}
+:deep(.vuefarm-config .v-switch__thumb){width:12px;height:12px}
+:deep(.vuefarm-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
+:deep(.vuefarm-config .v-field__outline){--v-field-border-opacity:1}
+:deep(.vuefarm-config .v-selection-control__input > .v-icon),:deep(.vuefarm-config .v-switch__track){color:var(--accent)}
+@media (max-width:1080px){.vfc-switch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vfc-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.vfc-shell{padding:0 10px}.vfc-card{padding:14px;border-radius:18px}.vfc-action-grid,.vfc-switch-grid,.vfc-field-grid{grid-template-columns:1fr}}
 </style>
