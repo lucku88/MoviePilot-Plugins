@@ -61,7 +61,7 @@
           </div>
           <div v-if="farm.inventory?.empty" class="vf-empty">{{ farm.inventory?.empty_text }}</div>
           <div v-else class="vf-bag-grid">
-            <article v-for="item in inventoryItems" :key="item.seed_id || item.name" class="vf-bag-card">
+            <article v-for="item in inventoryItems" :key="item.seed_id || item.name" class="vf-bag-card" :style="cardToneStyle(item.name)">
               <div class="vf-bag-top">
                 <div class="vf-bag-icon">{{ item.icon }}</div>
                 <div class="vf-bag-main">
@@ -90,7 +90,7 @@
             <v-btn color="warning" variant="flat" :disabled="!readySlots.length || loading" @click="harvestAllReady">一键收获</v-btn>
           </div>
           <div class="vf-seed-grid">
-            <button v-for="seed in farm.seed_shop || []" :key="seed.id" type="button" class="vf-seed-card" :class="{ locked: !seed.unlocked, active: selectedSeed && Number(selectedSeed.id) === Number(seed.id) }" :disabled="!seed.unlocked || loading" @click="selectSeed(seed)">
+            <button v-for="seed in farm.seed_shop || []" :key="seed.id" type="button" class="vf-seed-card" :class="{ locked: !seed.unlocked, active: selectedSeed && Number(selectedSeed.id) === Number(seed.id) }" :style="cardToneStyle(seed.name)" :disabled="!seed.unlocked || loading" @click="selectSeed(seed)">
               <div class="vf-seed-icon">{{ seed.icon }}</div>
               <div class="vf-seed-name">{{ seed.name }}</div>
               <div class="vf-seed-meta">消耗 {{ seed.cost }}</div>
@@ -121,6 +121,7 @@
                 type="button"
                 class="vf-slot"
                 :class="[slot.state, { clickable: isInteractiveSlot(slot), busy: actingSlotKey === slotKey(slot) }]"
+                :style="slotToneStyle(slot)"
                 :disabled="loading || actingSlotKey === slotKey(slot)"
                 @click="handleSlotClick(slot)"
               >
@@ -331,6 +332,29 @@ function isInteractiveSlot(slot) {
 
 function inventoryKey(item) {
   return String(item.seed_id || item.name)
+}
+
+function toneRgbByName(name) {
+  const text = String(name || '')
+  if (text.includes('萝卜')) return '92,164,255'
+  if (text.includes('西红柿')) return '255,122,138'
+  if (text.includes('玉米')) return '255,191,87'
+  if (text.includes('茄子')) return '155,118,255'
+  if (text.includes('蘑菇')) return '255,146,176'
+  if (text.includes('樱桃')) return '255,102,146'
+  return '71,186,128'
+}
+
+function cardToneStyle(name) {
+  return { '--vf-tone-rgb': toneRgbByName(name) }
+}
+
+function slotToneStyle(slot) {
+  const state = String(slot?.state || '')
+  if (state === 'empty') return { '--vf-slot-rgb': '76,132,255' }
+  if (state === 'expand') return { '--vf-slot-rgb': '255,171,64' }
+  if (state === 'locked') return { '--vf-slot-rgb': '148,163,184' }
+  return { '--vf-slot-rgb': toneRgbByName(slot?.title || slot?.name || '') }
 }
 
 function getSellQuantity(item) {
@@ -570,40 +594,44 @@ onBeforeUnmount(() => {
 .vf-panel.amber{background:linear-gradient(135deg,rgba(255,171,64,.1) 0%,transparent 42%),var(--panel)}
 .vf-panel.blue{background:linear-gradient(135deg,rgba(76,132,255,.08) 0%,transparent 42%),var(--panel)}
 .vf-panel.slate,.vf-summary{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vf-bag-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-.vf-bag-card{padding:14px;display:grid;gap:10px;background:var(--panel-strong)}
+.vf-bag-grid{grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
+.vf-bag-card{position:relative;overflow:hidden;padding:12px;display:grid;gap:8px;background:linear-gradient(180deg,rgba(var(--vf-tone-rgb,124,92,255),.13) 0%,transparent 58%),var(--panel-strong);border-color:rgba(var(--vf-tone-rgb,124,92,255),.22)}
+.vf-bag-card::after{content:'';position:absolute;left:12px;right:12px;bottom:0;height:3px;border-radius:999px 999px 0 0;background:rgba(var(--vf-tone-rgb,124,92,255),.24)}
 .vf-bag-top{display:flex;align-items:center;gap:12px}
 .vf-bag-icon,.vf-seed-icon,.vf-slot-icon{display:grid;place-items:center;border-radius:16px}
-.vf-bag-icon{width:48px;height:48px;font-size:24px;background:rgba(124,92,255,.08)}
+.vf-bag-icon{width:44px;height:44px;font-size:22px;background:rgba(var(--vf-tone-rgb,124,92,255),.15);box-shadow:inset 0 0 0 1px rgba(var(--vf-tone-rgb,124,92,255),.14)}
 .vf-bag-name,.vf-seed-name,.vf-slot-name,.vf-group-name{font-weight:800;line-height:1.3}
-.vf-bag-line{font-size:13px;color:var(--text);display:flex;gap:6px;flex-wrap:wrap}
+.vf-bag-line{font-size:12px;color:var(--text);display:flex;gap:6px;flex-wrap:wrap}
 .vf-bonus{color:#f59e0b;font-weight:800}
 .vf-number{width:76px;height:38px;padding:6px 10px;border-radius:12px;border:1px solid var(--border);background:var(--panel);color:var(--text);text-align:center;outline:none}
 .vf-btn{border:none;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:800;color:#fff;cursor:pointer}
 .vf-btn:disabled,.vf-number:disabled{opacity:.58;cursor:not-allowed}
 .vf-btn.warn{background:linear-gradient(180deg,#ffb347 0%,#ff9800 100%)}
 .vf-toolbar{margin-bottom:14px}
-.vf-seed-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.vf-seed-card{appearance:none;width:100%;padding:14px 12px;border-radius:18px;border:1px solid var(--border);background:var(--panel-strong);color:inherit;display:grid;gap:6px;justify-items:center;text-align:center;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}
-.vf-seed-card.active{border-color:rgba(46,185,109,.5);box-shadow:0 0 0 2px rgba(46,185,109,.12);background:linear-gradient(135deg,rgba(46,185,109,.12) 0%,transparent 48%),var(--panel-strong)}
-.vf-seed-card.locked{opacity:.56;cursor:not-allowed}
-.vf-seed-icon{width:44px;height:44px;font-size:24px;background:rgba(255,171,64,.12)}
-.vf-group{padding:14px;background:var(--panel-strong)}
+.vf-seed-grid{grid-template-columns:repeat(auto-fit,minmax(136px,1fr))}
+.vf-seed-card{position:relative;overflow:hidden;appearance:none;width:100%;padding:12px 10px;border-radius:18px;border:1px solid rgba(var(--vf-tone-rgb,255,171,64),.22);background:linear-gradient(180deg,rgba(var(--vf-tone-rgb,255,171,64),.12) 0%,transparent 62%),var(--panel-strong);color:inherit;display:grid;gap:5px;justify-items:center;text-align:center;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}
+.vf-seed-card.active{border-color:rgba(var(--vf-tone-rgb,46,185,109),.44);box-shadow:0 0 0 2px rgba(var(--vf-tone-rgb,46,185,109),.12),0 14px 26px rgba(17,24,39,.08);transform:translateY(-1px)}
+.vf-seed-card.locked{opacity:.52;filter:saturate(.78);cursor:not-allowed}
+.vf-seed-icon{width:42px;height:42px;font-size:22px;background:rgba(var(--vf-tone-rgb,255,171,64),.15);box-shadow:inset 0 0 0 1px rgba(var(--vf-tone-rgb,255,171,64),.14)}
+.vf-group{padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
 .vf-group-head{justify-content:space-between;align-items:flex-start;margin-bottom:12px}
 .vf-group-name{font-size:18px}
-.vf-slot-grid{display:grid;gap:8px;grid-template-columns:repeat(10,minmax(0,1fr))}
-.vf-slot{appearance:none;width:100%;min-height:122px;padding:10px 8px;border-radius:16px;border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;background:var(--panel);color:inherit;transition:transform .18s ease,opacity .18s ease}
+.vf-slot-grid{display:grid;gap:10px;grid-template-columns:repeat(10,minmax(0,1fr))}
+.vf-slot{position:relative;overflow:hidden;appearance:none;width:100%;min-height:116px;padding:10px 8px 9px;border-radius:16px;border:1px solid rgba(var(--vf-slot-rgb,124,92,255),.24);display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;background:linear-gradient(180deg,rgba(var(--vf-slot-rgb,124,92,255),.14) 0%,transparent 60%),var(--panel);color:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transition:transform .18s ease,opacity .18s ease,border-color .18s ease,box-shadow .18s ease}
+.vf-slot::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(var(--vf-slot-rgb,124,92,255),.46)}
 .vf-slot.clickable{cursor:pointer}
+.vf-slot.clickable:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(17,24,39,.08),inset 0 1px 0 rgba(255,255,255,.18)}
 .vf-slot.busy{opacity:.72}
-.vf-slot.growing{background:linear-gradient(180deg,rgba(255,171,64,.18) 0%,transparent 100%),var(--panel)}
-.vf-slot.ready{background:linear-gradient(180deg,rgba(46,185,109,.2) 0%,transparent 100%),var(--panel)}
-.vf-slot.empty{background:linear-gradient(180deg,rgba(76,132,255,.16) 0%,transparent 100%),var(--panel)}
-.vf-slot.expand,.vf-slot.locked{background:linear-gradient(180deg,rgba(148,163,184,.12) 0%,transparent 100%),var(--panel)}
 .vf-slot-top{width:100%;display:flex;justify-content:space-between;gap:4px;align-items:center}
 .vf-slot-index{font-size:11px;color:var(--muted);font-weight:700}
-.vf-slot-icon{width:40px;height:40px;font-size:24px;background:rgba(255,255,255,.22)}
-.vuefarm-page.is-dark-theme .vf-slot-icon{background:rgba(255,255,255,.06)}
-.vf-slot-time{margin-top:auto;font-weight:700}
+.vf-slot-badge{padding:3px 8px;border-radius:999px;background:rgba(var(--vf-slot-rgb,124,92,255),.12);font-size:11px;font-weight:700}
+.vf-slot-icon{width:38px;height:38px;font-size:22px;background:rgba(var(--vf-slot-rgb,124,92,255),.13);box-shadow:inset 0 0 0 1px rgba(var(--vf-slot-rgb,124,92,255),.14)}
+.vuefarm-page.is-dark-theme .vf-slot{box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.vuefarm-page.is-dark-theme .vf-slot.clickable:hover{box-shadow:0 18px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.05)}
+.vuefarm-page.is-dark-theme .vf-slot-icon{background:rgba(var(--vf-slot-rgb,124,92,255),.16)}
+.vf-slot-name{font-size:13px}
+.vf-slot-time{margin-top:auto;padding:4px 8px;border-radius:999px;background:rgba(var(--vf-slot-rgb,124,92,255),.12);font-size:11px;font-weight:800;line-height:1.2}
+.vf-slot-time:empty{display:none}
 .vf-history{padding:14px 16px;background:var(--panel-strong)}
 .vf-history-top{justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 @media (max-width:1280px){.vf-slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}

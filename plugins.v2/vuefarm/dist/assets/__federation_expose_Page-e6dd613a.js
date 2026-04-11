@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_1e7e421d_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_3e04fc3e_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-1e7e421d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3e04fc3e"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -296,6 +296,29 @@ function isInteractiveSlot(slot) {
 
 function inventoryKey(item) {
   return String(item.seed_id || item.name)
+}
+
+function toneRgbByName(name) {
+  const text = String(name || '');
+  if (text.includes('萝卜')) return '92,164,255'
+  if (text.includes('西红柿')) return '255,122,138'
+  if (text.includes('玉米')) return '255,191,87'
+  if (text.includes('茄子')) return '155,118,255'
+  if (text.includes('蘑菇')) return '255,146,176'
+  if (text.includes('樱桃')) return '255,102,146'
+  return '71,186,128'
+}
+
+function cardToneStyle(name) {
+  return { '--vf-tone-rgb': toneRgbByName(name) }
+}
+
+function slotToneStyle(slot) {
+  const state = String(slot?.state || '');
+  if (state === 'empty') return { '--vf-slot-rgb': '76,132,255' }
+  if (state === 'expand') return { '--vf-slot-rgb': '255,171,64' }
+  if (state === 'locked') return { '--vf-slot-rgb': '148,163,184' }
+  return { '--vf-slot-rgb': toneRgbByName(slot?.title || slot?.name || '') }
 }
 
 function getSellQuantity(item) {
@@ -640,7 +663,8 @@ return (_ctx, _cache) => {
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                   return (_openBlock(), _createElementBlock("article", {
                     key: item.seed_id || item.name,
-                    class: "vf-bag-card"
+                    class: "vf-bag-card",
+                    style: _normalizeStyle(cardToneStyle(item.name))
                   }, [
                     _createElementVNode("div", _hoisted_33, [
                       _createElementVNode("div", _hoisted_34, _toDisplayString(item.icon), 1),
@@ -671,7 +695,7 @@ return (_ctx, _cache) => {
                         onClick: _withModifiers($event => (sellInventory(item)), ["stop"])
                       }, _toDisplayString(sellingSeedId.value === item.seed_id ? '出售中' : '出售'), 9, _hoisted_42)
                     ])
-                  ]))
+                  ], 4))
                 }), 128))
               ]))
         ]),
@@ -715,6 +739,7 @@ return (_ctx, _cache) => {
                 key: seed.id,
                 type: "button",
                 class: _normalizeClass(["vf-seed-card", { locked: !seed.unlocked, active: selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) }]),
+                style: _normalizeStyle(cardToneStyle(seed.name)),
                 disabled: !seed.unlocked || loading.value,
                 onClick: $event => (selectSeed(seed))
               }, [
@@ -723,7 +748,7 @@ return (_ctx, _cache) => {
                 _createElementVNode("div", _hoisted_54, "消耗 " + _toDisplayString(seed.cost), 1),
                 _createElementVNode("div", _hoisted_55, "生长 " + _toDisplayString(seed.grow_text), 1),
                 _createElementVNode("div", _hoisted_56, _toDisplayString(seed.unlocked ? (selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text), 1)
-              ], 10, _hoisted_51))
+              ], 14, _hoisted_51))
             }), 128))
           ])
         ])
@@ -746,6 +771,7 @@ return (_ctx, _cache) => {
                     key: `${group.id}-${slot.slot_index}`,
                     type: "button",
                     class: _normalizeClass(["vf-slot", [slot.state, { clickable: isInteractiveSlot(slot), busy: actingSlotKey.value === slotKey(slot) }]]),
+                    style: _normalizeStyle(slotToneStyle(slot)),
                     disabled: loading.value || actingSlotKey.value === slotKey(slot),
                     onClick: $event => (handleSlotClick(slot))
                   }, [
@@ -756,7 +782,7 @@ return (_ctx, _cache) => {
                     _createElementVNode("div", _hoisted_68, _toDisplayString(slot.icon), 1),
                     _createElementVNode("div", _hoisted_69, _toDisplayString(slot.title), 1),
                     _createElementVNode("div", _hoisted_70, _toDisplayString(slotText(slot)), 1)
-                  ], 10, _hoisted_64))
+                  ], 14, _hoisted_64))
                 }), 128))
               ])
             ]))
@@ -788,6 +814,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1e7e421d"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3e04fc3e"]]);
 
 export { PageView as default };
