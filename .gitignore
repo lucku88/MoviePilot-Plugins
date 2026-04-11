@@ -21,6 +21,8 @@ dist/
 !plugins.v2/sqemoji/dist/**
 !plugins.v2/vuefarm/dist/
 !plugins.v2/vuefarm/dist/**
+!plugins.v2/vuepill/dist/
+!plugins.v2/vuepill/dist/**
 !plugins.v2/mediacoverremix/dist/
 !plugins.v2/mediacoverremix/dist/**
 downloads/
