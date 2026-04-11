@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_64f421e3_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_0fddfba3_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-64f421e3"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-0fddfba3"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
@@ -113,7 +113,10 @@ const _hoisted_72 = {
   class: "vp-list"
 };
 const _hoisted_73 = { class: "vp-history-top" };
-const _hoisted_74 = { class: "vp-history-lines" };
+const _hoisted_74 = {
+  key: 0,
+  class: "vp-history-lines"
+};
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -718,7 +721,9 @@ return (_ctx, _cache) => {
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_74, _toDisplayString((item.lines || []).join(' / ')), 1)
+                  (item.lines?.length)
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_74, _toDisplayString((item.lines || []).join(' / ')), 1))
+                    : _createCommentVNode("", true)
                 ]))
               }), 128))
             ]))
@@ -729,6 +734,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-64f421e3"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0fddfba3"]]);
 
 export { PageView as default };

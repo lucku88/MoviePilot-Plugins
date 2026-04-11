@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -1697,9 +1697,30 @@ class VuePill(_PluginBase):
         chunks.append(self.SUMMARY_LINE)
         return "\n".join(chunks)
 
+    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
+        history_title = title
+        history_lines = [line for line in (lines or []) if line]
+        if not history_lines:
+            return history_title, history_lines
+
+        first_line = history_lines[0]
+        if title == "⚗️ Vue-魔丸运行" and first_line.startswith(("🏖️ ", "🧱 ", "💰 ", "⚒️ ", "⚗️ ", "ℹ️ ", "⚠️ ")):
+            return first_line, history_lines[1:]
+
+        if title == "🏖️ 手动清沙滩":
+            if first_line.startswith("🏖️ 清沙滩："):
+                return first_line.replace("🏖️ 清沙滩：", "🏖️ 手动沙滩：", 1), history_lines[1:]
+            if first_line.startswith("ℹ️ 沙滩："):
+                return first_line.replace("ℹ️ 沙滩：", "🏖️ 手动沙滩：", 1), history_lines[1:]
+            if first_line.startswith("⚠️ 清沙滩失败："):
+                return first_line.replace("⚠️ 清沙滩失败：", "🏖️ 手动沙滩失败：", 1), history_lines[1:]
+
+        return history_title, history_lines
+
     def _append_history(self, title: str, lines: List[str]):
         history = self.get_data("history") or []
-        history.insert(0, {"time": self._format_time(self._aware_now()), "title": title, "lines": lines})
+        history_title, history_lines = self._normalize_history_entry(title, lines)
+        history.insert(0, {"time": self._format_time(self._aware_now()), "title": history_title, "lines": history_lines})
         self.save_data("history", history[:20])
 
     def _extract_id_text(self, html: str, element_id: str) -> str:

@@ -163,7 +163,7 @@
               <strong>{{ item.title }}</strong>
               <span>{{ item.time }}</span>
             </div>
-            <div class="vp-history-lines">{{ (item.lines || []).join(' / ') }}</div>
+            <div v-if="item.lines?.length" class="vp-history-lines">{{ (item.lines || []).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
 .vp-item-count{font-size:17px;font-weight:900;line-height:1}
 .vp-history{position:relative;overflow:hidden;padding:15px 16px 14px 18px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
 .vp-history::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,rgba(124,92,255,.54) 0%,rgba(99,102,241,.18) 100%)}
-.vp-history-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.vp-history-top{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;align-items:flex-start;margin-bottom:8px}
 .vp-history-top strong{font-size:14px;line-height:1.45}
 .vp-history-top span{font-size:12px;white-space:nowrap}
 .vp-history-lines{font-size:12px;line-height:1.7}
