@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_d17053fb_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_03109452_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-d17053fb"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-03109452"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
@@ -45,72 +45,70 @@ const _hoisted_24 = {
   key: 1,
   class: "vp-state"
 };
-const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-title-strong" }, "拖拽砖块到口袋", -1));
-const _hoisted_26 = { class: "vp-countdown" };
-const _hoisted_27 = { class: "vp-card vp-panel beach" };
-const _hoisted_28 = { class: "vp-head vp-head-action" };
-const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_25 = { class: "vp-countdown" };
+const _hoisted_26 = { class: "vp-card vp-panel beach" };
+const _hoisted_27 = { class: "vp-head vp-head-action" };
+const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "vp-kicker" }, "沙滩捡破烂")
 ], -1));
-const _hoisted_30 = { class: "vp-card-action-slot" };
-const _hoisted_31 = {
+const _hoisted_29 = { class: "vp-card-action-slot" };
+const _hoisted_30 = {
   key: 1,
   class: "vp-state"
 };
-const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-title-strong" }, "沙滩角落等你清理", -1));
-const _hoisted_33 = { class: "vp-countdown" };
-const _hoisted_34 = { class: "vp-card vp-panel stash" };
-const _hoisted_35 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
+const _hoisted_31 = { class: "vp-countdown" };
+const _hoisted_32 = { class: "vp-card vp-panel stash" };
+const _hoisted_33 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "当前库存")
   ]),
   /*#__PURE__*/_createElementVNode("div", { class: "vp-note" }, "材料、工具和魔丸会在这里汇总显示。")
 ], -1));
-const _hoisted_36 = { class: "vp-tool-grid" };
-const _hoisted_37 = { class: "vp-tool craft" };
-const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "⚗️ 一键炼造魔丸", -1));
-const _hoisted_39 = { class: "vp-note" };
-const _hoisted_40 = { key: 0 };
-const _hoisted_41 = { class: "vp-inline" };
-const _hoisted_42 = { class: "vp-field" };
-const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
-const _hoisted_44 = ["max"];
-const _hoisted_45 = { class: "vp-tool exchange" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "💰 兑换魔力", -1));
-const _hoisted_47 = { class: "vp-note" };
-const _hoisted_48 = { class: "vp-inline" };
-const _hoisted_49 = { class: "vp-field" };
-const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
-const _hoisted_51 = ["max"];
-const _hoisted_52 = {
+const _hoisted_34 = { class: "vp-tool-grid" };
+const _hoisted_35 = { class: "vp-tool craft" };
+const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "⚗️ 一键炼造魔丸", -1));
+const _hoisted_37 = { class: "vp-note" };
+const _hoisted_38 = { key: 0 };
+const _hoisted_39 = { class: "vp-inline" };
+const _hoisted_40 = { class: "vp-field" };
+const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
+const _hoisted_42 = ["max"];
+const _hoisted_43 = { class: "vp-tool exchange" };
+const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "💰 兑换魔力", -1));
+const _hoisted_45 = { class: "vp-note" };
+const _hoisted_46 = { class: "vp-inline" };
+const _hoisted_47 = { class: "vp-field" };
+const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
+const _hoisted_49 = ["max"];
+const _hoisted_50 = {
   key: 0,
   class: "vp-empty"
 };
-const _hoisted_53 = {
+const _hoisted_51 = {
   key: 1,
   class: "vp-items"
 };
-const _hoisted_54 = { class: "vp-item-icon-wrap" };
-const _hoisted_55 = { class: "vp-item-icon" };
-const _hoisted_56 = { class: "vp-item-body" };
-const _hoisted_57 = { class: "vp-item-name" };
-const _hoisted_58 = { class: "vp-item-count" };
-const _hoisted_59 = { class: "vp-card vp-panel history" };
-const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
+const _hoisted_52 = { class: "vp-item-icon-wrap" };
+const _hoisted_53 = { class: "vp-item-icon" };
+const _hoisted_54 = { class: "vp-item-body" };
+const _hoisted_55 = { class: "vp-item-name" };
+const _hoisted_56 = { class: "vp-item-count" };
+const _hoisted_57 = { class: "vp-card vp-panel history" };
+const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "执行历史")
   ])
 ], -1));
-const _hoisted_61 = {
+const _hoisted_59 = {
   key: 0,
   class: "vp-empty"
 };
-const _hoisted_62 = {
+const _hoisted_60 = {
   key: 1,
   class: "vp-list"
 };
-const _hoisted_63 = { class: "vp-history-top" };
-const _hoisted_64 = {
+const _hoisted_61 = { class: "vp-history-top" };
+const _hoisted_62 = {
   key: 0,
   class: "vp-history-lines"
 };
@@ -556,13 +554,12 @@ return (_ctx, _cache) => {
                 : (_openBlock(), _createElementBlock("span", _hoisted_24, "冷却中"))
             ])
           ]),
-          _hoisted_25,
-          _createElementVNode("div", _hoisted_26, _toDisplayString(brickStatusLine.value), 1)
+          _createElementVNode("div", _hoisted_25, _toDisplayString(brickStatusLine.value), 1)
         ]),
-        _createElementVNode("article", _hoisted_27, [
-          _createElementVNode("div", _hoisted_28, [
-            _hoisted_29,
-            _createElementVNode("div", _hoisted_30, [
+        _createElementVNode("article", _hoisted_26, [
+          _createElementVNode("div", _hoisted_27, [
+            _hoisted_28,
+            _createElementVNode("div", _hoisted_29, [
               (beach.value.ready)
                 ? (_openBlock(), _createBlock(_component_v_btn, {
                     key: 0,
@@ -578,34 +575,33 @@ return (_ctx, _cache) => {
                     ]),
                     _: 1
                   }, 8, ["loading"]))
-                : (_openBlock(), _createElementBlock("span", _hoisted_31, "冷却中"))
+                : (_openBlock(), _createElementBlock("span", _hoisted_30, "冷却中"))
             ])
           ]),
-          _hoisted_32,
-          _createElementVNode("div", _hoisted_33, _toDisplayString(beachStatusLine.value), 1)
+          _createElementVNode("div", _hoisted_31, _toDisplayString(beachStatusLine.value), 1)
         ])
       ]),
-      _createElementVNode("section", _hoisted_34, [
-        _hoisted_35,
-        _createElementVNode("div", _hoisted_36, [
-          _createElementVNode("article", _hoisted_37, [
-            _hoisted_38,
-            _createElementVNode("div", _hoisted_39, [
+      _createElementVNode("section", _hoisted_32, [
+        _hoisted_33,
+        _createElementVNode("div", _hoisted_34, [
+          _createElementVNode("article", _hoisted_35, [
+            _hoisted_36,
+            _createElementVNode("div", _hoisted_37, [
               _createTextVNode(" 最大可炼造 " + _toDisplayString(magicPillMax.value) + " 颗 ", 1),
               (magicPillRecipe.value?.materials?.length)
-                ? (_openBlock(), _createElementBlock("span", _hoisted_40, " · 材料 " + _toDisplayString(magicPillRecipe.value.materials.join(' / ')), 1))
+                ? (_openBlock(), _createElementBlock("span", _hoisted_38, " · 材料 " + _toDisplayString(magicPillRecipe.value.materials.join(' / ')), 1))
                 : _createCommentVNode("", true)
             ]),
-            _createElementVNode("div", _hoisted_41, [
-              _createElementVNode("label", _hoisted_42, [
-                _hoisted_43,
+            _createElementVNode("div", _hoisted_39, [
+              _createElementVNode("label", _hoisted_40, [
+                _hoisted_41,
                 _withDirectives(_createElementVNode("input", {
                   "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((pillCraftQuantity).value = $event)),
                   class: "vp-input",
                   type: "number",
                   min: "1",
                   max: Math.max(magicPillMax.value, 1)
-                }, null, 8, _hoisted_44), [
+                }, null, 8, _hoisted_42), [
                   [_vModelText, pillCraftQuantity.value]
                 ])
               ]),
@@ -633,19 +629,19 @@ return (_ctx, _cache) => {
               }, 8, ["loading", "disabled"])
             ])
           ]),
-          _createElementVNode("article", _hoisted_45, [
-            _hoisted_46,
-            _createElementVNode("div", _hoisted_47, "价格 " + _toDisplayString(exchangePriceText.value) + " · 可兑换 " + _toDisplayString(exchange.value.max_count || 0) + " 颗", 1),
-            _createElementVNode("div", _hoisted_48, [
-              _createElementVNode("label", _hoisted_49, [
-                _hoisted_50,
+          _createElementVNode("article", _hoisted_43, [
+            _hoisted_44,
+            _createElementVNode("div", _hoisted_45, "价格 " + _toDisplayString(exchangePriceText.value) + " · 可兑换 " + _toDisplayString(exchange.value.max_count || 0) + " 颗", 1),
+            _createElementVNode("div", _hoisted_46, [
+              _createElementVNode("label", _hoisted_47, [
+                _hoisted_48,
                 _withDirectives(_createElementVNode("input", {
                   "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((exchangeQuantity).value = $event)),
                   class: "vp-input",
                   type: "number",
                   min: "1",
                   max: Math.max(Number(exchange.value.max_count || 0), 1)
-                }, null, 8, _hoisted_51), [
+                }, null, 8, _hoisted_49), [
                   [_vModelText, exchangeQuantity.value]
                 ])
               ]),
@@ -665,41 +661,41 @@ return (_ctx, _cache) => {
           ])
         ]),
         (pill.value.inventory?.empty)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_52, _toDisplayString(pill.value.inventory?.empty_text), 1))
-          : (_openBlock(), _createElementBlock("div", _hoisted_53, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_50, _toDisplayString(pill.value.inventory?.empty_text), 1))
+          : (_openBlock(), _createElementBlock("div", _hoisted_51, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: item.name,
                   class: _normalizeClass(["vp-item", { active: item.has_items }]),
                   style: _normalizeStyle(itemToneStyle(item))
                 }, [
-                  _createElementVNode("div", _hoisted_54, [
-                    _createElementVNode("div", _hoisted_55, _toDisplayString(item.icon), 1)
+                  _createElementVNode("div", _hoisted_52, [
+                    _createElementVNode("div", _hoisted_53, _toDisplayString(item.icon), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_56, [
-                    _createElementVNode("div", _hoisted_57, _toDisplayString(item.name), 1),
-                    _createElementVNode("div", _hoisted_58, _toDisplayString(item.count), 1)
+                  _createElementVNode("div", _hoisted_54, [
+                    _createElementVNode("div", _hoisted_55, _toDisplayString(item.name), 1),
+                    _createElementVNode("div", _hoisted_56, _toDisplayString(item.count), 1)
                   ])
                 ], 6))
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_59, [
-        _hoisted_60,
+      _createElementVNode("section", _hoisted_57, [
+        _hoisted_58,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_61, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_62, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_59, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_60, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "vp-history"
                 }, [
-                  _createElementVNode("div", _hoisted_63, [
+                  _createElementVNode("div", _hoisted_61, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
                   (item.lines?.length)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_64, _toDisplayString((item.lines || []).join(' / ')), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_62, _toDisplayString((item.lines || []).join(' / ')), 1))
                     : _createCommentVNode("", true)
                 ]))
               }), 128))
@@ -711,6 +707,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d17053fb"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-03109452"]]);
 
 export { PageView as default };

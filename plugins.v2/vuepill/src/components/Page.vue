@@ -66,7 +66,6 @@
               <span v-else class="vp-state">冷却中</span>
             </div>
           </div>
-          <div class="vp-title-strong">拖拽砖块到口袋</div>
           <div class="vp-countdown">{{ brickStatusLine }}</div>
         </article>
 
@@ -90,7 +89,6 @@
               <span v-else class="vp-state">冷却中</span>
             </div>
           </div>
-          <div class="vp-title-strong">沙滩角落等你清理</div>
           <div class="vp-countdown">{{ beachStatusLine }}</div>
         </article>
       </section>
@@ -105,7 +103,12 @@
 
         <div class="vp-tool-grid">
           <article class="vp-tool craft">
-            <div class="vp-tool-title">⚗️ 一键炼造魔丸</div>
+            <div class="vp-head vp-head-action vp-tool-head">
+              <div class="vp-tool-title">⚗️ 一键炼造魔丸</div>
+              <div class="vp-card-action-slot">
+                <v-btn color="deep-purple-accent-3" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !magicPillMax" @click="craftMagicPill">一键炼造</v-btn>
+              </div>
+            </div>
             <div class="vp-note">
               最大可炼造 {{ magicPillMax }} 颗
               <span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span>
@@ -116,19 +119,22 @@
                 <input v-model="pillCraftQuantity" class="vp-input" type="number" min="1" :max="Math.max(magicPillMax, 1)" />
               </label>
               <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
-              <v-btn color="deep-purple-accent-3" variant="flat" :loading="loading" :disabled="loading || !magicPillMax" @click="craftMagicPill">一键炼造</v-btn>
             </div>
           </article>
 
           <article class="vp-tool exchange">
-            <div class="vp-tool-title">💰 兑换魔力</div>
+            <div class="vp-head vp-head-action vp-tool-head">
+              <div class="vp-tool-title">💰 兑换魔力</div>
+              <div class="vp-card-action-slot">
+                <v-btn color="amber-darken-2" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !exchange.action_ready" @click="exchangePoints">兑换魔力</v-btn>
+              </div>
+            </div>
             <div class="vp-note">价格 {{ exchangePriceText }} · 可兑换 {{ exchange.max_count || 0 }} 颗</div>
             <div class="vp-inline">
               <label class="vp-field">
                 <span>数量</span>
                 <input v-model="exchangeQuantity" class="vp-input" type="number" min="1" :max="Math.max(Number(exchange.max_count || 0), 1)" />
               </label>
-              <v-btn color="amber-darken-2" variant="flat" :loading="loading" :disabled="loading || !exchange.action_ready" @click="exchangePoints">兑换魔力</v-btn>
             </div>
           </article>
         </div>
@@ -497,17 +503,18 @@ onBeforeUnmount(() => {
 .vp-state{min-height:30px;padding:0 12px;font-size:12px;font-weight:800;color:#88612b;background:rgba(255,179,76,.16)}
 .vp-state.ready{color:#1d8c57;background:rgba(47,193,120,.16)}
 .vp-title-strong{font-size:clamp(23px,2.8vw,30px);line-height:1.08;font-weight:900}
-.vp-countdown{margin-top:10px;font-size:clamp(16px,1.85vw,19px);font-weight:900;color:var(--accent)}
+.vp-countdown{margin-top:4px;font-size:clamp(17px,1.95vw,21px);font-weight:900;color:var(--accent)}
 .vp-card-action-slot{display:flex;align-items:center;justify-content:flex-end;min-width:118px}
 .vp-card-action-btn{min-height:34px;border-radius:999px;font-weight:800;min-width:118px}
-.vp-tool-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
-.vp-tool{padding:14px;display:grid;gap:12px;background:var(--panel-strong)}
+.vp-tool-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}
+.vp-tool{padding:12px;display:grid;gap:10px;background:var(--panel-strong)}
 .vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.14) 0%,transparent 48%),var(--panel-strong)}
 .vp-tool.exchange{background:linear-gradient(135deg,rgba(255,171,64,.14) 0%,transparent 48%),var(--panel-strong)}
-.vp-tool-title{font-size:16px;font-weight:900}
-.vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
-.vp-field{min-width:120px;display:grid;gap:8px;font-size:13px;color:var(--muted)}
-.vp-input{width:100%;height:40px;padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--panel);color:var(--text);outline:none}
+.vp-tool-head{margin-bottom:0}
+.vp-tool-title{font-size:15px;font-weight:900;line-height:1.25}
+.vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+.vp-field{min-width:110px;display:grid;gap:6px;font-size:12px;color:var(--muted)}
+.vp-input{width:100%;height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:13px;background:var(--panel);color:var(--text);outline:none}
 .vp-input:focus{border-color:rgba(124,92,255,.48);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
 .vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
 .vp-item{position:relative;overflow:hidden;padding:10px 10px 9px;display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.18) 0%,transparent 70%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.28)}
