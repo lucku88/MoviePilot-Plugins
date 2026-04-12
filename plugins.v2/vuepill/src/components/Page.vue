@@ -50,7 +50,6 @@
           <div class="vp-head vp-head-action">
             <div>
               <div class="vp-kicker">搬砖工坊</div>
-              <h2 class="vp-section-title">搬砖状态</h2>
             </div>
             <div class="vp-card-action-slot">
               <v-btn
@@ -67,25 +66,14 @@
               <span v-else class="vp-state">冷却中</span>
             </div>
           </div>
-          <div class="vp-title-strong">{{ brickHeadline }}</div>
-          <div class="vp-countdown">{{ brickCountdownText }}</div>
-          <div class="vp-facts">
-            <div class="vp-fact">
-              <span class="vp-kicker">今日进度</span>
-              <strong>{{ brick.daily_bricks || 0 }}/{{ brick.daily_limit || 50 }}</strong>
-            </div>
-            <div class="vp-fact">
-              <span class="vp-kicker">下次模式</span>
-              <strong>{{ pill.next_run_action_label || '整轮执行' }}</strong>
-            </div>
-          </div>
+          <div class="vp-title-strong">拖拽砖块到口袋</div>
+          <div class="vp-countdown">{{ brickStatusLine }}</div>
         </article>
 
         <article class="vp-card vp-panel beach">
           <div class="vp-head vp-head-action">
             <div>
               <div class="vp-kicker">沙滩捡破烂</div>
-              <h2 class="vp-section-title">沙滩状态</h2>
             </div>
             <div class="vp-card-action-slot">
               <v-btn
@@ -102,18 +90,8 @@
               <span v-else class="vp-state">冷却中</span>
             </div>
           </div>
-          <div class="vp-title-strong">{{ beachHeadline }}</div>
-          <div class="vp-countdown">{{ beachCountdownText }}</div>
-          <div class="vp-facts">
-            <div class="vp-fact">
-              <span class="vp-kicker">当前结果</span>
-              <strong>{{ beach.status_text || (beach.ready ? '已就绪' : '等待冷却') }}</strong>
-            </div>
-            <div class="vp-fact">
-              <span class="vp-kicker">自动后续</span>
-              <strong>{{ autoFollowText }}</strong>
-            </div>
-          </div>
+          <div class="vp-title-strong">沙滩角落等你清理</div>
+          <div class="vp-countdown">{{ beachStatusLine }}</div>
         </article>
       </section>
 
@@ -239,27 +217,17 @@ const exchangePriceText = computed(() => (exchange.value.pill_price ? `${exchang
 const exchangeQuantity = ref('1')
 const pillCraftQuantity = ref('1')
 
-const autoFollowText = computed(() => {
-  const actions = []
-  if (magicPillMax.value > 0) actions.push('炼造')
-  if (exchange.value.action_ready) actions.push('兑换')
-  return actions.length ? actions.join(' / ') : '无自动后续'
-})
-const brickHeadline = computed(() => {
-  if (brick.value.ready) return '可立即搬砖'
-  if (Number(brick.value.daily_bricks || 0) >= Number(brick.value.daily_limit || 50)) return '今日已达上限'
-  return '等待下一轮'
-})
-const beachHeadline = computed(() => (beach.value.ready ? '可进入沙滩' : '等待下次清理'))
-const brickCountdownText = computed(() => {
-  if (brick.value.ready) return '现在可以开始搬砖'
+const brickStatusLine = computed(() => {
+  const moved = Number(brick.value.daily_bricks || 0)
+  const limit = Number(brick.value.daily_limit || 50)
+  if (brick.value.ready) return `可以搬砖 (${moved}/${limit})`
   const remain = brickResetTs.value - nowTs.value
-  return brickResetTs.value && remain > 0 ? `明日可搬：${formatCountdown(remain)}` : (brick.value.status_text || '等待刷新')
+  return brickResetTs.value && remain > 0 ? `下次搬砖：${formatCountdown(remain)}` : '下次搬砖：等待刷新'
 })
-const beachCountdownText = computed(() => {
-  if (beach.value.ready) return '现在可以进入沙滩'
+const beachStatusLine = computed(() => {
+  if (beach.value.ready) return '可一键清理'
   const remain = beachReadyTs.value - nowTs.value
-  return beachReadyTs.value && remain > 0 ? `下次清理：${formatCountdown(remain)}` : (beach.value.status_text || '等待刷新')
+  return beachReadyTs.value && remain > 0 ? `下次清理：${formatCountdown(remain)}` : '下次清理：等待刷新'
 })
 
 watch(summaryKey, (nextKey, prevKey) => { if (nextKey && nextKey !== prevKey) dismissedSummaryKey.value = '' })
@@ -528,11 +496,8 @@ onBeforeUnmount(() => {
 .vp-panel.history{background:linear-gradient(135deg,rgba(99,102,241,.12) 0%,transparent 44%),var(--panel)}
 .vp-state{min-height:30px;padding:0 12px;font-size:12px;font-weight:800;color:#88612b;background:rgba(255,179,76,.16)}
 .vp-state.ready{color:#1d8c57;background:rgba(47,193,120,.16)}
-.vp-title-strong{font-size:clamp(24px,3vw,32px);line-height:1.04;font-weight:900}
-.vp-countdown{margin-top:8px;font-size:clamp(16px,1.9vw,20px);font-weight:900;color:var(--accent)}
-.vp-facts{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px}
-.vp-fact{padding:12px;border-radius:16px;border:1px solid var(--border);background:var(--panel-strong);display:grid;gap:6px}
-.vp-fact strong{font-size:15px}
+.vp-title-strong{font-size:clamp(23px,2.8vw,30px);line-height:1.08;font-weight:900}
+.vp-countdown{margin-top:10px;font-size:clamp(16px,1.85vw,19px);font-weight:900;color:var(--accent)}
 .vp-card-action-slot{display:flex;align-items:center;justify-content:flex-end;min-width:118px}
 .vp-card-action-btn{min-height:34px;border-radius:999px;font-weight:800;min-width:118px}
 .vp-tool-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
@@ -562,5 +527,5 @@ onBeforeUnmount(() => {
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
 @media (max-width:1120px){.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
 @media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-facts,.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
 </style>
