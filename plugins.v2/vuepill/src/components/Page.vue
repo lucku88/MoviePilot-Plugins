@@ -105,7 +105,11 @@
           <article class="vp-tool craft">
             <div class="vp-head vp-head-action vp-tool-head">
               <div class="vp-tool-title">⚗️ 一键炼造魔丸</div>
-              <div class="vp-card-action-slot">
+              <div class="vp-tool-actions">
+                <label class="vp-field vp-field-compact">
+                  <input v-model="pillCraftQuantity" class="vp-input" type="number" min="1" :max="Math.max(magicPillMax, 1)" />
+                </label>
+                <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
                 <v-btn color="deep-purple-accent-3" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !magicPillMax" @click="craftMagicPill">一键炼造</v-btn>
               </div>
             </div>
@@ -113,27 +117,19 @@
               最大可炼造 {{ magicPillMax }} 颗
               <span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span>
             </div>
-            <div class="vp-inline vp-inline-right">
-              <label class="vp-field vp-field-compact">
-                <input v-model="pillCraftQuantity" class="vp-input" type="number" min="1" :max="Math.max(magicPillMax, 1)" />
-              </label>
-              <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
-            </div>
           </article>
 
           <article class="vp-tool exchange">
             <div class="vp-head vp-head-action vp-tool-head">
               <div class="vp-tool-title">💰 兑换魔力</div>
-              <div class="vp-card-action-slot">
+              <div class="vp-tool-actions">
+                <label class="vp-field vp-field-compact">
+                  <input v-model="exchangeQuantity" class="vp-input" type="number" min="1" :max="Math.max(Number(exchange.max_count || 0), 1)" />
+                </label>
                 <v-btn color="amber-darken-2" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !exchange.action_ready" @click="exchangePoints">兑换魔力</v-btn>
               </div>
             </div>
             <div class="vp-note">价格 {{ exchangePriceText }} · 可兑换 {{ exchange.max_count || 0 }} 颗</div>
-            <div class="vp-inline vp-inline-right">
-              <label class="vp-field vp-field-compact">
-                <input v-model="exchangeQuantity" class="vp-input" type="number" min="1" :max="Math.max(Number(exchange.max_count || 0), 1)" />
-              </label>
-            </div>
           </article>
         </div>
 
@@ -509,6 +505,9 @@ onBeforeUnmount(() => {
 .vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.14) 0%,transparent 48%),var(--panel-strong)}
 .vp-tool.exchange{background:linear-gradient(135deg,rgba(255,171,64,.14) 0%,transparent 48%),var(--panel-strong)}
 .vp-tool-head{margin-bottom:0}
+.vp-tool-head .vp-tool-title{flex:1;min-width:0}
+.vp-tool-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.vp-tool-actions :deep(.v-btn--variant-text){min-width:auto;padding-inline:4px}
 .vp-tool-title{font-size:15px;font-weight:900;line-height:1.25}
 .vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
 .vp-inline-right{justify-content:flex-end}
@@ -533,6 +532,6 @@ onBeforeUnmount(() => {
 .vp-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
 @media (max-width:1120px){.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
-@media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
+@media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-tool-actions{justify-content:flex-start;width:100%}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
 @media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
 </style>
