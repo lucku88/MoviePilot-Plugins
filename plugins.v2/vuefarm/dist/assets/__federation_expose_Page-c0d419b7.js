@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ea08bba6_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_9e9ceb80_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ea08bba6"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-9e9ceb80"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -14,7 +14,10 @@ const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_5 = { class: "vf-title" };
 const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("p", { class: "vf-subtitle" }, "收菜、种植、出售、获取执行记录。", -1));
 const _hoisted_7 = { class: "vf-chip-row" };
-const _hoisted_8 = { class: "vf-chip" };
+const _hoisted_8 = {
+  key: 0,
+  class: "vf-chip"
+};
 const _hoisted_9 = { class: "vf-chip" };
 const _hoisted_10 = { class: "vf-chip" };
 const _hoisted_11 = { class: "vf-chip" };
@@ -34,7 +37,8 @@ const _hoisted_22 = {
 };
 const _hoisted_23 = { class: "vf-head compact" };
 const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "本次摘要")
+  /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "本次摘要"),
+  /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "任务结果")
 ], -1));
 const _hoisted_25 = { class: "vf-list" };
 const _hoisted_26 = { class: "vf-grid-2" };
@@ -118,7 +122,10 @@ const _hoisted_80 = {
   class: "vf-list"
 };
 const _hoisted_81 = { class: "vf-history-top" };
-const _hoisted_82 = { class: "vf-history-lines" };
+const _hoisted_82 = {
+  key: 0,
+  class: "vf-history-lines"
+};
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -548,7 +555,9 @@ return (_ctx, _cache) => {
           _createElementVNode("h1", _hoisted_5, _toDisplayString(farm.value.title || '种菜赚魔力'), 1),
           _hoisted_6,
           _createElementVNode("div", _hoisted_7, [
-            _createElementVNode("span", _hoisted_8, "最近执行 " + _toDisplayString(status.last_run || '暂无'), 1),
+            (_ctx.showLastRunChip)
+              ? (_openBlock(), _createElementBlock("span", _hoisted_8, "最近执行 " + _toDisplayString(status.last_run), 1))
+              : _createCommentVNode("", true),
             _createElementVNode("span", _hoisted_9, "下次可收 " + _toDisplayString(farm.value.next_run_time || '待识别'), 1),
             _createElementVNode("span", _hoisted_10, "计划触发 " + _toDisplayString(farm.value.next_trigger_time || status.next_trigger_time || '等待下一次运行'), 1),
             _createElementVNode("span", _hoisted_11, _toDisplayString(farm.value.cookie_source || status.cookie_source || '未同步'), 1)
@@ -826,7 +835,9 @@ return (_ctx, _cache) => {
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_82, _toDisplayString((item.lines || []).join(' / ')), 1)
+                  (item.lines?.length)
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_82, _toDisplayString((item.lines || []).join(' / ')), 1))
+                    : _createCommentVNode("", true)
                 ]))
               }), 128))
             ]))
@@ -837,6 +848,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ea08bba6"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9e9ceb80"]]);
 
 export { PageView as default };

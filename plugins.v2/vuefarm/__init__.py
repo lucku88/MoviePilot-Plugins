@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -340,22 +340,23 @@ class VueFarm(_PluginBase):
             self.save_data("farm_status", farm_status)
             self.save_data("last_run", self._format_time(self._aware_now()))
 
-            if has_action_lines:
-                title = "【🌱Vue-农场】任务报告"
-            elif has_warning_lines:
-                title = "【⚠️Vue-农场】收菜失败"
-            else:
-                title = "【ℹ️Vue-农场】无动作"
-            self._append_history(title, msg_lines or ["本次无动作"])
+            history_title = "🌱 Vue-农场运行"
+            if has_warning_lines and not has_action_lines:
+                history_title = "⚠️ Vue-农场异常"
+            self._append_history(history_title, msg_lines or ["ℹ️本次无动作"])
 
-            if self._notify and (has_action_lines or has_warning_lines):
-                if has_action_lines:
-                    notify_title = "【🌱Vue-农场】 任务报告"
-                    notify_text = self._build_notify_text(msg_lines)
-                else:
-                    notify_title = "【⚠️Vue-农场】 收菜失败"
-                    notify_text = "\n".join(msg_lines)
-                self.post_message(mtype=NotificationType.Plugin, title=notify_title, text=notify_text)
+            if self._notify and has_action_lines:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【🌱农场报告 】",
+                    text=self._build_notify_text(msg_lines),
+                )
+            elif self._notify and has_warning_lines:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【⚠️农场异常】",
+                    text="\n".join(msg_lines),
+                )
 
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
         except Exception as err:
@@ -372,12 +373,12 @@ class VueFarm(_PluginBase):
                     logger.warning("%s 异常后补重试失败：%s", self.plugin_name, schedule_err)
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
             logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
-            self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
+            self._append_history("❌ Vue-农场异常", [f"⚠️ {detail}"])
             if self._notify:
                 text = f"⚠️ {detail}"
                 if retry_scheduled:
                     text += "\n⏰ 已安排稍后自动重试"
-                self.post_message(mtype=NotificationType.Plugin, title=f"【❌{self.plugin_name}】 执行异常", text=text)
+                self.post_message(mtype=NotificationType.Plugin, title="【⚠️农场异常】", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
             cost_sec = max(1, round(time.time() - run_start))
@@ -1820,32 +1821,32 @@ class VueFarm(_PluginBase):
 
         lines: List[str] = []
         if action_harvest and harvest_map:
-            lines.append(f"✅ 收菜：{join_summary(harvest_map)}")
+            lines.append(f"✅收菜：{join_summary(harvest_map)}")
         elif action_harvest and log_result.get("harvest"):
-            lines.append(f"✅ 收菜：{join_summary(log_result.get('harvest'))}")
+            lines.append(f"✅收菜：{join_summary(log_result.get('harvest'))}")
         elif action_harvest and harvest_success_count > 0:
-            lines.append(f"✅ 收菜：已处理 {harvest_success_count} 块成熟田")
+            lines.append(f"✅收菜：已处理 {harvest_success_count} 块成熟田")
         if action_sell and sell_map:
-            lines.append(f"🧺 售出：{join_summary(sell_map)}")
+            lines.append(f"🧺售出：{join_summary(sell_map)}")
         elif action_sell and log_result.get("sell"):
-            lines.append(f"🧺 售出：{join_summary(log_result.get('sell'))}")
+            lines.append(f"🧺售出：{join_summary(log_result.get('sell'))}")
         elif action_sell and sell_success_count > 0:
-            lines.append(f"🧺 售出：已处理 {sell_success_count} 类作物")
+            lines.append(f"🧺售出：已处理 {sell_success_count} 类作物")
         if action_plant and plant_map:
-            lines.append(f"🌱 种植：{join_summary(plant_map)}")
+            lines.append(f"🌱种植：{join_summary(plant_map)}")
         elif action_plant and log_result.get("plant"):
-            lines.append(f"🌱 种植：{join_summary(log_result.get('plant'))}")
+            lines.append(f"🌱种植：{join_summary(log_result.get('plant'))}")
         elif action_plant and planted_seed_name:
-            lines.append(f"🌱 种植：{planted_seed_name}")
+            lines.append(f"🌱种植：{planted_seed_name}")
         if action_sell or action_plant:
-            lines.append(f"💰 收益：{sell_income - plant_cost} 魔力")
+            lines.append(f"💰收益：{sell_income - plant_cost} 魔力")
         if harvest_note_detail:
-            lines.append(f"ℹ️ {harvest_note_detail}")
+            lines.append(f"ℹ️{harvest_note_detail}")
         if harvest_failure_detail:
-            lines.append(f"⚠️ 收菜失败：{harvest_failure_detail}")
+            lines.append(f"⚠️收菜失败：{harvest_failure_detail}")
         if not lines:
-            lines.append("ℹ️ 本次没有可执行动作")
-        lines.append(f"⏰ 可收：{next_run_text}")
+            lines.append("ℹ️本次没有可执行动作")
+        lines.append(f"⏰下次可收：{next_run_text}")
         return lines
 
     def _normalize_harvest_items(self, inventory: Any, default_added: int = 0) -> List[Dict[str, Any]]:
@@ -1897,13 +1898,68 @@ class VueFarm(_PluginBase):
             chunks.extend(action_lines)
             chunks.append("━━━━━━━━━━━━━━")
         if time_line:
-            chunks.append(time_line)
+            chunks.append(time_line.replace("⏰下次可收：", "⏰ 下次运行：", 1))
             chunks.append("━━━━━━━━━━━━━━")
         return "\n".join(chunks)
 
+    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
+        history_title = title
+        history_lines = [line for line in (lines or []) if line]
+        if not history_lines:
+            return history_title, history_lines
+
+        first_line = history_lines[0]
+        auto_replacements = [
+            ("✅ 收菜：", "✅收菜："),
+            ("✅收菜：", "✅收菜："),
+            ("🧺 售出：", "🧺售出："),
+            ("🧺售出：", "🧺售出："),
+            ("🌱 种植：", "🌱种植："),
+            ("🌱种植：", "🌱种植："),
+            ("💰 收益：", "💰收益："),
+            ("💰收益：", "💰收益："),
+            ("⚠️ 收菜失败：", "⚠️收菜失败："),
+            ("⚠️收菜失败：", "⚠️收菜失败："),
+            ("ℹ️ 本次没有可执行动作", "ℹ️本次没有可执行动作"),
+            ("ℹ️本次没有可执行动作", "ℹ️本次没有可执行动作"),
+        ]
+        manual_replacements = [
+            ("✅ 收菜：", "✅手动收菜："),
+            ("✅收菜：", "✅手动收菜："),
+            ("🧺 售出：", "🧺手动售出："),
+            ("🧺售出：", "🧺手动售出："),
+            ("🌱 种植：", "🌱手动种植："),
+            ("🌱种植：", "🌱手动种植："),
+            ("💰 收益：", "💰手动收益："),
+            ("💰收益：", "💰手动收益："),
+            ("⚠️ 收菜失败：", "⚠️手动收菜失败："),
+            ("⚠️收菜失败：", "⚠️手动收菜失败："),
+            ("ℹ️ 本次没有可执行动作", "ℹ️手动无动作"),
+            ("ℹ️本次没有可执行动作", "ℹ️手动无动作"),
+        ]
+
+        if title == "🌱 Vue-农场运行":
+            history_title = first_line
+            for src, dest in auto_replacements:
+                if history_title.startswith(src):
+                    history_title = history_title.replace(src, dest, 1)
+                    break
+            return history_title, history_lines[1:]
+
+        if title in {"🖱️ 手动收菜", "🖱️ 手动种植", "🧺 一键收获", "🌱 一键种植", "🧺 手动售出"}:
+            history_title = first_line
+            for src, dest in manual_replacements:
+                if history_title.startswith(src):
+                    history_title = history_title.replace(src, dest, 1)
+                    break
+            return history_title, history_lines[1:]
+
+        return history_title, history_lines
+
     def _append_history(self, title: str, lines: List[str]):
         history = self.get_data("history") or []
-        history.insert(0, {"time": self._format_time(self._aware_now()), "title": title, "lines": lines})
+        history_title, history_lines = self._normalize_history_entry(title, lines)
+        history.insert(0, {"time": self._format_time(self._aware_now()), "title": history_title, "lines": history_lines})
         self.save_data("history", history[:20])
 
     def _parse_logs(self, logs: List[dict], since_time: float, seeds: Optional[List[dict]] = None) -> dict:
