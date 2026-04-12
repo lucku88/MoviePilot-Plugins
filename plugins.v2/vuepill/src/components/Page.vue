@@ -7,7 +7,7 @@
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
 
           <div class="vp-chip-row">
-            <span v-if="status.last_run" class="vp-chip">最近执行 {{ status.last_run }}</span>
+            <span v-if="showLastRunChip" class="vp-chip">最近执行 {{ status.last_run }}</span>
             <span class="vp-chip">下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
             <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
             <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
@@ -29,11 +29,6 @@
         <article v-for="item in overview" :key="item.label" class="vp-card vp-stat">
           <div class="vp-kicker">{{ item.label }}</div>
           <div class="vp-value">{{ item.value }}</div>
-        </article>
-        <article class="vp-card vp-stat vp-stat-focus">
-          <div class="vp-kicker">库存快照</div>
-          <div class="vp-value">{{ inventoryTotal }}</div>
-          <div class="vp-stat-note">物品 {{ inventoryKinds }} 类</div>
         </article>
       </section>
 
@@ -232,6 +227,10 @@ const historyItems = computed(() => status.history || pill.value.history || [])
 const summaryLines = computed(() => (pill.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
+const showLastRunChip = computed(() => {
+  const text = String(status.last_run || '').trim()
+  return !!text && text !== '暂无'
+})
 const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time))
 const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time))
 const brickResetTs = computed(() => Number(brick.value.next_reset_ts || 0) || parseDateTime(brick.value.next_reset_time))
@@ -239,8 +238,6 @@ const beachReadyTs = computed(() => Number(beach.value.next_ready_ts || 0) || pa
 const exchangePriceText = computed(() => (exchange.value.pill_price ? `${exchange.value.pill_price} 魔力/颗` : '待识别'))
 const exchangeQuantity = ref('1')
 const pillCraftQuantity = ref('1')
-const inventoryKinds = computed(() => inventoryItems.value.length)
-const inventoryTotal = computed(() => inventoryItems.value.reduce((sum, item) => sum + Number(item.count || 0), 0))
 
 const autoFollowText = computed(() => {
   const actions = []
@@ -248,8 +245,12 @@ const autoFollowText = computed(() => {
   if (exchange.value.action_ready) actions.push('兑换')
   return actions.length ? actions.join(' / ') : '无自动后续'
 })
-const brickHeadline = computed(() => brick.value.ready ? '可立即搬砖' : (Number(brick.value.daily_bricks || 0) >= Number(brick.value.daily_limit || 50) ? '今日已达上限' : '等待搬砖'))
-const beachHeadline = computed(() => (beach.value.ready ? '可立即清理' : '沙滩冷却中'))
+const brickHeadline = computed(() => {
+  if (brick.value.ready) return '可立即搬砖'
+  if (Number(brick.value.daily_bricks || 0) >= Number(brick.value.daily_limit || 50)) return '今日已达上限'
+  return '等待下一轮'
+})
+const beachHeadline = computed(() => (beach.value.ready ? '可进入沙滩' : '等待下次清理'))
 const brickCountdownText = computed(() => {
   if (brick.value.ready) return '现在可以开始搬砖'
   const remain = brickResetTs.value - nowTs.value
@@ -504,7 +505,7 @@ onBeforeUnmount(() => {
 .vp-action-grid :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
 .vp-action-grid :deep(.v-btn--variant-flat){min-width:132px}
 .vp-action-grid :deep(.v-btn--variant-text){min-width:auto;padding-inline:6px}
-.vp-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.vp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .vp-stat{padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%),var(--panel-strong);position:relative;overflow:hidden}
 .vp-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(124,92,255,.22)}
 .vp-stat:nth-child(1)::before{background:rgba(124,92,255,.42)}
@@ -513,7 +514,6 @@ onBeforeUnmount(() => {
 .vp-stat:nth-child(4)::before{background:rgba(34,197,171,.42)}
 .vp-stat-focus{background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 42%),var(--panel-strong)}
 .vp-value{margin-top:10px;font-size:clamp(22px,3vw,30px);font-weight:900;line-height:1}
-.vp-stat-note{margin-top:8px;font-size:12px;font-weight:600}
 .vp-head{justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 .vp-head-action{align-items:center}
 .vp-head.compact{align-items:center}
@@ -560,7 +560,7 @@ onBeforeUnmount(() => {
 .vp-history-top span{font-size:12px;white-space:nowrap}
 .vp-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
 .vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1120px){.vp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
+@media (max-width:1120px){.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
 @media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
 @media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-facts,.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
 </style>

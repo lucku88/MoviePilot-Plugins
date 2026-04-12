@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -939,14 +939,28 @@ class VuePill(_PluginBase):
         daily_limit = max(1, self._safe_int(brick_state.get("daily_limit"), 50))
         daily_bricks = max(0, self._safe_int(brick_state.get("daily_bricks"), 0))
         remaining_quota = max(0, daily_limit - daily_bricks)
-        loop_cap = max(1, min(300, (remaining_quota if remaining_quota > 0 else daily_limit) * 6))
+        loop_cap = max(1, min(400, (remaining_quota if remaining_quota > 0 else daily_limit) * 8))
 
         for _ in range(loop_cap):
             attempted = True
             try:
-                result = self._post_action(session, "move_brick", retry_network=False)
+                result = self._post_action(session, "move_brick", retry_network=True)
             except Exception as err:
                 warning = self._get_error_detail(err)
+                if total_moved > 0:
+                    try:
+                        latest_page = self._fetch_page_state(session)
+                        latest_brick = latest_page.get("brick") or {}
+                        latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
+                        latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
+                        next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), 0)
+                        if latest_brick.get("ready") and latest_daily < latest_limit:
+                            delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            continue
+                    except Exception:
+                        pass
                 break
 
             if result and result.get("success"):
@@ -964,6 +978,20 @@ class VuePill(_PluginBase):
 
             last_message = (result or {}).get("message") or (result or {}).get("msg") or "今日搬砖已满"
             next_reset_ts = self._safe_int((result or {}).get("next_brick_reset_ts"), 0)
+            if total_moved > 0:
+                try:
+                    latest_page = self._fetch_page_state(session)
+                    latest_brick = latest_page.get("brick") or {}
+                    latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
+                    latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
+                    next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), next_reset_ts)
+                    if latest_brick.get("ready") and latest_daily < latest_limit:
+                        delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
+                        if delay_ms > 0:
+                            time.sleep(delay_ms / 1000.0)
+                        continue
+                except Exception:
+                    pass
             break
 
         return {
@@ -1736,6 +1764,172 @@ class VuePill(_PluginBase):
         history_title, history_lines = self._normalize_history_entry(title, lines)
         history.insert(0, {"time": self._format_time(self._aware_now()), "title": history_title, "lines": history_lines})
         self.save_data("history", history[:20])
+
+    def _run_brick_flow(self, session: requests.Session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        total_moved = 0
+        last_message = ""
+        warning = ""
+        next_reset_ts = 0
+        attempted = False
+        brick_state = brick_state or {}
+        daily_limit = max(1, self._safe_int(brick_state.get("daily_limit"), 50))
+        daily_bricks = max(0, self._safe_int(brick_state.get("daily_bricks"), 0))
+        remaining_quota = max(0, daily_limit - daily_bricks)
+        loop_cap = max(1, min(400, (remaining_quota if remaining_quota > 0 else daily_limit) * 8))
+
+        for _ in range(loop_cap):
+            attempted = True
+            try:
+                result = self._post_action(session, "move_brick", retry_network=True)
+            except Exception as err:
+                warning = self._get_error_detail(err)
+                if total_moved > 0:
+                    try:
+                        latest_page = self._fetch_page_state(session)
+                        latest_brick = latest_page.get("brick") or {}
+                        latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
+                        latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
+                        next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), 0)
+                        if latest_brick.get("ready") and latest_daily < latest_limit:
+                            delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            continue
+                    except Exception:
+                        pass
+                break
+
+            if result and result.get("success"):
+                last_message = (result.get("message") or "").strip()
+                moved = self._safe_int(result.get("bricks_moved"), 0)
+                if moved <= 0:
+                    if any(token in last_message for token in ("已满", "上限", "不能", "冷却", "结束")):
+                        break
+                    moved = 1
+                total_moved += moved
+                delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
+                if delay_ms > 0:
+                    time.sleep(delay_ms / 1000.0)
+                continue
+
+            last_message = (result or {}).get("message") or (result or {}).get("msg") or "今日搬砖已满"
+            next_reset_ts = self._safe_int((result or {}).get("next_brick_reset_ts"), 0)
+            if total_moved > 0:
+                try:
+                    latest_page = self._fetch_page_state(session)
+                    latest_brick = latest_page.get("brick") or {}
+                    latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
+                    latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
+                    next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), next_reset_ts)
+                    if latest_brick.get("ready") and latest_daily < latest_limit:
+                        delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
+                        if delay_ms > 0:
+                            time.sleep(delay_ms / 1000.0)
+                        continue
+                except Exception:
+                    pass
+            break
+
+        return {
+            "moved": total_moved,
+            "message": last_message,
+            "warning": warning,
+            "next_reset_ts": next_reset_ts,
+            "attempted": attempted,
+        }
+
+    def _build_result_lines(
+        self,
+        brick_result: Dict[str, Any],
+        beach_result: Dict[str, Any],
+        auto_result: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[List[str], bool, bool]:
+        lines: List[str] = []
+        has_action = False
+        has_warning = False
+
+        if self._safe_int(brick_result.get("moved"), 0) > 0:
+            lines.append(f"🧱 搬砖：🧱砖块×{self._safe_int(brick_result.get('moved'), 0)}")
+            has_action = True
+        elif brick_result.get("warning"):
+            lines.append(f"⚠️ 搬砖失败：{brick_result.get('warning')}")
+            has_warning = True
+
+        beach_items = beach_result.get("items") or []
+        if beach_items:
+            lines.append(f"🏖️ 沙滩：{self._format_item_lines(beach_items)}")
+            has_action = True
+        elif beach_result.get("warning"):
+            lines.append(f"⚠️ 沙滩失败：{beach_result.get('warning')}")
+            has_warning = True
+
+        for line in (auto_result or {}).get("lines") or []:
+            lines.append(line)
+            if line.startswith(("⚗️", "💰", "⚒️", "✅")):
+                has_action = True
+            elif line.startswith("⚠️"):
+                has_warning = True
+
+        return lines, has_action, has_warning
+
+    def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
+        report_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "⚒️", "✅"))]
+        if not report_lines:
+            report_lines = [line for line in lines if not line.startswith(("ℹ️", "⚠️"))]
+        chunks = [self.SUMMARY_LINE]
+        chunks.extend(report_lines)
+        chunks.append(self.SUMMARY_LINE)
+        chunks.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
+        chunks.append(self.SUMMARY_LINE)
+        return "\n".join(chunks)
+
+    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
+        history_title = title
+        history_lines = [line for line in (lines or []) if line]
+        if not history_lines:
+            return history_title, history_lines
+
+        first_line = history_lines[0]
+        replacements = [
+            ("🏖️ 沙滩：", "🏖️沙滩："),
+            ("🧱 搬砖：", "🧱搬砖："),
+            ("💰 兑换：", "💰兑换："),
+            ("⚒️ 炼造：", "⚒️炼造："),
+            ("⚗️ 魔丸：", "⚗️魔丸："),
+            ("⚠️ 沙滩失败：", "🏖️沙滩失败："),
+            ("⚠️ 搬砖失败：", "🧱搬砖失败："),
+            ("ℹ️ 沙滩：", "🏖️沙滩："),
+            ("ℹ️ 搬砖：", "🧱搬砖："),
+        ]
+        manual_replacements = [
+            ("🏖️ 沙滩：", "🏖️手动沙滩："),
+            ("🧱 搬砖：", "🧱手动搬砖："),
+            ("💰 兑换：", "💰手动兑换："),
+            ("⚒️ 炼造：", "⚒️手动炼造："),
+            ("⚗️ 魔丸：", "⚗️手动魔丸："),
+            ("⚠️ 沙滩失败：", "🏖️手动沙滩失败："),
+            ("⚠️ 搬砖失败：", "🧱手动搬砖失败："),
+            ("ℹ️ 沙滩：", "🏖️手动沙滩："),
+            ("ℹ️ 搬砖：", "🧱手动搬砖："),
+        ]
+
+        if title == "⚗️ Vue-魔丸运行":
+            history_title = first_line
+            for src, dest in replacements:
+                if history_title.startswith(src):
+                    history_title = history_title.replace(src, dest, 1)
+                    break
+            return history_title, history_lines[1:]
+
+        if title in {"🏖️ 手动清沙滩", "🧱 手动搬砖", "💰 手动兑换", "⚒️ 手动炼造", "⚗️ 一键炼造魔丸"}:
+            history_title = first_line
+            for src, dest in manual_replacements:
+                if history_title.startswith(src):
+                    history_title = history_title.replace(src, dest, 1)
+                    break
+            return history_title, history_lines[1:]
+
+        return history_title, history_lines
 
     def _extract_id_text(self, html: str, element_id: str) -> str:
         return self._clean_html(self._first_match(html, rf'id="{re.escape(element_id)}"[^>]*>(.*?)</'))

@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_9ec8883c_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_38e37c50_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-9ec8883c"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-38e37c50"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
@@ -261,15 +261,6 @@ return (_ctx, _cache) => {
         ]),
         _createElementVNode("div", _hoisted_8, [
           _createVNode(_component_v_btn, {
-            variant: "text",
-            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("返回状态页")
-            ]),
-            _: 1
-          }),
-          _createVNode(_component_v_btn, {
             color: "warning",
             variant: "flat",
             loading: saving.value,
@@ -291,6 +282,15 @@ return (_ctx, _cache) => {
             ]),
             _: 1
           }, 8, ["loading"]),
+          _createVNode(_component_v_btn, {
+            variant: "text",
+            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode("返回状态页")
+            ]),
+            _: 1
+          }),
           _createVNode(_component_v_btn, {
             variant: "text",
             onClick: closePlugin
@@ -502,6 +502,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9ec8883c"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-38e37c50"]]);
 
 export { ConfigView as default };
