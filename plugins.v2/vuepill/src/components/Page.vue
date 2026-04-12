@@ -113,9 +113,8 @@
               最大可炼造 {{ magicPillMax }} 颗
               <span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span>
             </div>
-            <div class="vp-inline">
-              <label class="vp-field">
-                <span>数量</span>
+            <div class="vp-inline vp-inline-right">
+              <label class="vp-field vp-field-compact">
                 <input v-model="pillCraftQuantity" class="vp-input" type="number" min="1" :max="Math.max(magicPillMax, 1)" />
               </label>
               <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
@@ -130,9 +129,8 @@
               </div>
             </div>
             <div class="vp-note">价格 {{ exchangePriceText }} · 可兑换 {{ exchange.max_count || 0 }} 颗</div>
-            <div class="vp-inline">
-              <label class="vp-field">
-                <span>数量</span>
+            <div class="vp-inline vp-inline-right">
+              <label class="vp-field vp-field-compact">
                 <input v-model="exchangeQuantity" class="vp-input" type="number" min="1" :max="Math.max(Number(exchange.max_count || 0), 1)" />
               </label>
             </div>
@@ -513,7 +511,9 @@ onBeforeUnmount(() => {
 .vp-tool-head{margin-bottom:0}
 .vp-tool-title{font-size:15px;font-weight:900;line-height:1.25}
 .vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+.vp-inline-right{justify-content:flex-end}
 .vp-field{min-width:110px;display:grid;gap:6px;font-size:12px;color:var(--muted)}
+.vp-field-compact{min-width:108px;max-width:108px}
 .vp-input{width:100%;height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:13px;background:var(--panel);color:var(--text);outline:none}
 .vp-input:focus{border-color:rgba(124,92,255,.48);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
 .vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}

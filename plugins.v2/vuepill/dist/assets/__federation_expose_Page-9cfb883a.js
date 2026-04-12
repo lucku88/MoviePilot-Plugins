@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_03109452_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_47005543_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-03109452"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-47005543"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
@@ -66,49 +66,53 @@ const _hoisted_33 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_34 = { class: "vp-tool-grid" };
 const _hoisted_35 = { class: "vp-tool craft" };
-const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "⚗️ 一键炼造魔丸", -1));
-const _hoisted_37 = { class: "vp-note" };
-const _hoisted_38 = { key: 0 };
-const _hoisted_39 = { class: "vp-inline" };
-const _hoisted_40 = { class: "vp-field" };
-const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
-const _hoisted_42 = ["max"];
-const _hoisted_43 = { class: "vp-tool exchange" };
-const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "💰 兑换魔力", -1));
-const _hoisted_45 = { class: "vp-note" };
-const _hoisted_46 = { class: "vp-inline" };
-const _hoisted_47 = { class: "vp-field" };
-const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
-const _hoisted_49 = ["max"];
-const _hoisted_50 = {
+const _hoisted_36 = { class: "vp-head vp-head-action vp-tool-head" };
+const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "⚗️ 一键炼造魔丸", -1));
+const _hoisted_38 = { class: "vp-card-action-slot" };
+const _hoisted_39 = { class: "vp-note" };
+const _hoisted_40 = { key: 0 };
+const _hoisted_41 = { class: "vp-inline" };
+const _hoisted_42 = { class: "vp-field" };
+const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
+const _hoisted_44 = ["max"];
+const _hoisted_45 = { class: "vp-tool exchange" };
+const _hoisted_46 = { class: "vp-head vp-head-action vp-tool-head" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-tool-title" }, "💰 兑换魔力", -1));
+const _hoisted_48 = { class: "vp-card-action-slot" };
+const _hoisted_49 = { class: "vp-note" };
+const _hoisted_50 = { class: "vp-inline" };
+const _hoisted_51 = { class: "vp-field" };
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "数量", -1));
+const _hoisted_53 = ["max"];
+const _hoisted_54 = {
   key: 0,
   class: "vp-empty"
 };
-const _hoisted_51 = {
+const _hoisted_55 = {
   key: 1,
   class: "vp-items"
 };
-const _hoisted_52 = { class: "vp-item-icon-wrap" };
-const _hoisted_53 = { class: "vp-item-icon" };
-const _hoisted_54 = { class: "vp-item-body" };
-const _hoisted_55 = { class: "vp-item-name" };
-const _hoisted_56 = { class: "vp-item-count" };
-const _hoisted_57 = { class: "vp-card vp-panel history" };
-const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
+const _hoisted_56 = { class: "vp-item-icon-wrap" };
+const _hoisted_57 = { class: "vp-item-icon" };
+const _hoisted_58 = { class: "vp-item-body" };
+const _hoisted_59 = { class: "vp-item-name" };
+const _hoisted_60 = { class: "vp-item-count" };
+const _hoisted_61 = { class: "vp-card vp-panel history" };
+const _hoisted_62 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vp-section-title" }, "执行历史")
   ])
 ], -1));
-const _hoisted_59 = {
+const _hoisted_63 = {
   key: 0,
   class: "vp-empty"
 };
-const _hoisted_60 = {
+const _hoisted_64 = {
   key: 1,
   class: "vp-list"
 };
-const _hoisted_61 = { class: "vp-history-top" };
-const _hoisted_62 = {
+const _hoisted_65 = { class: "vp-history-top" };
+const _hoisted_66 = {
   key: 0,
   class: "vp-history-lines"
 };
@@ -585,23 +589,41 @@ return (_ctx, _cache) => {
         _hoisted_33,
         _createElementVNode("div", _hoisted_34, [
           _createElementVNode("article", _hoisted_35, [
-            _hoisted_36,
-            _createElementVNode("div", _hoisted_37, [
-              _createTextVNode(" 最大可炼造 " + _toDisplayString(magicPillMax.value) + " 颗 ", 1),
-              (magicPillRecipe.value?.materials?.length)
-                ? (_openBlock(), _createElementBlock("span", _hoisted_38, " · 材料 " + _toDisplayString(magicPillRecipe.value.materials.join(' / ')), 1))
-                : _createCommentVNode("", true)
+            _createElementVNode("div", _hoisted_36, [
+              _hoisted_37,
+              _createElementVNode("div", _hoisted_38, [
+                _createVNode(_component_v_btn, {
+                  color: "deep-purple-accent-3",
+                  variant: "flat",
+                  size: "small",
+                  class: "vp-card-action-btn",
+                  loading: loading.value,
+                  disabled: loading.value || !magicPillMax.value,
+                  onClick: craftMagicPill
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode("一键炼造")
+                  ]),
+                  _: 1
+                }, 8, ["loading", "disabled"])
+              ])
             ]),
             _createElementVNode("div", _hoisted_39, [
-              _createElementVNode("label", _hoisted_40, [
-                _hoisted_41,
+              _createTextVNode(" 最大可炼造 " + _toDisplayString(magicPillMax.value) + " 颗 ", 1),
+              (magicPillRecipe.value?.materials?.length)
+                ? (_openBlock(), _createElementBlock("span", _hoisted_40, " · 材料 " + _toDisplayString(magicPillRecipe.value.materials.join(' / ')), 1))
+                : _createCommentVNode("", true)
+            ]),
+            _createElementVNode("div", _hoisted_41, [
+              _createElementVNode("label", _hoisted_42, [
+                _hoisted_43,
                 _withDirectives(_createElementVNode("input", {
                   "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((pillCraftQuantity).value = $event)),
                   class: "vp-input",
                   type: "number",
                   min: "1",
                   max: Math.max(magicPillMax.value, 1)
-                }, null, 8, _hoisted_42), [
+                }, null, 8, _hoisted_44), [
                   [_vModelText, pillCraftQuantity.value]
                 ])
               ]),
@@ -614,88 +636,82 @@ return (_ctx, _cache) => {
                   _createTextVNode("最大")
                 ]),
                 _: 1
-              }, 8, ["disabled"]),
-              _createVNode(_component_v_btn, {
-                color: "deep-purple-accent-3",
-                variant: "flat",
-                loading: loading.value,
-                disabled: loading.value || !magicPillMax.value,
-                onClick: craftMagicPill
-              }, {
-                default: _withCtx(() => [
-                  _createTextVNode("一键炼造")
-                ]),
-                _: 1
-              }, 8, ["loading", "disabled"])
+              }, 8, ["disabled"])
             ])
           ]),
-          _createElementVNode("article", _hoisted_43, [
-            _hoisted_44,
-            _createElementVNode("div", _hoisted_45, "价格 " + _toDisplayString(exchangePriceText.value) + " · 可兑换 " + _toDisplayString(exchange.value.max_count || 0) + " 颗", 1),
+          _createElementVNode("article", _hoisted_45, [
             _createElementVNode("div", _hoisted_46, [
-              _createElementVNode("label", _hoisted_47, [
-                _hoisted_48,
+              _hoisted_47,
+              _createElementVNode("div", _hoisted_48, [
+                _createVNode(_component_v_btn, {
+                  color: "amber-darken-2",
+                  variant: "flat",
+                  size: "small",
+                  class: "vp-card-action-btn",
+                  loading: loading.value,
+                  disabled: loading.value || !exchange.value.action_ready,
+                  onClick: exchangePoints
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode("兑换魔力")
+                  ]),
+                  _: 1
+                }, 8, ["loading", "disabled"])
+              ])
+            ]),
+            _createElementVNode("div", _hoisted_49, "价格 " + _toDisplayString(exchangePriceText.value) + " · 可兑换 " + _toDisplayString(exchange.value.max_count || 0) + " 颗", 1),
+            _createElementVNode("div", _hoisted_50, [
+              _createElementVNode("label", _hoisted_51, [
+                _hoisted_52,
                 _withDirectives(_createElementVNode("input", {
                   "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((exchangeQuantity).value = $event)),
                   class: "vp-input",
                   type: "number",
                   min: "1",
                   max: Math.max(Number(exchange.value.max_count || 0), 1)
-                }, null, 8, _hoisted_49), [
+                }, null, 8, _hoisted_53), [
                   [_vModelText, exchangeQuantity.value]
                 ])
-              ]),
-              _createVNode(_component_v_btn, {
-                color: "amber-darken-2",
-                variant: "flat",
-                loading: loading.value,
-                disabled: loading.value || !exchange.value.action_ready,
-                onClick: exchangePoints
-              }, {
-                default: _withCtx(() => [
-                  _createTextVNode("兑换魔力")
-                ]),
-                _: 1
-              }, 8, ["loading", "disabled"])
+              ])
             ])
           ])
         ]),
         (pill.value.inventory?.empty)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_50, _toDisplayString(pill.value.inventory?.empty_text), 1))
-          : (_openBlock(), _createElementBlock("div", _hoisted_51, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_54, _toDisplayString(pill.value.inventory?.empty_text), 1))
+          : (_openBlock(), _createElementBlock("div", _hoisted_55, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: item.name,
                   class: _normalizeClass(["vp-item", { active: item.has_items }]),
                   style: _normalizeStyle(itemToneStyle(item))
                 }, [
-                  _createElementVNode("div", _hoisted_52, [
-                    _createElementVNode("div", _hoisted_53, _toDisplayString(item.icon), 1)
+                  _createElementVNode("div", _hoisted_56, [
+                    _createElementVNode("div", _hoisted_57, _toDisplayString(item.icon), 1)
                   ]),
-                  _createElementVNode("div", _hoisted_54, [
-                    _createElementVNode("div", _hoisted_55, _toDisplayString(item.name), 1),
-                    _createElementVNode("div", _hoisted_56, _toDisplayString(item.count), 1)
+                  _createElementVNode("div", _hoisted_58, [
+                    _createElementVNode("div", _hoisted_59, _toDisplayString(item.name), 1),
+                    _createElementVNode("div", _hoisted_60, _toDisplayString(item.count), 1)
                   ])
                 ], 6))
               }), 128))
             ]))
       ]),
-      _createElementVNode("section", _hoisted_57, [
-        _hoisted_58,
+      _createElementVNode("section", _hoisted_61, [
+        _hoisted_62,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_59, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_60, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_63, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_64, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "vp-history"
                 }, [
-                  _createElementVNode("div", _hoisted_61, [
+                  _createElementVNode("div", _hoisted_65, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
                   (item.lines?.length)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_62, _toDisplayString((item.lines || []).join(' / ')), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_66, _toDisplayString((item.lines || []).join(' / ')), 1))
                     : _createCommentVNode("", true)
                 ]))
               }), 128))
@@ -707,6 +723,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-03109452"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-47005543"]]);
 
 export { PageView as default };
