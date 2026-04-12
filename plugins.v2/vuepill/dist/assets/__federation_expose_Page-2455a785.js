@@ -1,19 +1,22 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ad1b2eff_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_1c76d0c8_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ad1b2eff"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-1c76d0c8"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
 const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-badge" }, "Vue-魔丸", -1));
 const _hoisted_5 = { class: "vp-title" };
 const _hoisted_6 = { class: "vp-chip-row" };
-const _hoisted_7 = { class: "vp-chip" };
+const _hoisted_7 = {
+  key: 0,
+  class: "vp-chip"
+};
 const _hoisted_8 = { class: "vp-chip" };
 const _hoisted_9 = { class: "vp-chip" };
 const _hoisted_10 = { class: "vp-chip" };
@@ -439,7 +442,9 @@ return (_ctx, _cache) => {
           _hoisted_4,
           _createElementVNode("h1", _hoisted_5, _toDisplayString(pill.value.title || '搬砖捡破烂炼魔丸'), 1),
           _createElementVNode("div", _hoisted_6, [
-            _createElementVNode("span", _hoisted_7, "最近执行 " + _toDisplayString(status.last_run || '暂无'), 1),
+            (status.last_run)
+              ? (_openBlock(), _createElementBlock("span", _hoisted_7, "最近执行 " + _toDisplayString(status.last_run), 1))
+              : _createCommentVNode("", true),
             _createElementVNode("span", _hoisted_8, "下次运行 " + _toDisplayString(pill.value.next_run_time || '等待刷新'), 1),
             _createElementVNode("span", _hoisted_9, "计划触发 " + _toDisplayString(pill.value.next_trigger_time || '等待刷新'), 1),
             _createElementVNode("span", _hoisted_10, _toDisplayString(pill.value.cookie_source || status.cookie_source || '未同步'), 1)
@@ -751,6 +756,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ad1b2eff"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1c76d0c8"]]);
 
 export { PageView as default };

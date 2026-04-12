@@ -7,9 +7,6 @@
           <h1 class="vp-title">插件配置</h1>
           <div class="vp-chip-row">
             <span class="vp-chip">{{ config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写' }}</span>
-            <span class="vp-chip">搬砖 {{ config.enable_brick ? '开启' : '关闭' }}</span>
-            <span class="vp-chip">沙滩 {{ config.enable_beach ? '开启' : '关闭' }}</span>
-            <span class="vp-chip">炼造 {{ config.auto_craft ? '开启' : '关闭' }}</span>
           </div>
         </div>
         <div class="vp-action-grid">

@@ -7,7 +7,7 @@
           <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
 
           <div class="vp-chip-row">
-            <span class="vp-chip">最近执行 {{ status.last_run || '暂无' }}</span>
+            <span v-if="status.last_run" class="vp-chip">最近执行 {{ status.last_run }}</span>
             <span class="vp-chip">下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
             <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
             <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
