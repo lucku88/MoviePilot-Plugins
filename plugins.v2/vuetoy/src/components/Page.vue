@@ -171,30 +171,39 @@
           >
             <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
             <template v-if="slot.empty">
-              <div class="toy-slot-empty">空展位</div>
-              <div class="toy-slot-tip">{{ selectedDoll ? `可上架 ${selectedDoll.name}` : '先从玩偶柜子选择玩偶' }}</div>
-              <v-btn color="deep-orange" variant="flat" :disabled="!selectedDoll || loading" @click="placePersonal(slot)">上架所选玩偶</v-btn>
+              <div class="toy-slot-body toy-slot-body-empty">
+                <div class="toy-slot-empty">空展位</div>
+                <div class="toy-slot-tip">{{ selectedDoll ? `可上架 ${selectedDoll.name}` : '先从玩偶柜子选择玩偶' }}</div>
+              </div>
+              <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placePersonal(slot)">上架所选玩偶</v-btn>
             </template>
             <template v-else>
-              <div class="toy-slot-media">
-                <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
-                <div v-else class="toy-slot-empty">🧸</div>
+              <div class="toy-slot-main">
+                <div class="toy-slot-media">
+                  <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                  <div v-else class="toy-slot-empty">🧸</div>
+                </div>
+                <div class="toy-slot-body">
+                  <div class="toy-slot-name">{{ slot.doll_name }}</div>
+                  <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
+                  <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
+                  <div class="toy-slot-meta">{{ slot.reward_text }}</div>
+                </div>
               </div>
-              <div class="toy-slot-name">{{ slot.doll_name }}</div>
-              <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
-              <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
-              <div class="toy-slot-meta">{{ slot.reward_text }}</div>
               <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
-              <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
-              <v-btn
-                :color="slotActionColor(slot)"
-                variant="flat"
-                :loading="loading"
-                :disabled="loading || !slot.viewer_is_occupant"
-                @click="collectSlot(slot)"
-              >
-                {{ slotActionLabel(slot) }}
-              </v-btn>
+              <div class="toy-slot-foot">
+                <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
+                <v-btn
+                  :color="slotActionColor(slot)"
+                  variant="flat"
+                  class="toy-slot-action-btn"
+                  :loading="loading"
+                  :disabled="loading || !slot.viewer_is_occupant"
+                  @click="collectSlot(slot)"
+                >
+                  {{ slotActionLabel(slot) }}
+                </v-btn>
+              </div>
             </template>
           </article>
         </div>
@@ -229,34 +238,45 @@
             >
               <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
               <template v-if="slot.empty && !slot.cooldown_active">
-                <div class="toy-slot-empty">空位可抢</div>
-                <div class="toy-slot-tip">{{ selectedDoll ? `抢占为 ${selectedDoll.name}` : '先选择玩偶' }}</div>
-                <v-btn color="deep-orange" variant="flat" :disabled="!selectedDoll || loading" @click="placeTarget(slot)">抢占展位</v-btn>
+                <div class="toy-slot-body toy-slot-body-empty">
+                  <div class="toy-slot-empty">空位可抢</div>
+                  <div class="toy-slot-tip">{{ selectedDoll ? `抢占为 ${selectedDoll.name}` : '先选择玩偶' }}</div>
+                </div>
+                <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placeTarget(slot)">抢占展位</v-btn>
               </template>
               <template v-else-if="slot.empty && slot.cooldown_active">
-                <div class="toy-slot-empty">⏳</div>
-                <div class="toy-slot-tip">展位冷却中</div>
-                <v-btn color="grey-darken-1" variant="flat" disabled>冷却中</v-btn>
+                <div class="toy-slot-body toy-slot-body-empty">
+                  <div class="toy-slot-empty">⏳</div>
+                  <div class="toy-slot-tip">展位冷却中</div>
+                </div>
+                <v-btn color="grey-darken-1" variant="flat" class="toy-slot-action-btn" disabled>冷却中</v-btn>
               </template>
               <template v-else>
-                <div class="toy-slot-media">
-                  <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
-                  <div v-else class="toy-slot-empty">🧸</div>
+                <div class="toy-slot-main">
+                  <div class="toy-slot-media">
+                    <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                    <div v-else class="toy-slot-empty">🧸</div>
+                  </div>
+                  <div class="toy-slot-body">
+                    <div class="toy-slot-name">{{ slot.doll_name || slot.status_text }}</div>
+                    <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
+                    <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
+                    <div v-if="slot.reward_text" class="toy-slot-meta">{{ slot.reward_text }}</div>
+                  </div>
                 </div>
-                <div class="toy-slot-name">{{ slot.doll_name || slot.status_text }}</div>
-                <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
-                <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
-                <div v-if="slot.reward_text" class="toy-slot-meta">{{ slot.reward_text }}</div>
                 <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
-                <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
-                <v-btn
-                  :color="targetSlotActionColor(slot)"
-                  variant="flat"
-                  :disabled="loading || !slot.viewer_is_occupant"
-                  @click="collectSlot(slot)"
-                >
-                  {{ targetSlotActionLabel(slot) }}
-                </v-btn>
+                <div class="toy-slot-foot">
+                  <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
+                  <v-btn
+                    :color="targetSlotActionColor(slot)"
+                    variant="flat"
+                    class="toy-slot-action-btn"
+                    :disabled="loading || !slot.viewer_is_occupant"
+                    @click="collectSlot(slot)"
+                  >
+                    {{ targetSlotActionLabel(slot) }}
+                  </v-btn>
+                </div>
               </template>
             </article>
           </div>
@@ -272,12 +292,16 @@
         <div v-if="!remoteRecords.length" class="toy-empty">暂无外展记录</div>
         <div v-else class="toy-remote-grid">
           <article v-for="item in remoteRecords" :key="`${item.owner_id}-${item.slot_index}`" class="toy-remote-card">
-            <img v-if="item.image" class="toy-remote-image" :src="item.image" :alt="item.doll_name" />
-            <div class="toy-remote-owner">{{ item.owner_name }}</div>
-            <div class="toy-remote-meta">展位 {{ item.slot_index }}</div>
-            <div class="toy-remote-meta">{{ item.doll_name }}</div>
-            <div class="toy-remote-meta">{{ remoteRemainText(item) }}</div>
-            <v-btn size="small" variant="flat" color="primary" :disabled="loading" @click="viewTarget(item.owner_id)">查看</v-btn>
+            <div class="toy-remote-main">
+              <img v-if="item.image" class="toy-remote-image" :src="item.image" :alt="item.doll_name" />
+              <div class="toy-remote-body">
+                <div class="toy-remote-owner">{{ item.owner_name }}</div>
+                <div class="toy-remote-meta">展位 {{ item.slot_index }}</div>
+                <div class="toy-remote-meta">{{ item.doll_name }}</div>
+                <div class="toy-remote-meta">{{ remoteRemainText(item) }}</div>
+              </div>
+            </div>
+            <v-btn size="small" variant="flat" color="primary" class="toy-remote-action" :disabled="loading" @click="viewTarget(item.owner_id)">查看</v-btn>
           </article>
         </div>
       </section>
@@ -1299,25 +1323,25 @@ onBeforeUnmount(() => {
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
 }
 
 .toy-panel-booth .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(192px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
 }
 
 .toy-panel-target .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
 }
 
 .toy-remote-grid {
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
 }
 
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
-  padding: 11px;
+  padding: 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
 }
 
@@ -1326,15 +1350,17 @@ onBeforeUnmount(() => {
   align-content: start;
   justify-items: center;
   gap: 0;
-  min-height: 228px;
+  min-height: 212px;
 }
 
 .toy-slot-card,
 .toy-remote-card {
-  display: grid;
-  align-content: start;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 0;
+  min-height: 176px;
 }
 
 .toy-doll-card.selected {
@@ -1353,32 +1379,33 @@ onBeforeUnmount(() => {
 .toy-doll-image,
 .toy-slot-image,
 .toy-remote-image {
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  margin: 0 auto;
+  margin: 0;
   display: block;
 }
 
 .toy-slot-media {
-  width: 74px;
-  height: 74px;
-  margin: 0 auto 8px;
+  width: 62px;
+  height: 62px;
+  margin: 0;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(255, 190, 92, 0.1);
+  flex-shrink: 0;
 }
 
 .toy-doll-placeholder,
 .toy-slot-empty {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 8px;
+  width: 56px;
+  height: 56px;
+  margin: 0;
   display: grid;
   place-items: center;
-  font-size: 28px;
-  border-radius: 18px;
+  font-size: 22px;
+  border-radius: 16px;
   background: rgba(255, 190, 92, 0.1);
 }
 
@@ -1386,34 +1413,34 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .toy-doll-quality {
-  padding: 5px 9px;
+  padding: 4px 8px;
   background: var(--toy-chip);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .toy-doll-origin {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--toy-text-soft);
 }
 
 .toy-doll-name,
 .toy-slot-name,
 .toy-remote-owner {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .toy-slot-owner {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 0;
+  font-size: 11px;
   font-weight: 700;
   color: #ff5e8a;
 }
@@ -1422,53 +1449,85 @@ onBeforeUnmount(() => {
 .toy-slot-meta,
 .toy-remote-meta,
 .toy-slot-tip {
-  margin-top: 5px;
-  font-size: 12px;
+  margin-top: 0;
+  font-size: 11px;
   color: var(--toy-text-soft);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .toy-doll-stats {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .toy-doll-stats span {
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 999px;
   border: 1px solid rgba(124, 92, 255, 0.14);
   background: rgba(124, 92, 255, 0.08);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--toy-text-soft);
 }
 
 .toy-doll-cooldown {
-  margin-top: 8px;
-  padding: 6px 10px;
+  margin-top: 6px;
+  padding: 5px 8px;
   background: rgba(126, 126, 126, 0.12);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--toy-text-soft);
 }
 
 .toy-card-action {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .toy-slot-index {
-  padding: 6px 11px;
-  margin-bottom: 10px;
+  align-self: flex-start;
+  padding: 5px 9px;
+  margin-bottom: 8px;
   background: var(--toy-chip);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
+.toy-slot-main,
+.toy-remote-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toy-slot-body,
+.toy-remote-body {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.toy-slot-body-empty {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 6px;
+  min-height: 70px;
+}
+
+.toy-slot-body-empty .toy-slot-empty {
+  width: auto;
+  min-width: 56px;
+  padding: 0 12px;
+}
+
 .toy-slot-progress {
-  margin: 12px 0 10px;
+  margin: 10px 0 8px;
   width: 100%;
-  height: 7px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(255, 190, 92, 0.14);
   overflow: hidden;
@@ -1481,9 +1540,10 @@ onBeforeUnmount(() => {
 }
 
 .toy-slot-activity {
-  margin: 0 auto 12px;
-  padding: 7px 12px;
-  font-size: 11px;
+  margin: 0;
+  padding: 6px 10px;
+  width: fit-content;
+  font-size: 10px;
   font-weight: 700;
   background: rgba(255, 190, 92, 0.14);
   color: var(--toy-text-main);
@@ -1508,28 +1568,38 @@ onBeforeUnmount(() => {
 .toy-target-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .toy-target-panel {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .toy-target-head {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
 }
 
+.toy-slot-foot {
+  display: grid;
+  gap: 8px;
+}
+
+.toy-slot-action-btn,
+.toy-remote-action {
+  width: 100%;
+}
+
 .toy-empty {
-  padding: 22px 14px;
+  padding: 18px 12px;
   border: 1px dashed var(--toy-border);
   border-radius: 18px;
   text-align: center;
   color: var(--toy-text-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .toy-history-item {
