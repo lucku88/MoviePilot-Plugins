@@ -108,111 +108,125 @@
 
       <section class="toy-panel toy-panel-cabinet">
         <div class="toy-panel-head">
-          <div>
+          <div class="toy-panel-heading">
             <h2>玩偶柜子</h2>
+            <div class="toy-panel-info">当前 {{ cabinetCards.length }} 个玩偶</div>
           </div>
         </div>
-        <div class="toy-toolbar single">
-          <div class="toy-sort-group">
-            <button type="button" class="toy-chip is-active">按最快冷却</button>
+        <div class="toy-section-tools">
+          <div class="toy-selected-bar">
+            <span>当前选中：</span>
+            <strong>{{ selectedDoll ? selectedDoll.name : '未选择玩偶' }}</strong>
+            <span v-if="selectedDoll">，点击空展位或目标空位即可上架</span>
+          </div>
+          <div class="toy-toolbar single">
+            <div class="toy-sort-group">
+              <button type="button" class="toy-chip is-active">按最快冷却</button>
+            </div>
           </div>
         </div>
-        <div class="toy-selected-bar">
-          <span>当前选中：</span>
-          <strong>{{ selectedDoll ? selectedDoll.name : '未选择玩偶' }}</strong>
-          <span v-if="selectedDoll">，点击空展位或目标空位即可上架</span>
-        </div>
-        <div v-if="!cabinetCards.length" class="toy-empty">暂无可用空位或玩偶，稍后再试</div>
-        <div v-else class="toy-cabinet-grid">
-          <article
-            v-for="doll in cabinetCards"
-            :key="doll.doll_key || doll.name"
-            class="toy-doll-card"
-            :class="{ selected: selectedDollKey === doll.doll_key, disabled: !doll.can_place }"
-            @click="selectDoll(doll)"
-          >
-            <img v-if="doll.image" class="toy-doll-image" :src="doll.image" :alt="doll.name" />
-            <div v-else class="toy-doll-placeholder">🧸</div>
-            <div class="toy-doll-quality-row">
-              <div class="toy-doll-quality">{{ doll.quality || '未识别' }}</div>
-              <div v-if="doll.origin" class="toy-doll-origin">{{ doll.origin }}</div>
-            </div>
-            <div class="toy-doll-name">{{ doll.name }}</div>
-            <div class="toy-doll-meta">{{ doll.reward_text }}</div>
-            <div class="toy-doll-stats">
-              <span>可用 {{ doll.available }}</span>
-              <span>总数 {{ doll.total }}</span>
-              <span>展出 {{ doll.display_count }}</span>
-            </div>
-            <div v-if="cabinetCooldownText(doll)" class="toy-doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
-            <v-btn block size="small" color="deep-orange" variant="flat" :disabled="!doll.can_place" class="toy-card-action">
-              {{ selectedDollKey === doll.doll_key ? '已选择' : '选择上架' }}
-            </v-btn>
-          </article>
+        <div v-if="!cabinetCards.length" class="toy-empty">暂无可上架玩偶</div>
+        <div
+          v-else
+          class="toy-grid-shell toy-grid-shell-cabinet"
+          :style="sectionShellStyle('cabinet')"
+          data-virtual-ready="true"
+        >
+          <div class="toy-cabinet-grid">
+            <article
+              v-for="doll in cabinetCards"
+              :key="doll.doll_key || doll.name"
+              class="toy-doll-card"
+              :class="{ selected: selectedDollKey === doll.doll_key, disabled: !doll.can_place }"
+              @click="selectDoll(doll)"
+            >
+              <div class="toy-doll-quality-row">
+                <div class="toy-doll-quality">{{ doll.quality || '未识别' }}</div>
+                <div v-if="doll.origin" class="toy-doll-origin">{{ doll.origin }}</div>
+              </div>
+              <img v-if="doll.image" class="toy-doll-image" :src="doll.image" :alt="doll.name" />
+              <div v-else class="toy-doll-placeholder">🧸</div>
+              <div class="toy-doll-name">{{ doll.name }}</div>
+              <div class="toy-doll-meta">{{ doll.reward_text }}</div>
+              <div class="toy-doll-stats">
+                <span>可用 {{ doll.available }}</span>
+                <span>总数 {{ doll.total }}</span>
+                <span>展出 {{ doll.display_count }}</span>
+              </div>
+              <div v-if="cabinetCooldownText(doll)" class="toy-doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
+              <v-btn block size="small" color="deep-orange" variant="flat" :disabled="!doll.can_place" class="toy-card-action">
+                {{ selectedDollKey === doll.doll_key ? '已选择' : '选择上架' }}
+              </v-btn>
+            </article>
+          </div>
         </div>
       </section>
 
       <section class="toy-panel toy-panel-booth">
         <div class="toy-panel-head">
-          <div>
+          <div class="toy-panel-heading">
             <h2>我的展柜</h2>
+            <div class="toy-panel-info">最多 18 个展位，当前 {{ personalSlots.length }} 个位置</div>
           </div>
         </div>
-        <div class="toy-slot-grid">
-          <article
-            v-for="slot in personalSlots"
-            :key="`personal-${slot.slot_index}`"
-            class="toy-slot-card"
-            :class="{
-              empty: slot.empty,
-              'is-stolen': slot.is_other_occupant,
-              'is-ready': slotActionKind(slot) === 'ready',
-            }"
-          >
-            <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
-            <template v-if="slot.empty">
-              <div class="toy-slot-body toy-slot-body-empty">
-                <div class="toy-slot-empty">空展位</div>
-                <div class="toy-slot-tip">{{ selectedDoll ? `可上架 ${selectedDoll.name}` : '先从玩偶柜子选择玩偶' }}</div>
-              </div>
-              <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placePersonal(slot)">上架所选玩偶</v-btn>
-            </template>
-            <template v-else>
-              <div class="toy-slot-main">
-                <div class="toy-slot-media">
-                  <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
-                  <div v-else class="toy-slot-empty">🧸</div>
+        <div class="toy-grid-shell toy-grid-shell-booth" :style="sectionShellStyle('booth')" data-virtual-ready="true">
+          <div class="toy-slot-grid">
+            <article
+              v-for="slot in personalSlots"
+              :key="`personal-${slot.slot_index}`"
+              class="toy-slot-card"
+              :class="{
+                empty: slot.empty,
+                'is-stolen': slot.is_other_occupant,
+                'is-ready': slotActionKind(slot) === 'ready',
+              }"
+            >
+              <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
+              <template v-if="slot.empty">
+                <div class="toy-slot-body toy-slot-body-empty">
+                  <div class="toy-slot-empty">空展位</div>
+                  <div class="toy-slot-tip">{{ selectedDoll ? `可上架 ${selectedDoll.name}` : '先从玩偶柜子选择玩偶' }}</div>
                 </div>
-                <div class="toy-slot-body">
-                  <div class="toy-slot-name">{{ slot.doll_name }}</div>
-                  <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
-                  <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
-                  <div class="toy-slot-meta">{{ slot.reward_text }}</div>
+                <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placePersonal(slot)">上架所选玩偶</v-btn>
+              </template>
+              <template v-else>
+                <div class="toy-slot-main">
+                  <div class="toy-slot-media">
+                    <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                    <div v-else class="toy-slot-empty">🧸</div>
+                  </div>
+                  <div class="toy-slot-body">
+                    <div class="toy-slot-name">{{ slot.doll_name }}</div>
+                    <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
+                    <div class="toy-slot-meta">{{ slotRemainText(slot) }}</div>
+                    <div class="toy-slot-meta">{{ slot.reward_text }}</div>
+                  </div>
                 </div>
-              </div>
-              <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
-              <div class="toy-slot-foot">
-                <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
-                <v-btn
-                  :color="slotActionColor(slot)"
-                  variant="flat"
-                  class="toy-slot-action-btn"
-                  :loading="loading"
-                  :disabled="loading || !slot.viewer_is_occupant"
-                  @click="collectSlot(slot)"
-                >
-                  {{ slotActionLabel(slot) }}
-                </v-btn>
-              </div>
-            </template>
-          </article>
+                <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
+                <div class="toy-slot-foot">
+                  <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
+                  <v-btn
+                    :color="slotActionColor(slot)"
+                    variant="flat"
+                    class="toy-slot-action-btn"
+                    :loading="loading"
+                    :disabled="loading || !slot.viewer_is_occupant"
+                    @click="collectSlot(slot)"
+                  >
+                    {{ slotActionLabel(slot) }}
+                  </v-btn>
+                </div>
+              </template>
+            </article>
+          </div>
         </div>
       </section>
 
       <section class="toy-panel toy-panel-target">
         <div class="toy-panel-head">
-          <div>
+          <div class="toy-panel-heading">
             <h2>抢占他人展位</h2>
+            <div v-if="targetPanel.slots?.length" class="toy-panel-info">{{ targetPanel.username }} · {{ targetPanel.slot_count }} 个展位</div>
           </div>
         </div>
         <div class="toy-target-controls">
@@ -224,85 +238,89 @@
         </div>
         <div v-if="!targetPanel.slots?.length" class="toy-empty">尚未选择目标</div>
         <div v-else class="toy-target-panel">
-          <div class="toy-target-head">{{ targetPanel.username }} · {{ targetPanel.slot_count }} 个展位</div>
-          <div class="toy-slot-grid">
-            <article
-              v-for="slot in targetPanel.slots"
-              :key="`target-${slot.owner_id}-${slot.slot_index}`"
-              class="toy-slot-card"
-              :class="{
-                empty: slot.empty,
-                'is-stolen': slot.is_other_occupant,
-                'is-ready': slotActionKind(slot) === 'ready',
-              }"
-            >
-              <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
-              <template v-if="slot.empty && !slot.cooldown_active">
-                <div class="toy-slot-body toy-slot-body-empty">
-                  <div class="toy-slot-empty">空位可抢</div>
-                  <div class="toy-slot-tip">{{ selectedDoll ? `抢占为 ${selectedDoll.name}` : '先选择玩偶' }}</div>
-                </div>
-                <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placeTarget(slot)">抢占展位</v-btn>
-              </template>
-              <template v-else-if="slot.empty && slot.cooldown_active">
-                <div class="toy-slot-body toy-slot-body-empty">
-                  <div class="toy-slot-empty">⏳</div>
-                  <div class="toy-slot-tip">展位冷却中</div>
-                </div>
-                <v-btn color="grey-darken-1" variant="flat" class="toy-slot-action-btn" disabled>冷却中</v-btn>
-              </template>
-              <template v-else>
-                <div class="toy-slot-main">
-                  <div class="toy-slot-media">
-                    <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
-                    <div v-else class="toy-slot-empty">🧸</div>
+          <div class="toy-grid-shell toy-grid-shell-target" :style="sectionShellStyle('target')" data-virtual-ready="true">
+            <div class="toy-slot-grid">
+              <article
+                v-for="slot in targetPanel.slots"
+                :key="`target-${slot.owner_id}-${slot.slot_index}`"
+                class="toy-slot-card"
+                :class="{
+                  empty: slot.empty,
+                  'is-stolen': slot.is_other_occupant,
+                  'is-ready': slotActionKind(slot) === 'ready',
+                }"
+              >
+                <div class="toy-slot-index">展位 {{ slot.slot_index }}</div>
+                <template v-if="slot.empty && !slot.cooldown_active">
+                  <div class="toy-slot-body toy-slot-body-empty">
+                    <div class="toy-slot-empty">空位可抢</div>
+                    <div class="toy-slot-tip">{{ selectedDoll ? `抢占为 ${selectedDoll.name}` : '先选择玩偶' }}</div>
                   </div>
-                  <div class="toy-slot-body">
-                    <div class="toy-slot-name">{{ slot.doll_name || slot.status_text }}</div>
-                    <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
-                    <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
-                    <div v-if="slot.reward_text" class="toy-slot-meta">{{ slot.reward_text }}</div>
+                  <v-btn color="deep-orange" variant="flat" class="toy-slot-action-btn" :disabled="!selectedDoll || loading" @click="placeTarget(slot)">抢占展位</v-btn>
+                </template>
+                <template v-else-if="slot.empty && slot.cooldown_active">
+                  <div class="toy-slot-body toy-slot-body-empty">
+                    <div class="toy-slot-empty">⏳</div>
+                    <div class="toy-slot-tip">展位冷却中</div>
                   </div>
-                </div>
-                <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
-                <div class="toy-slot-foot">
-                  <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
-                  <v-btn
-                    :color="targetSlotActionColor(slot)"
-                    variant="flat"
-                    class="toy-slot-action-btn"
-                    :disabled="loading || !slot.viewer_is_occupant"
-                    @click="collectSlot(slot)"
-                  >
-                    {{ targetSlotActionLabel(slot) }}
-                  </v-btn>
-                </div>
-              </template>
-            </article>
+                  <v-btn color="grey-darken-1" variant="flat" class="toy-slot-action-btn" disabled>冷却中</v-btn>
+                </template>
+                <template v-else>
+                  <div class="toy-slot-main">
+                    <div class="toy-slot-media">
+                      <img v-if="slot.image" class="toy-slot-image" :src="slot.image" :alt="slot.doll_name" />
+                      <div v-else class="toy-slot-empty">🧸</div>
+                    </div>
+                    <div class="toy-slot-body">
+                      <div class="toy-slot-name">{{ slot.doll_name || slot.status_text }}</div>
+                      <div v-if="slot.owner_name" class="toy-slot-owner">{{ slot.owner_name }}</div>
+                      <div class="toy-slot-meta">{{ targetRemainText(slot) }}</div>
+                      <div v-if="slot.reward_text" class="toy-slot-meta">{{ slot.reward_text }}</div>
+                    </div>
+                  </div>
+                  <div class="toy-slot-progress"><div class="toy-slot-progress-bar" :style="{ width: `${slot.progress}%` }" /></div>
+                  <div class="toy-slot-foot">
+                    <div class="toy-slot-activity" :class="`is-${slotActionKind(slot)}`">{{ slotActivityText(slot) }}</div>
+                    <v-btn
+                      :color="targetSlotActionColor(slot)"
+                      variant="flat"
+                      class="toy-slot-action-btn"
+                      :disabled="loading || !slot.viewer_is_occupant"
+                      @click="collectSlot(slot)"
+                    >
+                      {{ targetSlotActionLabel(slot) }}
+                    </v-btn>
+                  </div>
+                </template>
+              </article>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="toy-panel toy-panel-remote">
         <div class="toy-panel-head">
-          <div>
+          <div class="toy-panel-heading">
             <h2>我的外展记录</h2>
+            <div class="toy-panel-info">{{ remoteRecords.length }} 条记录</div>
           </div>
         </div>
         <div v-if="!remoteRecords.length" class="toy-empty">暂无外展记录</div>
-        <div v-else class="toy-remote-grid">
-          <article v-for="item in remoteRecords" :key="`${item.owner_id}-${item.slot_index}`" class="toy-remote-card">
-            <div class="toy-remote-main">
-              <img v-if="item.image" class="toy-remote-image" :src="item.image" :alt="item.doll_name" />
-              <div class="toy-remote-body">
-                <div class="toy-remote-owner">{{ item.owner_name }}</div>
-                <div class="toy-remote-meta">展位 {{ item.slot_index }}</div>
-                <div class="toy-remote-meta">{{ item.doll_name }}</div>
-                <div class="toy-remote-meta">{{ remoteRemainText(item) }}</div>
+        <div v-else class="toy-grid-shell toy-grid-shell-remote" :style="sectionShellStyle('remote')" data-virtual-ready="true">
+          <div class="toy-remote-grid">
+            <article v-for="item in remoteRecords" :key="`${item.owner_id}-${item.slot_index}`" class="toy-remote-card">
+              <div class="toy-remote-main">
+                <img v-if="item.image" class="toy-remote-image" :src="item.image" :alt="item.doll_name" />
+                <div class="toy-remote-body">
+                  <div class="toy-remote-owner">{{ item.owner_name }}</div>
+                  <div class="toy-remote-meta">展位 {{ item.slot_index }}</div>
+                  <div class="toy-remote-meta">{{ item.doll_name }}</div>
+                  <div class="toy-remote-meta">{{ remoteRemainText(item) }}</div>
+                </div>
               </div>
-            </div>
-            <v-btn size="small" variant="flat" color="primary" class="toy-remote-action" :disabled="loading" @click="viewTarget(item.owner_id)">查看</v-btn>
-          </article>
+              <v-btn size="small" variant="flat" color="primary" class="toy-remote-action" :disabled="loading" @click="viewTarget(item.owner_id)">查看</v-btn>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -378,6 +396,16 @@ const showSummary = computed(() => !!summaryLines.value.length && dismissedSumma
 const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time))
 const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time))
 
+// Virtual-ready section metrics. Large lists still render normally today,
+// but the shell already exposes stable heights and density rules for future
+// row-windowing without rewriting the page structure again.
+const SECTION_LAYOUT = {
+  cabinet: { maxHeight: 556, minCard: 146, rowHeight: 190, overscan: 4, threshold: 84 },
+  booth: { maxHeight: 496, minCard: 186, rowHeight: 178, overscan: 2, threshold: 24 },
+  target: { maxHeight: 496, minCard: 186, rowHeight: 178, overscan: 2, threshold: 24 },
+  remote: { maxHeight: 560, minCard: 172, rowHeight: 154, overscan: 5, threshold: 120 },
+}
+
 const cabinetCards = computed(() => {
   const items = [...(toy.value.cabinet || [])]
   return items.sort((left, right) => {
@@ -392,6 +420,20 @@ const cabinetCards = computed(() => {
 })
 
 const selectedDoll = computed(() => cabinetCards.value.find((item) => item.doll_key === selectedDollKey.value) || null)
+
+function sectionShellStyle(sectionName) {
+  const config = SECTION_LAYOUT[sectionName]
+  if (!config) {
+    return {}
+  }
+  return {
+    '--toy-shell-max-height': `${config.maxHeight}px`,
+    '--toy-grid-min-card': `${config.minCard}px`,
+    '--toy-virtual-row-height': `${config.rowHeight}px`,
+    '--toy-virtual-overscan': String(config.overscan),
+    '--toy-virtual-threshold': String(config.threshold),
+  }
+}
 
 watch(
   shopBoxes,
@@ -948,7 +990,7 @@ onBeforeUnmount(() => {
 .toy-shell {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 14px 18px;
+  padding: 0 12px 18px;
   display: grid;
   gap: 14px;
 }
@@ -1125,13 +1167,24 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .toy-panel-head h2 {
   margin: 0;
   font-size: 18px;
   line-height: 1.15;
+}
+
+.toy-panel-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.toy-panel-info {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--toy-text-soft);
 }
 
 .toy-panel-kicker {
@@ -1282,7 +1335,16 @@ onBeforeUnmount(() => {
 .toy-toolbar {
   display: flex;
   justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.toy-section-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .toy-sort-group {
@@ -1307,13 +1369,43 @@ onBeforeUnmount(() => {
 }
 
 .toy-selected-bar {
-  margin-bottom: 10px;
-  padding: 9px 12px;
+  margin-bottom: 0;
+  padding: 10px 12px;
   border: 1px solid var(--toy-border);
   border-radius: 16px;
   background: var(--toy-panel-strong);
-  font-size: 13px;
-  line-height: 1.55;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  flex: 1 1 280px;
+  min-width: min(100%, 320px);
+}
+
+.toy-grid-shell {
+  position: relative;
+  max-height: min(var(--toy-shell-max-height, 560px), 68vh);
+  overflow: auto;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: calc(var(--toy-virtual-row-height, 200px) * 3);
+}
+
+.toy-grid-shell::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.toy-grid-shell::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.22);
+}
+
+.toy-grid-shell::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .toy-cabinet-grid,
@@ -1324,23 +1416,23 @@ onBeforeUnmount(() => {
   align-items: start;
   justify-items: stretch;
   grid-auto-flow: row dense;
-  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--toy-grid-min-card, 152px), 1fr));
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--toy-grid-min-card, 146px), 1fr));
 }
 
 .toy-panel-booth .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--toy-grid-min-card, 186px), 1fr));
 }
 
 .toy-panel-target .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--toy-grid-min-card, 186px), 1fr));
 }
 
 .toy-remote-grid {
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--toy-grid-min-card, 172px), 1fr));
 }
 
 .toy-doll-card,
@@ -1349,17 +1441,28 @@ onBeforeUnmount(() => {
   width: auto !important;
   min-width: 0;
   max-width: none;
-  padding: 10px;
+  padding: 11px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.toy-doll-card:hover,
+.toy-slot-card:hover,
+.toy-remote-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 92, 255, 0.26);
 }
 
 .toy-doll-card {
   display: grid;
   align-content: start;
-  justify-items: center;
-  gap: 0;
-  min-height: 212px;
-  grid-template-rows: auto auto auto auto auto 1fr auto;
+  justify-items: stretch;
+  gap: 5px;
+  min-height: 188px;
+  grid-template-rows: auto auto auto auto 1fr auto;
 }
 
 .toy-slot-card,
@@ -1367,9 +1470,14 @@ onBeforeUnmount(() => {
   display: grid;
   align-content: start;
   align-items: start;
-  grid-template-rows: auto auto auto 1fr auto;
-  gap: 0;
+  grid-template-rows: auto auto auto 1fr;
+  gap: 7px;
   min-height: 176px;
+}
+
+.toy-remote-card {
+  min-height: 148px;
+  grid-template-rows: auto 1fr auto;
 }
 
 .toy-doll-card.selected {
@@ -1388,54 +1496,54 @@ onBeforeUnmount(() => {
 .toy-doll-image,
 .toy-slot-image,
 .toy-remote-image {
-  width: 56px;
-  height: 56px;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
   margin: 0;
   display: block;
 }
 
 .toy-slot-media {
-  width: 62px;
-  height: 62px;
+  width: 56px;
+  height: 56px;
   margin: 0;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 190, 92, 0.1);
   flex-shrink: 0;
 }
 
 .toy-doll-placeholder,
 .toy-slot-empty {
-  width: 56px;
-  height: 56px;
+  width: 50px;
+  height: 50px;
   margin: 0;
   display: grid;
   place-items: center;
-  font-size: 22px;
-  border-radius: 16px;
+  font-size: 18px;
+  border-radius: 14px;
   background: rgba(255, 190, 92, 0.1);
 }
 
 .toy-doll-quality-row {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 
 .toy-doll-quality {
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: var(--toy-chip);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 
 .toy-doll-origin {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--toy-text-soft);
 }
 
@@ -1447,9 +1555,13 @@ onBeforeUnmount(() => {
   line-height: 1.3;
 }
 
+.toy-doll-name {
+  text-align: left;
+}
+
 .toy-slot-owner {
   margin-top: 0;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #ff5e8a;
 }
@@ -1459,46 +1571,47 @@ onBeforeUnmount(() => {
 .toy-remote-meta,
 .toy-slot-tip {
   margin-top: 0;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--toy-text-soft);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .toy-doll-stats {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 1px;
 }
 
 .toy-doll-stats span {
-  padding: 3px 7px;
+  padding: 3px 6px;
   border-radius: 999px;
   border: 1px solid rgba(124, 92, 255, 0.14);
   background: rgba(124, 92, 255, 0.08);
-  font-size: 10px;
+  font-size: 9px;
   color: var(--toy-text-soft);
 }
 
 .toy-doll-cooldown {
-  margin-top: 6px;
-  padding: 5px 8px;
+  margin-top: 1px;
+  padding: 4px 8px;
   background: rgba(126, 126, 126, 0.12);
-  font-size: 10px;
+  font-size: 9px;
   color: var(--toy-text-soft);
+  width: fit-content;
 }
 
 .toy-card-action {
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 .toy-slot-index {
   align-self: flex-start;
-  padding: 5px 9px;
-  margin-bottom: 8px;
+  padding: 4px 8px;
+  margin-bottom: 0;
   background: var(--toy-chip);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -1516,7 +1629,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   flex: 1;
   display: grid;
-  gap: 4px;
+  gap: 2px;
   text-align: left;
 }
 
@@ -1524,20 +1637,20 @@ onBeforeUnmount(() => {
   display: grid;
   align-content: start;
   justify-items: start;
-  gap: 6px;
-  min-height: 70px;
+  gap: 5px;
+  min-height: 56px;
 }
 
 .toy-slot-body-empty .toy-slot-empty {
   width: auto;
-  min-width: 56px;
-  padding: 0 12px;
+  min-width: 48px;
+  padding: 0 10px;
 }
 
 .toy-slot-progress {
-  margin: 10px 0 8px;
+  margin: 0;
   width: 100%;
-  height: 6px;
+  height: 5px;
   border-radius: 999px;
   background: rgba(255, 190, 92, 0.14);
   overflow: hidden;
@@ -1551,9 +1664,9 @@ onBeforeUnmount(() => {
 
 .toy-slot-activity {
   margin: 0;
-  padding: 6px 10px;
+  padding: 5px 9px;
   width: fit-content;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   background: rgba(255, 190, 92, 0.14);
   color: var(--toy-text-main);
@@ -1580,28 +1693,44 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .toy-target-panel {
   display: grid;
-  gap: 10px;
-}
-
-.toy-target-head {
-  font-size: 14px;
-  font-weight: 800;
+  gap: 8px;
 }
 
 .toy-slot-foot {
-  display: grid;
+  display: flex;
   gap: 8px;
-  align-content: end;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-content: flex-end;
 }
 
 .toy-slot-action-btn,
 .toy-remote-action {
-  width: 100%;
+  width: auto;
+}
+
+.toy-card-action,
+.toy-slot-action-btn,
+.toy-remote-action {
+  min-height: 32px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.toy-slot-action-btn {
+  min-width: 92px;
+  margin-left: auto;
+}
+
+.toy-remote-action {
+  min-width: 72px;
+  margin-left: auto;
 }
 
 .toy-empty {
@@ -1701,18 +1830,19 @@ onBeforeUnmount(() => {
   }
 
   .toy-cabinet-grid {
-    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
   }
 
   .toy-panel-booth .toy-slot-grid {
-    grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(162px, 1fr));
   }
 
   .toy-panel-target .toy-slot-grid,
   .toy-remote-grid {
-    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(154px, 1fr));
   }
 
+  .toy-section-tools,
   .toy-toolbar {
     justify-content: flex-start;
   }
