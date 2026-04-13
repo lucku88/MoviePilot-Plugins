@@ -1,7 +1,7 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, m as makeLayoutProps, c as makeThemeProps, d as provideTheme, f as createLayout, u as useRtl, h as provideDefaults, j as convertToUnit, S as SUPPORTS_INTERSECTION, k as getCurrentInstanceName, l as destructComputed, n as isCssColor, o as getForeground, q as clamp, r as consoleWarn, s as makeLayoutItemProps, t as useProxiedModel, v as useToggleScope, w as useLayoutItem, x as getUid, y as deepEqual, z as wrapInArray, A as findChildrenWithProvide, I as IconValue, B as useIcon, C as flattenFragments, D as useResizeObserver, E as hasEvent, F as IN_BROWSER, G as isObject, H as keyCodes, J as useLocale, K as filterInputAttrs, L as matchesSelector, M as omit, N as EventProp, O as defineComponent, P as deprecate, Q as getPropertyFromItem, R as pick, T as focusChild, U as consoleError, V as refElement, W as useDisplay, X as focusableChildren, Y as getNextElement, Z as callEvent, _ as createRange, $ as noop, a0 as useTheme, a1 as keys, a2 as getEventCoordinates, a3 as HSVtoRGB, a4 as RGBtoHSV, a5 as HSVtoHSL, a6 as HSLtoHSV, a7 as HSVtoHex, a8 as HexToHSV, a9 as has, aa as getDecimals, ab as keyValues, ac as HSVtoCSS, ad as parseColor, ae as RGBtoCSS, af as getContrast, ag as humanReadableFileSize, ah as breakpoints, ai as provideLocale, aj as useLayout, ak as CircularBuffer, al as VClassIcon, am as VComponentIcon, an as VLigatureIcon, ao as VSvgIcon } from './display-36ab135c.js';
-import ConfigView from './__federation_expose_Config-4baba228.js';
-import PageView from './__federation_expose_Page-8f521ab0.js';
+import ConfigView from './__federation_expose_Config-7a76aaae.js';
+import PageView from './__federation_expose_Page-0e955a5d.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
 true&&(function polyfill() {
@@ -17668,7 +17668,7 @@ function createRequest(baseURL = '') {
   }
 }
 
-const App_vue_vue_type_style_index_0_scoped_d9c87ba0_lang = '';
+const App_vue_vue_type_style_index_0_scoped_e349c4e6_lang = '';
 
 const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock} = await importShared('vue');
 
@@ -17689,7 +17689,7 @@ const api = {
 };
 
 function handleClose() {
-  console.log('VueToy dev shell close event');
+  console.log('VueEmoji dev shell close event');
 }
 
 return (_ctx, _cache) => {
@@ -17772,7 +17772,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d9c87ba0"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e349c4e6"]]);
 
 const {createApp} = await importShared('vue');
 

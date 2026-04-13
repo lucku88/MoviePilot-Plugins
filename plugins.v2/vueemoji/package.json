@@ -1,6 +1,6 @@
 {
-  "name": "vuetoy",
-  "version": "0.1.7",
+  "name": "vueemoji",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {

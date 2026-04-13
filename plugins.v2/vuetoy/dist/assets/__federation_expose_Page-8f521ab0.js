@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_fda4bb06_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_5eb8d3d9_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-fda4bb06"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-5eb8d3d9"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -1396,6 +1396,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-fda4bb06"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-5eb8d3d9"]]);
 
 export { PageView as default };

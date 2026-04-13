@@ -1319,9 +1319,11 @@ onBeforeUnmount(() => {
 .toy-cabinet-grid,
 .toy-slot-grid,
 .toy-remote-grid {
-  display: grid;
+  display: grid !important;
   gap: 10px;
   align-items: start;
+  justify-items: stretch;
+  grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
 }
 
@@ -1344,6 +1346,9 @@ onBeforeUnmount(() => {
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
+  width: auto !important;
+  min-width: 0;
+  max-width: none;
   padding: 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
 }
@@ -1354,14 +1359,15 @@ onBeforeUnmount(() => {
   justify-items: center;
   gap: 0;
   min-height: 212px;
+  grid-template-rows: auto auto auto auto auto 1fr auto;
 }
 
 .toy-slot-card,
 .toy-remote-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
+  display: grid;
+  align-content: start;
+  align-items: start;
+  grid-template-rows: auto auto auto 1fr auto;
   gap: 0;
   min-height: 176px;
 }
@@ -1502,6 +1508,7 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: 10px;
   min-width: 0;
+  width: 100%;
 }
 
 .toy-slot-body,
@@ -1589,6 +1596,7 @@ onBeforeUnmount(() => {
 .toy-slot-foot {
   display: grid;
   gap: 8px;
+  align-content: end;
 }
 
 .toy-slot-action-btn,
@@ -1714,5 +1722,11 @@ onBeforeUnmount(() => {
     align-items: flex-start;
     gap: 6px;
   }
+}
+
+.toy-cabinet-grid > *,
+.toy-slot-grid > *,
+.toy-remote-grid > * {
+  min-width: 0;
 }
 </style>
