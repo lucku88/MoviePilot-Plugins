@@ -27,7 +27,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "盲盒、回收、展出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -607,6 +607,7 @@ class VueToy(_PluginBase):
         reason: str = "",
         target_panel: Optional[Dict[str, Any]] = None,
         summary_lines: Optional[List[str]] = None,
+        history_manual: bool = False,
     ) -> Dict[str, Any]:
         self._ensure_cookie()
         session = self._build_session()
@@ -618,6 +619,7 @@ class VueToy(_PluginBase):
             next_run,
             summary_lines or [],
             target_panel=target_panel,
+            history_manual=history_manual,
         )
 
     def _manual_collect_slot(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -629,7 +631,7 @@ class VueToy(_PluginBase):
         result = self._post_action(session, "collect_slot", {"owner_id": owner_id, "slot_index": slot_index})
         if not result.get("success"):
             raise ValueError(result.get("message") or "收回失败")
-        toy_status = self._refresh_state(reason="manual-collect", summary_lines=["✅ 收回：已手动收回展位玩偶"])
+        toy_status = self._refresh_state(reason="manual-collect", summary_lines=["✅ 收回：已手动收回展位玩偶"], history_manual=True)
         return {"message": "收回成功", "toy_status": toy_status}
 
     def _manual_place_personal(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -644,7 +646,7 @@ class VueToy(_PluginBase):
         result = self._post_action(session, "bulk_place_doll", {"placements": placements})
         if not result.get("success"):
             raise ValueError(result.get("message") or "上架失败")
-        toy_status = self._refresh_state(reason="manual-place-personal", summary_lines=[f"🎯 展出：{doll_name or doll_key}"])
+        toy_status = self._refresh_state(reason="manual-place-personal", summary_lines=[f"🎯 展出：{doll_name or doll_key}"], history_manual=True)
         return {"message": "上架成功", "toy_status": toy_status}
 
     def _manual_random_target(self) -> Dict[str, Any]:
@@ -684,7 +686,7 @@ class VueToy(_PluginBase):
             raise ValueError(result.get("message") or "抢占展位失败")
         refreshed = self._post_action(session, "view_target", {"target_id": owner_id}, retry_network=True)
         panel = self._build_target_panel(refreshed.get("target") or {})
-        toy_status = self._refresh_state(reason="manual-place-target", target_panel=panel, summary_lines=[f"🎯 展出：{doll_name or doll_key}"])
+        toy_status = self._refresh_state(reason="manual-place-target", target_panel=panel, summary_lines=[f"🎯 展出：{doll_name or doll_key}"], history_manual=True)
         return {"message": "抢占成功", "target_panel": toy_status.get("target_panel") or panel, "toy_status": toy_status}
 
     def _manual_buy_box(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -699,7 +701,7 @@ class VueToy(_PluginBase):
         if not result.get("success"):
             raise ValueError(result.get("message") or "盲盒购买失败")
         summary_lines = [f"📦 购买盲盒：{box_name}×{quantity}"]
-        toy_status = self._refresh_state(reason="manual-buy-box", summary_lines=summary_lines)
+        toy_status = self._refresh_state(reason="manual-buy-box", summary_lines=summary_lines, history_manual=True)
         return {"message": result.get("message") or "购买成功", "toy_status": toy_status}
 
     def _manual_open_box(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -717,7 +719,7 @@ class VueToy(_PluginBase):
         drop_text = self._count_items(result.get("drops") or [], name_keys=("name", "doll_name"), qty_keys=("quantity", "count", "added"))
         if drop_text:
             summary_lines.append(f"🪆 获得：{drop_text}")
-        toy_status = self._refresh_state(reason="manual-open-box", summary_lines=summary_lines)
+        toy_status = self._refresh_state(reason="manual-open-box", summary_lines=summary_lines, history_manual=True)
         message = result.get("message") or (summary_lines[-1] if len(summary_lines) > 1 else "开启成功")
         return {"message": message, "toy_status": toy_status}
 
@@ -1048,8 +1050,49 @@ class VueToy(_PluginBase):
             lines.append(f"💰 收益：曝光+{gain_exposure} 魔力+{gain_magic}")
         return lines
 
+    def _normalize_summary_line(self, line: str) -> str:
+        text = str(line or "").strip()
+        replacements = [
+            ("✅ 收回：", "✅收回："),
+            ("🎯 展出：", "🎯展出："),
+            ("💰 收益：", "💰收益："),
+            ("📦 购买盲盒：", "📦购买盲盒："),
+            ("🎁 开盒：", "🎁开盒："),
+            ("🪆 获得：", "🪆获得："),
+            ("⚠️ 本轮中途超时/网络波动，剩余动作稍后自动重试", "⚠️网络波动，剩余动作稍后自动重试"),
+        ]
+        for source, target in replacements:
+            if text.startswith(source):
+                return text.replace(source, target, 1)
+        return text
+
+    def _normalize_summary_lines(self, lines: List[str]) -> List[str]:
+        return [normalized for normalized in (self._normalize_summary_line(line) for line in (lines or [])) if normalized]
+
+    def _normalize_history_entry(self, lines: List[str], manual: bool = False) -> Tuple[str, List[str]]:
+        normalized_lines = self._normalize_summary_lines(lines)
+        if not normalized_lines:
+            return "任务结果", []
+
+        title = normalized_lines[0]
+        if manual:
+            replacements = [
+                ("✅收回：", "✅手动收回："),
+                ("🎯展出：", "🎯手动展出："),
+                ("📦购买盲盒：", "📦手动购买盲盒："),
+                ("🎁开盒：", "🎁手动开盒："),
+                ("🪆获得：", "🪆手动获得："),
+            ]
+            for source, target in replacements:
+                if title.startswith(source):
+                    title = title.replace(source, target, 1)
+                    break
+
+        return title, normalized_lines[1:]
+
     def _send_report(self, lines: List[str], next_run: Optional[int]):
-        chunks = [self.SUMMARY_LINE, *lines, self.SUMMARY_LINE, f"⏰ 下次运行：{self._format_ts(next_run) or '等待刷新'}", self.SUMMARY_LINE]
+        normalized_lines = self._normalize_summary_lines(lines)
+        chunks = [self.SUMMARY_LINE, *normalized_lines, self.SUMMARY_LINE, f"⏰ 下次运行：{self._format_ts(next_run) or '等待刷新'}", self.SUMMARY_LINE]
         self.post_message(
             title="【🧸玩偶报告 】",
             mtype=NotificationType.Plugin,
@@ -1063,15 +1106,17 @@ class VueToy(_PluginBase):
         next_run: Optional[int],
         summary_lines: List[str],
         target_panel: Optional[Dict[str, Any]] = None,
+        history_manual: bool = False,
     ) -> Dict[str, Any]:
+        normalized_summary_lines = self._normalize_summary_lines(summary_lines)
         self._schedule_next_run(next_run, reason="refresh-state")
-        toy_status = self._build_ui_state(state, html, next_run, summary_lines, target_panel or {})
+        toy_status = self._build_ui_state(state, html, next_run, normalized_summary_lines, target_panel or {})
         stored_status = dict(toy_status)
         stored_status["target_panel"] = {}
         self.save_data("toy_status", stored_status)
-        self.save_data("state", self._build_state_record(state, next_run, summary_lines))
+        self.save_data("state", self._build_state_record(state, next_run, normalized_summary_lines))
         self.save_data("last_run", self._format_time(self._aware_now()))
-        self._append_history(summary_lines, next_run)
+        self._append_history(normalized_summary_lines, next_run, manual=history_manual)
         return toy_status
 
     def _build_state_record(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
@@ -1216,15 +1261,16 @@ class VueToy(_PluginBase):
         self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
         return self._next_trigger_mode
 
-    def _append_history(self, lines: List[str], next_run: Optional[int]):
-        if not lines:
+    def _append_history(self, lines: List[str], next_run: Optional[int], manual: bool = False):
+        title, detail_lines = self._normalize_history_entry(lines, manual=manual)
+        if not title and not detail_lines:
             return
         history = list(self.get_data("history") or [])
         history.insert(0, {
-            "title": "任务结果",
+            "title": title,
             "time": self._format_time(self._aware_now()),
             "next_run": self._format_ts(next_run),
-            "lines": list(lines),
+            "lines": list(detail_lines),
         })
         self.save_data("history", history[:20])
 

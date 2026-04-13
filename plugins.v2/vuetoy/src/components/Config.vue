@@ -7,8 +7,6 @@
           <h1 class="vtc-title">插件配置</h1>
           <div class="vtc-chip-row">
             <span class="vtc-chip">{{ config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写' }}</span>
-            <span class="vtc-chip">{{ config.auto_collect ? '自动回收：开启' : '自动回收：关闭' }}</span>
-            <span class="vtc-chip">{{ config.auto_place ? '自动展出：开启' : '自动展出：关闭' }}</span>
           </div>
         </div>
         <div class="vtc-action-grid">
@@ -294,9 +292,9 @@ onBeforeUnmount(() => {
 }
 
 .vtc-shell {
-  max-width: 1320px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 18px 16px 26px;
+  padding: 18px 16px 28px;
   display: grid;
   gap: 14px;
 }
@@ -316,9 +314,9 @@ onBeforeUnmount(() => {
 
 .vtc-hero {
   display: grid;
-  grid-template-columns: 1.35fr auto;
-  gap: 20px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: start;
 }
 
 .vtc-badge,

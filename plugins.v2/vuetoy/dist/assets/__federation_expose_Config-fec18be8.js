@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_64c8e2df_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_9d28ee41_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-64c8e2df"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-9d28ee41"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vtc-shell" };
 const _hoisted_2 = { class: "vtc-card vtc-hero" };
 const _hoisted_3 = { class: "vtc-copy" };
@@ -14,27 +14,25 @@ const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementV
 const _hoisted_5 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h1", { class: "vtc-title" }, "插件配置", -1));
 const _hoisted_6 = { class: "vtc-chip-row" };
 const _hoisted_7 = { class: "vtc-chip" };
-const _hoisted_8 = { class: "vtc-chip" };
-const _hoisted_9 = { class: "vtc-chip" };
-const _hoisted_10 = { class: "vtc-action-grid" };
-const _hoisted_11 = { class: "vtc-card" };
-const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vtc-section-title" }, "⚙️ 基本设置", -1));
-const _hoisted_13 = { class: "vtc-switch-grid" };
+const _hoisted_8 = { class: "vtc-action-grid" };
+const _hoisted_9 = { class: "vtc-card" };
+const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vtc-section-title" }, "⚙️ 基本设置", -1));
+const _hoisted_11 = { class: "vtc-switch-grid" };
+const _hoisted_12 = { class: "vtc-switch-card" };
+const _hoisted_13 = { class: "vtc-switch-card" };
 const _hoisted_14 = { class: "vtc-switch-card" };
 const _hoisted_15 = { class: "vtc-switch-card" };
-const _hoisted_16 = { class: "vtc-switch-card" };
-const _hoisted_17 = { class: "vtc-switch-card" };
-const _hoisted_18 = { class: "vtc-card" };
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vtc-section-title" }, "🧩 功能设置", -1));
-const _hoisted_20 = { class: "vtc-switch-grid" };
+const _hoisted_16 = { class: "vtc-card" };
+const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vtc-section-title" }, "🧩 功能设置", -1));
+const _hoisted_18 = { class: "vtc-switch-grid" };
+const _hoisted_19 = { class: "vtc-switch-card" };
+const _hoisted_20 = { class: "vtc-switch-card" };
 const _hoisted_21 = { class: "vtc-switch-card" };
 const _hoisted_22 = { class: "vtc-switch-card" };
-const _hoisted_23 = { class: "vtc-switch-card" };
-const _hoisted_24 = { class: "vtc-switch-card" };
-const _hoisted_25 = { class: "vtc-field-grid" };
-const _hoisted_26 = { class: "vtc-field-card" };
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vtc-field-label" }, "站点 Cookie", -1));
-const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vtc-note" }, "开启使用站点 Cookie 后会自动获取已配置站点的 Cookie，关闭后才可以手动修改。", -1));
+const _hoisted_23 = { class: "vtc-field-grid" };
+const _hoisted_24 = { class: "vtc-field-card" };
+const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vtc-field-label" }, "站点 Cookie", -1));
+const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vtc-note" }, "开启使用站点 Cookie 后会自动获取已配置站点的 Cookie，关闭后才可以手动修改。", -1));
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -239,12 +237,10 @@ return (_ctx, _cache) => {
           _hoisted_4,
           _hoisted_5,
           _createElementVNode("div", _hoisted_6, [
-            _createElementVNode("span", _hoisted_7, _toDisplayString(config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写'), 1),
-            _createElementVNode("span", _hoisted_8, _toDisplayString(config.auto_collect ? '自动回收：开启' : '自动回收：关闭'), 1),
-            _createElementVNode("span", _hoisted_9, _toDisplayString(config.auto_place ? '自动展出：开启' : '自动展出：关闭'), 1)
+            _createElementVNode("span", _hoisted_7, _toDisplayString(config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写'), 1)
           ])
         ]),
-        _createElementVNode("div", _hoisted_10, [
+        _createElementVNode("div", _hoisted_8, [
           _createVNode(_component_v_btn, {
             color: "warning",
             variant: "flat",
@@ -300,10 +296,10 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_11, [
-        _hoisted_12,
-        _createElementVNode("div", _hoisted_13, [
-          _createElementVNode("div", _hoisted_14, [
+      _createElementVNode("section", _hoisted_9, [
+        _hoisted_10,
+        _createElementVNode("div", _hoisted_11, [
+          _createElementVNode("div", _hoisted_12, [
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((config.enabled) = $event)),
@@ -315,7 +311,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_15, [
+          _createElementVNode("div", _hoisted_13, [
             _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.use_proxy) = $event)),
@@ -327,7 +323,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_16, [
+          _createElementVNode("div", _hoisted_14, [
             _createVNode(_component_v_switch, {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.notify) = $event)),
@@ -339,7 +335,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_17, [
+          _createElementVNode("div", _hoisted_15, [
             _createVNode(_component_v_switch, {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.onlyonce) = $event)),
@@ -353,10 +349,10 @@ return (_ctx, _cache) => {
           ])
         ])
       ]),
-      _createElementVNode("section", _hoisted_18, [
-        _hoisted_19,
-        _createElementVNode("div", _hoisted_20, [
-          _createElementVNode("div", _hoisted_21, [
+      _createElementVNode("section", _hoisted_16, [
+        _hoisted_17,
+        _createElementVNode("div", _hoisted_18, [
+          _createElementVNode("div", _hoisted_19, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_cookie,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.auto_cookie) = $event)),
@@ -368,7 +364,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_22, [
+          _createElementVNode("div", _hoisted_20, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_collect,
               "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.auto_collect) = $event)),
@@ -380,7 +376,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_23, [
+          _createElementVNode("div", _hoisted_21, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_place,
               "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.auto_place) = $event)),
@@ -392,7 +388,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_24, [
+          _createElementVNode("div", _hoisted_22, [
             _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
               "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.force_ipv4) = $event)),
@@ -405,9 +401,9 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_25, [
-          _createElementVNode("div", _hoisted_26, [
-            _hoisted_27,
+        _createElementVNode("div", _hoisted_23, [
+          _createElementVNode("div", _hoisted_24, [
+            _hoisted_25,
             _createVNode(_component_v_text_field, {
               modelValue: cookieFieldValue.value,
               "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((cookieFieldValue).value = $event)),
@@ -419,7 +415,7 @@ return (_ctx, _cache) => {
               placeholder: cookieReadonly.value ? '开启后自动同步站点 Cookie' : '例如 c_secure_pass=...',
               "hide-details": "auto"
             }, null, 8, ["modelValue", "disabled", "readonly", "placeholder"]),
-            _hoisted_28
+            _hoisted_26
           ])
         ])
       ])
@@ -429,6 +425,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-64c8e2df"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9d28ee41"]]);
 
 export { ConfigView as default };

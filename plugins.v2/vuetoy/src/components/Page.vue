@@ -114,21 +114,9 @@
             <h2>玩偶柜子</h2>
           </div>
         </div>
-        <div class="toy-toolbar">
+        <div class="toy-toolbar single">
           <div class="toy-sort-group">
-            <span>按级别</span>
-            <button type="button" class="toy-chip" @click="setSort('quality_rank', 'desc')">高→低</button>
-            <button type="button" class="toy-chip" @click="setSort('quality_rank', 'asc')">低→高</button>
-          </div>
-          <div class="toy-sort-group">
-            <span>按可用数量</span>
-            <button type="button" class="toy-chip" @click="setSort('available', 'desc')">多→少</button>
-            <button type="button" class="toy-chip" @click="setSort('available', 'asc')">少→多</button>
-          </div>
-          <div class="toy-sort-group">
-            <span>按最快冷却</span>
-            <button type="button" class="toy-chip" @click="setSort('cooling_count', 'asc')">短→长</button>
-            <button type="button" class="toy-chip" @click="setSort('cooling_count', 'desc')">长→短</button>
+            <button type="button" class="toy-chip is-active">按最快冷却</button>
           </div>
         </div>
         <div class="toy-selected-bar">
@@ -147,15 +135,19 @@
           >
             <img v-if="doll.image" class="toy-doll-image" :src="doll.image" :alt="doll.name" />
             <div v-else class="toy-doll-placeholder">🧸</div>
-            <div class="toy-doll-quality">{{ doll.quality || '未识别' }}</div>
+            <div class="toy-doll-quality-row">
+              <div class="toy-doll-quality">{{ doll.quality || '未识别' }}</div>
+              <div v-if="doll.origin" class="toy-doll-origin">{{ doll.origin }}</div>
+            </div>
             <div class="toy-doll-name">{{ doll.name }}</div>
-            <div class="toy-doll-meta">{{ doll.display_text }}</div>
             <div class="toy-doll-meta">{{ doll.reward_text }}</div>
-            <div class="toy-doll-meta">{{ doll.origin }}</div>
-            <div class="toy-doll-count">可用/总数 {{ doll.available }} / {{ doll.total }}</div>
-            <div class="toy-doll-count">展出{{ doll.display_count }} · 冷却{{ doll.cooling_count }}</div>
+            <div class="toy-doll-stats">
+              <span>可用 {{ doll.available }}</span>
+              <span>总数 {{ doll.total }}</span>
+              <span>展出 {{ doll.display_count }}</span>
+            </div>
             <div v-if="cabinetCooldownText(doll)" class="toy-doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
-            <v-btn block size="small" color="deep-orange" variant="flat" :disabled="!doll.can_place" class="mt-3">
+            <v-btn block size="small" color="deep-orange" variant="flat" :disabled="!doll.can_place" class="toy-card-action">
               {{ selectedDollKey === doll.doll_key ? '已选择' : '选择上架' }}
             </v-btn>
           </article>
@@ -302,10 +294,10 @@
         <div v-else class="toy-history-list">
           <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="toy-history-item">
             <div class="toy-history-top">
-              <strong>{{ item.title || '任务结果' }}</strong>
+              <strong>{{ historyTitle(item) }}</strong>
               <span>{{ item.time }}</span>
             </div>
-            <div class="toy-history-lines">{{ (item.lines || []).join(' / ') }}</div>
+            <div v-if="historyDetailLines(item).length" class="toy-history-lines">{{ historyDetailLines(item).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -330,8 +322,6 @@ const status = reactive({ toy_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
 const targetKeyword = ref('')
 const selectedDollKey = ref('')
-const sortField = ref('cooling_count')
-const sortDirection = ref('asc')
 const buyQuantities = reactive({})
 const openQuantities = reactive({})
 const transientTargetPanel = ref({})
@@ -373,11 +363,13 @@ const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || p
 const cabinetCards = computed(() => {
   const items = [...(toy.value.cabinet || [])]
   return items.sort((left, right) => {
-    const field = sortField.value
-    const lv = Number(left[field] || 0)
-    const rv = Number(right[field] || 0)
-    if (lv === rv) return String(left.name || '').localeCompare(String(right.name || ''))
-    return sortDirection.value === 'desc' ? rv - lv : lv - rv
+    const leftScore = cabinetSortScore(left)
+    const rightScore = cabinetSortScore(right)
+    if (leftScore.bucket !== rightScore.bucket) return leftScore.bucket - rightScore.bucket
+    if (leftScore.availableAt !== rightScore.availableAt) return leftScore.availableAt - rightScore.availableAt
+    if (leftScore.available !== rightScore.available) return rightScore.available - leftScore.available
+    if (leftScore.qualityRank !== rightScore.qualityRank) return rightScore.qualityRank - leftScore.qualityRank
+    return String(left.name || '').localeCompare(String(right.name || ''))
   })
 })
 
@@ -428,6 +420,43 @@ function parseDateTime(value) {
       Number(second),
     ).getTime() / 1000,
   )
+}
+
+function historyTitle(item = {}) {
+  return String(item.title || '').trim() || '任务结果'
+}
+
+function historyDetailLines(item = {}) {
+  return Array.isArray(item.lines) ? item.lines.filter(Boolean) : []
+}
+
+function cabinetSortScore(item = {}) {
+  const available = Number(item.available || 0)
+  const coolingCount = Number(item.cooling_count || 0)
+  const cooldownUntilTs = Number(item.cooldown_until_ts || 0)
+  const qualityRank = Number(item.quality_rank || 0)
+  if (available > 0) {
+    return {
+      bucket: 0,
+      availableAt: 0,
+      available,
+      qualityRank,
+    }
+  }
+  if (coolingCount > 0) {
+    return {
+      bucket: 1,
+      availableAt: cooldownUntilTs || Number.MAX_SAFE_INTEGER,
+      available,
+      qualityRank,
+    }
+  }
+  return {
+    bucket: 2,
+    availableAt: Number.MAX_SAFE_INTEGER,
+    available,
+    qualityRank,
+  }
 }
 
 function applyPayload(payload = {}) {
@@ -611,11 +640,6 @@ function placeTarget(slot) {
       }),
     '抢占成功',
   )
-}
-
-function setSort(field, direction) {
-  sortField.value = field
-  sortDirection.value = direction
 }
 
 function dismissSummary() {
@@ -864,17 +888,19 @@ onBeforeUnmount(() => {
 <style scoped>
 .toy-page {
   min-height: 100vh;
-  --toy-bg-start: #ffffff;
+  --toy-bg-start: #fafbff;
   --toy-bg-end: #eef1f7;
-  --toy-panel: rgba(255, 255, 255, 0.9);
-  --toy-panel-strong: rgba(255, 255, 255, 0.98);
-  --toy-border: rgba(129, 133, 164, 0.18);
+  --toy-panel: rgba(255, 255, 255, 0.88);
+  --toy-panel-strong: rgba(255, 255, 255, 0.96);
+  --toy-border: rgba(129, 133, 164, 0.16);
+  --toy-border-strong: rgba(124, 92, 255, 0.26);
   --toy-chip: rgba(124, 92, 255, 0.1);
   --toy-text-main: #262638;
   --toy-text-soft: rgba(118, 119, 139, 0.92);
   --toy-shadow: 0 20px 48px rgba(121, 128, 166, 0.12);
+  --toy-accent: #7c5cff;
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.94) 0%, rgba(246, 247, 250, 0.98) 42%, #eef1f7 100%),
     linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
   color: var(--toy-text-main);
 }
@@ -884,11 +910,13 @@ onBeforeUnmount(() => {
   --toy-bg-end: #14161f;
   --toy-panel: rgba(26, 28, 39, 0.92);
   --toy-panel-strong: rgba(19, 21, 30, 0.98);
-  --toy-border: rgba(124, 92, 255, 0.18);
+  --toy-border: rgba(124, 92, 255, 0.16);
+  --toy-border-strong: rgba(124, 92, 255, 0.34);
   --toy-chip: rgba(139, 108, 255, 0.14);
   --toy-text-main: #f3f5ff;
   --toy-text-soft: rgba(159, 167, 196, 0.92);
   --toy-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+  --toy-accent: #9b82ff;
   background:
     radial-gradient(circle at top, rgba(33, 37, 52, 0.92) 0%, rgba(23, 26, 36, 0.98) 38%, #14161f 100%),
     linear-gradient(180deg, var(--toy-bg-start) 0%, var(--toy-bg-end) 100%);
@@ -900,11 +928,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-shell {
-  max-width: 1248px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 22px 18px 32px;
+  padding: 18px 16px 28px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .toy-hero,
@@ -924,18 +952,22 @@ onBeforeUnmount(() => {
 
 .toy-hero,
 .toy-panel {
-  padding: 22px 24px;
+  padding: 20px 22px;
 }
 
 .toy-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
+  gap: 22px;
   align-items: start;
   background:
     radial-gradient(circle at top left, rgba(124, 92, 255, 0.08), transparent 34%),
-    radial-gradient(circle at top right, rgba(255, 179, 71, 0.1), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 185, 92, 0.08), transparent 28%),
     var(--toy-panel);
+}
+
+.toy-copy {
+  min-width: 0;
 }
 
 .toy-badge,
@@ -956,13 +988,13 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 800;
   background: var(--toy-chip);
-  color: #8b6cff;
+  color: var(--toy-accent);
 }
 
 .toy-title {
-  margin: 10px 0 6px;
-  font-size: clamp(30px, 3.8vw, 42px);
-  line-height: 1.05;
+  margin: 12px 0 6px;
+  font-size: clamp(28px, 3.8vw, 40px);
+  line-height: 1.06;
   letter-spacing: -0.03em;
 }
 
@@ -972,29 +1004,26 @@ onBeforeUnmount(() => {
   color: var(--toy-text-soft);
 }
 
-.toy-chip-row,
-.toy-hero-meta {
+.toy-chip-row {
   margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.toy-chip-row span,
-.toy-hero-meta span {
+.toy-chip-row span {
   padding: 7px 11px;
   border-radius: 999px;
-  background: var(--toy-panel-strong);
   border: 1px solid var(--toy-border);
+  background: var(--toy-panel-strong);
   font-size: 12px;
   color: var(--toy-text-soft);
 }
 
-.toy-action-grid,
-.toy-actions {
+.toy-action-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
   align-items: center;
 }
@@ -1008,6 +1037,7 @@ onBeforeUnmount(() => {
 .toy-overview-card {
   padding: 16px;
   text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%), var(--toy-panel-strong);
 }
 
 .toy-overview-label,
@@ -1019,14 +1049,14 @@ onBeforeUnmount(() => {
 }
 
 .toy-overview-value {
+  margin: 8px 0;
   font-size: 30px;
   font-weight: 800;
-  margin: 8px 0;
 }
 
 .toy-overview-desc {
   margin: 6px auto 0;
-  padding: 7px 12px;
+  padding: 7px 11px;
   background: var(--toy-chip);
   color: var(--toy-text-main);
   font-size: 12px;
@@ -1058,37 +1088,37 @@ onBeforeUnmount(() => {
 
 .toy-panel-shop {
   background:
-    radial-gradient(circle at top right, rgba(255, 179, 71, 0.08), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 185, 92, 0.08), transparent 30%),
     var(--toy-panel);
 }
 
 .toy-panel-owned {
   background:
-    radial-gradient(circle at top left, rgba(255, 112, 154, 0.08), transparent 28%),
+    radial-gradient(circle at top left, rgba(255, 112, 154, 0.06), transparent 28%),
     var(--toy-panel);
 }
 
 .toy-panel-cabinet {
   background:
-    radial-gradient(circle at top left, rgba(74, 137, 255, 0.08), transparent 28%),
+    radial-gradient(circle at top left, rgba(74, 137, 255, 0.07), transparent 28%),
     var(--toy-panel);
 }
 
 .toy-panel-booth {
   background:
-    radial-gradient(circle at top right, rgba(124, 92, 255, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(124, 92, 255, 0.07), transparent 28%),
     var(--toy-panel);
 }
 
 .toy-panel-target {
   background:
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.07), transparent 28%),
     var(--toy-panel);
 }
 
 .toy-panel-remote {
   background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 28%),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 28%),
     var(--toy-panel);
 }
 
@@ -1101,27 +1131,28 @@ onBeforeUnmount(() => {
 .toy-summary-list,
 .toy-history-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
-.toy-summary-line,
-.toy-history-item {
-  padding: 12px 14px;
+.toy-summary-line {
+  padding: 13px 15px;
   border: 1px solid var(--toy-border);
   border-radius: 18px;
   background: var(--toy-panel-strong);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .toy-box-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
 }
 
 .toy-box-card {
   padding: 16px;
   text-align: center;
-  background: var(--toy-panel-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%), var(--toy-panel-strong);
 }
 
 .toy-box-card.locked,
@@ -1129,33 +1160,31 @@ onBeforeUnmount(() => {
   opacity: 0.7;
 }
 
-.toy-box-card.compact {
-  padding: 16px;
-}
-
 .toy-box-image {
-  width: 108px;
-  height: 148px;
+  width: 102px;
+  height: 142px;
   object-fit: contain;
   margin: 0 auto 12px;
   display: block;
 }
 
 .toy-box-image.small {
-  width: 82px;
-  height: 108px;
+  width: 78px;
+  height: 102px;
 }
 
 .toy-box-name {
   font-size: 18px;
   font-weight: 800;
+  line-height: 1.3;
 }
 
 .toy-box-desc {
   margin-top: 8px;
+  min-height: 34px;
   font-size: 13px;
   color: var(--toy-text-soft);
-  min-height: 36px;
+  line-height: 1.5;
 }
 
 .toy-box-lock {
@@ -1186,16 +1215,20 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
+.toy-number-input:focus,
+.toy-text-input:focus {
+  border-color: var(--toy-border-strong);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.1);
+}
+
 .toy-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  margin-bottom: 12px;
+  justify-content: flex-end;
+  margin-bottom: 10px;
 }
 
 .toy-sort-group {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -1205,107 +1238,149 @@ onBeforeUnmount(() => {
   padding: 8px 12px;
   background: var(--toy-panel-strong);
   color: inherit;
-  cursor: pointer;
+  cursor: default;
   font-size: 13px;
+}
+
+.toy-chip.is-active {
+  background: rgba(124, 92, 255, 0.12);
+  border-color: rgba(124, 92, 255, 0.28);
+  color: var(--toy-accent);
 }
 
 .toy-selected-bar {
   margin-bottom: 12px;
   padding: 10px 14px;
+  border: 1px solid var(--toy-border);
   border-radius: 16px;
   background: var(--toy-panel-strong);
-  border: 1px solid var(--toy-border);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .toy-cabinet-grid,
 .toy-slot-grid,
 .toy-remote-grid {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fit, minmax(216px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
 }
 
-.toy-slot-grid {
-  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+.toy-panel-booth .toy-slot-grid {
+  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
+}
+
+.toy-panel-target .toy-slot-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
 }
 
 .toy-remote-grid {
-  grid-template-columns: repeat(auto-fit, minmax(206px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
 }
 
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
-  padding: 15px;
-  text-align: center;
-  background: var(--toy-panel-strong);
+  padding: 13px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
+}
+
+.toy-doll-card {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0;
+  min-height: 256px;
+}
+
+.toy-slot-card,
+.toy-remote-card {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0;
 }
 
 .toy-doll-card.selected {
-  outline: 2px solid rgba(124, 92, 255, 0.75);
+  border-color: rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.2), var(--toy-shadow);
 }
 
 .toy-slot-card.is-stolen {
-  border-color: rgba(255, 145, 111, 0.42);
+  border-color: rgba(255, 145, 111, 0.32);
 }
 
 .toy-slot-card.is-ready {
-  border-color: rgba(58, 197, 110, 0.34);
+  border-color: rgba(58, 197, 110, 0.28);
 }
 
 .toy-doll-image,
 .toy-slot-image,
 .toy-remote-image {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
   margin: 0 auto;
   display: block;
 }
 
 .toy-slot-media {
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 10px;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 8px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
+  border-radius: 18px;
   background: rgba(255, 190, 92, 0.1);
 }
 
 .toy-doll-placeholder,
 .toy-slot-empty {
-  width: 88px;
-  height: 88px;
-  margin: 0 auto 10px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 8px;
   display: grid;
   place-items: center;
-  font-size: 36px;
-  background: rgba(255, 190, 92, 0.1);
+  font-size: 28px;
   border-radius: 18px;
+  background: rgba(255, 190, 92, 0.1);
+}
+
+.toy-doll-quality-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .toy-doll-quality {
-  margin: 0 auto 10px;
-  padding: 6px 12px;
+  padding: 5px 9px;
   background: var(--toy-chip);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+}
+
+.toy-doll-origin {
+  font-size: 11px;
+  color: var(--toy-text-soft);
 }
 
 .toy-doll-name,
 .toy-slot-name,
 .toy-remote-owner {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .toy-slot-owner {
-  margin-top: 6px;
-  font-size: 14px;
+  margin-top: 4px;
+  font-size: 12px;
   font-weight: 700;
   color: #ff5e8a;
 }
@@ -1313,45 +1388,53 @@ onBeforeUnmount(() => {
 .toy-doll-meta,
 .toy-slot-meta,
 .toy-remote-meta,
-.toy-doll-count,
-.toy-slot-tip,
-.toy-history-time {
-  margin-top: 6px;
+.toy-slot-tip {
+  margin-top: 5px;
   font-size: 12px;
+  color: var(--toy-text-soft);
+  line-height: 1.5;
+}
+
+.toy-doll-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.toy-doll-stats span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 92, 255, 0.14);
+  background: rgba(124, 92, 255, 0.08);
+  font-size: 11px;
   color: var(--toy-text-soft);
 }
 
 .toy-doll-cooldown {
-  margin-top: 10px;
-  padding: 7px 12px;
-  background: rgba(126, 126, 126, 0.16);
-  font-size: 12px;
-}
-
-.toy-history-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.toy-history-lines,
-.toy-history-top span {
-  font-size: 12px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(126, 126, 126, 0.12);
+  font-size: 11px;
   color: var(--toy-text-soft);
 }
 
+.toy-card-action {
+  margin-top: 10px;
+}
+
 .toy-slot-index {
-  padding: 6px 12px;
-  background: var(--toy-chip);
-  font-size: 12px;
-  font-weight: 700;
+  padding: 6px 11px;
   margin-bottom: 10px;
+  background: var(--toy-chip);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .toy-slot-progress {
   margin: 12px 0 10px;
+  width: 100%;
   height: 7px;
   border-radius: 999px;
   background: rgba(255, 190, 92, 0.14);
@@ -1367,7 +1450,7 @@ onBeforeUnmount(() => {
 .toy-slot-activity {
   margin: 0 auto 12px;
   padding: 7px 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   background: rgba(255, 190, 92, 0.14);
   color: var(--toy-text-main);
@@ -1392,9 +1475,9 @@ onBeforeUnmount(() => {
 .toy-target-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .toy-target-panel {
@@ -1403,16 +1486,8 @@ onBeforeUnmount(() => {
 }
 
 .toy-target-head {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
-}
-
-.toy-history-message {
-  font-size: 15px;
-}
-
-.toy-history-time {
-  margin-top: 8px;
 }
 
 .toy-empty {
@@ -1421,6 +1496,57 @@ onBeforeUnmount(() => {
   border-radius: 18px;
   text-align: center;
   color: var(--toy-text-soft);
+  font-size: 13px;
+}
+
+.toy-history-item {
+  position: relative;
+  overflow: hidden;
+  padding: 15px 16px 14px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--toy-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%), var(--toy-panel-strong);
+}
+
+.toy-history-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, rgba(124, 92, 255, 0.54) 0%, rgba(99, 102, 241, 0.18) 100%);
+}
+
+.toy-history-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.toy-history-top strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toy-history-top span {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--toy-text-soft);
+}
+
+.toy-history-lines {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--toy-text-soft);
 }
 
 @media (max-width: 1100px) {
@@ -1428,8 +1554,7 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .toy-action-grid,
-  .toy-actions {
+  .toy-action-grid {
     justify-content: flex-start;
   }
 
@@ -1449,22 +1574,29 @@ onBeforeUnmount(() => {
   }
 
   .toy-title {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .toy-panel-head h2 {
-    font-size: 24px;
+    font-size: 20px;
   }
 
-  .toy-overview-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .toy-overview-grid,
   .toy-box-grid,
   .toy-cabinet-grid,
   .toy-slot-grid,
   .toy-remote-grid {
     grid-template-columns: 1fr;
+  }
+
+  .toy-toolbar {
+    justify-content: flex-start;
+  }
+
+  .toy-history-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }
 </style>
