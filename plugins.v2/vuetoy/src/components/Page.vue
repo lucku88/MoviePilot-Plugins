@@ -1459,10 +1459,11 @@ onBeforeUnmount(() => {
 .toy-doll-card {
   display: grid;
   align-content: start;
-  justify-items: stretch;
-  gap: 5px;
+  justify-items: center;
+  gap: 6px;
   min-height: 188px;
-  grid-template-rows: auto auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto auto 1fr auto;
+  text-align: center;
 }
 
 .toy-slot-card,
@@ -1477,7 +1478,9 @@ onBeforeUnmount(() => {
 
 .toy-remote-card {
   min-height: 148px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  text-align: center;
 }
 
 .toy-doll-card.selected {
@@ -1528,7 +1531,7 @@ onBeforeUnmount(() => {
 
 .toy-doll-quality-row {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
@@ -1556,7 +1559,7 @@ onBeforeUnmount(() => {
 }
 
 .toy-doll-name {
-  text-align: left;
+  text-align: center;
 }
 
 .toy-slot-owner {
@@ -1578,7 +1581,7 @@ onBeforeUnmount(() => {
 
 .toy-doll-stats {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 1px;
@@ -1600,10 +1603,12 @@ onBeforeUnmount(() => {
   font-size: 9px;
   color: var(--toy-text-soft);
   width: fit-content;
+  justify-self: center;
 }
 
 .toy-card-action {
   margin-top: 2px;
+  width: 100%;
 }
 
 .toy-slot-index {
@@ -1631,6 +1636,29 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 2px;
   text-align: left;
+}
+
+.toy-remote-card .toy-remote-main {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.toy-remote-card .toy-remote-image {
+  margin-inline: auto;
+}
+
+.toy-remote-card .toy-remote-body {
+  flex: none;
+  justify-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.toy-remote-card .toy-remote-owner,
+.toy-remote-card .toy-remote-meta {
+  text-align: center;
 }
 
 .toy-slot-body-empty {
@@ -1730,7 +1758,7 @@ onBeforeUnmount(() => {
 
 .toy-remote-action {
   min-width: 72px;
-  margin-left: auto;
+  margin-inline: auto;
 }
 
 .toy-empty {

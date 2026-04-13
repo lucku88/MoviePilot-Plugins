@@ -51,11 +51,12 @@
     "name": "Vue-玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.9": "Center Vue-toy cabinet and remote record cards, tighten internal alignment, and keep the dense grid ready for larger toy collections and external display histories.",
       "v0.1.8": "进一步压缩 Vue-玩偶 的玩偶柜子、我的展柜、抢占他人展位和外展记录四个区块，统一高密度卡片间距，并预留内部滚动与虚拟列表参数。",
       "v0.1.7": "强化 Vue-玩偶 的多列网格约束与卡片宽度控制，确保玩偶柜子、我的展柜、抢占他人展位和外展记录在大量玩偶场景下保持紧凑多列布局。",
       "v0.1.6": "修复 Vue-玩偶 的柜子、展柜和外展区域未正确启用网格布局的问题，并调整窄宽度下仍保持高密度多列显示。",
