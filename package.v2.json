@@ -50,11 +50,12 @@
     "name": "Vue-玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "去掉 Vue-玩偶 顶部副标题和展柜统计卡的附加说明，重新收紧状态页与配置页卡片排版，并优化功能设置区域的布局密度。",
       "v0.1.1": "收紧 Vue-玩偶 的柜子、外展、展柜和历史布局，统一配置页顶栏、通知和执行记录风格，并优化大量玩偶场景下的卡片密度。",
       "v0.1.0": "首版发布，独立为 Vue-玩偶 插件，基于 SQ玩偶 的稳定逻辑重做为与 Vue-农场、Vue-魔丸统一的卡片式 Vue 页面。"
     }

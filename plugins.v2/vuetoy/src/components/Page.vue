@@ -5,7 +5,6 @@
         <div class="toy-copy">
           <div class="toy-badge">Vue-玩偶</div>
           <h1 class="toy-title">{{ toy.title || '盲盒抢曝光' }}</h1>
-          <p class="toy-subtitle">{{ toy.subtitle || '盲盒、回收、展出、获取执行记录。' }}</p>
           <div class="toy-chip-row">
             <span v-if="showLastRunChip" class="toy-chip">最近执行 {{ status.last_run }}</span>
             <span class="toy-chip">下次运行 {{ toy.next_run_time || '等待刷新' }}</span>
@@ -928,11 +927,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-shell {
-  max-width: 1280px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 18px 16px 28px;
+  padding: 16px 14px 22px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .toy-hero,
@@ -952,13 +951,13 @@ onBeforeUnmount(() => {
 
 .toy-hero,
 .toy-panel {
-  padding: 20px 22px;
+  padding: 18px 20px;
 }
 
 .toy-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 22px;
+  gap: 18px;
   align-items: start;
   background:
     radial-gradient(circle at top left, rgba(124, 92, 255, 0.08), transparent 34%),
@@ -992,20 +991,14 @@ onBeforeUnmount(() => {
 }
 
 .toy-title {
-  margin: 12px 0 6px;
+  margin: 12px 0 0;
   font-size: clamp(28px, 3.8vw, 40px);
   line-height: 1.06;
   letter-spacing: -0.03em;
 }
 
-.toy-subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: var(--toy-text-soft);
-}
-
 .toy-chip-row {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1031,11 +1024,11 @@ onBeforeUnmount(() => {
 .toy-overview-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .toy-overview-card {
-  padding: 16px;
+  padding: 14px;
   text-align: center;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%), var(--toy-panel-strong);
 }
@@ -1049,14 +1042,14 @@ onBeforeUnmount(() => {
 }
 
 .toy-overview-value {
-  margin: 8px 0;
-  font-size: 30px;
+  margin: 6px 0;
+  font-size: 28px;
   font-weight: 800;
 }
 
 .toy-overview-desc {
-  margin: 6px auto 0;
-  padding: 7px 11px;
+  margin: 5px auto 0;
+  padding: 6px 10px;
   background: var(--toy-chip);
   color: var(--toy-text-main);
   font-size: 12px;
@@ -1065,9 +1058,9 @@ onBeforeUnmount(() => {
 .toy-panel-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .toy-panel-head h2 {
@@ -1145,8 +1138,8 @@ onBeforeUnmount(() => {
 
 .toy-box-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: 10px;
 }
 
 .toy-box-card {
@@ -1249,8 +1242,8 @@ onBeforeUnmount(() => {
 }
 
 .toy-selected-bar {
-  margin-bottom: 12px;
-  padding: 10px 14px;
+  margin-bottom: 10px;
+  padding: 9px 12px;
   border: 1px solid var(--toy-border);
   border-radius: 16px;
   background: var(--toy-panel-strong);
@@ -1266,25 +1259,25 @@ onBeforeUnmount(() => {
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
 }
 
 .toy-panel-booth .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
 }
 
 .toy-panel-target .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(198px, 1fr));
 }
 
 .toy-remote-grid {
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
 }
 
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
-  padding: 13px;
+  padding: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
 }
 
@@ -1293,7 +1286,7 @@ onBeforeUnmount(() => {
   align-content: start;
   justify-items: center;
   gap: 0;
-  min-height: 256px;
+  min-height: 244px;
 }
 
 .toy-slot-card,

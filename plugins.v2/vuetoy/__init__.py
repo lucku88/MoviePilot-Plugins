@@ -27,7 +27,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "盲盒、回收、展出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -1355,12 +1355,7 @@ class VueToy(_PluginBase):
     def _build_overview(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         user = state.get("user") or {}
         profile = state.get("profile") or {}
-        constants = state.get("constants") or {}
         booth_count = self._safe_int(profile.get("booth_count"), 0)
-        booth_cap = self._safe_int(profile.get("booth_cap"), booth_count)
-        max_booths = self._safe_int(constants.get("max_booths"), booth_cap or booth_count)
-        reward_multiplier = float(profile.get("booth_reward_multiplier") or 1)
-        total_bonus = max(0, round((reward_multiplier - 1) * 100))
         return [
             {"label": "当前魔力", "value": self._safe_int(user.get("magic"), 0)},
             {"label": "累计曝光值", "value": self._safe_int(profile.get("exposure"), 0)},
@@ -1368,8 +1363,6 @@ class VueToy(_PluginBase):
             {
                 "label": "我的展柜",
                 "value": booth_count,
-                "desc": f"上限 {booth_cap}/{max_booths}（不超过100%）",
-                "extra": f"玩偶奖励（曝光+魔力）加成： +{total_bonus}%",
             },
         ]
 
@@ -1633,13 +1626,9 @@ class VueToy(_PluginBase):
             return result
         booth_card = dict(result[3])
         booth_value = self._safe_int(parsed_overview.get("booth_value"), self._safe_int(booth_card.get("value"), 0))
-        booth_cap_desc = str(parsed_overview.get("booth_cap_desc") or "").strip()
-        booth_bonus_desc = str(parsed_overview.get("booth_bonus_desc") or "").strip()
-        if booth_cap_desc:
-            booth_card["desc"] = booth_cap_desc
-            booth_card["value"] = booth_value
-        if booth_bonus_desc:
-            booth_card["extra"] = booth_bonus_desc
+        booth_card["value"] = booth_value
+        booth_card.pop("desc", None)
+        booth_card.pop("extra", None)
         result[3] = booth_card
         return result
 

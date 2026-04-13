@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .vuetoy-config {
-  min-height: 100vh;
+  min-height: auto;
   --vtc-bg-start: #fafbff;
   --vtc-bg-end: #eef1f7;
   --vtc-panel: rgba(255, 255, 255, 0.88);
@@ -292,11 +292,11 @@ onBeforeUnmount(() => {
 }
 
 .vtc-shell {
-  max-width: 1280px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 18px 16px 28px;
+  padding: 16px 14px 18px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .vtc-card {
@@ -309,13 +309,13 @@ onBeforeUnmount(() => {
 
 .vtc-hero,
 .vtc-card {
-  padding: 20px 22px;
+  padding: 18px 20px;
 }
 
 .vtc-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 22px;
+  gap: 18px;
   align-items: start;
 }
 
@@ -345,7 +345,7 @@ onBeforeUnmount(() => {
 .vtc-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .vtc-chip {
@@ -359,20 +359,20 @@ onBeforeUnmount(() => {
 .vtc-action-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
   align-items: center;
 }
 
 .vtc-section-title {
-  margin: 0 0 14px;
-  font-size: 22px;
+  margin: 0 0 12px;
+  font-size: 21px;
 }
 
 .vtc-switch-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .vtc-switch-card,
@@ -383,22 +383,23 @@ onBeforeUnmount(() => {
 }
 
 .vtc-switch-card {
-  padding: 12px 16px;
+  padding: 10px 14px;
 }
 
 .vtc-switch :deep(.v-label) {
   font-size: 14px;
+  line-height: 1.35;
 }
 
 .vtc-field-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .vtc-field-card {
-  padding: 16px;
+  padding: 14px;
 }
 
 .vtc-field-label {
@@ -430,12 +431,12 @@ onBeforeUnmount(() => {
 
 @media (max-width: 720px) {
   .vtc-shell {
-    padding: 14px 10px 20px;
+    padding: 12px 8px 16px;
   }
 
   .vtc-hero,
   .vtc-card {
-    padding: 18px;
+    padding: 16px;
   }
 
   .vtc-title {
