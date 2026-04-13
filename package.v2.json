@@ -81,6 +81,18 @@
       "v0.1.0": "???????? Vue-?? ?????????????? Vue-???Vue-???????? Vue ???"
     }
   },
+  "VuePanel": {
+    "name": "Vue-面板",
+    "description": "按网站 / 功能模块分组管理思齐签到、HNR领取与 New API 多站点签到卡片。",
+    "labels": "站点,面板,签到,领取,Vue",
+    "version": "0.1.0",
+    "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png",
+    "author": "lucku88",
+    "level": 1,
+    "history": {
+      "v0.1.0": "首版发布，提供 Vue-面板 状态页与配置页，支持按网站 / 功能模块分组的独立配置卡片，并内置思齐签到、HNR领取和 New API 多站点签到。"
+    }
+  },
   "FnMediaCoverGenerator": {
     "name": "飞牛影视媒体库封面生成",
     "description": "生成媒体库静态封面，支持飞牛影视",
