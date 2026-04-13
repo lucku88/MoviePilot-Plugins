@@ -29,7 +29,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"

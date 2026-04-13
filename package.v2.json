@@ -69,11 +69,12 @@
     "name": "Vue-表情",
     "description": "老虎机、开包、舞台演出、获取执行记录。",
     "labels": "工具,自动化,表情,Vue",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.1": "对齐 Vue-魔丸 的页头结构，收紧我的表情包操作区，移除合成区与老虎机提示文案，并统一状态页和配置页的卡片密度。",
       "v0.1.0": "首版发布，独立为 Vue-表情 插件，基于 SQ表情 的稳定逻辑重做为与 Vue-农场、Vue-魔丸统一的卡片式 Vue 页面。"
     }
   },

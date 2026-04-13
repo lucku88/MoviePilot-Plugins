@@ -355,7 +355,7 @@ onBeforeUnmount(() => {
 .emoji-config-header {
   padding: 16px;
   display: flex;
-  gap: 14px;
+  gap: 16px;
   justify-content: space-between;
   align-items: flex-start;
   background: radial-gradient(circle at top left, rgba(124, 92, 255, 0.16) 0%, transparent 30%), linear-gradient(135deg, var(--emoji-accent-soft) 0%, transparent 52%), var(--emoji-panel);
@@ -405,7 +405,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: nowrap;
-  min-width: min(100%, 540px);
+  justify-content: flex-end;
+  min-width: max-content;
 }
 
 .emoji-header-actions :deep(.v-btn) {
@@ -424,9 +425,9 @@ onBeforeUnmount(() => {
 }
 
 .emoji-settings-card {
-  padding: 16px;
+  padding: 14px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .emoji-settings-card-basic {
@@ -446,7 +447,7 @@ onBeforeUnmount(() => {
 .emoji-switch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .emoji-switch-grid-basic {
@@ -454,8 +455,8 @@ onBeforeUnmount(() => {
 }
 
 .emoji-switch-item {
-  min-height: 48px;
-  padding: 4px 10px;
+  min-height: 46px;
+  padding: 3px 10px;
   border-radius: 14px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);
@@ -471,7 +472,7 @@ onBeforeUnmount(() => {
 }
 
 .emoji-field-block {
-  padding: 14px;
+  padding: 12px;
   border-radius: 16px;
   border: 1px solid var(--emoji-border);
   background: var(--emoji-panel-strong);

@@ -6,7 +6,6 @@
           <div class="emoji-badge">Vue-表情</div>
           <h1 class="emoji-title">{{ emoji.title || '表情演出' }}</h1>
           <div class="emoji-chip-row">
-            <span v-if="status.last_run && status.last_run !== '暂无'" class="emoji-chip">最近执行 {{ status.last_run }}</span>
             <span class="emoji-chip">下次运行 {{ emoji.next_run_time || status.next_run_time || '等待刷新' }}</span>
             <span v-if="emoji.next_trigger_time || status.next_trigger_time" class="emoji-chip">计划触发 {{ emoji.next_trigger_time || status.next_trigger_time }}</span>
             <span class="emoji-chip">{{ emoji.cookie_source || status.cookie_source || '未同步' }}</span>
@@ -45,16 +44,9 @@
 
       <section class="emoji-card emoji-panel emoji-panel-bags">
         <div class="emoji-section-head">
-          <div>
-            <h2 class="emoji-section-title">🎒 我的表情包</h2>
-            <div class="emoji-panel-note">
-              今日老虎机 {{ slotMachine.used || 0 }}/{{ slotMachine.limit || 0 }}
-              <span v-if="slotMachine.base || slotMachine.extra">
-                （基础{{ slotMachine.base || 0 }} + f(hnr*等级) {{ slotMachine.extra || 0 }}）
-              </span>
-            </div>
-          </div>
+          <h2 class="emoji-section-title">🎒 我的表情包</h2>
           <div class="emoji-slot-inline">
+            <span class="emoji-slot-inline-label">🎰 老虎机</span>
             <input
               v-model="spinCount"
               class="emoji-number-input"
@@ -106,31 +98,6 @@
                 开包
               </v-btn>
             </div>
-
-            <template v-if="bag.upgrade_rule">
-              <div class="emoji-upgrade-box">
-                <div class="emoji-upgrade-row">
-                  <span>目标数</span>
-                  <input
-                    v-model="upgradeCounts[bag.upgrade_rule.key]"
-                    class="emoji-number-input"
-                    type="number"
-                    min="1"
-                    :max="Math.max(bag.upgrade_rule.max_times || 1, 1)"
-                  />
-                  <v-btn
-                    color="amber-darken-2"
-                    variant="flat"
-                    :loading="loading"
-                    :disabled="loading || !bag.upgrade_rule.enabled"
-                    @click="upgradeBag(bag)"
-                  >
-                    合成
-                  </v-btn>
-                </div>
-                <div class="emoji-upgrade-tip">{{ bag.upgrade_rule.tip }}</div>
-              </div>
-            </template>
           </article>
         </div>
 
@@ -1142,7 +1109,6 @@ onBeforeUnmount(() => {
 .emoji-section-head,
 .emoji-chip-row,
 .emoji-inline-row,
-.emoji-upgrade-row,
 .emoji-result-actions,
 .emoji-sort-tabs,
 .emoji-stage-toolbar,
@@ -1255,7 +1221,6 @@ onBeforeUnmount(() => {
 .emoji-panel-note,
 .emoji-history-lines,
 .emoji-history-next,
-.emoji-upgrade-tip,
 .emoji-bag-count,
 .emoji-effect-subline,
 .emoji-effect-unlock,
@@ -1336,13 +1301,24 @@ onBeforeUnmount(() => {
 .emoji-slot-inline {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  min-width: max-content;
+}
+
+.emoji-slot-inline-label {
+  color: var(--emoji-text);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .emoji-number-input {
   width: 100%;
-  max-width: 108px;
+  max-width: 96px;
+  min-height: 42px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--emoji-border);
@@ -1352,64 +1328,40 @@ onBeforeUnmount(() => {
 }
 
 .emoji-bag-grid {
-  grid-template-columns: repeat(auto-fit, minmax(214px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(208px, 1fr));
 }
 
 .emoji-bag-card {
-  padding: 15px;
+  padding: 14px;
   display: grid;
-  gap: 10px;
+  gap: 9px;
   align-content: start;
   background: var(--bag-bg, var(--emoji-panel-strong));
   border-color: var(--bag-border, var(--emoji-border));
 }
 
 .emoji-bag-hero {
-  height: 88px;
-  border-radius: 16px;
+  height: 84px;
+  border-radius: 14px;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
 
 .emoji-bag-name {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 900;
   text-align: center;
 }
 
-.emoji-bag-count,
-.emoji-upgrade-tip {
+.emoji-bag-count {
   text-align: center;
   font-size: 12px;
   line-height: 1.6;
 }
 
-.emoji-page.is-dark-theme .emoji-bag-count,
-.emoji-page.is-dark-theme .emoji-upgrade-tip {
+.emoji-page.is-dark-theme .emoji-bag-count {
   color: rgba(243, 245, 255, 0.84);
-}
-
-.emoji-upgrade-box {
-  padding: 11px 12px;
-  border-radius: 16px;
-  border: 1px dashed var(--emoji-border);
-  background: rgba(255, 255, 255, 0.18);
-  display: grid;
-  gap: 8px;
-}
-
-.emoji-page.is-dark-theme .emoji-upgrade-box {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.emoji-upgrade-row {
-  justify-content: space-between;
-}
-
-.emoji-upgrade-row span {
-  font-size: 12px;
-  color: var(--emoji-muted);
 }
 
 .emoji-pending-panel {
@@ -1781,7 +1733,6 @@ onBeforeUnmount(() => {
   .emoji-chip-row,
   .emoji-slot-inline,
   .emoji-inline-row,
-  .emoji-upgrade-row,
   .emoji-result-actions,
   .emoji-sort-tabs,
   .emoji-stage-toolbar-right {
@@ -1790,7 +1741,6 @@ onBeforeUnmount(() => {
 
   .emoji-slot-inline :deep(.v-btn),
   .emoji-inline-row :deep(.v-btn),
-  .emoji-upgrade-row :deep(.v-btn),
   .emoji-result-actions :deep(.v-btn),
   .emoji-stage-toolbar-right :deep(.v-btn) {
     flex: 1 1 calc(50% - 8px);
@@ -1798,6 +1748,12 @@ onBeforeUnmount(() => {
 
   .emoji-number-input {
     max-width: 92px;
+  }
+
+  .emoji-slot-inline {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 }
 </style>

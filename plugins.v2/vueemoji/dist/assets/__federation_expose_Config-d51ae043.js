@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_4d1f4b85_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_ccf3bf51_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-4d1f4b85"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-ccf3bf51"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-card emoji-config-header" };
 const _hoisted_3 = { class: "emoji-header-copy" };
@@ -483,6 +483,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4d1f4b85"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ccf3bf51"]]);
 
 export { ConfigView as default };
