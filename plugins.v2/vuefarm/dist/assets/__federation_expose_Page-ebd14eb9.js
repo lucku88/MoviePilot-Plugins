@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_f91a4a74_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_0bc6bd62_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-f91a4a74"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-0bc6bd62"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -849,6 +849,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f91a4a74"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0bc6bd62"]]);
 
 export { PageView as default };

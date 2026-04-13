@@ -3,11 +3,12 @@
     "name": "Vue-农场",
     "description": "收菜、种植、出售、获取执行记录。",
     "labels": "工具,自动化,农场,Vue",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.8": "Tighten Vue-farm inventory and seed shop cards with denser spacing, smaller controls, and cleaner alignment so the two commerce panels waste less space and read more consistently.",
       "v0.1.7": "Tighten Vue-farm land group headers into a single-line layout, remove redundant block counts, and realign the farm slot section for a denser, cleaner presentation.",
       "v0.1.6": "Refine Vue-farm page and config layouts toward the Vue-pill visual system, tighten card composition, and unify header structure for a more product-grade UI.",
       "v0.1.5": "Promote Vue-farm as the primary farm plugin, align UI and history/notify formatting with Vue-pill, and remove the legacy SQFarm plugin.",
