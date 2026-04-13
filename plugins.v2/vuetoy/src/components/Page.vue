@@ -1319,6 +1319,9 @@ onBeforeUnmount(() => {
 .toy-cabinet-grid,
 .toy-slot-grid,
 .toy-remote-grid {
+  display: grid;
+  gap: 10px;
+  align-items: start;
   grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
 }
 
@@ -1685,11 +1688,21 @@ onBeforeUnmount(() => {
   }
 
   .toy-overview-grid,
-  .toy-box-grid,
-  .toy-cabinet-grid,
-  .toy-slot-grid,
-  .toy-remote-grid {
+  .toy-box-grid {
     grid-template-columns: 1fr;
+  }
+
+  .toy-cabinet-grid {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  }
+
+  .toy-panel-booth .toy-slot-grid {
+    grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  }
+
+  .toy-panel-target .toy-slot-grid,
+  .toy-remote-grid {
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   }
 
   .toy-toolbar {
