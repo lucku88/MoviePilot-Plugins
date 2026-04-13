@@ -292,31 +292,35 @@ onBeforeUnmount(() => {
 }
 
 .vtc-shell {
-  max-width: 1260px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 16px 14px 18px;
+  padding: 0 14px 12px;
   display: grid;
   gap: 12px;
 }
 
 .vtc-card {
   border: 1px solid var(--vtc-border);
-  border-radius: 28px;
+  border-radius: 20px;
   background: var(--vtc-panel);
   box-shadow: var(--vtc-shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
 }
 
 .vtc-hero,
 .vtc-card {
-  padding: 18px 20px;
+  padding: 15px;
 }
 
 .vtc-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
+  background:
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.16) 0%, transparent 34%),
+    linear-gradient(135deg, rgba(124, 92, 255, 0.08) 0%, transparent 52%),
+    var(--vtc-panel);
 }
 
 .vtc-badge,
@@ -358,70 +362,76 @@ onBeforeUnmount(() => {
 
 .vtc-action-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
   align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+  min-width: min(100%, 520px);
 }
 
 .vtc-section-title {
-  margin: 0 0 12px;
-  font-size: 21px;
+  margin: 0 0 10px;
+  font-size: 17px;
 }
 
 .vtc-switch-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .vtc-switch-card,
 .vtc-field-card {
   border: 1px solid var(--vtc-border);
-  border-radius: 22px;
+  border-radius: 18px;
   background: var(--vtc-panel-strong);
 }
 
 .vtc-switch-card {
-  padding: 10px 14px;
+  min-height: 66px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
 }
 
 .vtc-switch :deep(.v-label) {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
 }
 
 .vtc-field-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 8px;
   margin-top: 10px;
 }
 
 .vtc-field-card {
-  padding: 14px;
+  padding: 12px;
 }
 
 .vtc-field-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--vtc-text-soft);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .vtc-note {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--vtc-text-soft);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1080px) {
   .vtc-hero {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .vtc-action-grid {
+    flex-wrap: wrap;
     justify-content: flex-start;
+    min-width: 0;
   }
 
   .vtc-switch-grid {
@@ -429,14 +439,15 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .vtc-shell {
-    padding: 12px 8px 16px;
+    padding: 0 10px 12px;
   }
 
   .vtc-hero,
   .vtc-card {
-    padding: 16px;
+    padding: 13px;
+    border-radius: 18px;
   }
 
   .vtc-title {
@@ -445,6 +456,11 @@ onBeforeUnmount(() => {
 
   .vtc-switch-grid {
     grid-template-columns: 1fr;
+  }
+
+  .vtc-action-grid :deep(.v-btn--variant-flat) {
+    min-width: 0;
+    flex: 1 1 calc(50% - 10px);
   }
 }
 </style>

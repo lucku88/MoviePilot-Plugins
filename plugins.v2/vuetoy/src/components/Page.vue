@@ -6,7 +6,6 @@
           <div class="toy-badge">Vue-玩偶</div>
           <h1 class="toy-title">{{ toy.title || '盲盒抢曝光' }}</h1>
           <div class="toy-chip-row">
-            <span v-if="showLastRunChip" class="toy-chip">最近执行 {{ status.last_run }}</span>
             <span class="toy-chip">下次运行 {{ toy.next_run_time || '等待刷新' }}</span>
             <span class="toy-chip">计划触发 {{ toy.next_trigger_time || status.next_trigger_time || '等待刷新' }}</span>
             <span class="toy-chip">{{ toy.cookie_source || status.cookie_source || '未同步' }}</span>
@@ -26,11 +25,11 @@
       </v-alert>
 
       <section class="toy-overview-grid">
-        <article v-for="item in overview" :key="item.label" class="toy-overview-card">
+        <article v-for="item in overviewCards" :key="item.label" class="toy-overview-card">
           <div class="toy-overview-label">{{ item.label }}</div>
           <div class="toy-overview-value">{{ item.value }}</div>
-          <div v-if="item.desc" class="toy-overview-desc">{{ item.desc }}</div>
-          <div v-if="item.extra" class="toy-overview-desc">{{ item.extra }}</div>
+          <div v-if="item.desc && !item.hideMeta" class="toy-overview-desc">{{ item.desc }}</div>
+          <div v-if="item.extra && !item.hideMeta" class="toy-overview-desc">{{ item.extra }}</div>
         </article>
       </section>
 
@@ -336,7 +335,7 @@ let mediaQuery = null
 let observedThemeNode = null
 
 const toy = computed(() => status.toy_status || {})
-const overview = computed(() => toy.value.overview || [])
+const overviewCards = computed(() => (toy.value.overview || []).map((item) => ({ ...item, hideMeta: item.label === '\u6211\u7684\u5c55\u67dc' })))
 const shopBoxes = computed(() => toy.value.shop_boxes || [])
 const myBoxes = computed(() => toy.value.my_boxes || [])
 const personalSlots = computed(() => toy.value.personal_slots || [])
@@ -352,10 +351,6 @@ const historyItems = computed(() => status.history || toy.value.history || [])
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
-const showLastRunChip = computed(() => {
-  const text = String(status.last_run || '').trim()
-  return !!text && text !== '暂无'
-})
 const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time))
 const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time))
 
@@ -927,11 +922,11 @@ onBeforeUnmount(() => {
 }
 
 .toy-shell {
-  max-width: 1260px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 16px 14px 22px;
+  padding: 0 14px 18px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .toy-hero,
@@ -943,29 +938,30 @@ onBeforeUnmount(() => {
 .toy-remote-card,
 .toy-history-item {
   border: 1px solid var(--toy-border);
-  border-radius: 28px;
+  border-radius: 20px;
   background: var(--toy-panel);
   box-shadow: var(--toy-shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
 }
 
 .toy-hero,
 .toy-panel {
-  padding: 18px 20px;
+  padding: 16px;
 }
 
 .toy-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
   background:
-    radial-gradient(circle at top left, rgba(124, 92, 255, 0.08), transparent 34%),
-    radial-gradient(circle at top right, rgba(255, 185, 92, 0.08), transparent 28%),
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.16) 0%, transparent 34%),
+    linear-gradient(135deg, rgba(124, 92, 255, 0.08) 0%, transparent 52%),
     var(--toy-panel);
 }
 
 .toy-copy {
+  flex: 1;
   min-width: 0;
 }
 
@@ -991,46 +987,91 @@ onBeforeUnmount(() => {
 }
 
 .toy-title {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   font-size: clamp(28px, 3.8vw, 40px);
   line-height: 1.06;
   letter-spacing: -0.03em;
 }
 
 .toy-chip-row {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toy-chip-row span {
-  padding: 7px 11px;
+  padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid var(--toy-border);
   background: var(--toy-panel-strong);
   font-size: 12px;
-  color: var(--toy-text-soft);
+  font-weight: 600;
+  color: var(--toy-text-main);
 }
 
 .toy-action-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
   align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+  min-width: min(100%, 560px);
+}
+
+.toy-action-grid :deep(.v-btn) {
+  min-height: 42px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.toy-action-grid :deep(.v-btn--variant-flat) {
+  min-width: 132px;
+}
+
+.toy-action-grid :deep(.v-btn--variant-text) {
+  min-width: auto;
+  padding-inline: 6px;
 }
 
 .toy-overview-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .toy-overview-card {
-  padding: 14px;
-  text-align: center;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 15px;
+  text-align: left;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%), var(--toy-panel-strong);
+}
+
+.toy-overview-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: rgba(124, 92, 255, 0.22);
+}
+
+.toy-overview-card:nth-child(1)::before {
+  background: rgba(124, 92, 255, 0.42);
+}
+
+.toy-overview-card:nth-child(2)::before {
+  background: rgba(255, 160, 67, 0.42);
+}
+
+.toy-overview-card:nth-child(3)::before {
+  background: rgba(76, 132, 255, 0.42);
+}
+
+.toy-overview-card:nth-child(4)::before {
+  background: rgba(244, 114, 182, 0.42);
 }
 
 .toy-overview-label,
@@ -1042,13 +1083,13 @@ onBeforeUnmount(() => {
 }
 
 .toy-overview-value {
-  margin: 6px 0;
+  margin: 10px 0 0;
   font-size: 28px;
   font-weight: 800;
 }
 
 .toy-overview-desc {
-  margin: 5px auto 0;
+  margin: 8px 0 0;
   padding: 6px 10px;
   background: var(--toy-chip);
   color: var(--toy-text-main);
@@ -1065,7 +1106,7 @@ onBeforeUnmount(() => {
 
 .toy-panel-head h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.15;
 }
 
@@ -1138,12 +1179,12 @@ onBeforeUnmount(() => {
 
 .toy-box-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(182px, 1fr));
   gap: 10px;
 }
 
 .toy-box-card {
-  padding: 16px;
+  padding: 14px 14px 12px;
   text-align: center;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%), var(--toy-panel-strong);
 }
@@ -1254,20 +1295,19 @@ onBeforeUnmount(() => {
 .toy-cabinet-grid,
 .toy-slot-grid,
 .toy-remote-grid {
-  display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
 }
 
 .toy-cabinet-grid {
-  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
 }
 
 .toy-panel-booth .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(192px, 1fr));
 }
 
 .toy-panel-target .toy-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(198px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
 }
 
 .toy-remote-grid {
@@ -1277,7 +1317,7 @@ onBeforeUnmount(() => {
 .toy-doll-card,
 .toy-slot-card,
 .toy-remote-card {
-  padding: 12px;
+  padding: 11px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%), var(--toy-panel-strong);
 }
 
@@ -1286,7 +1326,7 @@ onBeforeUnmount(() => {
   align-content: start;
   justify-items: center;
   gap: 0;
-  min-height: 244px;
+  min-height: 228px;
 }
 
 .toy-slot-card,
