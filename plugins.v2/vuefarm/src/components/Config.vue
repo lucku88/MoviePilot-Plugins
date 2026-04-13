@@ -166,6 +166,13 @@ function truncateCookie(value) {
   return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
+function normalizeSeedValue(value) {
+  const text = String(value || '').replace(/\s+/g, '').trim()
+  if (!text) return ''
+  const matched = seedOptions.value.find((item) => String(item || '').replace(/\s+/g, '').trim() === text)
+  return matched || String(value || '').trim()
+}
+
 function normalizeSeeds(items) {
   const normalized = (items || []).map((item) => (typeof item === 'string' ? item : item?.value || item?.name || '')).filter(Boolean)
   if (config.prefer_seed && !normalized.includes(config.prefer_seed)) normalized.unshift(config.prefer_seed)
@@ -185,6 +192,7 @@ async function loadStatusSeedOptions() {
   try {
     const res = await props.api.get('/plugin/VueFarm/status')
     applyStatusSeedOptions(res?.farm_status?.seed_shop)
+    config.prefer_seed = normalizeSeedValue(config.prefer_seed)
   } catch (error) {}
 }
 
@@ -193,6 +201,7 @@ async function loadConfig() {
     const res = await props.api.get('/plugin/VueFarm/config')
     Object.assign(config, res || {})
     applySeedOptions(res?.seed_options)
+    config.prefer_seed = normalizeSeedValue(config.prefer_seed)
     await loadStatusSeedOptions()
   } catch (error) {
     flash(error?.message || '加载配置失败', 'error')
@@ -202,10 +211,12 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true
   try {
-    const res = await props.api.post('/plugin/VueFarm/config', { ...config })
+    const payload = { ...config, prefer_seed: normalizeSeedValue(config.prefer_seed) }
+    const res = await props.api.post('/plugin/VueFarm/config', payload)
     if (res.config) {
       Object.assign(config, res.config)
       applySeedOptions(res.config.seed_options)
+      config.prefer_seed = normalizeSeedValue(config.prefer_seed)
     }
     flash(res.message || '配置已保存')
     if (config.onlyonce) config.onlyonce = false

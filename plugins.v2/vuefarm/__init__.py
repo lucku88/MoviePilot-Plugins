@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -621,6 +621,14 @@ class VueFarm(_PluginBase):
         self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), 3))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
         self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
+
+    def _normalize_seed_name(self, value: Any) -> str:
+        return re.sub(r"\s+", "", str(value or "").strip())
+
+    def _seed_matches_preference(self, seed_name: Any, preference: Any) -> bool:
+        seed_key = self._normalize_seed_name(seed_name)
+        prefer_key = self._normalize_seed_name(preference)
+        return bool(seed_key and prefer_key and seed_key == prefer_key)
 
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
@@ -1236,10 +1244,11 @@ class VueFarm(_PluginBase):
         unlocked = self._get_unlocked_seeds(data)
         if not unlocked:
             return None
-        unlocked.sort(key=lambda item: ((float(item.get("base_reward") or 0) - float(item.get("cost") or 0)) / max(float(item.get("grow_time") or 1), 1)), reverse=True)
         for seed in unlocked:
-            if str(seed.get("name")) == self._prefer_seed:
+            if self._seed_matches_preference(seed.get("name"), self._prefer_seed):
+                self._prefer_seed = str(seed.get("name") or self._prefer_seed).strip() or self._prefer_seed
                 return seed
+        unlocked.sort(key=lambda item: ((float(item.get("base_reward") or 0) - float(item.get("cost") or 0)) / max(float(item.get("grow_time") or 1), 1)), reverse=True)
         return unlocked[0]
 
     def _get_unlocked_seeds(self, data: dict) -> List[dict]:
@@ -1301,7 +1310,7 @@ class VueFarm(_PluginBase):
                     return seed
         if seed_name:
             for seed in unlocked:
-                if str(seed.get("name") or "") == str(seed_name):
+                if self._seed_matches_preference(seed.get("name"), seed_name):
                     return seed
         return self._pick_seed(data)
 
@@ -1657,7 +1666,7 @@ class VueFarm(_PluginBase):
                 "grow_text": self._format_duration(grow_time),
                 "unlock_text": f"解锁：总收获 {unlock_need}",
                 "unlocked": total_harvest >= unlock_need,
-                "preferred": name == self._prefer_seed,
+                "preferred": self._seed_matches_preference(name, self._prefer_seed),
             })
         return cards
 

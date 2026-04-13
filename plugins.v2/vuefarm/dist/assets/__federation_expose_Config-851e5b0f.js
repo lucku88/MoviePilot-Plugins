@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_457ad41f_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_6e96115d_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-457ad41f"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-6e96115d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vfc-shell" };
 const _hoisted_2 = { class: "vfc-card vfc-hero" };
 const _hoisted_3 = { class: "vfc-copy" };
@@ -117,6 +117,13 @@ function truncateCookie(value) {
   return text.length > 36 ? `${text.slice(0, 36)}...` : text
 }
 
+function normalizeSeedValue(value) {
+  const text = String(value || '').replace(/\s+/g, '').trim();
+  if (!text) return ''
+  const matched = seedOptions.value.find((item) => String(item || '').replace(/\s+/g, '').trim() === text);
+  return matched || String(value || '').trim()
+}
+
 function normalizeSeeds(items) {
   const normalized = (items || []).map((item) => (typeof item === 'string' ? item : item?.value || item?.name || '')).filter(Boolean);
   if (config.prefer_seed && !normalized.includes(config.prefer_seed)) normalized.unshift(config.prefer_seed);
@@ -136,6 +143,7 @@ async function loadStatusSeedOptions() {
   try {
     const res = await props.api.get('/plugin/VueFarm/status');
     applyStatusSeedOptions(res?.farm_status?.seed_shop);
+    config.prefer_seed = normalizeSeedValue(config.prefer_seed);
   } catch (error) {}
 }
 
@@ -144,6 +152,7 @@ async function loadConfig() {
     const res = await props.api.get('/plugin/VueFarm/config');
     Object.assign(config, res || {});
     applySeedOptions(res?.seed_options);
+    config.prefer_seed = normalizeSeedValue(config.prefer_seed);
     await loadStatusSeedOptions();
   } catch (error) {
     flash(error?.message || '加载配置失败', 'error');
@@ -153,10 +162,12 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true;
   try {
-    const res = await props.api.post('/plugin/VueFarm/config', { ...config });
+    const payload = { ...config, prefer_seed: normalizeSeedValue(config.prefer_seed) };
+    const res = await props.api.post('/plugin/VueFarm/config', payload);
     if (res.config) {
       Object.assign(config, res.config);
       applySeedOptions(res.config.seed_options);
+      config.prefer_seed = normalizeSeedValue(config.prefer_seed);
     }
     flash(res.message || '配置已保存');
     if (config.onlyonce) config.onlyonce = false;
@@ -478,6 +489,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-457ad41f"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6e96115d"]]);
 
 export { ConfigView as default };
