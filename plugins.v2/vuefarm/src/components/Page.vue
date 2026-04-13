@@ -114,9 +114,8 @@
               <div class="vf-group-main">
                 <div class="vf-group-name-row">
                   <div class="vf-group-name">{{ group.name }}</div>
-                  <span class="vf-group-count">{{ (group.slots || []).length }} 块</span>
+                  <span v-if="group.subtitle" class="vf-group-meta">{{ group.subtitle }}</span>
                 </div>
-                <div class="vf-group-sub">{{ group.subtitle }}</div>
               </div>
               <div class="vf-group-pill-row">
                 <span class="vf-group-pill ready">成熟 {{ groupReadyCount(group) }}</span>
@@ -585,7 +584,7 @@ onBeforeUnmount(() => {
 .vf-badge,.vf-chip,.vf-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
 .vf-badge{padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vf-title{margin:10px 0 2px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
-.vf-note,.vf-seed-note,.vf-history-lines,.vf-history-top span,.vf-group-sub,.vf-slot-badge,.vf-slot-time,.vf-bag-meta,.vf-seed-meta,.vf-stat-label{color:var(--muted)}
+.vf-note,.vf-seed-note,.vf-history-lines,.vf-history-top span,.vf-slot-badge,.vf-slot-time,.vf-bag-meta,.vf-seed-meta,.vf-stat-label{color:var(--muted)}
 .vf-chip-row{margin-top:10px}
 .vf-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600;justify-content:flex-start}
 .vf-action-grid,.vf-stat-grid,.vf-bag-grid,.vf-seed-grid,.vf-list,.vf-group-stack{display:grid;gap:12px}
@@ -643,11 +642,11 @@ onBeforeUnmount(() => {
 .vf-seed-card.locked{opacity:.52;filter:saturate(.78);cursor:not-allowed}
 .vf-seed-icon{width:42px;height:42px;font-size:22px;background:rgba(var(--vf-tone-rgb,255,171,64),.15);box-shadow:inset 0 0 0 1px rgba(var(--vf-tone-rgb,255,171,64),.14)}
 .vf-group{padding:11px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
-.vf-group-head{justify-content:space-between;align-items:center;margin-bottom:10px;padding:10px 12px;border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 100%),rgba(255,255,255,.02);border:1px solid rgba(124,92,255,.1)}
-.vf-group-main{display:grid;gap:4px;min-width:0}
-.vf-group-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vf-group-head{justify-content:space-between;align-items:center;margin-bottom:10px;padding:11px 12px;border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 100%),rgba(255,255,255,.02);border:1px solid rgba(124,92,255,.1)}
+.vf-group-main{display:flex;align-items:center;min-width:0;flex:1}
+.vf-group-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
 .vf-group-name{font-size:16px}
-.vf-group-count{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:800}
+.vf-group-meta{display:inline-flex;align-items:center;min-height:24px;padding:0 0 0 2px;color:var(--accent);font-size:12px;font-weight:700;white-space:nowrap}
 .vf-group-pill-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .vf-group-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800}
 .vf-group-pill.ready{background:rgba(46,185,109,.12);color:#24a15f}
@@ -674,7 +673,7 @@ onBeforeUnmount(() => {
 .vf-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
 @media (max-width:1280px){.vf-slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1024px){.vf-grid-2{grid-template-columns:1fr}}
-@media (max-width:920px){.vf-hero,.vf-head,.vf-group-head,.vf-history-top{flex-direction:column;align-items:flex-start}.vf-action-grid{min-width:100%;flex-wrap:wrap;justify-content:flex-start}.vf-group-pill-row{justify-content:flex-start}.vf-history-top strong{white-space:normal}}
+@media (max-width:920px){.vf-hero,.vf-head,.vf-group-head,.vf-history-top{flex-direction:column;align-items:flex-start}.vf-action-grid{min-width:100%;flex-wrap:wrap;justify-content:flex-start}.vf-group-main{width:100%}.vf-group-pill-row{justify-content:flex-start}.vf-history-top strong{white-space:normal}}
 @media (max-width:760px){.vuefarm-shell{padding:0 10px}.vf-card,.vf-bag-card,.vf-group,.vf-history,.vf-list-item{border-radius:18px}.vf-card{padding:14px}.vf-slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.vf-stat-grid,.vf-bag-grid,.vf-seed-grid{grid-template-columns:1fr}.vf-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
 @media (max-width:560px){.vf-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vf-bag-top,.vf-inline{flex-direction:column;align-items:stretch}.vf-number{width:100%}}
 </style>
