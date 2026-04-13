@@ -1,44 +1,45 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_52977447_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_457ad41f_lang = '';
 
-const {createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-52977447"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-457ad41f"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vfc-shell" };
 const _hoisted_2 = { class: "vfc-card vfc-hero" };
-const _hoisted_3 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-copy" }, [
-  /*#__PURE__*/_createElementVNode("div", { class: "vfc-badge" }, "Vue-农场"),
-  /*#__PURE__*/_createElementVNode("h1", { class: "vfc-title" }, "插件配置"),
-  /*#__PURE__*/_createElementVNode("p", { class: "vfc-subtitle" }, "收菜、种植、出售、获取执行记录。")
-], -1));
-const _hoisted_4 = { class: "vfc-action-grid" };
-const _hoisted_5 = { class: "vfc-card" };
-const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "⚙️ 基本设置", -1));
-const _hoisted_7 = { class: "vfc-switch-grid" };
-const _hoisted_8 = { class: "vfc-switch-card" };
-const _hoisted_9 = { class: "vfc-switch-card" };
-const _hoisted_10 = { class: "vfc-switch-card" };
-const _hoisted_11 = { class: "vfc-switch-card" };
-const _hoisted_12 = { class: "vfc-card" };
-const _hoisted_13 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "🧩 功能设置", -1));
-const _hoisted_14 = { class: "vfc-switch-grid" };
+const _hoisted_3 = { class: "vfc-copy" };
+const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-badge" }, "Vue-农场", -1));
+const _hoisted_5 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h1", { class: "vfc-title" }, "插件配置", -1));
+const _hoisted_6 = { class: "vfc-chip-row" };
+const _hoisted_7 = { class: "vfc-chip" };
+const _hoisted_8 = { class: "vfc-chip" };
+const _hoisted_9 = { class: "vfc-action-grid" };
+const _hoisted_10 = { class: "vfc-card" };
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "⚙️ 基本设置", -1));
+const _hoisted_12 = { class: "vfc-switch-grid" };
+const _hoisted_13 = { class: "vfc-switch-card" };
+const _hoisted_14 = { class: "vfc-switch-card" };
 const _hoisted_15 = { class: "vfc-switch-card" };
 const _hoisted_16 = { class: "vfc-switch-card" };
-const _hoisted_17 = { class: "vfc-switch-card" };
-const _hoisted_18 = { class: "vfc-field-grid" };
-const _hoisted_19 = { class: "vfc-field-card" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "站点 Cookie", -1));
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, "启用后自动读取站点 Cookie，关闭后才可手动修改。", -1));
-const _hoisted_22 = { class: "vfc-field-card" };
-const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "优先种子", -1));
+const _hoisted_17 = { class: "vfc-card" };
+const _hoisted_18 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "🧩 功能设置", -1));
+const _hoisted_19 = { class: "vfc-switch-grid" };
+const _hoisted_20 = { class: "vfc-switch-card" };
+const _hoisted_21 = { class: "vfc-switch-card" };
+const _hoisted_22 = { class: "vfc-switch-card" };
+const _hoisted_23 = { class: "vfc-field-grid" };
 const _hoisted_24 = { class: "vfc-field-card" };
-const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "OCR API 地址", -1));
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "📘 OCR 说明", -1));
-const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, "批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收获失败后尝试逐坑位兜底收菜。", -1));
-const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, [
+const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "站点 Cookie", -1));
+const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, "启用后自动读取站点 Cookie，关闭后才可手动修改。", -1));
+const _hoisted_27 = { class: "vfc-field-card" };
+const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "优先种子", -1));
+const _hoisted_29 = { class: "vfc-field-card" };
+const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-field-label" }, "OCR API 地址", -1));
+const _hoisted_31 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h2", { class: "vfc-section-title" }, "📘 OCR 说明", -1));
+const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, "批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收获失败后尝试逐坑位兜底收菜。", -1));
+const _hoisted_33 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vfc-note" }, [
   /*#__PURE__*/_createTextVNode("推荐先部署 "),
   /*#__PURE__*/_createElementVNode("code", null, "trwebocr"),
   /*#__PURE__*/_createTextVNode("，再把 OCR 地址填成 "),
@@ -265,17 +266,15 @@ return (_ctx, _cache) => {
   }, [
     _createElementVNode("div", _hoisted_1, [
       _createElementVNode("header", _hoisted_2, [
-        _hoisted_3,
-        _createElementVNode("div", _hoisted_4, [
-          _createVNode(_component_v_btn, {
-            variant: "text",
-            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("返回状态页")
-            ]),
-            _: 1
-          }),
+        _createElementVNode("div", _hoisted_3, [
+          _hoisted_4,
+          _hoisted_5,
+          _createElementVNode("div", _hoisted_6, [
+            _createElementVNode("span", _hoisted_7, _toDisplayString(config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写'), 1),
+            _createElementVNode("span", _hoisted_8, "优先种子：" + _toDisplayString(config.prefer_seed || '未选择'), 1)
+          ])
+        ]),
+        _createElementVNode("div", _hoisted_9, [
           _createVNode(_component_v_btn, {
             color: "warning",
             variant: "flat",
@@ -300,6 +299,15 @@ return (_ctx, _cache) => {
           }, 8, ["loading"]),
           _createVNode(_component_v_btn, {
             variant: "text",
+            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'page')))
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode("返回状态页")
+            ]),
+            _: 1
+          }),
+          _createVNode(_component_v_btn, {
+            variant: "text",
             onClick: closePlugin
           }, {
             default: _withCtx(() => [
@@ -322,10 +330,10 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_5, [
-        _hoisted_6,
-        _createElementVNode("div", _hoisted_7, [
-          _createElementVNode("div", _hoisted_8, [
+      _createElementVNode("section", _hoisted_10, [
+        _hoisted_11,
+        _createElementVNode("div", _hoisted_12, [
+          _createElementVNode("div", _hoisted_13, [
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((config.enabled) = $event)),
@@ -337,7 +345,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_9, [
+          _createElementVNode("div", _hoisted_14, [
             _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.use_proxy) = $event)),
@@ -349,7 +357,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_10, [
+          _createElementVNode("div", _hoisted_15, [
             _createVNode(_component_v_switch, {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.notify) = $event)),
@@ -361,7 +369,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_11, [
+          _createElementVNode("div", _hoisted_16, [
             _createVNode(_component_v_switch, {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.onlyonce) = $event)),
@@ -375,10 +383,10 @@ return (_ctx, _cache) => {
           ])
         ])
       ]),
-      _createElementVNode("section", _hoisted_12, [
-        _hoisted_13,
-        _createElementVNode("div", _hoisted_14, [
-          _createElementVNode("div", _hoisted_15, [
+      _createElementVNode("section", _hoisted_17, [
+        _hoisted_18,
+        _createElementVNode("div", _hoisted_19, [
+          _createElementVNode("div", _hoisted_20, [
             _createVNode(_component_v_switch, {
               modelValue: config.auto_cookie,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.auto_cookie) = $event)),
@@ -390,7 +398,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_16, [
+          _createElementVNode("div", _hoisted_21, [
             _createVNode(_component_v_switch, {
               modelValue: config.enable_sell,
               "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.enable_sell) = $event)),
@@ -402,7 +410,7 @@ return (_ctx, _cache) => {
               inset: ""
             }, null, 8, ["modelValue"])
           ]),
-          _createElementVNode("div", _hoisted_17, [
+          _createElementVNode("div", _hoisted_22, [
             _createVNode(_component_v_switch, {
               modelValue: config.enable_plant,
               "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.enable_plant) = $event)),
@@ -415,9 +423,9 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue"])
           ])
         ]),
-        _createElementVNode("div", _hoisted_18, [
-          _createElementVNode("div", _hoisted_19, [
-            _hoisted_20,
+        _createElementVNode("div", _hoisted_23, [
+          _createElementVNode("div", _hoisted_24, [
+            _hoisted_25,
             _createVNode(_component_v_text_field, {
               modelValue: cookieFieldValue.value,
               "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((cookieFieldValue).value = $event)),
@@ -429,10 +437,10 @@ return (_ctx, _cache) => {
               placeholder: cookieReadonly.value ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...',
               "hide-details": "auto"
             }, null, 8, ["modelValue", "disabled", "readonly", "placeholder"]),
-            _hoisted_21
+            _hoisted_26
           ]),
-          _createElementVNode("div", _hoisted_22, [
-            _hoisted_23,
+          _createElementVNode("div", _hoisted_27, [
+            _hoisted_28,
             _createVNode(_component_v_select, {
               modelValue: config.prefer_seed,
               "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.prefer_seed) = $event)),
@@ -444,8 +452,8 @@ return (_ctx, _cache) => {
               "hide-details": "auto"
             }, null, 8, ["modelValue", "items"])
           ]),
-          _createElementVNode("div", _hoisted_24, [
-            _hoisted_25,
+          _createElementVNode("div", _hoisted_29, [
+            _hoisted_30,
             _createVNode(_component_v_text_field, {
               modelValue: config.ocr_api_url,
               "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.ocr_api_url) = $event)),
@@ -459,9 +467,9 @@ return (_ctx, _cache) => {
         ])
       ]),
       _createElementVNode("section", { class: "vfc-card" }, [
-        _hoisted_26,
-        _hoisted_27,
-        _hoisted_28,
+        _hoisted_31,
+        _hoisted_32,
+        _hoisted_33,
         _createElementVNode("pre", { class: "vfc-code" }, _toDisplayString(ocrComposeExample))
       ])
     ])
@@ -470,6 +478,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-52977447"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-457ad41f"]]);
 
 export { ConfigView as default };

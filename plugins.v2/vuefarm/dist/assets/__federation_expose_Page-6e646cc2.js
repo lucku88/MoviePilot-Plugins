@@ -1,128 +1,127 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_9e9ceb80_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_9f4e0346_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-9e9ceb80"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-9f4e0346"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
 const _hoisted_4 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-badge" }, "Vue-农场", -1));
 const _hoisted_5 = { class: "vf-title" };
-const _hoisted_6 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("p", { class: "vf-subtitle" }, "收菜、种植、出售、获取执行记录。", -1));
-const _hoisted_7 = { class: "vf-chip-row" };
-const _hoisted_8 = {
+const _hoisted_6 = { class: "vf-chip-row" };
+const _hoisted_7 = {
   key: 0,
   class: "vf-chip"
 };
+const _hoisted_8 = { class: "vf-chip" };
 const _hoisted_9 = { class: "vf-chip" };
 const _hoisted_10 = { class: "vf-chip" };
-const _hoisted_11 = { class: "vf-chip" };
-const _hoisted_12 = { class: "vf-action-grid" };
-const _hoisted_13 = { class: "vf-stat-grid" };
-const _hoisted_14 = { class: "vf-stat-label" };
-const _hoisted_15 = { class: "vf-stat-value" };
-const _hoisted_16 = { class: "vf-card vf-stat vf-stat-accent" };
-const _hoisted_17 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-stat-label" }, "农场快照", -1));
-const _hoisted_18 = { class: "vf-pill-row" };
-const _hoisted_19 = { class: "vf-pill ok" };
-const _hoisted_20 = { class: "vf-pill info" };
-const _hoisted_21 = { class: "vf-pill pri" };
-const _hoisted_22 = {
+const _hoisted_11 = { class: "vf-action-grid" };
+const _hoisted_12 = { class: "vf-stat-grid" };
+const _hoisted_13 = { class: "vf-stat-label" };
+const _hoisted_14 = { class: "vf-stat-value" };
+const _hoisted_15 = { class: "vf-card vf-stat vf-stat-accent" };
+const _hoisted_16 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-stat-label" }, "农场快照", -1));
+const _hoisted_17 = { class: "vf-pill-row" };
+const _hoisted_18 = { class: "vf-pill ok" };
+const _hoisted_19 = { class: "vf-pill info" };
+const _hoisted_20 = { class: "vf-pill pri" };
+const _hoisted_21 = {
   key: 1,
   class: "vf-card vf-summary"
 };
-const _hoisted_23 = { class: "vf-head compact" };
-const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_22 = { class: "vf-head compact" };
+const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "vf-kicker" }, "本次摘要"),
   /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "任务结果")
 ], -1));
-const _hoisted_25 = { class: "vf-list" };
-const _hoisted_26 = { class: "vf-grid-2" };
-const _hoisted_27 = { class: "vf-card vf-panel green" };
-const _hoisted_28 = { class: "vf-head" };
-const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_24 = { class: "vf-list" };
+const _hoisted_25 = { class: "vf-grid-2" };
+const _hoisted_26 = { class: "vf-card vf-panel green" };
+const _hoisted_27 = { class: "vf-head" };
+const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "收获背包")
 ], -1));
-const _hoisted_30 = { class: "vf-note" };
-const _hoisted_31 = {
+const _hoisted_29 = { class: "vf-note" };
+const _hoisted_30 = {
   key: 0,
   class: "vf-empty"
 };
-const _hoisted_32 = {
+const _hoisted_31 = {
   key: 1,
   class: "vf-bag-grid"
 };
-const _hoisted_33 = { class: "vf-bag-top" };
-const _hoisted_34 = { class: "vf-bag-icon" };
-const _hoisted_35 = { class: "vf-bag-main" };
-const _hoisted_36 = { class: "vf-bag-name" };
-const _hoisted_37 = { class: "vf-bag-meta" };
-const _hoisted_38 = { class: "vf-bag-line" };
-const _hoisted_39 = { class: "vf-bonus" };
-const _hoisted_40 = { class: "vf-inline" };
-const _hoisted_41 = ["max", "value", "disabled", "onInput"];
-const _hoisted_42 = ["disabled", "onClick"];
-const _hoisted_43 = { class: "vf-card vf-panel amber" };
-const _hoisted_44 = { class: "vf-head" };
-const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_32 = { class: "vf-bag-top" };
+const _hoisted_33 = { class: "vf-bag-icon" };
+const _hoisted_34 = { class: "vf-bag-main" };
+const _hoisted_35 = { class: "vf-bag-name" };
+const _hoisted_36 = { class: "vf-bag-meta" };
+const _hoisted_37 = { class: "vf-bag-line" };
+const _hoisted_38 = { class: "vf-bonus" };
+const _hoisted_39 = { class: "vf-inline" };
+const _hoisted_40 = ["max", "value", "disabled", "onInput"];
+const _hoisted_41 = ["disabled", "onClick"];
+const _hoisted_42 = { class: "vf-card vf-panel amber" };
+const _hoisted_43 = { class: "vf-head" };
+const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "种子商店")
 ], -1));
-const _hoisted_46 = { class: "vf-note" };
-const _hoisted_47 = { key: 0 };
-const _hoisted_48 = { key: 1 };
-const _hoisted_49 = { class: "vf-toolbar" };
-const _hoisted_50 = { class: "vf-seed-grid" };
-const _hoisted_51 = ["disabled", "onClick"];
-const _hoisted_52 = { class: "vf-seed-icon" };
-const _hoisted_53 = { class: "vf-seed-name" };
+const _hoisted_45 = { class: "vf-note" };
+const _hoisted_46 = { key: 0 };
+const _hoisted_47 = { key: 1 };
+const _hoisted_48 = { class: "vf-toolbar" };
+const _hoisted_49 = { class: "vf-seed-grid" };
+const _hoisted_50 = ["disabled", "onClick"];
+const _hoisted_51 = { class: "vf-seed-icon" };
+const _hoisted_52 = { class: "vf-seed-name" };
+const _hoisted_53 = { class: "vf-seed-meta" };
 const _hoisted_54 = { class: "vf-seed-meta" };
-const _hoisted_55 = { class: "vf-seed-meta" };
-const _hoisted_56 = { class: "vf-seed-note" };
-const _hoisted_57 = { class: "vf-card vf-panel blue" };
-const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
+const _hoisted_55 = { class: "vf-seed-note" };
+const _hoisted_56 = { class: "vf-card vf-panel blue" };
+const _hoisted_57 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "农场坑位")
   ]),
   /*#__PURE__*/_createElementVNode("div", { class: "vf-note" }, "成熟可收、空地可种，其余坑位展示状态")
 ], -1));
-const _hoisted_59 = { class: "vf-group-stack" };
-const _hoisted_60 = { class: "vf-group-head" };
-const _hoisted_61 = { class: "vf-group-main" };
-const _hoisted_62 = { class: "vf-group-name-row" };
-const _hoisted_63 = { class: "vf-group-name" };
-const _hoisted_64 = { class: "vf-group-count" };
-const _hoisted_65 = { class: "vf-group-sub" };
-const _hoisted_66 = { class: "vf-group-pill-row" };
-const _hoisted_67 = { class: "vf-group-pill ready" };
-const _hoisted_68 = { class: "vf-group-pill empty" };
-const _hoisted_69 = { class: "vf-slot-grid" };
-const _hoisted_70 = ["disabled", "onClick"];
-const _hoisted_71 = { class: "vf-slot-top" };
-const _hoisted_72 = { class: "vf-slot-index" };
-const _hoisted_73 = { class: "vf-slot-badge" };
-const _hoisted_74 = { class: "vf-slot-icon" };
-const _hoisted_75 = { class: "vf-slot-name" };
-const _hoisted_76 = { class: "vf-slot-time" };
-const _hoisted_77 = { class: "vf-card vf-panel slate" };
-const _hoisted_78 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
+const _hoisted_58 = { class: "vf-group-stack" };
+const _hoisted_59 = { class: "vf-group-head" };
+const _hoisted_60 = { class: "vf-group-main" };
+const _hoisted_61 = { class: "vf-group-name-row" };
+const _hoisted_62 = { class: "vf-group-name" };
+const _hoisted_63 = { class: "vf-group-count" };
+const _hoisted_64 = { class: "vf-group-sub" };
+const _hoisted_65 = { class: "vf-group-pill-row" };
+const _hoisted_66 = { class: "vf-group-pill ready" };
+const _hoisted_67 = { class: "vf-group-pill empty" };
+const _hoisted_68 = { class: "vf-slot-grid" };
+const _hoisted_69 = ["disabled", "onClick"];
+const _hoisted_70 = { class: "vf-slot-top" };
+const _hoisted_71 = { class: "vf-slot-index" };
+const _hoisted_72 = { class: "vf-slot-badge" };
+const _hoisted_73 = { class: "vf-slot-icon" };
+const _hoisted_74 = { class: "vf-slot-name" };
+const _hoisted_75 = { class: "vf-slot-time" };
+const _hoisted_76 = { class: "vf-card vf-panel slate" };
+const _hoisted_77 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vf-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("h2", { class: "vf-section-title" }, "执行历史")
   ])
 ], -1));
-const _hoisted_79 = {
+const _hoisted_78 = {
   key: 0,
   class: "vf-empty"
 };
-const _hoisted_80 = {
+const _hoisted_79 = {
   key: 1,
   class: "vf-list"
 };
-const _hoisted_81 = { class: "vf-history-top" };
-const _hoisted_82 = {
+const _hoisted_80 = { class: "vf-history-top" };
+const _hoisted_81 = {
   key: 0,
   class: "vf-history-lines"
 };
@@ -553,17 +552,16 @@ return (_ctx, _cache) => {
         _createElementVNode("div", _hoisted_3, [
           _hoisted_4,
           _createElementVNode("h1", _hoisted_5, _toDisplayString(farm.value.title || '种菜赚魔力'), 1),
-          _hoisted_6,
-          _createElementVNode("div", _hoisted_7, [
+          _createElementVNode("div", _hoisted_6, [
             (_ctx.showLastRunChip)
-              ? (_openBlock(), _createElementBlock("span", _hoisted_8, "最近执行 " + _toDisplayString(status.last_run), 1))
+              ? (_openBlock(), _createElementBlock("span", _hoisted_7, "最近执行 " + _toDisplayString(status.last_run), 1))
               : _createCommentVNode("", true),
-            _createElementVNode("span", _hoisted_9, "下次可收 " + _toDisplayString(farm.value.next_run_time || '待识别'), 1),
-            _createElementVNode("span", _hoisted_10, "计划触发 " + _toDisplayString(farm.value.next_trigger_time || status.next_trigger_time || '等待下一次运行'), 1),
-            _createElementVNode("span", _hoisted_11, _toDisplayString(farm.value.cookie_source || status.cookie_source || '未同步'), 1)
+            _createElementVNode("span", _hoisted_8, "下次可收 " + _toDisplayString(farm.value.next_run_time || '待识别'), 1),
+            _createElementVNode("span", _hoisted_9, "计划触发 " + _toDisplayString(farm.value.next_trigger_time || status.next_trigger_time || '等待下一次运行'), 1),
+            _createElementVNode("span", _hoisted_10, _toDisplayString(farm.value.cookie_source || status.cookie_source || '未同步'), 1)
           ])
         ]),
-        _createElementVNode("div", _hoisted_12, [
+        _createElementVNode("div", _hoisted_11, [
           _createVNode(_component_v_btn, {
             color: "success",
             variant: "flat",
@@ -630,29 +628,29 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_13, [
+      _createElementVNode("section", _hoisted_12, [
         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.overview || [], (item) => {
           return (_openBlock(), _createElementBlock("article", {
             key: item.label,
             class: "vf-card vf-stat"
           }, [
-            _createElementVNode("div", _hoisted_14, _toDisplayString(item.label), 1),
-            _createElementVNode("div", _hoisted_15, _toDisplayString(item.value), 1)
+            _createElementVNode("div", _hoisted_13, _toDisplayString(item.label), 1),
+            _createElementVNode("div", _hoisted_14, _toDisplayString(item.value), 1)
           ]))
         }), 128)),
-        _createElementVNode("article", _hoisted_16, [
-          _hoisted_17,
-          _createElementVNode("div", _hoisted_18, [
-            _createElementVNode("span", _hoisted_19, "成熟 " + _toDisplayString(readySlots.value.length), 1),
-            _createElementVNode("span", _hoisted_20, "空地 " + _toDisplayString(emptySlots.value.length), 1),
-            _createElementVNode("span", _hoisted_21, "库存 " + _toDisplayString(inventoryItems.value.length), 1)
+        _createElementVNode("article", _hoisted_15, [
+          _hoisted_16,
+          _createElementVNode("div", _hoisted_17, [
+            _createElementVNode("span", _hoisted_18, "成熟 " + _toDisplayString(readySlots.value.length), 1),
+            _createElementVNode("span", _hoisted_19, "空地 " + _toDisplayString(emptySlots.value.length), 1),
+            _createElementVNode("span", _hoisted_20, "库存 " + _toDisplayString(inventoryItems.value.length), 1)
           ])
         ])
       ]),
       (showSummary.value)
-        ? (_openBlock(), _createElementBlock("section", _hoisted_22, [
-            _createElementVNode("div", _hoisted_23, [
-              _hoisted_24,
+        ? (_openBlock(), _createElementBlock("section", _hoisted_21, [
+            _createElementVNode("div", _hoisted_22, [
+              _hoisted_23,
               _createVNode(_component_v_btn, {
                 variant: "text",
                 size: "small",
@@ -664,7 +662,7 @@ return (_ctx, _cache) => {
                 _: 1
               })
             ]),
-            _createElementVNode("div", _hoisted_25, [
+            _createElementVNode("div", _hoisted_24, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(summaryLines.value, (line) => {
                 return (_openBlock(), _createElementBlock("div", {
                   key: line,
@@ -674,33 +672,33 @@ return (_ctx, _cache) => {
             ])
           ]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_26, [
-        _createElementVNode("article", _hoisted_27, [
-          _createElementVNode("div", _hoisted_28, [
-            _hoisted_29,
-            _createElementVNode("div", _hoisted_30, "可出售作物 " + _toDisplayString(inventoryItems.value.length) + " 项", 1)
+      _createElementVNode("section", _hoisted_25, [
+        _createElementVNode("article", _hoisted_26, [
+          _createElementVNode("div", _hoisted_27, [
+            _hoisted_28,
+            _createElementVNode("div", _hoisted_29, "可出售作物 " + _toDisplayString(inventoryItems.value.length) + " 项", 1)
           ]),
           (farm.value.inventory?.empty)
-            ? (_openBlock(), _createElementBlock("div", _hoisted_31, _toDisplayString(farm.value.inventory?.empty_text), 1))
-            : (_openBlock(), _createElementBlock("div", _hoisted_32, [
+            ? (_openBlock(), _createElementBlock("div", _hoisted_30, _toDisplayString(farm.value.inventory?.empty_text), 1))
+            : (_openBlock(), _createElementBlock("div", _hoisted_31, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                   return (_openBlock(), _createElementBlock("article", {
                     key: item.seed_id || item.name,
                     class: "vf-bag-card",
                     style: _normalizeStyle(cardToneStyle(item.name))
                   }, [
-                    _createElementVNode("div", _hoisted_33, [
-                      _createElementVNode("div", _hoisted_34, _toDisplayString(item.icon), 1),
-                      _createElementVNode("div", _hoisted_35, [
-                        _createElementVNode("div", _hoisted_36, _toDisplayString(item.name), 1),
-                        _createElementVNode("div", _hoisted_37, "数量 " + _toDisplayString(item.quantity), 1)
+                    _createElementVNode("div", _hoisted_32, [
+                      _createElementVNode("div", _hoisted_33, _toDisplayString(item.icon), 1),
+                      _createElementVNode("div", _hoisted_34, [
+                        _createElementVNode("div", _hoisted_35, _toDisplayString(item.name), 1),
+                        _createElementVNode("div", _hoisted_36, "数量 " + _toDisplayString(item.quantity), 1)
                       ])
                     ]),
-                    _createElementVNode("div", _hoisted_38, [
+                    _createElementVNode("div", _hoisted_37, [
                       _createTextVNode("售价 " + _toDisplayString(item.unit_reward) + " 魔力/份 ", 1),
-                      _createElementVNode("span", _hoisted_39, "+" + _toDisplayString(item.sell_bonus_percent || 0) + "%", 1)
+                      _createElementVNode("span", _hoisted_38, "+" + _toDisplayString(item.sell_bonus_percent || 0) + "%", 1)
                     ]),
-                    _createElementVNode("div", _hoisted_40, [
+                    _createElementVNode("div", _hoisted_39, [
                       _createElementVNode("input", {
                         class: "vf-number",
                         type: "number",
@@ -710,29 +708,29 @@ return (_ctx, _cache) => {
                         disabled: loading.value || sellingSeedId.value === item.seed_id,
                         onClick: _cache[1] || (_cache[1] = _withModifiers(() => {}, ["stop"])),
                         onInput: $event => (updateSellQuantity(item, $event))
-                      }, null, 40, _hoisted_41),
+                      }, null, 40, _hoisted_40),
                       _createElementVNode("button", {
                         type: "button",
                         class: "vf-btn warn",
                         disabled: loading.value || !item.quantity || sellingSeedId.value === item.seed_id,
                         onClick: _withModifiers($event => (sellInventory(item)), ["stop"])
-                      }, _toDisplayString(sellingSeedId.value === item.seed_id ? '出售中' : '出售'), 9, _hoisted_42)
+                      }, _toDisplayString(sellingSeedId.value === item.seed_id ? '出售中' : '出售'), 9, _hoisted_41)
                     ])
                   ], 4))
                 }), 128))
               ]))
         ]),
-        _createElementVNode("article", _hoisted_43, [
-          _createElementVNode("div", _hoisted_44, [
-            _hoisted_45,
-            _createElementVNode("div", _hoisted_46, [
+        _createElementVNode("article", _hoisted_42, [
+          _createElementVNode("div", _hoisted_43, [
+            _hoisted_44,
+            _createElementVNode("div", _hoisted_45, [
               _createTextVNode("当前种子："),
               (selectedSeed.value)
-                ? (_openBlock(), _createElementBlock("strong", _hoisted_47, _toDisplayString(selectedSeed.value.icon) + " " + _toDisplayString(selectedSeed.value.name), 1))
-                : (_openBlock(), _createElementBlock("strong", _hoisted_48, "未选择"))
+                ? (_openBlock(), _createElementBlock("strong", _hoisted_46, _toDisplayString(selectedSeed.value.icon) + " " + _toDisplayString(selectedSeed.value.name), 1))
+                : (_openBlock(), _createElementBlock("strong", _hoisted_47, "未选择"))
             ])
           ]),
-          _createElementVNode("div", _hoisted_49, [
+          _createElementVNode("div", _hoisted_48, [
             _createVNode(_component_v_btn, {
               color: "success",
               variant: "flat",
@@ -756,7 +754,7 @@ return (_ctx, _cache) => {
               _: 1
             }, 8, ["disabled"])
           ]),
-          _createElementVNode("div", _hoisted_50, [
+          _createElementVNode("div", _hoisted_49, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.seed_shop || [], (seed) => {
               return (_openBlock(), _createElementBlock("button", {
                 key: seed.id,
@@ -766,38 +764,38 @@ return (_ctx, _cache) => {
                 disabled: !seed.unlocked || loading.value,
                 onClick: $event => (selectSeed(seed))
               }, [
-                _createElementVNode("div", _hoisted_52, _toDisplayString(seed.icon), 1),
-                _createElementVNode("div", _hoisted_53, _toDisplayString(seed.name), 1),
-                _createElementVNode("div", _hoisted_54, "消耗 " + _toDisplayString(seed.cost), 1),
-                _createElementVNode("div", _hoisted_55, "生长 " + _toDisplayString(seed.grow_text), 1),
-                _createElementVNode("div", _hoisted_56, _toDisplayString(seed.unlocked ? (selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text), 1)
-              ], 14, _hoisted_51))
+                _createElementVNode("div", _hoisted_51, _toDisplayString(seed.icon), 1),
+                _createElementVNode("div", _hoisted_52, _toDisplayString(seed.name), 1),
+                _createElementVNode("div", _hoisted_53, "消耗 " + _toDisplayString(seed.cost), 1),
+                _createElementVNode("div", _hoisted_54, "生长 " + _toDisplayString(seed.grow_text), 1),
+                _createElementVNode("div", _hoisted_55, _toDisplayString(seed.unlocked ? (selectedSeed.value && Number(selectedSeed.value.id) === Number(seed.id) ? '已选中' : '点击选择') : seed.unlock_text), 1)
+              ], 14, _hoisted_50))
             }), 128))
           ])
         ])
       ]),
-      _createElementVNode("section", _hoisted_57, [
-        _hoisted_58,
-        _createElementVNode("div", _hoisted_59, [
+      _createElementVNode("section", _hoisted_56, [
+        _hoisted_57,
+        _createElementVNode("div", _hoisted_58, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(farm.value.land_groups || [], (group) => {
             return (_openBlock(), _createElementBlock("article", {
               key: group.id,
               class: "vf-group"
             }, [
-              _createElementVNode("header", _hoisted_60, [
-                _createElementVNode("div", _hoisted_61, [
-                  _createElementVNode("div", _hoisted_62, [
-                    _createElementVNode("div", _hoisted_63, _toDisplayString(group.name), 1),
-                    _createElementVNode("span", _hoisted_64, _toDisplayString((group.slots || []).length) + " 块", 1)
+              _createElementVNode("header", _hoisted_59, [
+                _createElementVNode("div", _hoisted_60, [
+                  _createElementVNode("div", _hoisted_61, [
+                    _createElementVNode("div", _hoisted_62, _toDisplayString(group.name), 1),
+                    _createElementVNode("span", _hoisted_63, _toDisplayString((group.slots || []).length) + " 块", 1)
                   ]),
-                  _createElementVNode("div", _hoisted_65, _toDisplayString(group.subtitle), 1)
+                  _createElementVNode("div", _hoisted_64, _toDisplayString(group.subtitle), 1)
                 ]),
-                _createElementVNode("div", _hoisted_66, [
-                  _createElementVNode("span", _hoisted_67, "成熟 " + _toDisplayString(groupReadyCount(group)), 1),
-                  _createElementVNode("span", _hoisted_68, "空地 " + _toDisplayString(groupEmptyCount(group)), 1)
+                _createElementVNode("div", _hoisted_65, [
+                  _createElementVNode("span", _hoisted_66, "成熟 " + _toDisplayString(groupReadyCount(group)), 1),
+                  _createElementVNode("span", _hoisted_67, "空地 " + _toDisplayString(groupEmptyCount(group)), 1)
                 ])
               ]),
-              _createElementVNode("div", _hoisted_69, [
+              _createElementVNode("div", _hoisted_68, [
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(group.slots, (slot) => {
                   return (_openBlock(), _createElementBlock("button", {
                     key: `${group.id}-${slot.slot_index}`,
@@ -807,36 +805,36 @@ return (_ctx, _cache) => {
                     disabled: loading.value || actingSlotKey.value === slotKey(slot),
                     onClick: $event => (handleSlotClick(slot))
                   }, [
-                    _createElementVNode("div", _hoisted_71, [
-                      _createElementVNode("span", _hoisted_72, "#" + _toDisplayString(slot.slot_index), 1),
-                      _createElementVNode("span", _hoisted_73, _toDisplayString(slot.badge), 1)
+                    _createElementVNode("div", _hoisted_70, [
+                      _createElementVNode("span", _hoisted_71, "#" + _toDisplayString(slot.slot_index), 1),
+                      _createElementVNode("span", _hoisted_72, _toDisplayString(slot.badge), 1)
                     ]),
-                    _createElementVNode("div", _hoisted_74, _toDisplayString(slot.icon), 1),
-                    _createElementVNode("div", _hoisted_75, _toDisplayString(slot.title), 1),
-                    _createElementVNode("div", _hoisted_76, _toDisplayString(slotText(slot)), 1)
-                  ], 14, _hoisted_70))
+                    _createElementVNode("div", _hoisted_73, _toDisplayString(slot.icon), 1),
+                    _createElementVNode("div", _hoisted_74, _toDisplayString(slot.title), 1),
+                    _createElementVNode("div", _hoisted_75, _toDisplayString(slotText(slot)), 1)
+                  ], 14, _hoisted_69))
                 }), 128))
               ])
             ]))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_77, [
-        _hoisted_78,
+      _createElementVNode("section", _hoisted_76, [
+        _hoisted_77,
         (!historyItems.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_79, "暂无执行记录"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_80, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_78, "暂无执行记录"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_79, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: `${item.time}-${item.title}`,
                   class: "vf-history"
                 }, [
-                  _createElementVNode("div", _hoisted_81, [
+                  _createElementVNode("div", _hoisted_80, [
                     _createElementVNode("strong", null, _toDisplayString(item.title), 1),
                     _createElementVNode("span", null, _toDisplayString(item.time), 1)
                   ]),
                   (item.lines?.length)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_82, _toDisplayString((item.lines || []).join(' / ')), 1))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_81, _toDisplayString((item.lines || []).join(' / ')), 1))
                     : _createCommentVNode("", true)
                 ]))
               }), 128))
@@ -848,6 +846,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9e9ceb80"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9f4e0346"]]);
 
 export { PageView as default };

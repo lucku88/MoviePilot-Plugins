@@ -5,12 +5,15 @@
         <div class="vfc-copy">
           <div class="vfc-badge">Vue-农场</div>
           <h1 class="vfc-title">插件配置</h1>
-          <p class="vfc-subtitle">收菜、种植、出售、获取执行记录。</p>
+          <div class="vfc-chip-row">
+            <span class="vfc-chip">{{ config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写' }}</span>
+            <span class="vfc-chip">优先种子：{{ config.prefer_seed || '未选择' }}</span>
+          </div>
         </div>
         <div class="vfc-action-grid">
-          <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
+          <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
           <v-btn variant="text" @click="closePlugin">关闭</v-btn>
         </div>
       </header>
@@ -300,24 +303,32 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.vuefarm-config{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
-.vuefarm-config.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
+.vuefarm-config{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--panel-soft:rgba(255,255,255,.72);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
+.vuefarm-config.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--panel-soft:rgba(34,36,50,.72);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
 .vuefarm-config,.vuefarm-config *{box-sizing:border-box}
 .vfc-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
 .vfc-card{padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
-.vfc-hero{display:grid;gap:14px;background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vfc-badge{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+.vfc-hero{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
+.vfc-copy{flex:1;min-width:0}
+.vfc-badge,.vfc-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
+.vfc-badge{width:fit-content;padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vfc-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
-.vfc-subtitle,.vfc-note{color:var(--muted)}
-.vfc-subtitle{margin:0;font-size:14px;line-height:1.7}
-.vfc-action-grid,.vfc-switch-grid,.vfc-field-grid{display:grid;gap:12px}
-.vfc-action-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.vfc-chip-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.vfc-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600;justify-content:flex-start}
+.vfc-note{color:var(--muted);font-size:12px;line-height:1.65}
+.vfc-action-grid{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:nowrap;min-width:min(100%,520px)}
+.vfc-action-grid :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
+.vfc-action-grid :deep(.v-btn--variant-flat){min-width:132px}
+.vfc-action-grid :deep(.v-btn--variant-text){min-width:auto;padding-inline:6px}
+.vfc-switch-grid,.vfc-field-grid{display:grid;gap:12px}
 .vfc-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
-.vfc-switch-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.vfc-switch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .vfc-switch-card,.vfc-field-card{padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel-strong)}
 .vfc-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vfc-field-card:nth-child(1){background:linear-gradient(135deg,rgba(124,92,255,.12) 0%,transparent 48%),var(--panel-strong)}
+.vfc-field-card:nth-child(2){background:linear-gradient(135deg,rgba(255,171,64,.12) 0%,transparent 48%),var(--panel-strong)}
+.vfc-field-card:nth-child(3){background:linear-gradient(135deg,rgba(76,132,255,.12) 0%,transparent 48%),var(--panel-strong)}
 .vfc-field-label{margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
-.vfc-note{font-size:12px;line-height:1.65}
 .vfc-code{margin-top:14px;padding:16px 18px;border-radius:18px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:13px;line-height:1.6;overflow-x:auto}
 :deep(.vuefarm-config .v-field),:deep(.vuefarm-config .v-selection-control){color:var(--text)}
 :deep(.vuefarm-config .v-field){background:rgba(255,255,255,.02);border-radius:14px}
@@ -331,6 +342,6 @@ onBeforeUnmount(() => {
 :deep(.vuefarm-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
 :deep(.vuefarm-config .v-field__outline){--v-field-border-opacity:1}
 :deep(.vuefarm-config .v-selection-control__input > .v-icon),:deep(.vuefarm-config .v-switch__track){color:var(--accent)}
-@media (max-width:1080px){.vfc-switch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vfc-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:760px){.vfc-shell{padding:0 10px}.vfc-card{padding:14px;border-radius:18px}.vfc-action-grid,.vfc-switch-grid,.vfc-field-grid{grid-template-columns:1fr}}
+@media (max-width:1080px){.vfc-switch-grid,.vfc-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vfc-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
+@media (max-width:760px){.vfc-shell{padding:0 10px}.vfc-card{padding:14px;border-radius:18px}.vfc-hero,.vfc-switch-grid,.vfc-field-grid{grid-template-columns:1fr;display:grid}.vfc-action-grid{gap:10px}.vfc-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
 </style>
