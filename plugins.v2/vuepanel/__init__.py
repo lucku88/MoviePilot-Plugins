@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "按网站 / 功能模块组织签到与领取卡片，支持思齐签到、HNR领取与 New API 多站点签到。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.0"
+    plugin_version = "0.1.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -104,7 +104,7 @@ class VuePanel(_PluginBase):
             merged["cards"] = config.get("cards") or []
 
         self._apply_config(merged)
-        self._save_next_run_time()
+        self._save_schedule_meta()
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -247,7 +247,7 @@ class VuePanel(_PluginBase):
             dashboard = self._build_dashboard(states)
             self.save_data("dashboard_status", dashboard)
             self.save_data("last_run", self._format_time(self._aware_now()))
-            self._save_next_run_time()
+            self._save_schedule_meta()
 
             if self._notify and notify_lines:
                 title = "【📊面板报告】" if error_count == 0 else "【⚠️面板报告】"
@@ -293,6 +293,8 @@ class VuePanel(_PluginBase):
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "next_run_time": self._format_time(next_run) if next_run else "",
+            "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._load_next_trigger_time() else "",
+            "next_trigger_mode": self._load_next_trigger_mode(),
             "last_run": self.get_data("last_run") or "",
             "dashboard": dashboard,
             "history": (self.get_data("history") or [])[:12],
@@ -447,7 +449,7 @@ class VuePanel(_PluginBase):
         self._save_card_states(states)
         dashboard = self._build_dashboard(states)
         self.save_data("dashboard_status", dashboard)
-        self._save_next_run_time()
+        self._save_schedule_meta()
         logger.info("%s 已刷新状态：%s", self.plugin_name, reason)
         return dashboard
 
@@ -862,6 +864,8 @@ class VuePanel(_PluginBase):
             "title": "网站 / 功能模块 面板",
             "subtitle": "每张配置卡片对应一张状态卡片，展示、样式与执行行为完全隔离。",
             "next_run_time": self._format_time(self._load_next_run_time()) if self._enabled else "",
+            "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._enabled else "",
+            "next_trigger_mode": self._load_next_trigger_mode(),
             "overview": overview,
             "groups": groups,
             "hidden_count": str(max(0, len(self._cards) - visible_count)),
@@ -1071,13 +1075,23 @@ class VuePanel(_PluginBase):
         session.cookies.update(self._parse_cookie(card.get("cookie") or ""))
         return session
 
-    def _save_next_run_time(self):
+    def _save_schedule_meta(self):
         next_run = self._get_next_run_time()
-        self.save_data("next_run_time", self._format_time(next_run) if next_run else "")
+        next_run_text = self._format_time(next_run) if next_run else ""
+        self.save_data("next_run_time", next_run_text)
+        self.save_data("next_trigger_time", next_run_text)
+        self.save_data("next_trigger_mode", "cron" if next_run else "")
 
     def _load_next_run_time(self) -> Optional[datetime]:
         raw = self.get_data("next_run_time")
         return self._parse_datetime(raw)
+
+    def _load_next_trigger_time(self) -> Optional[datetime]:
+        raw = self.get_data("next_trigger_time")
+        return self._parse_datetime(raw)
+
+    def _load_next_trigger_mode(self) -> str:
+        return str(self.get_data("next_trigger_mode") or "")
 
     def _get_next_run_time(self) -> Optional[datetime]:
         if not self._enabled or not self._cron:
