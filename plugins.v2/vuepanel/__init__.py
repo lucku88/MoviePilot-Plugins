@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "按网站 / 功能模块组织签到与领取卡片，支持思齐签到、HNR领取与 New API 多站点签到。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -153,14 +153,23 @@ class VuePanel(_PluginBase):
         return []
 
     def get_service(self) -> List[Dict[str, Any]]:
-        if not self._enabled or not self._cron:
+        if not self._enabled:
             return []
-        try:
-            trigger = CronTrigger.from_crontab(self._cron, timezone=pytz.timezone(settings.TZ))
-        except Exception as err:
-            logger.warning("%s Cron 无效：%s", self.plugin_name, err)
-            return []
-        return [{"id": "VuePanel_auto", "name": self.plugin_name, "trigger": trigger, "func": self._scheduled_worker, "kwargs": {}}]
+        services: List[Dict[str, Any]] = []
+        for card in self._cards:
+            trigger = self._get_card_trigger(card)
+            if not trigger:
+                continue
+            services.append(
+                {
+                    "id": f"VuePanel_{self._safe_card_id(card['id'])}",
+                    "name": f"{self.plugin_name}-{card.get('title') or card.get('site_name') or card['id']}",
+                    "trigger": trigger,
+                    "func": self._scheduled_card_worker,
+                    "kwargs": {"card_id": card["id"]},
+                }
+            )
+        return services
 
     def stop_service(self):
         try:
@@ -182,6 +191,9 @@ class VuePanel(_PluginBase):
 
     def _scheduled_worker(self):
         return self.run_job(force=False, reason="scheduled")
+
+    def _scheduled_card_worker(self, card_id: str):
+        return self.run_job(force=False, reason="scheduled-card", card_id=card_id)
 
     def _get_config_api(self):
         return self._get_config()
@@ -374,6 +386,7 @@ class VuePanel(_PluginBase):
                 "site_url": module_meta["default_site_url"],
                 "enabled": False,
                 "auto_run": True,
+                "cron": self.DEFAULT_CRON,
                 "show_status": True,
                 "notify": True,
                 "tone": module_meta.get("tone") or "azure",
@@ -395,6 +408,7 @@ class VuePanel(_PluginBase):
                 "site_url": module_meta["default_site_url"],
                 "enabled": False,
                 "auto_run": True,
+                "cron": self.DEFAULT_CRON,
                 "show_status": True,
                 "notify": True,
                 "tone": module_meta.get("tone") or "azure",
@@ -804,7 +818,26 @@ class VuePanel(_PluginBase):
         auto_count = 0
 
         for card in self._cards:
-            state = states.get(card["id"]) or self._placeholder_state(card)
+            module_meta = self._module_meta(card["module_key"])
+            state = dict(states.get(card["id"]) or self._placeholder_state(card))
+            state.update(
+                {
+                    "title": card["title"],
+                    "site_name": card["site_name"],
+                    "site_url": card["site_url"],
+                    "module_name": module_meta["label"],
+                    "module_icon": module_meta["icon"],
+                    "enabled": card["enabled"],
+                    "auto_run": card["auto_run"],
+                    "cron": self._get_card_cron(card),
+                    "next_run_time": self._format_time(self._get_card_next_run(card)) if self._card_schedule_enabled(card) else "",
+                    "notify": card["notify"],
+                    "tone": card["tone"],
+                    "note": card.get("note") or "",
+                    "uid": card.get("uid") or "",
+                    "cookie_configured": bool(card.get("cookie")),
+                }
+            )
             state["tags"] = self._build_card_tags(card)
             if state.get("last_success"):
                 success_count += 1
@@ -845,8 +878,8 @@ class VuePanel(_PluginBase):
         module_sections = self._build_module_sections(groups)
 
         overview = [
+            {"label": "模块数量", "value": str(len(module_sections))},
             {"label": "配置卡片", "value": str(len(self._cards))},
-            {"label": "状态卡片", "value": str(len(self._cards))},
             {"label": "自动执行", "value": str(auto_count)},
             {"label": "成功状态", "value": str(success_count)},
             {"label": "异常状态", "value": str(error_count)},
@@ -855,8 +888,8 @@ class VuePanel(_PluginBase):
         return {
             "schema_version": self.plugin_version,
             "cards_version": self._cards_fingerprint(),
-            "title": "网站 / 功能模块 面板",
-            "subtitle": "每张配置卡片对应一张状态卡片，展示、样式与执行行为完全隔离。",
+            "title": "模块状态页",
+            "subtitle": "按模块拆分状态、调度与最近执行记录，固定任务和多站点任务各自独立展示。",
             "next_run_time": self._format_time(self._load_next_run_time()) if self._enabled else "",
             "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._enabled else "",
             "next_trigger_mode": self._load_next_trigger_mode(),
@@ -864,12 +897,13 @@ class VuePanel(_PluginBase):
             "groups": groups,
             "module_sections": module_sections,
             "hidden_count": "0",
-            "history": (self.get_data("history") or [])[:12],
+            "history": [],
             "module_options": list(self.MODULES),
             "tone_options": list(self.TONES),
         }
 
     def _build_module_sections(self, groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        history_map = self._build_module_history_map(self.get_data("history") or [])
         bucket: Dict[str, Dict[str, Any]] = {}
         for module_meta in self.MODULES:
             bucket[module_meta["key"]] = {
@@ -877,7 +911,11 @@ class VuePanel(_PluginBase):
                 "module_name": module_meta["label"],
                 "module_icon": module_meta["icon"],
                 "singleton": bool(module_meta.get("singleton")),
+                "tone": module_meta.get("tone") or "azure",
                 "cards": [],
+                "history": list(history_map.get(module_meta["key"]) or []),
+                "stats": [],
+                "latest_run": "",
             }
 
         for group in groups:
@@ -889,7 +927,27 @@ class VuePanel(_PluginBase):
                 cards.sort(key=lambda item: f"{item.get('site_name') or ''}|{item.get('title') or ''}".lower())
                 target["cards"].extend(cards)
 
-        return [section for section in bucket.values() if section.get("cards")]
+        sections: List[Dict[str, Any]] = []
+        for section in bucket.values():
+            cards = list(section.get("cards") or [])
+            history = list(section.get("history") or [])[:8]
+            if not cards and not history:
+                continue
+            enabled_count = sum(1 for card in cards if card.get("enabled"))
+            auto_count = sum(1 for card in cards if card.get("auto_run"))
+            error_count = sum(1 for card in cards if card.get("level") == "error")
+            latest_values = [str(card.get("last_run") or "") for card in cards if card.get("last_run")]
+            latest_values.extend(str(item.get("time") or "") for item in history if item.get("time"))
+            section["latest_run"] = max(latest_values) if latest_values else ""
+            section["history"] = history
+            section["stats"] = [
+                {"label": "卡片", "value": str(len(cards))},
+                {"label": "启用", "value": str(enabled_count)},
+                {"label": "定时", "value": str(auto_count)},
+                {"label": "异常", "value": str(error_count)},
+            ]
+            sections.append(section)
+        return sections
 
     def _placeholder_state(self, card: Dict[str, Any]) -> Dict[str, Any]:
         module_meta = self._module_meta(card["module_key"])
@@ -921,6 +979,8 @@ class VuePanel(_PluginBase):
             "tone_label": self._tone_label(card["tone"]),
             "enabled": card["enabled"],
             "auto_run": card["auto_run"],
+            "cron": self._get_card_cron(card),
+            "next_run_time": self._format_time(self._get_card_next_run(card)) if self._card_schedule_enabled(card) else "",
             "show_status": card["show_status"],
             "notify": card["notify"],
             "level": level,
@@ -959,6 +1019,8 @@ class VuePanel(_PluginBase):
             "tone_label": self._tone_label(card["tone"]),
             "enabled": card["enabled"],
             "auto_run": card["auto_run"],
+            "cron": self._get_card_cron(card),
+            "next_run_time": self._format_time(self._get_card_next_run(card)) if self._card_schedule_enabled(card) else "",
             "show_status": card["show_status"],
             "notify": card["notify"],
             "level": result.get("level") or "info",
@@ -983,10 +1045,15 @@ class VuePanel(_PluginBase):
             0,
             {
                 "time": self._format_time(self._aware_now()),
-                "title": f"{state.get('module_icon')} {state.get('title')}",
+                "title": state.get("title") or state.get("site_name") or "",
                 "level": state.get("level") or "info",
                 "lines": [line for line in lines if line],
+                "card_id": state.get("card_id") or "",
+                "module_key": state.get("module_key") or "",
+                "module_name": state.get("module_name") or "",
+                "module_icon": state.get("module_icon") or "",
                 "site_name": state.get("site_name") or "",
+                "site_url": state.get("site_url") or "",
             },
         )
         self.save_data("history", history[: self.HISTORY_LIMIT])
@@ -1009,12 +1076,20 @@ class VuePanel(_PluginBase):
     def _select_cards_for_run(self, card_id: str = "", force: bool = False, reason: str = "manual") -> List[Dict[str, Any]]:
         if card_id:
             match = next((card for card in self._cards if card["id"] == card_id), None)
-            return [match] if match else []
+            if not match:
+                return []
+            if force:
+                return [match]
+            if not self._enabled or not match.get("enabled"):
+                return []
+            if reason == "scheduled-card" and not self._card_schedule_enabled(match):
+                return []
+            return [match]
 
         cards = [card for card in self._cards if card.get("enabled")]
         if not force and not self._enabled:
             return []
-        if reason == "scheduled":
+        if reason in {"scheduled", "scheduled-card"}:
             cards = [card for card in cards if card.get("auto_run")]
         return cards
 
@@ -1067,6 +1142,7 @@ class VuePanel(_PluginBase):
             "site_url": site_url,
             "enabled": self._to_bool(item.get("enabled", False)),
             "auto_run": self._to_bool(item.get("auto_run", True)),
+            "cron": str(item.get("cron") or item.get("schedule_cron") or self._cron or self.DEFAULT_CRON).strip() or self.DEFAULT_CRON,
             "show_status": True,
             "notify": self._to_bool(item.get("notify", True)),
             "tone": tone,
@@ -1115,7 +1191,7 @@ class VuePanel(_PluginBase):
         next_run_text = self._format_time(next_run) if next_run else ""
         self.save_data("next_run_time", next_run_text)
         self.save_data("next_trigger_time", next_run_text)
-        self.save_data("next_trigger_mode", "cron" if next_run else "")
+        self.save_data("next_trigger_mode", "card-cron" if next_run else "")
 
     def _load_next_run_time(self) -> Optional[datetime]:
         raw = self.get_data("next_run_time")
@@ -1129,13 +1205,11 @@ class VuePanel(_PluginBase):
         return str(self.get_data("next_trigger_mode") or "")
 
     def _get_next_run_time(self) -> Optional[datetime]:
-        if not self._enabled or not self._cron:
+        if not self._enabled:
             return None
-        try:
-            trigger = CronTrigger.from_crontab(self._cron, timezone=pytz.timezone(settings.TZ))
-            return trigger.get_next_fire_time(None, self._aware_now())
-        except Exception:
-            return None
+        next_runs = [self._get_card_next_run(card) for card in self._cards if self._card_schedule_enabled(card)]
+        next_runs = [item for item in next_runs if item]
+        return min(next_runs) if next_runs else None
 
     def _reregister_plugin(self, reason: str = ""):
         try:
@@ -1163,7 +1237,10 @@ class VuePanel(_PluginBase):
     def _build_card_tags(self, card: Dict[str, Any]) -> List[str]:
         tags = []
         tags.append("已启用" if card.get("enabled") else "已停用")
-        tags.append("定时运行" if card.get("auto_run") else "仅手动执行")
+        if card.get("auto_run"):
+            tags.append("定时运行" if self._has_valid_card_cron(card) else "Cron 无效")
+        else:
+            tags.append("仅手动执行")
         if card.get("cookie"):
             tags.append("Cookie 已配置")
         if card.get("notify"):
@@ -1188,6 +1265,7 @@ class VuePanel(_PluginBase):
                         str(card.get("site_url") or ""),
                         str(card.get("enabled") or False),
                         str(card.get("auto_run") or False),
+                        str(card.get("cron") or ""),
                         str(card.get("show_status") or False),
                         str(card.get("notify") or False),
                         str(card.get("tone") or ""),
@@ -1197,6 +1275,60 @@ class VuePanel(_PluginBase):
                 )
             )
         return "||".join(values)
+
+    def _build_module_history_map(self, history_items: Any) -> Dict[str, List[Dict[str, Any]]]:
+        bucket: Dict[str, List[Dict[str, Any]]] = {item["key"]: [] for item in self.MODULES}
+        if not isinstance(history_items, list):
+            return bucket
+        for item in history_items:
+            if not isinstance(item, dict):
+                continue
+            module_key = str(item.get("module_key") or "").strip()
+            if module_key not in bucket:
+                title = str(item.get("title") or "")
+                if "🎁" in title or "HNR" in title:
+                    module_key = "hnr_claim"
+                elif "🪪" in title or "思齐" in title:
+                    module_key = "siqi_sign"
+                elif "🤖" in title:
+                    module_key = "newapi_checkin"
+            if module_key not in bucket:
+                continue
+            bucket[module_key].append(item)
+        return bucket
+
+    def _get_card_cron(self, card: Dict[str, Any]) -> str:
+        return str(card.get("cron") or "").strip()
+
+    def _get_card_trigger(self, card: Dict[str, Any]) -> Optional[CronTrigger]:
+        if not self._card_schedule_enabled(card):
+            return None
+        return self._parse_card_cron(self._get_card_cron(card), title=str(card.get("title") or card.get("id") or ""))
+
+    def _has_valid_card_cron(self, card: Dict[str, Any]) -> bool:
+        return bool(self._parse_card_cron(self._get_card_cron(card)))
+
+    def _card_schedule_enabled(self, card: Dict[str, Any]) -> bool:
+        return bool(self._enabled and card.get("enabled") and card.get("auto_run") and self._get_card_cron(card))
+
+    def _get_card_next_run(self, card: Dict[str, Any]) -> Optional[datetime]:
+        trigger = self._parse_card_cron(self._get_card_cron(card))
+        if not trigger:
+            return None
+        try:
+            return trigger.get_next_fire_time(None, self._aware_now())
+        except Exception:
+            return None
+
+    def _parse_card_cron(self, cron_text: str, title: str = "") -> Optional[CronTrigger]:
+        if not cron_text:
+            return None
+        try:
+            return CronTrigger.from_crontab(cron_text, timezone=pytz.timezone(settings.TZ))
+        except Exception as err:
+            if title:
+                logger.warning("%s 卡片 Cron 无效：%s -> %s", self.plugin_name, title, err)
+            return None
 
     @staticmethod
     def _safe_json(response: requests.Response) -> Any:

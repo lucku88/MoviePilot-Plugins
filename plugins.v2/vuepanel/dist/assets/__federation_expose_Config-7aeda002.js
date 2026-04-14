@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_5805791a_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_8eb50cf6_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-5805791a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-8eb50cf6"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpc-shell" };
 const _hoisted_2 = { class: "vpc-card vpc-hero" };
 const _hoisted_3 = { class: "vpc-copy" };
@@ -30,65 +30,71 @@ const _hoisted_15 = { class: "vpc-switch-card" };
 const _hoisted_16 = { class: "vpc-switch-card" };
 const _hoisted_17 = { class: "vpc-switch-card" };
 const _hoisted_18 = { class: "vpc-switch-card" };
-const _hoisted_19 = { class: "vpc-field-grid plugin" };
-const _hoisted_20 = { class: "vpc-card" };
-const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-section-head" }, [
+const _hoisted_19 = { class: "vpc-card" };
+const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-section-head" }, [
   /*#__PURE__*/_createElementVNode("div", null, [
     /*#__PURE__*/_createElementVNode("div", { class: "vpc-kicker" }, "固定模块"),
     /*#__PURE__*/_createElementVNode("h2", { class: "vpc-section-title" }, "思齐签到 / HNR领取")
   ]),
-  /*#__PURE__*/_createElementVNode("div", { class: "vpc-note" }, "这两个任务固定各 1 张配置卡，不提供新增。")
+  /*#__PURE__*/_createElementVNode("div", { class: "vpc-note" }, "固定模块各保留 1 张卡片，单独控制启用、Cron 和 Cookie。")
 ], -1));
-const _hoisted_22 = { class: "vpc-fixed-grid" };
-const _hoisted_23 = { class: "vpc-editor-head" };
-const _hoisted_24 = { class: "vpc-kicker" };
-const _hoisted_25 = { class: "vpc-editor-title" };
-const _hoisted_26 = { class: "vpc-editor-site" };
-const _hoisted_27 = { class: "vpc-switch-grid compact single" };
+const _hoisted_21 = { class: "vpc-fixed-grid" };
+const _hoisted_22 = { class: "vpc-editor-head" };
+const _hoisted_23 = { class: "vpc-kicker" };
+const _hoisted_24 = { class: "vpc-editor-title" };
+const _hoisted_25 = { class: "vpc-editor-site" };
+const _hoisted_26 = { class: "vpc-switch-grid compact" };
+const _hoisted_27 = { class: "vpc-switch-card" };
 const _hoisted_28 = { class: "vpc-switch-card" };
-const _hoisted_29 = { class: "vpc-switch-card" };
-const _hoisted_30 = { class: "vpc-field-grid fixed" };
-const _hoisted_31 = { class: "vpc-field-card vpc-span-2" };
-const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-field-label" }, "Cookie", -1));
-const _hoisted_33 = { class: "vpc-note" };
-const _hoisted_34 = { class: "vpc-card" };
-const _hoisted_35 = { class: "vpc-section-head" };
-const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_29 = { class: "vpc-field-stack" };
+const _hoisted_30 = { class: "vpc-field-card" };
+const _hoisted_31 = { class: "vpc-field-card" };
+const _hoisted_32 = { class: "vpc-note" };
+const _hoisted_33 = { class: "vpc-card" };
+const _hoisted_34 = { class: "vpc-section-head" };
+const _hoisted_35 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "vpc-kicker" }, "多站点模块"),
   /*#__PURE__*/_createElementVNode("h2", { class: "vpc-section-title" }, "New API签到")
 ], -1));
-const _hoisted_37 = { class: "vpc-toolbar-actions" };
-const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-note" }, "所有 New API 站点都归在这个模块里，每个站点独立保存启用、定时运行、网站和 Cookie。", -1));
-const _hoisted_39 = {
+const _hoisted_36 = { class: "vpc-toolbar-actions" };
+const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-note" }, "所有 New API 站点统一收纳在这个模块内，每张站点卡独立保存启用、Cron、网站和 Cookie。", -1));
+const _hoisted_38 = {
   key: 0,
   class: "vpc-empty"
 };
-const _hoisted_40 = {
+const _hoisted_39 = {
   key: 1,
   class: "vpc-site-grid"
 };
-const _hoisted_41 = { class: "vpc-editor-head" };
-const _hoisted_42 = { class: "vpc-kicker" };
-const _hoisted_43 = { class: "vpc-editor-title" };
-const _hoisted_44 = { class: "vpc-inline-actions" };
-const _hoisted_45 = { class: "vpc-switch-grid compact" };
+const _hoisted_40 = { class: "vpc-editor-head" };
+const _hoisted_41 = { class: "vpc-kicker" };
+const _hoisted_42 = { class: "vpc-editor-title" };
+const _hoisted_43 = { class: "vpc-inline-actions" };
+const _hoisted_44 = { class: "vpc-switch-grid compact" };
+const _hoisted_45 = { class: "vpc-switch-card" };
 const _hoisted_46 = { class: "vpc-switch-card" };
-const _hoisted_47 = { class: "vpc-switch-card" };
-const _hoisted_48 = { class: "vpc-field-grid newapi" };
-const _hoisted_49 = { class: "vpc-field-card vpc-span-2" };
-const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpc-field-label" }, "Cookie", -1));
+const _hoisted_47 = { class: "vpc-field-grid newapi" };
+const _hoisted_48 = { class: "vpc-field-stack" };
+const _hoisted_49 = { class: "vpc-field-card" };
+const _hoisted_50 = { class: "vpc-field-card" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
 
+const DEFAULT_CARD_CRON = '5 8 * * *';
+
 
 const _sfc_main = {
   __name: 'Config',
-  props: { initialConfig: { type: Object, default: () => ({}) }, api: { type: Object, default: () => ({}) } },
+  props: {
+  api: { type: Object, required: true },
+  initialConfig: { type: Object, default: () => ({}) },
+},
   emits: ['switch', 'close'],
   setup(__props, { emit }) {
 
 const props = __props;
+
 
 
 
@@ -104,7 +110,7 @@ const config = reactive({
   onlyonce: false,
   use_proxy: false,
   force_ipv4: true,
-  cron: '5 8 * * *',
+  cron: DEFAULT_CARD_CRON,
   http_timeout: 15,
   http_retry_times: 3,
   random_delay_max_seconds: 5,
@@ -116,6 +122,7 @@ let mediaQuery = null;
 
 const fixedCards = computed(() => ['siqi_sign', 'hnr_claim'].map((key) => ensureFixedCard(key)));
 const newApiCards = computed(() => config.cards.filter((card) => card.module_key === 'newapi_checkin'));
+const scheduledCards = computed(() => config.cards.filter((card) => card.enabled && card.auto_run));
 
 function flash(text, type = 'success') {
   message.text = text;
@@ -153,6 +160,10 @@ function toneStyle(tone) {
   return map[tone] || map.azure
 }
 
+function fixedCookieNote(moduleKey) {
+  return moduleKey === 'hnr_claim' ? '和思齐签到共用同站 Cookie。' : '填写思齐站点 Cookie 后可执行。'
+}
+
 function buildFixedCard(moduleKey, current = {}) {
   const meta = moduleMeta(moduleKey);
   return {
@@ -163,9 +174,10 @@ function buildFixedCard(moduleKey, current = {}) {
     site_url: meta.default_site_url || 'https://si-qi.xyz',
     enabled: !!current.enabled,
     auto_run: current.auto_run !== false,
+    cron: String(current.cron || DEFAULT_CARD_CRON),
     show_status: true,
     notify: current.notify !== false,
-    tone: meta.tone || current.tone || 'azure',
+    tone: current.tone || meta.tone || 'azure',
     cookie: String(current.cookie || ''),
     uid: '',
     note: String(current.note || ''),
@@ -182,6 +194,7 @@ function buildNewApiCard(current = {}) {
     site_url: current.site_url || meta.default_site_url || '',
     enabled: !!current.enabled,
     auto_run: current.auto_run !== false,
+    cron: String(current.cron || DEFAULT_CARD_CRON),
     show_status: true,
     notify: current.notify !== false,
     tone: current.tone || meta.tone || 'azure',
@@ -257,7 +270,7 @@ async function loadConfig() {
       onlyonce: !!res.onlyonce,
       use_proxy: !!res.use_proxy,
       force_ipv4: res.force_ipv4 !== false,
-      cron: res.cron || '5 8 * * *',
+      cron: res.cron || DEFAULT_CARD_CRON,
       http_timeout: Number(res.http_timeout || 15),
       http_retry_times: Number(res.http_retry_times || 3),
       random_delay_max_seconds: Number(res.random_delay_max_seconds || 5),
@@ -335,6 +348,7 @@ return (_ctx, _cache) => {
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_alert = _resolveComponent("v-alert");
   const _component_v_switch = _resolveComponent("v-switch");
+  const _component_VCronField = _resolveComponent("VCronField");
   const _component_v_text_field = _resolveComponent("v-text-field");
 
   return (_openBlock(), _createElementBlock("div", {
@@ -350,7 +364,7 @@ return (_ctx, _cache) => {
           _createElementVNode("div", _hoisted_6, [
             _hoisted_7,
             _createElementVNode("span", _hoisted_8, "New API 站点 " + _toDisplayString(newApiCards.value.length), 1),
-            _createElementVNode("span", _hoisted_9, "插件 " + _toDisplayString(config.enabled ? '已启用' : '未启用'), 1)
+            _createElementVNode("span", _hoisted_9, "定时卡片 " + _toDisplayString(scheduledCards.value.length), 1)
           ])
         ]),
         _createElementVNode("div", _hoisted_10, [
@@ -405,6 +419,7 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.enabled,
               "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((config.enabled) = $event)),
+              class: "vpc-switch",
               label: "启用插件",
               density: "compact",
               "hide-details": "",
@@ -415,6 +430,7 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.notify) = $event)),
+              class: "vpc-switch",
               label: "开启通知",
               density: "compact",
               "hide-details": "",
@@ -425,6 +441,7 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.onlyonce) = $event)),
+              class: "vpc-switch",
               label: "保存后执行一次",
               density: "compact",
               "hide-details": "",
@@ -435,6 +452,7 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.use_proxy) = $event)),
+              class: "vpc-switch",
               label: "使用代理",
               density: "compact",
               "hide-details": "",
@@ -445,85 +463,48 @@ return (_ctx, _cache) => {
             _createVNode(_component_v_switch, {
               modelValue: config.force_ipv4,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.force_ipv4) = $event)),
+              class: "vpc-switch",
               label: "优先 IPv4",
               density: "compact",
               "hide-details": "",
               inset: ""
             }, null, 8, ["modelValue"])
           ])
-        ]),
-        _createElementVNode("div", _hoisted_19, [
-          _createVNode(_component_v_text_field, {
-            modelValue: config.cron,
-            "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.cron) = $event)),
-            label: "插件兜底 Cron",
-            variant: "outlined",
-            density: "comfortable",
-            "hide-details": "auto"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_timeout,
-            "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.http_timeout) = $event)),
-            modelModifiers: { number: true },
-            label: "超时秒数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            "hide-details": "auto"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.http_retry_times,
-            "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.http_retry_times) = $event)),
-            modelModifiers: { number: true },
-            label: "重试次数",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            "hide-details": "auto"
-          }, null, 8, ["modelValue"]),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.random_delay_max_seconds,
-            "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.random_delay_max_seconds) = $event)),
-            modelModifiers: { number: true },
-            label: "随机延迟",
-            type: "number",
-            variant: "outlined",
-            density: "comfortable",
-            "hide-details": "auto"
-          }, null, 8, ["modelValue"])
         ])
       ]),
-      _createElementVNode("section", _hoisted_20, [
-        _hoisted_21,
-        _createElementVNode("div", _hoisted_22, [
+      _createElementVNode("section", _hoisted_19, [
+        _hoisted_20,
+        _createElementVNode("div", _hoisted_21, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(fixedCards.value, (card) => {
             return (_openBlock(), _createElementBlock("article", {
               key: card.id,
               class: "vpc-editor fixed",
               style: _normalizeStyle(toneStyle(card.tone))
             }, [
-              _createElementVNode("div", _hoisted_23, [
+              _createElementVNode("div", _hoisted_22, [
                 _createElementVNode("div", null, [
-                  _createElementVNode("div", _hoisted_24, _toDisplayString(moduleMeta(card.module_key).label), 1),
-                  _createElementVNode("h3", _hoisted_25, _toDisplayString(card.title), 1)
+                  _createElementVNode("div", _hoisted_23, _toDisplayString(moduleMeta(card.module_key).label), 1),
+                  _createElementVNode("h3", _hoisted_24, _toDisplayString(card.title), 1)
                 ]),
-                _createElementVNode("span", _hoisted_26, _toDisplayString(card.site_url), 1)
+                _createElementVNode("span", _hoisted_25, _toDisplayString(card.site_url), 1)
               ]),
-              _createElementVNode("div", _hoisted_27, [
-                _createElementVNode("div", _hoisted_28, [
+              _createElementVNode("div", _hoisted_26, [
+                _createElementVNode("div", _hoisted_27, [
                   _createVNode(_component_v_switch, {
                     modelValue: card.enabled,
                     "onUpdate:modelValue": $event => ((card.enabled) = $event),
+                    class: "vpc-switch",
                     label: "启用",
                     density: "compact",
                     "hide-details": "",
                     inset: ""
                   }, null, 8, ["modelValue", "onUpdate:modelValue"])
                 ]),
-                _createElementVNode("div", _hoisted_29, [
+                _createElementVNode("div", _hoisted_28, [
                   _createVNode(_component_v_switch, {
                     modelValue: card.auto_run,
                     "onUpdate:modelValue": $event => ((card.auto_run) = $event),
+                    class: "vpc-switch",
                     label: "定时运行",
                     density: "compact",
                     "hide-details": "",
@@ -531,9 +512,17 @@ return (_ctx, _cache) => {
                   }, null, 8, ["modelValue", "onUpdate:modelValue"])
                 ])
               ]),
-              _createElementVNode("div", _hoisted_30, [
+              _createElementVNode("div", _hoisted_29, [
+                _createElementVNode("div", _hoisted_30, [
+                  _createVNode(_component_VCronField, {
+                    modelValue: card.cron,
+                    "onUpdate:modelValue": $event => ((card.cron) = $event),
+                    label: "定时运行 Cron",
+                    density: "comfortable",
+                    class: "vpc-cron-field"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                ]),
                 _createElementVNode("div", _hoisted_31, [
-                  _hoisted_32,
                   _createVNode(_component_v_text_field, {
                     modelValue: card.cookie,
                     "onUpdate:modelValue": $event => ((card.cookie) = $event),
@@ -542,17 +531,17 @@ return (_ctx, _cache) => {
                     density: "comfortable",
                     "hide-details": "auto"
                   }, null, 8, ["modelValue", "onUpdate:modelValue"]),
-                  _createElementVNode("div", _hoisted_33, _toDisplayString(card.module_key === 'hnr_claim' ? '和思齐签到共用同站 Cookie。' : '填写思齐站点 Cookie 后可执行。'), 1)
+                  _createElementVNode("div", _hoisted_32, _toDisplayString(fixedCookieNote(card.module_key)), 1)
                 ])
               ])
             ], 4))
           }), 128))
         ])
       ]),
-      _createElementVNode("section", _hoisted_34, [
-        _createElementVNode("div", _hoisted_35, [
-          _hoisted_36,
-          _createElementVNode("div", _hoisted_37, [
+      _createElementVNode("section", _hoisted_33, [
+        _createElementVNode("div", _hoisted_34, [
+          _hoisted_35,
+          _createElementVNode("div", _hoisted_36, [
             _createVNode(_component_v_btn, {
               color: "info",
               variant: "flat",
@@ -565,22 +554,22 @@ return (_ctx, _cache) => {
             })
           ])
         ]),
-        _hoisted_38,
+        _hoisted_37,
         (!newApiCards.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_39, "当前没有 New API 站点，点击“新增站点”创建。"))
-          : (_openBlock(), _createElementBlock("div", _hoisted_40, [
+          ? (_openBlock(), _createElementBlock("div", _hoisted_38, "当前没有 New API 站点，点击“新增站点”创建。"))
+          : (_openBlock(), _createElementBlock("div", _hoisted_39, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(newApiCards.value, (card, index) => {
                 return (_openBlock(), _createElementBlock("article", {
                   key: card.id,
                   class: "vpc-editor",
                   style: _normalizeStyle(toneStyle(card.tone))
                 }, [
-                  _createElementVNode("div", _hoisted_41, [
+                  _createElementVNode("div", _hoisted_40, [
                     _createElementVNode("div", null, [
-                      _createElementVNode("div", _hoisted_42, "站点 " + _toDisplayString(index + 1), 1),
-                      _createElementVNode("h3", _hoisted_43, _toDisplayString(card.site_name || `New API 站点 ${index + 1}`), 1)
+                      _createElementVNode("div", _hoisted_41, "站点 " + _toDisplayString(index + 1), 1),
+                      _createElementVNode("h3", _hoisted_42, _toDisplayString(card.site_name || `New API 站点 ${index + 1}`), 1)
                     ]),
-                    _createElementVNode("div", _hoisted_44, [
+                    _createElementVNode("div", _hoisted_43, [
                       _createVNode(_component_v_btn, {
                         size: "small",
                         variant: "text",
@@ -594,21 +583,23 @@ return (_ctx, _cache) => {
                       }, 1032, ["onClick"])
                     ])
                   ]),
-                  _createElementVNode("div", _hoisted_45, [
-                    _createElementVNode("div", _hoisted_46, [
+                  _createElementVNode("div", _hoisted_44, [
+                    _createElementVNode("div", _hoisted_45, [
                       _createVNode(_component_v_switch, {
                         modelValue: card.enabled,
                         "onUpdate:modelValue": $event => ((card.enabled) = $event),
+                        class: "vpc-switch",
                         label: "启用",
                         density: "compact",
                         "hide-details": "",
                         inset: ""
                       }, null, 8, ["modelValue", "onUpdate:modelValue"])
                     ]),
-                    _createElementVNode("div", _hoisted_47, [
+                    _createElementVNode("div", _hoisted_46, [
                       _createVNode(_component_v_switch, {
                         modelValue: card.auto_run,
                         "onUpdate:modelValue": $event => ((card.auto_run) = $event),
+                        class: "vpc-switch",
                         label: "定时运行",
                         density: "compact",
                         "hide-details": "",
@@ -616,7 +607,7 @@ return (_ctx, _cache) => {
                       }, null, 8, ["modelValue", "onUpdate:modelValue"])
                     ])
                   ]),
-                  _createElementVNode("div", _hoisted_48, [
+                  _createElementVNode("div", _hoisted_47, [
                     _createVNode(_component_v_text_field, {
                       modelValue: card.site_name,
                       "onUpdate:modelValue": $event => ((card.site_name) = $event),
@@ -640,9 +631,10 @@ return (_ctx, _cache) => {
                       variant: "outlined",
                       density: "comfortable",
                       "hide-details": "auto"
-                    }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                    }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                  ]),
+                  _createElementVNode("div", _hoisted_48, [
                     _createElementVNode("div", _hoisted_49, [
-                      _hoisted_50,
                       _createVNode(_component_v_text_field, {
                         modelValue: card.cookie,
                         "onUpdate:modelValue": $event => ((card.cookie) = $event),
@@ -650,6 +642,15 @@ return (_ctx, _cache) => {
                         variant: "outlined",
                         density: "comfortable",
                         "hide-details": "auto"
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _createElementVNode("div", _hoisted_50, [
+                      _createVNode(_component_VCronField, {
+                        modelValue: card.cron,
+                        "onUpdate:modelValue": $event => ((card.cron) = $event),
+                        label: "定时运行 Cron",
+                        density: "comfortable",
+                        class: "vpc-cron-field"
                       }, null, 8, ["modelValue", "onUpdate:modelValue"])
                     ])
                   ])
@@ -663,6 +664,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-5805791a"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8eb50cf6"]]);
 
 export { ConfigView as default };
