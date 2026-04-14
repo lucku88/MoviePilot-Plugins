@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -110,9 +110,11 @@ class VuePanel(_PluginBase):
         if config:
             merged.update(config)
         if config and "cards" in config:
-            merged["cards"] = config.get("cards") or []
+            incoming_cards = config.get("cards")
+            merged["cards"] = incoming_cards if isinstance(incoming_cards, list) and incoming_cards else self._default_cards()
 
         self._apply_config(merged)
+        self._ensure_cards(persist=True)
         self._save_schedule_meta()
 
         if self._onlyonce:
@@ -156,6 +158,7 @@ class VuePanel(_PluginBase):
         return []
 
     def get_service(self) -> List[Dict[str, Any]]:
+        self._ensure_cards()
         if not self._enabled:
             return []
         services: List[Dict[str, Any]] = []
@@ -294,6 +297,7 @@ class VuePanel(_PluginBase):
             logger.info("## 执行结束... %s  耗时 %s 秒", self._format_time(self._aware_now()), cost_sec)
 
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
+        self._ensure_cards(persist=True)
         dashboard = self.get_data("dashboard_status") or {}
         if auto_refresh and (
             not dashboard
@@ -323,6 +327,7 @@ class VuePanel(_PluginBase):
         }
 
     def _get_config(self) -> Dict[str, Any]:
+        self._ensure_cards()
         return {
             "enabled": self._enabled,
             "notify": self._notify,
@@ -456,6 +461,16 @@ class VuePanel(_PluginBase):
         self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), self.DEFAULT_RETRY_TIMES))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), self.DEFAULT_RANDOM_DELAY))
         self._cards = self._normalize_cards(config.get("cards"))
+        self._ensure_cards()
+
+    def _ensure_cards(self, persist: bool = False) -> bool:
+        if self._cards:
+            return False
+        self._cards = self._default_cards()
+        logger.info("%s 未读取到功能卡片配置，已自动恢复默认卡片。", self.plugin_name)
+        if persist:
+            self._update_config()
+        return True
 
     def _update_config(self):
         self.update_config(
@@ -845,6 +860,7 @@ class VuePanel(_PluginBase):
         }
 
     def _build_dashboard(self, states: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        self._ensure_cards()
         success_count = 0
         error_count = 0
         auto_count = 0
