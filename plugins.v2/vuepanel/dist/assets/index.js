@@ -1,8 +1,6 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, m as makeLayoutProps, c as makeThemeProps, d as provideTheme, f as createLayout, u as useRtl, h as provideDefaults, j as convertToUnit, S as SUPPORTS_INTERSECTION, k as getCurrentInstanceName, l as destructComputed, n as isCssColor, o as getForeground, q as clamp, r as consoleWarn, s as makeLayoutItemProps, t as useProxiedModel, v as useToggleScope, w as useLayoutItem, x as getUid, y as deepEqual, z as wrapInArray, A as findChildrenWithProvide, I as IconValue, B as useIcon, C as flattenFragments, D as useResizeObserver, E as hasEvent, F as IN_BROWSER, G as isObject, H as keyCodes, J as useLocale, K as filterInputAttrs, L as matchesSelector, M as omit, N as EventProp, O as defineComponent, P as deprecate, Q as getPropertyFromItem, R as pick, T as focusChild, U as consoleError, V as refElement, W as useDisplay, X as focusableChildren, Y as getNextElement, Z as callEvent, _ as createRange, $ as noop, a0 as useTheme, a1 as keys, a2 as getEventCoordinates, a3 as HSVtoRGB, a4 as RGBtoHSV, a5 as HSVtoHSL, a6 as HSLtoHSV, a7 as HSVtoHex, a8 as HexToHSV, a9 as has, aa as getDecimals, ab as keyValues, ac as HSVtoCSS, ad as parseColor, ae as RGBtoCSS, af as getContrast, ag as humanReadableFileSize, ah as breakpoints, ai as provideLocale, aj as useLayout, ak as CircularBuffer, al as VClassIcon, am as VComponentIcon, an as VLigatureIcon, ao as VSvgIcon } from './display-36ab135c.js';
-import ConfigView from './__federation_expose_Config-20dfd8f6.js';
-import PageView from './__federation_expose_Page-2ef9d4c3.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
+import PageView, { _ as _export_sfc } from './__federation_expose_Page-91ad0045.js';
 
 true&&(function polyfill() {
     const relList = document.createElement('link').relList;
@@ -8494,7 +8492,7 @@ function useScrolling(listRef, textFieldRef) {
   };
 }
 
-const {createTextVNode:_createTextVNode$4,mergeProps:_mergeProps$m,createVNode:_createVNode$_,Fragment:_Fragment$c} = await importShared('vue');
+const {createTextVNode:_createTextVNode$3,mergeProps:_mergeProps$m,createVNode:_createVNode$_,Fragment:_Fragment$c} = await importShared('vue');
 const {computed: computed$F,mergeProps: mergeProps$5,ref: ref$o,shallowRef: shallowRef$h,watch: watch$e} = await importShared('vue');
 const makeSelectProps = propsFactory({
   chips: Boolean,
@@ -8843,7 +8841,7 @@ const VSelect = genericComponent()({
             "class": "v-select__selection-text"
           }, [item.title, props.multiple && index < selections.value.length - 1 && _createVNode$_("span", {
             "class": "v-select__selection-comma"
-          }, [_createTextVNode$4(",")])])]);
+          }, [_createTextVNode$3(",")])])]);
         })]),
         'append-inner': function () {
           for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -8970,7 +8968,7 @@ function useFilter(props, items, query, options) {
   };
 }
 
-const {createTextVNode:_createTextVNode$3,mergeProps:_mergeProps$l,createVNode:_createVNode$Z,Fragment:_Fragment$b} = await importShared('vue');
+const {createTextVNode:_createTextVNode$2,mergeProps:_mergeProps$l,createVNode:_createVNode$Z,Fragment:_Fragment$b} = await importShared('vue');
 const {computed: computed$D,mergeProps: mergeProps$4,nextTick: nextTick$7,ref: ref$m,shallowRef: shallowRef$g,watch: watch$d} = await importShared('vue');
 function highlightResult$1(text, matches, length) {
   if (matches == null) return text;
@@ -9379,7 +9377,7 @@ const VAutocomplete = genericComponent()({
             "class": "v-autocomplete__selection-text"
           }, [item.title, props.multiple && index < selections.value.length - 1 && _createVNode$Z("span", {
             "class": "v-autocomplete__selection-comma"
-          }, [_createTextVNode$3(",")])])]);
+          }, [_createTextVNode$2(",")])])]);
         })]),
         'append-inner': function () {
           for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -12546,7 +12544,7 @@ const VColorPicker = defineComponent({
 
 const VCombobox$1 = '';
 
-const {createTextVNode:_createTextVNode$2,mergeProps:_mergeProps$e,createVNode:_createVNode$B,Fragment:_Fragment$7} = await importShared('vue');
+const {createTextVNode:_createTextVNode$1,mergeProps:_mergeProps$e,createVNode:_createVNode$B,Fragment:_Fragment$7} = await importShared('vue');
 const {computed: computed$q,mergeProps: mergeProps$3,nextTick: nextTick$5,ref: ref$f,shallowRef: shallowRef$b,watch: watch$9} = await importShared('vue');
 function highlightResult(text, matches, length) {
   if (matches == null) return text;
@@ -12988,7 +12986,7 @@ const VCombobox = genericComponent()({
             "class": "v-combobox__selection-text"
           }, [item.title, props.multiple && index < selections.value.length - 1 && _createVNode$B("span", {
             "class": "v-combobox__selection-comma"
-          }, [_createTextVNode$2(",")])])]);
+          }, [_createTextVNode$1(",")])])]);
         })]),
         'append-inner': function () {
           for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -15588,7 +15586,7 @@ const VRangeSlider = genericComponent()({
 
 const VRating$1 = '';
 
-const {createTextVNode:_createTextVNode$1,mergeProps:_mergeProps$6,createVNode:_createVNode$f,Fragment:_Fragment$2} = await importShared('vue');
+const {createTextVNode:_createTextVNode,mergeProps:_mergeProps$6,createVNode:_createVNode$f,Fragment:_Fragment$2} = await importShared('vue');
 const {computed: computed$9,shallowRef: shallowRef$5} = await importShared('vue');
 const makeVRatingProps = propsFactory({
   name: String,
@@ -15741,7 +15739,7 @@ const VRating = genericComponent()({
     function createLabel(labelProps) {
       if (slots['item-label']) return slots['item-label'](labelProps);
       if (labelProps.label) return _createVNode$f("span", null, [labelProps.label]);
-      return _createVNode$f("span", null, [_createTextVNode$1("\xA0")]);
+      return _createVNode$f("span", null, [_createTextVNode("\xA0")]);
     }
     useRender(() => {
       const hasLabels = !!props.itemLabels?.length || slots['item-label'];
@@ -17799,10 +17797,10 @@ function createRequest(baseURL = '') {
 
 const panelTheme = '';
 
-const App_vue_vue_type_style_index_0_scoped_140dfa3c_lang = '';
+const App_vue_vue_type_style_index_0_scoped_e3e486a9_lang = '';
 
-const {unref:_unref,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
-
+const {unref:_unref,createVNode:_createVNode,createElementVNode:_createElementVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,openBlock:_openBlock,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const _hoisted_1 = { class: "mp-page" };
 
 const {reactive,ref} = await importShared('vue');
 
@@ -17811,7 +17809,6 @@ const _sfc_main = {
   __name: 'App',
   setup(__props) {
 
-const tab = ref('page');
 const pluginConfig = reactive({});
 const rootEl = ref(null);
 const request = createRequest(({}).VITE_API_BASE || 'http://localhost:3000');
@@ -17827,10 +17824,6 @@ function handleClose() {
 }
 
 return (_ctx, _cache) => {
-  const _component_v_tab = _resolveComponent("v-tab");
-  const _component_v_tabs = _resolveComponent("v-tabs");
-  const _component_v_window_item = _resolveComponent("v-window-item");
-  const _component_v_window = _resolveComponent("v-window");
   const _component_v_container = _resolveComponent("v-container");
   const _component_v_main = _resolveComponent("v-main");
   const _component_v_app = _resolveComponent("v-app");
@@ -17850,64 +17843,15 @@ return (_ctx, _cache) => {
               class: "mp-shell"
             }, {
               default: _withCtx(() => [
-                _createVNode(_component_v_tabs, {
-                  modelValue: tab.value,
-                  "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((tab).value = $event)),
-                  color: "primary",
-                  class: "mp-tabs",
-                  grow: ""
-                }, {
-                  default: _withCtx(() => [
-                    _createVNode(_component_v_tab, { value: "page" }, {
-                      default: _withCtx(() => [
-                        _createTextVNode("功能面板")
-                      ]),
-                      _: 1
-                    }),
-                    _createVNode(_component_v_tab, { value: "config" }, {
-                      default: _withCtx(() => [
-                        _createTextVNode("全局设置")
-                      ]),
-                      _: 1
-                    })
-                  ]),
-                  _: 1
-                }, 8, ["modelValue"]),
-                _createVNode(_component_v_window, {
-                  modelValue: tab.value,
-                  "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((tab).value = $event)),
-                  class: "mp-window"
-                }, {
-                  default: _withCtx(() => [
-                    _createVNode(_component_v_window_item, { value: "page" }, {
-                      default: _withCtx(() => [
-                        _createVNode(PageView, {
-                          api: api,
-                          "initial-config": pluginConfig,
-                          "theme-name": _unref(themeName),
-                          "theme-label": _unref(themeLabel),
-                          onSwitch: _cache[1] || (_cache[1] = $event => (tab.value = $event)),
-                          onClose: handleClose
-                        }, null, 8, ["initial-config", "theme-name", "theme-label"])
-                      ]),
-                      _: 1
-                    }),
-                    _createVNode(_component_v_window_item, { value: "config" }, {
-                      default: _withCtx(() => [
-                        _createVNode(ConfigView, {
-                          api: api,
-                          "initial-config": pluginConfig,
-                          "theme-name": _unref(themeName),
-                          "theme-label": _unref(themeLabel),
-                          onSwitch: _cache[2] || (_cache[2] = $event => (tab.value = $event)),
-                          onClose: handleClose
-                        }, null, 8, ["initial-config", "theme-name", "theme-label"])
-                      ]),
-                      _: 1
-                    })
-                  ]),
-                  _: 1
-                }, 8, ["modelValue"])
+                _createElementVNode("div", _hoisted_1, [
+                  _createVNode(PageView, {
+                    api: api,
+                    "initial-config": pluginConfig,
+                    "theme-name": _unref(themeName),
+                    "theme-label": _unref(themeLabel),
+                    onClose: handleClose
+                  }, null, 8, ["initial-config", "theme-name", "theme-label"])
+                ])
               ]),
               _: 1
             })
@@ -17922,7 +17866,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-140dfa3c"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e3e486a9"]]);
 
 const {createApp} = await importShared('vue');
 

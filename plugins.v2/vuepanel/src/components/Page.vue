@@ -21,7 +21,6 @@
             <span class="vpp-toolbar-badge">{{ enabledCount }}</span>
           </v-btn>
           <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-refresh" :loading="loading.refreshAll" @click="refreshStatus">刷新</v-btn>
-          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-cog-outline" @click="emit('switch', 'config')">设置</v-btn>
           <v-btn class="vpp-toolbar-btn is-icon" icon="mdi-close" variant="text" @click="closePlugin" />
         </div>
       </header>
@@ -405,7 +404,7 @@ const props = defineProps({
   themeLabel: { type: String, default: '浅色' },
 })
 
-const emit = defineEmits(['switch', 'close'])
+const emit = defineEmits(['close'])
 
 const status = reactive({
   enabled: false,

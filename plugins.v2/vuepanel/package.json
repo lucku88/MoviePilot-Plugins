@@ -1,11 +1,11 @@
 {
   "name": "vuepanel",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"const fs=require('fs');const pairs=[['dist/assets/style.css','dist/assets/assets/style.css'],['dist/assets/remoteEntry.js','dist/assets/assets/remoteEntry.js']];fs.mkdirSync('dist/assets/assets',{recursive:true});for(const [src,dest] of pairs){if(fs.existsSync(src)){fs.copyFileSync(src,dest);}}\"",
+    "build": "vite build && node ./scripts/postbuild.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
