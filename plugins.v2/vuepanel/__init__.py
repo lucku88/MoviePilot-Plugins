@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -369,11 +369,23 @@ class VuePanel(_PluginBase):
         }
 
     def _default_cards(self) -> List[Dict[str, Any]]:
-        return [
-            self._fixed_card_template("siqi_sign", note="填写 Cookie 后即可启用。"),
-            self._fixed_card_template("hnr_claim", note="和思齐签到共用同站 Cookie。"),
-            self._newapi_card_template(),
-        ]
+        cards: List[Dict[str, Any]] = []
+        for module_meta in self.MODULES:
+            module_key = module_meta["key"]
+            if self._module_is_singleton(module_key):
+                cards.append(self._fixed_card_template(module_key, note=self._default_module_note(module_key)))
+            else:
+                cards.append(self._collection_card_template(module_key))
+        return cards
+
+    @staticmethod
+    def _default_module_note(module_key: str) -> str:
+        mapping = {
+            "siqi_sign": "填写 Cookie 后即可启用。",
+            "hnr_claim": "和思齐签到共用同站 Cookie。",
+            "newapi_checkin": "可在 New API 模块内继续新增不同站点。",
+        }
+        return mapping.get(module_key, "")
 
     def _fixed_card_template(self, module_key: str, note: str = "") -> Dict[str, Any]:
         module_meta = self._module_meta(module_key)
@@ -398,13 +410,28 @@ class VuePanel(_PluginBase):
         )
 
     def _newapi_card_template(self) -> Dict[str, Any]:
-        module_meta = self._module_meta("newapi_checkin")
+        return self._collection_card_template(
+            "newapi_checkin",
+            site_name="Open 站点",
+            uid="225",
+            note="可在 New API 模块内继续新增不同站点。",
+        )
+
+    def _collection_card_template(
+        self,
+        module_key: str,
+        site_name: str = "",
+        uid: str = "",
+        note: str = "",
+    ) -> Dict[str, Any]:
+        module_meta = self._module_meta(module_key)
+        fallback_id = f"{self._safe_card_id(module_key)}-default"
         return self._normalize_card(
             {
-                "id": "newapi-checkin-default",
+                "id": fallback_id,
                 "title": module_meta["label"],
-                "module_key": "newapi_checkin",
-                "site_name": "Open 站点",
+                "module_key": module_key,
+                "site_name": site_name or module_meta["default_site_name"] or f"{module_meta['label']} 站点",
                 "site_url": module_meta["default_site_url"],
                 "enabled": False,
                 "auto_run": True,
@@ -413,10 +440,10 @@ class VuePanel(_PluginBase):
                 "notify": True,
                 "tone": module_meta.get("tone") or "azure",
                 "cookie": "",
-                "uid": "225",
-                "note": "可在 New API 模块内继续新增不同站点。",
+                "uid": uid,
+                "note": note or self._default_module_note(module_key),
             },
-            fallback_id="newapi-checkin-default",
+            fallback_id=fallback_id,
         )
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -1147,7 +1174,9 @@ class VuePanel(_PluginBase):
     def _normalize_cards(self, cards: Any) -> List[Dict[str, Any]]:
         source = cards if isinstance(cards, list) and cards else []
         fixed_cards: Dict[str, Dict[str, Any]] = {}
-        newapi_cards: List[Dict[str, Any]] = []
+        collection_cards: Dict[str, List[Dict[str, Any]]] = {
+            item["key"]: [] for item in self.MODULES if self._module_is_singleton(item["key"]) is False
+        }
         seen_ids: set = set()
 
         for index, item in enumerate(source):
@@ -1162,13 +1191,19 @@ class VuePanel(_PluginBase):
             while card["id"] in seen_ids:
                 card["id"] = f"{card['id']}-{index + 1}"
             seen_ids.add(card["id"])
-            newapi_cards.append(card)
+            collection_cards.setdefault(module_key, []).append(card)
 
         normalized: List[Dict[str, Any]] = []
-        for module_key in ["siqi_sign", "hnr_claim"]:
-            normalized.append(fixed_cards.get(module_key) or self._fixed_card_template(module_key))
-
-        normalized.extend(newapi_cards or [self._newapi_card_template()])
+        for module_meta in self.MODULES:
+            module_key = module_meta["key"]
+            if self._module_is_singleton(module_key):
+                normalized.append(
+                    fixed_cards.get(module_key)
+                    or self._fixed_card_template(module_key, note=self._default_module_note(module_key))
+                )
+                continue
+            items = collection_cards.get(module_key) or []
+            normalized.extend(items or [self._collection_card_template(module_key)])
         return normalized
 
     def _normalize_card(self, item: Dict[str, Any], fallback_id: str) -> Dict[str, Any]:
