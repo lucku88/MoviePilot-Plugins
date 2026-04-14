@@ -4,11 +4,11 @@
       <header class="vpc-card vpc-hero">
         <div class="vpc-copy">
           <div class="vpc-badge">Vue-面板</div>
-          <h1 class="vpc-title">卡片配置</h1>
+          <h1 class="vpc-title">配置页</h1>
           <div class="vpc-chip-row">
-            <span class="vpc-chip">配置卡片 {{ config.cards.length }}</span>
-            <span class="vpc-chip">启用插件 {{ config.enabled ? '是' : '否' }}</span>
-            <span class="vpc-chip">计划执行 {{ config.cron || '未设置' }}</span>
+            <span class="vpc-chip">固定任务 2 个</span>
+            <span class="vpc-chip">New API 站点 {{ newApiCards.length }}</span>
+            <span class="vpc-chip">插件 {{ config.enabled ? '已启用' : '未启用' }}</span>
           </div>
         </div>
         <div class="vpc-action-grid">
@@ -21,95 +21,116 @@
       <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
 
       <section class="vpc-card">
-        <h2 class="vpc-section-title">插件级设置</h2>
-        <div class="vpc-switch-grid">
-          <div class="vpc-switch-card"><v-switch v-model="config.enabled" label="启用插件" density="compact" hide-details inset /></div>
-          <div class="vpc-switch-card"><v-switch v-model="config.notify" label="发送通知" density="compact" hide-details inset /></div>
-          <div class="vpc-switch-card"><v-switch v-model="config.onlyonce" label="保存后执行一次" density="compact" hide-details inset /></div>
-          <div class="vpc-switch-card"><v-switch v-model="config.use_proxy" label="使用代理环境" density="compact" hide-details inset /></div>
-          <div class="vpc-switch-card"><v-switch v-model="config.force_ipv4" label="强制 IPv4" density="compact" hide-details inset /></div>
+        <div class="vpc-section-head">
+          <div>
+            <div class="vpc-kicker">插件级设置</div>
+            <h2 class="vpc-section-title">全局选项</h2>
+          </div>
         </div>
+
+        <div class="vpc-switch-grid plugin">
+          <div class="vpc-switch-card"><v-switch v-model="config.enabled" label="启用插件" density="compact" hide-details inset /></div>
+          <div class="vpc-switch-card"><v-switch v-model="config.notify" label="开启通知" density="compact" hide-details inset /></div>
+          <div class="vpc-switch-card"><v-switch v-model="config.onlyonce" label="保存后执行一次" density="compact" hide-details inset /></div>
+          <div class="vpc-switch-card"><v-switch v-model="config.use_proxy" label="使用代理" density="compact" hide-details inset /></div>
+          <div class="vpc-switch-card"><v-switch v-model="config.force_ipv4" label="优先 IPv4" density="compact" hide-details inset /></div>
+        </div>
+
         <div class="vpc-field-grid plugin">
-          <v-text-field v-model="config.cron" label="Cron" variant="outlined" density="comfortable" hide-details="auto" />
+          <v-text-field v-model="config.cron" label="插件兜底 Cron" variant="outlined" density="comfortable" hide-details="auto" />
           <v-text-field v-model.number="config.http_timeout" label="超时秒数" type="number" variant="outlined" density="comfortable" hide-details="auto" />
           <v-text-field v-model.number="config.http_retry_times" label="重试次数" type="number" variant="outlined" density="comfortable" hide-details="auto" />
-          <v-text-field v-model.number="config.random_delay_max_seconds" label="随机延迟秒数" type="number" variant="outlined" density="comfortable" hide-details="auto" />
+          <v-text-field v-model.number="config.random_delay_max_seconds" label="随机延迟" type="number" variant="outlined" density="comfortable" hide-details="auto" />
         </div>
       </section>
 
       <section class="vpc-card">
-        <div class="vpc-toolbar">
+        <div class="vpc-section-head">
           <div>
-            <h2 class="vpc-section-title">配置卡片</h2>
-            <div class="vpc-note">一张配置卡片只控制一张状态卡片。展示 / 隐藏 / 样式 / 功能都在这里独立配置。</div>
+            <div class="vpc-kicker">固定模块</div>
+            <h2 class="vpc-section-title">思齐签到 / HNR领取</h2>
+          </div>
+          <div class="vpc-note">这两个任务固定各 1 张配置卡，不提供新增。</div>
+        </div>
+
+        <div class="vpc-fixed-grid">
+          <article
+            v-for="card in fixedCards"
+            :key="card.id"
+            class="vpc-editor fixed"
+            :style="toneStyle(card.tone)"
+          >
+            <div class="vpc-editor-head">
+              <div>
+                <div class="vpc-kicker">{{ moduleMeta(card.module_key).label }}</div>
+                <h3 class="vpc-editor-title">{{ card.title }}</h3>
+              </div>
+              <span class="vpc-editor-site">{{ card.site_url }}</span>
+            </div>
+
+            <div class="vpc-switch-grid compact single">
+              <div class="vpc-switch-card"><v-switch v-model="card.enabled" label="启用" density="compact" hide-details inset /></div>
+              <div class="vpc-switch-card"><v-switch v-model="card.auto_run" label="定时运行" density="compact" hide-details inset /></div>
+            </div>
+
+            <div class="vpc-field-grid fixed">
+              <div class="vpc-field-card vpc-span-2">
+                <div class="vpc-field-label">Cookie</div>
+                <v-text-field v-model="card.cookie" label="站点 Cookie" variant="outlined" density="comfortable" hide-details="auto" />
+                <div class="vpc-note">{{ card.module_key === 'hnr_claim' ? '和思齐签到共用同站 Cookie。' : '填写思齐站点 Cookie 后可执行。' }}</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="vpc-card">
+        <div class="vpc-section-head">
+          <div>
+            <div class="vpc-kicker">多站点模块</div>
+            <h2 class="vpc-section-title">New API签到</h2>
           </div>
           <div class="vpc-toolbar-actions">
-            <v-btn color="success" variant="flat" @click="addCard('siqi_sign')">新增思齐签到</v-btn>
-            <v-btn color="warning" variant="flat" @click="addCard('hnr_claim')">新增 HNR 领取</v-btn>
-            <v-btn color="info" variant="flat" @click="addCard('newapi_checkin')">新增 New API</v-btn>
+            <v-btn color="info" variant="flat" @click="addNewApiCard">新增站点</v-btn>
           </div>
         </div>
-      </section>
 
-      <section v-if="!groupedCards.length" class="vpc-card vpc-empty">
-        当前没有配置卡片。点击上面的新增按钮创建第一张卡片。
-      </section>
+        <div class="vpc-note">所有 New API 站点都归在这个模块里，每个站点独立保存启用、定时运行、网站和 Cookie。</div>
 
-      <section v-for="group in groupedCards" :key="group.site_key" class="vpc-card">
-        <div class="vpc-group-head">
-          <div>
-            <div class="vpc-kicker">网站分组</div>
-            <h2 class="vpc-group-title">{{ group.site_name }}</h2>
-            <div class="vpc-note">{{ group.site_url }}</div>
-          </div>
-          <div class="vpc-note">{{ group.cards_count }} 张配置卡片</div>
-        </div>
+        <div v-if="!newApiCards.length" class="vpc-empty">当前没有 New API 站点，点击“新增站点”创建。</div>
 
-        <div class="vpc-module-stack">
-          <div v-for="module in group.modules" :key="module.module_key" class="vpc-module">
-            <div class="vpc-module-head">
-              <h3>{{ module.module_icon }} {{ module.module_name }}</h3>
-              <span>{{ module.cards.length }} 张</span>
+        <div v-else class="vpc-site-grid">
+          <article
+            v-for="(card, index) in newApiCards"
+            :key="card.id"
+            class="vpc-editor"
+            :style="toneStyle(card.tone)"
+          >
+            <div class="vpc-editor-head">
+              <div>
+                <div class="vpc-kicker">站点 {{ index + 1 }}</div>
+                <h3 class="vpc-editor-title">{{ card.site_name || `New API 站点 ${index + 1}` }}</h3>
+              </div>
+              <div class="vpc-inline-actions">
+                <v-btn size="small" variant="text" color="error" @click="removeNewApiCard(card.id)">删除</v-btn>
+              </div>
             </div>
 
-            <div class="vpc-card-grid">
-              <article
-                v-for="card in module.cards"
-                :key="card.id"
-                class="vpc-editor"
-                :style="toneStyle(card.tone)"
-              >
-                <div class="vpc-editor-head">
-                  <div>
-                    <div class="vpc-kicker">状态卡片绑定</div>
-                    <h4>{{ card.title || module.module_name }}</h4>
-                  </div>
-                  <div class="vpc-inline-actions">
-                    <v-btn size="small" variant="text" @click="duplicateCard(card)">复制</v-btn>
-                    <v-btn size="small" variant="text" color="error" @click="removeCard(card.id)">删除</v-btn>
-                  </div>
-                </div>
-
-                <div class="vpc-switch-grid compact">
-                  <div class="vpc-switch-card"><v-switch v-model="card.enabled" label="启用" density="compact" hide-details inset /></div>
-                  <div class="vpc-switch-card"><v-switch v-model="card.auto_run" label="自动执行" density="compact" hide-details inset /></div>
-                  <div class="vpc-switch-card"><v-switch v-model="card.show_status" label="显示状态卡片" density="compact" hide-details inset /></div>
-                  <div class="vpc-switch-card"><v-switch v-model="card.notify" label="发送通知" density="compact" hide-details inset /></div>
-                </div>
-
-                <div class="vpc-field-grid">
-                  <v-text-field v-model="card.title" label="卡片标题" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-select v-model="card.module_key" :items="moduleItems" item-title="label" item-value="key" label="功能模块" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-select v-model="card.tone" :items="toneItems" item-title="label" item-value="key" label="卡片样式" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-text-field v-model="card.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-text-field v-model="card.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-text-field v-if="card.module_key === 'newapi_checkin'" v-model="card.uid" label="UID" variant="outlined" density="comfortable" hide-details="auto" />
-                  <v-textarea v-model="card.cookie" label="Cookie" variant="outlined" density="comfortable" rows="2" auto-grow hide-details="auto" class="vpc-span-2" />
-                  <v-textarea v-model="card.note" label="备注 / 状态卡片补充说明" variant="outlined" density="comfortable" rows="2" auto-grow hide-details="auto" class="vpc-span-2" />
-                </div>
-              </article>
+            <div class="vpc-switch-grid compact">
+              <div class="vpc-switch-card"><v-switch v-model="card.enabled" label="启用" density="compact" hide-details inset /></div>
+              <div class="vpc-switch-card"><v-switch v-model="card.auto_run" label="定时运行" density="compact" hide-details inset /></div>
             </div>
-          </div>
+
+            <div class="vpc-field-grid newapi">
+              <v-text-field v-model="card.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field v-model="card.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field v-model="card.uid" label="UID" variant="outlined" density="comfortable" hide-details="auto" />
+              <div class="vpc-field-card vpc-span-2">
+                <div class="vpc-field-label">Cookie</div>
+                <v-text-field v-model="card.cookie" label="站点 Cookie" variant="outlined" density="comfortable" hide-details="auto" />
+              </div>
+            </div>
+          </article>
         </div>
       </section>
     </div>
@@ -127,7 +148,6 @@ const isDarkTheme = ref(false)
 const saving = ref(false)
 const message = reactive({ text: '', type: 'success' })
 const moduleItems = ref([])
-const toneItems = ref([])
 const config = reactive({
   enabled: false,
   notify: true,
@@ -144,39 +164,31 @@ const config = reactive({
 let themeObserver = null
 let mediaQuery = null
 
-const groupedCards = computed(() => {
-  const groups = new Map()
-  for (const card of config.cards) {
-    const siteKey = `${card.site_name}|${card.site_url}`.toLowerCase()
-    if (!groups.has(siteKey)) {
-      groups.set(siteKey, {
-        site_key: siteKey,
-        site_name: card.site_name || '未命名网站',
-        site_url: card.site_url || '',
-        cards_count: 0,
-        modules: new Map(),
-      })
-    }
-    const group = groups.get(siteKey)
-    group.cards_count += 1
-    const moduleKey = card.module_key || 'siqi_sign'
-    const moduleMeta = moduleItems.value.find((item) => item.key === moduleKey) || { key: moduleKey, label: moduleKey, icon: '🧩' }
-    if (!group.modules.has(moduleKey)) {
-      group.modules.set(moduleKey, {
-        module_key: moduleKey,
-        module_name: moduleMeta.label,
-        module_icon: moduleMeta.icon || '🧩',
-        cards: [],
-      })
-    }
-    group.modules.get(moduleKey).cards.push(card)
-  }
-  return Array.from(groups.values()).map((group) => ({ ...group, modules: Array.from(group.modules.values()) }))
-})
+const fixedCards = computed(() => ['siqi_sign', 'hnr_claim'].map((key) => ensureFixedCard(key)))
+const newApiCards = computed(() => config.cards.filter((card) => card.module_key === 'newapi_checkin'))
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function moduleMeta(moduleKey) {
+  return moduleItems.value.find((item) => item.key === moduleKey) || {
+    key: moduleKey,
+    label: moduleKey,
+    icon: '🧩',
+    default_site_name: '',
+    default_site_url: '',
+    tone: 'azure',
+  }
+}
+
+function nextCardId(moduleKey) {
+  return `${moduleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 }
 
 function toneStyle(tone) {
@@ -191,59 +203,104 @@ function toneStyle(tone) {
   return map[tone] || map.azure
 }
 
-function deepClone(value) {
-  return JSON.parse(JSON.stringify(value))
-}
-
-function nextCardId(moduleKey) {
-  return `${moduleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-}
-
-function createCard(moduleKey = 'siqi_sign') {
-  const moduleMeta = moduleItems.value.find((item) => item.key === moduleKey) || {
-    key: moduleKey,
-    label: moduleKey,
-    default_site_name: '新站点',
-    default_site_url: '',
-  }
+function buildFixedCard(moduleKey, current = {}) {
+  const meta = moduleMeta(moduleKey)
   return {
-    id: nextCardId(moduleKey),
-    title: moduleMeta.label,
+    id: moduleKey,
+    title: meta.label,
     module_key: moduleKey,
-    site_name: moduleMeta.default_site_name || '新站点',
-    site_url: moduleMeta.default_site_url || '',
-    enabled: false,
-    auto_run: true,
+    site_name: meta.default_site_name || '思齐主站',
+    site_url: meta.default_site_url || 'https://si-qi.xyz',
+    enabled: !!current.enabled,
+    auto_run: current.auto_run !== false,
     show_status: true,
-    notify: true,
-    tone: toneItems.value[0]?.key || 'azure',
-    cookie: '',
-    uid: moduleKey === 'newapi_checkin' ? '225' : '',
-    note: '',
+    notify: current.notify !== false,
+    tone: meta.tone || current.tone || 'azure',
+    cookie: String(current.cookie || ''),
+    uid: '',
+    note: String(current.note || ''),
   }
 }
 
-function addCard(moduleKey) {
-  config.cards.push(createCard(moduleKey))
+function buildNewApiCard(current = {}) {
+  const meta = moduleMeta('newapi_checkin')
+  return {
+    id: current.id || nextCardId('newapi_checkin'),
+    title: current.title || current.site_name || meta.label,
+    module_key: 'newapi_checkin',
+    site_name: current.site_name || meta.default_site_name || '',
+    site_url: current.site_url || meta.default_site_url || '',
+    enabled: !!current.enabled,
+    auto_run: current.auto_run !== false,
+    show_status: true,
+    notify: current.notify !== false,
+    tone: current.tone || meta.tone || 'azure',
+    cookie: String(current.cookie || ''),
+    uid: String(current.uid || '225'),
+    note: String(current.note || ''),
+  }
 }
 
-function duplicateCard(card) {
-  const copied = deepClone(card)
-  copied.id = nextCardId(card.module_key)
-  copied.title = `${card.title || '卡片'} 复制`
-  config.cards.push(copied)
+function ensureStructure(cards = []) {
+  const fixedMap = new Map()
+  const newApi = []
+  for (const item of cards) {
+    if (!item || typeof item !== 'object') continue
+    if (item.module_key === 'siqi_sign' || item.module_key === 'hnr_claim') {
+      if (!fixedMap.has(item.module_key)) fixedMap.set(item.module_key, buildFixedCard(item.module_key, item))
+      continue
+    }
+    if (item.module_key === 'newapi_checkin') newApi.push(buildNewApiCard(item))
+  }
+
+  const normalized = [
+    fixedMap.get('siqi_sign') || buildFixedCard('siqi_sign'),
+    fixedMap.get('hnr_claim') || buildFixedCard('hnr_claim'),
+    ...(newApi.length ? newApi : [buildNewApiCard()]),
+  ]
+
+  config.cards.splice(0, config.cards.length, ...normalized)
 }
 
-function removeCard(cardId) {
-  const index = config.cards.findIndex((card) => card.id === cardId)
+function ensureFixedCard(moduleKey) {
+  let card = config.cards.find((item) => item.module_key === moduleKey)
+  if (!card) {
+    card = buildFixedCard(moduleKey)
+    config.cards.push(card)
+  }
+  return card
+}
+
+function addNewApiCard() {
+  config.cards.push(buildNewApiCard())
+}
+
+function removeNewApiCard(cardId) {
+  const index = config.cards.findIndex((card) => card.id === cardId && card.module_key === 'newapi_checkin')
   if (index >= 0) config.cards.splice(index, 1)
+  if (!newApiCards.value.length) addNewApiCard()
+}
+
+function serializeConfig() {
+  const cards = [
+    buildFixedCard('siqi_sign', ensureFixedCard('siqi_sign')),
+    buildFixedCard('hnr_claim', ensureFixedCard('hnr_claim')),
+    ...newApiCards.value.map((card) => buildNewApiCard({
+      ...card,
+      title: String(card.site_name || card.title || 'New API签到').trim() || 'New API签到',
+    })),
+  ]
+
+  return {
+    ...deepClone(config),
+    cards,
+  }
 }
 
 async function loadConfig() {
   try {
     const res = await props.api.get('/plugin/VuePanel/config')
     moduleItems.value = res.module_options || []
-    toneItems.value = res.tone_options || []
     Object.assign(config, {
       enabled: !!res.enabled,
       notify: !!res.notify,
@@ -254,8 +311,9 @@ async function loadConfig() {
       http_timeout: Number(res.http_timeout || 15),
       http_retry_times: Number(res.http_retry_times || 3),
       random_delay_max_seconds: Number(res.random_delay_max_seconds || 5),
-      cards: deepClone(res.cards || []),
+      cards: [],
     })
+    ensureStructure(deepClone(res.cards || []))
   } catch (error) {
     flash(error?.message || '加载配置失败', 'error')
   }
@@ -264,10 +322,7 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true
   try {
-    const payload = deepClone(config)
-    const res = await props.api.post('/plugin/VuePanel/config', payload)
-    moduleItems.value = res.config?.module_options || moduleItems.value
-    toneItems.value = res.config?.tone_options || toneItems.value
+    const res = await props.api.post('/plugin/VuePanel/config', serializeConfig())
     flash(res.message || '配置已保存')
     await loadConfig()
   } catch (error) {
@@ -328,47 +383,52 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.vuepanel-config{--panel:rgba(255,255,255,.86);--panel-strong:rgba(255,255,255,.96);--text:#1f2937;--muted:#6b7280;--border:rgba(120,132,155,.18);--shadow:0 22px 48px rgba(15,23,42,.08);min-height:100%;padding:10px 0 20px;color:var(--text)}
-.vuepanel-config.is-dark-theme{--panel:rgba(17,24,39,.82);--panel-strong:rgba(15,23,42,.94);--text:#f5f7fb;--muted:#a7b0c1;--border:rgba(120,132,155,.24);--shadow:0 24px 52px rgba(0,0,0,.3)}
+.vuepanel-config{--panel:rgba(255,255,255,.86);--panel-strong:rgba(255,255,255,.96);--text:#1f2937;--muted:#6b7280;--border:rgba(120,132,155,.18);--shadow:0 16px 36px rgba(15,23,42,.08);min-height:100%;padding:8px 0 18px;color:var(--text)}
+.vuepanel-config.is-dark-theme{--panel:rgba(17,24,39,.82);--panel-strong:rgba(15,23,42,.94);--text:#f5f7fb;--muted:#a7b0c1;--border:rgba(120,132,155,.24);--shadow:0 20px 42px rgba(0,0,0,.28)}
 .vuepanel-config,.vuepanel-config *{box-sizing:border-box}
-.vpc-shell{max-width:1240px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
-.vpc-card,.vpc-editor{border:1px solid var(--border);border-radius:22px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(18px)}
-.vpc-card{padding:16px}
-.vpc-hero,.vpc-chip-row,.vpc-action-grid,.vpc-toolbar,.vpc-toolbar-actions,.vpc-group-head,.vpc-module-head,.vpc-editor-head,.vpc-inline-actions{display:flex;gap:10px;flex-wrap:wrap}
-.vpc-hero{justify-content:space-between;align-items:flex-start;background:radial-gradient(circle at top left,rgba(46,134,255,.16),transparent 34%),linear-gradient(135deg,rgba(40,181,120,.12) 0%,transparent 54%),var(--panel)}
-.vpc-badge,.vpc-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
-.vpc-badge{padding:6px 12px;background:rgba(46,134,255,.12);color:#2363d1;font-size:12px;font-weight:700}
-.vpc-title,.vpc-group-title{margin:10px 0 0;font-weight:900;letter-spacing:-.02em}
-.vpc-title{font-size:clamp(24px,4vw,34px);line-height:1.06}
-.vpc-group-title{font-size:20px}
-.vpc-chip-row{margin-top:12px}
-.vpc-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);font-size:12px;font-weight:700}
-.vpc-action-grid{justify-content:flex-end;min-width:min(100%,460px)}
-.vpc-action-grid :deep(.v-btn),.vpc-toolbar-actions :deep(.v-btn){border-radius:14px;font-weight:800}
-.vpc-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
-.vpc-note{color:var(--muted);font-size:12px;line-height:1.65}
-.vpc-switch-grid,.vpc-field-grid,.vpc-card-grid,.vpc-module-stack{display:grid;gap:12px}
-.vpc-switch-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
-.vpc-switch-grid.compact{grid-template-columns:repeat(4,minmax(0,1fr))}
-.vpc-switch-card,.vpc-editor{background:var(--panel-strong)}
-.vpc-switch-card{padding:14px;border:1px solid var(--border);border-radius:18px}
-.vpc-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vpc-shell{max-width:1180px;margin:0 auto;padding:0 12px;display:grid;gap:10px}
+.vpc-card,.vpc-editor,.vpc-switch-card,.vpc-field-card{border:1px solid var(--border);border-radius:18px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+.vpc-card{padding:12px}
+.vpc-hero,.vpc-chip-row,.vpc-action-grid,.vpc-section-head,.vpc-editor-head,.vpc-inline-actions,.vpc-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.vpc-hero{justify-content:space-between;align-items:flex-start;background:radial-gradient(circle at top left,rgba(46,134,255,.14),transparent 34%),linear-gradient(135deg,rgba(40,181,120,.1) 0%,transparent 54%),var(--panel)}
+.vpc-copy{flex:1;min-width:0}
+.vpc-badge,.vpc-chip,.vpc-editor-site{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
+.vpc-badge{padding:5px 10px;background:rgba(46,134,255,.12);color:#2363d1;font-size:11px;font-weight:700}
+.vpc-title,.vpc-section-title,.vpc-editor-title{margin:0;font-weight:900;letter-spacing:-.02em}
+.vpc-title{margin-top:8px;font-size:clamp(22px,3.8vw,30px);line-height:1.05}
+.vpc-section-title{font-size:17px}
+.vpc-editor-title{font-size:16px}
+.vpc-chip-row{margin-top:10px}
+.vpc-chip{padding:6px 10px;border:1px solid var(--border);background:var(--panel-strong);font-size:11px;font-weight:700}
+.vpc-action-grid{justify-content:flex-end;min-width:min(100%,420px)}
+.vpc-action-grid :deep(.v-btn),.vpc-toolbar-actions :deep(.v-btn){min-height:38px;border-radius:12px;font-weight:800}
+.vpc-kicker,.vpc-note,.vpc-field-label,.vpc-editor-site{color:var(--muted)}
+.vpc-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2f6ef2}
+.vpc-note{font-size:11px;line-height:1.55}
+.vpc-section-head,.vpc-editor-head{justify-content:space-between;align-items:flex-start}
+.vpc-switch-grid,.vpc-field-grid,.vpc-fixed-grid,.vpc-site-grid{display:grid;gap:10px}
+.vpc-switch-grid.plugin{grid-template-columns:repeat(5,minmax(0,1fr))}
+.vpc-switch-grid.compact{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vpc-switch-grid.compact.single{grid-template-columns:repeat(2,minmax(0,1fr));max-width:420px}
+.vpc-switch-card{padding:10px 12px;background:var(--panel-strong)}
 .vpc-field-grid.plugin{grid-template-columns:repeat(4,minmax(0,1fr))}
-.vpc-toolbar,.vpc-group-head,.vpc-module-head,.vpc-editor-head{justify-content:space-between;align-items:flex-start}
-.vpc-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2f6ef2}
-.vpc-card-grid{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
-.vpc-editor{position:relative;overflow:hidden;padding:14px;display:grid;gap:12px;background:linear-gradient(180deg,rgba(var(--vpc-tone-rgb,46,134,255),.12),transparent 62%),var(--panel-strong)}
-.vpc-editor::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:rgba(var(--vpc-tone-rgb,46,134,255),.5)}
-.vpc-editor h4,.vpc-module-head h3{margin:0;font-weight:900}
-.vpc-inline-actions{justify-content:flex-end}
+.vpc-fixed-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vpc-site-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vpc-editor{position:relative;overflow:hidden;padding:12px;display:grid;gap:10px;background:linear-gradient(180deg,rgba(var(--vpc-tone-rgb,46,134,255),.12),transparent 62%),var(--panel-strong)}
+.vpc-editor::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:rgba(var(--vpc-tone-rgb,46,134,255),.48)}
+.vpc-editor-site{padding:4px 9px;background:rgba(var(--vpc-tone-rgb,46,134,255),.1);font-size:11px;font-weight:700;justify-content:flex-start}
+.vpc-field-grid.fixed{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vpc-field-grid.newapi{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vpc-field-card{padding:10px 12px;background:rgba(var(--vpc-tone-rgb,46,134,255),.06)}
 .vpc-span-2{grid-column:span 2}
-.vpc-empty{padding:34px 18px;text-align:center}
+.vpc-empty{padding:24px 16px;text-align:center;border:1px dashed var(--border);border-radius:16px;background:var(--panel-strong);color:var(--muted)}
 :deep(.vuepanel-config .v-field),:deep(.vuepanel-config .v-selection-control){color:var(--text)}
-:deep(.vuepanel-config .v-field){background:rgba(255,255,255,.02);border-radius:14px}
+:deep(.vuepanel-config .v-field){background:rgba(255,255,255,.02);border-radius:12px}
 :deep(.vuepanel-config .v-field__input),:deep(.vuepanel-config .v-label),:deep(.vuepanel-config .v-select__selection-text),:deep(.vuepanel-config .v-field__outline){color:var(--text)}
-:deep(.vuepanel-config .v-selection-control__wrapper){width:30px;height:18px;margin-right:6px}
-:deep(.vuepanel-config .v-switch__track){min-width:30px;width:30px;height:18px}
+:deep(.vuepanel-config .v-selection-control__wrapper){width:28px;height:18px;margin-right:6px}
+:deep(.vuepanel-config .v-switch__track){min-width:28px;width:28px;height:18px}
 :deep(.vuepanel-config .v-switch__thumb){width:12px;height:12px}
-@media (max-width:1180px){.vpc-switch-grid,.vpc-switch-grid.compact,.vpc-field-grid,.vpc-field-grid.plugin{grid-template-columns:repeat(2,minmax(0,1fr))}.vpc-action-grid{justify-content:flex-start;min-width:0}}
-@media (max-width:760px){.vpc-shell{padding:0 10px}.vpc-card,.vpc-editor{border-radius:18px}.vpc-card{padding:14px}.vpc-hero,.vpc-toolbar,.vpc-group-head,.vpc-module-head,.vpc-editor-head{flex-direction:column;align-items:flex-start}.vpc-field-grid,.vpc-field-grid.plugin,.vpc-switch-grid,.vpc-switch-grid.compact,.vpc-card-grid{grid-template-columns:1fr}.vpc-span-2{grid-column:auto}}
+:deep(.vuepanel-config .v-field__input){min-height:38px;padding-top:0;padding-bottom:0;font-size:12px}
+@media (max-width:1080px){.vpc-switch-grid.plugin,.vpc-field-grid.plugin,.vpc-site-grid,.vpc-fixed-grid,.vpc-field-grid.newapi{grid-template-columns:repeat(2,minmax(0,1fr))}.vpc-action-grid{justify-content:flex-start;min-width:0}}
+@media (max-width:760px){.vpc-shell{padding:0 10px}.vpc-card,.vpc-editor,.vpc-switch-card,.vpc-field-card{border-radius:16px}.vpc-card,.vpc-editor{padding:12px}.vpc-hero,.vpc-section-head,.vpc-editor-head{flex-direction:column;align-items:flex-start}.vpc-switch-grid.plugin,.vpc-switch-grid.compact,.vpc-fixed-grid,.vpc-site-grid,.vpc-field-grid.plugin,.vpc-field-grid.newapi,.vpc-field-grid.fixed{grid-template-columns:1fr}.vpc-span-2{grid-column:auto}}
 </style>

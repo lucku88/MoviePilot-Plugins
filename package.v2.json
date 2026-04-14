@@ -83,13 +83,14 @@
   },
   "VuePanel": {
     "name": "Vue-面板",
-    "description": "按网站 / 功能模块分组管理思齐签到、HNR领取与 New API 多站点签到卡片。",
+    "description": "思齐签到与 HNR领取使用固定单卡，New API 签到在同一模块内管理多站点卡片。",
     "labels": "站点,面板,签到,领取,Vue",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "调整 Vue-面板 配置模型与页面布局：思齐签到、HNR领取改为固定单卡，New API 签到收拢为单模块内多站点配置，并同步收紧状态页和配置页密度。",
       "v0.1.1": "补齐 Vue-面板 的调度元数据保存逻辑，保存 last_run、next_run_time、next_trigger_time 和 next_trigger_mode，避免 MoviePilot 读取调度状态时缺字段。",
       "v0.1.0": "首版发布，提供 Vue-面板 状态页与配置页，支持按网站 / 功能模块分组的独立配置卡片，并内置思齐签到、HNR领取和 New API 多站点签到。"
     }

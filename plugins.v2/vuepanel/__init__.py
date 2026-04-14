@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "按网站 / 功能模块组织签到与领取卡片，支持思齐签到、HNR领取与 New API 多站点签到。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -51,6 +51,8 @@ class VuePanel(_PluginBase):
             "description": "访问 /attendance.php 完成签到。",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
+            "singleton": True,
+            "tone": "emerald",
         },
         {
             "key": "hnr_claim",
@@ -59,6 +61,8 @@ class VuePanel(_PluginBase):
             "description": "访问 /hnrview.php 领取 HNR 奖励。",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
+            "singleton": True,
+            "tone": "amber",
         },
         {
             "key": "newapi_checkin",
@@ -67,6 +71,8 @@ class VuePanel(_PluginBase):
             "description": "调用 /api/user/checkin 执行签到，支持多站点独立配置。",
             "default_site_name": "New API 站点",
             "default_site_url": "https://open.xingyungept.cn",
+            "singleton": False,
+            "tone": "azure",
         },
     ]
 
@@ -352,61 +358,52 @@ class VuePanel(_PluginBase):
 
     def _default_cards(self) -> List[Dict[str, Any]]:
         return [
-            self._normalize_card(
-                {
-                    "id": "siqi-sign-default",
-                    "title": "思齐签到",
-                    "module_key": "siqi_sign",
-                    "site_name": "思齐主站",
-                    "site_url": "https://si-qi.xyz",
-                    "enabled": False,
-                    "auto_run": True,
-                    "show_status": True,
-                    "notify": True,
-                    "tone": "emerald",
-                    "cookie": "",
-                    "uid": "",
-                    "note": "默认模板卡片，填写 Cookie 后即可启用。",
-                },
-                fallback_id="siqi-sign-default",
-            ),
-            self._normalize_card(
-                {
-                    "id": "hnr-claim-default",
-                    "title": "HNR领取",
-                    "module_key": "hnr_claim",
-                    "site_name": "思齐主站",
-                    "site_url": "https://si-qi.xyz",
-                    "enabled": False,
-                    "auto_run": True,
-                    "show_status": True,
-                    "notify": True,
-                    "tone": "amber",
-                    "cookie": "",
-                    "uid": "",
-                    "note": "默认模板卡片，和思齐签到可共用同一个 Cookie。",
-                },
-                fallback_id="hnr-claim-default",
-            ),
-            self._normalize_card(
-                {
-                    "id": "newapi-checkin-default",
-                    "title": "New API签到",
-                    "module_key": "newapi_checkin",
-                    "site_name": "Open 站点",
-                    "site_url": "https://open.xingyungept.cn",
-                    "enabled": False,
-                    "auto_run": True,
-                    "show_status": True,
-                    "notify": True,
-                    "tone": "azure",
-                    "cookie": "",
-                    "uid": "225",
-                    "note": "可复制这张卡片扩展为多个不同站点的签到实例。",
-                },
-                fallback_id="newapi-checkin-default",
-            ),
+            self._fixed_card_template("siqi_sign", note="填写 Cookie 后即可启用。"),
+            self._fixed_card_template("hnr_claim", note="和思齐签到共用同站 Cookie。"),
+            self._newapi_card_template(),
         ]
+
+    def _fixed_card_template(self, module_key: str, note: str = "") -> Dict[str, Any]:
+        module_meta = self._module_meta(module_key)
+        return self._normalize_card(
+            {
+                "id": f"{module_key}-default",
+                "title": module_meta["label"],
+                "module_key": module_key,
+                "site_name": module_meta["default_site_name"],
+                "site_url": module_meta["default_site_url"],
+                "enabled": False,
+                "auto_run": True,
+                "show_status": True,
+                "notify": True,
+                "tone": module_meta.get("tone") or "azure",
+                "cookie": "",
+                "uid": "",
+                "note": note,
+            },
+            fallback_id=f"{module_key}-default",
+        )
+
+    def _newapi_card_template(self) -> Dict[str, Any]:
+        module_meta = self._module_meta("newapi_checkin")
+        return self._normalize_card(
+            {
+                "id": "newapi-checkin-default",
+                "title": module_meta["label"],
+                "module_key": "newapi_checkin",
+                "site_name": "Open 站点",
+                "site_url": module_meta["default_site_url"],
+                "enabled": False,
+                "auto_run": True,
+                "show_status": True,
+                "notify": True,
+                "tone": module_meta.get("tone") or "azure",
+                "cookie": "",
+                "uid": "225",
+                "note": "可在 New API 模块内继续新增不同站点。",
+            },
+            fallback_id="newapi-checkin-default",
+        )
 
     def _apply_config(self, config: Dict[str, Any]):
         self._enabled = self._to_bool(config.get("enabled", False))
@@ -802,7 +799,6 @@ class VuePanel(_PluginBase):
 
     def _build_dashboard(self, states: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         site_map: Dict[str, Dict[str, Any]] = {}
-        visible_count = 0
         success_count = 0
         error_count = 0
         auto_count = 0
@@ -816,9 +812,6 @@ class VuePanel(_PluginBase):
                 error_count += 1
             if card.get("auto_run"):
                 auto_count += 1
-            if not card.get("show_status"):
-                continue
-            visible_count += 1
             site_key = self._site_group_key(card)
             if site_key not in site_map:
                 site_map[site_key] = {
@@ -849,10 +842,11 @@ class VuePanel(_PluginBase):
             groups.append(item)
 
         groups.sort(key=lambda item: f"{item['site_name']}|{item['site_url']}".lower())
+        module_sections = self._build_module_sections(groups)
 
         overview = [
             {"label": "配置卡片", "value": str(len(self._cards))},
-            {"label": "状态卡片", "value": str(visible_count)},
+            {"label": "状态卡片", "value": str(len(self._cards))},
             {"label": "自动执行", "value": str(auto_count)},
             {"label": "成功状态", "value": str(success_count)},
             {"label": "异常状态", "value": str(error_count)},
@@ -868,11 +862,34 @@ class VuePanel(_PluginBase):
             "next_trigger_mode": self._load_next_trigger_mode(),
             "overview": overview,
             "groups": groups,
-            "hidden_count": str(max(0, len(self._cards) - visible_count)),
+            "module_sections": module_sections,
+            "hidden_count": "0",
             "history": (self.get_data("history") or [])[:12],
             "module_options": list(self.MODULES),
             "tone_options": list(self.TONES),
         }
+
+    def _build_module_sections(self, groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        bucket: Dict[str, Dict[str, Any]] = {}
+        for module_meta in self.MODULES:
+            bucket[module_meta["key"]] = {
+                "module_key": module_meta["key"],
+                "module_name": module_meta["label"],
+                "module_icon": module_meta["icon"],
+                "singleton": bool(module_meta.get("singleton")),
+                "cards": [],
+            }
+
+        for group in groups:
+            for module in group.get("modules") or []:
+                target = bucket.get(module.get("module_key") or "")
+                if not target:
+                    continue
+                cards = list(module.get("cards") or [])
+                cards.sort(key=lambda item: f"{item.get('site_name') or ''}|{item.get('title') or ''}".lower())
+                target["cards"].extend(cards)
+
+        return [section for section in bucket.values() if section.get("cards")]
 
     def _placeholder_state(self, card: Dict[str, Any]) -> Dict[str, Any]:
         module_meta = self._module_meta(card["module_key"])
@@ -1002,41 +1019,59 @@ class VuePanel(_PluginBase):
         return cards
 
     def _normalize_cards(self, cards: Any) -> List[Dict[str, Any]]:
-        source = cards if isinstance(cards, list) and cards else self._default_cards()
-        normalized: List[Dict[str, Any]] = []
-        seen: set = set()
+        source = cards if isinstance(cards, list) and cards else []
+        fixed_cards: Dict[str, Dict[str, Any]] = {}
+        newapi_cards: List[Dict[str, Any]] = []
+        seen_ids: set = set()
+
         for index, item in enumerate(source):
             if not isinstance(item, dict):
                 continue
             card = self._normalize_card(item, fallback_id=f"card-{index + 1}")
-            while card["id"] in seen:
+            module_key = card.get("module_key") or ""
+            if self._module_is_singleton(module_key):
+                if module_key not in fixed_cards:
+                    fixed_cards[module_key] = card
+                continue
+            while card["id"] in seen_ids:
                 card["id"] = f"{card['id']}-{index + 1}"
-            seen.add(card["id"])
-            normalized.append(card)
-        return normalized or self._default_cards()
+            seen_ids.add(card["id"])
+            newapi_cards.append(card)
+
+        normalized: List[Dict[str, Any]] = []
+        for module_key in ["siqi_sign", "hnr_claim"]:
+            normalized.append(fixed_cards.get(module_key) or self._fixed_card_template(module_key))
+
+        normalized.extend(newapi_cards or [self._newapi_card_template()])
+        return normalized
 
     def _normalize_card(self, item: Dict[str, Any], fallback_id: str) -> Dict[str, Any]:
         module_key = str(item.get("module_key") or item.get("module") or "siqi_sign").strip() or "siqi_sign"
         module_meta = self._module_meta(module_key)
+        is_singleton = self._module_is_singleton(module_key)
         site_url = self._normalize_site_url(item.get("site_url") or module_meta["default_site_url"])
         site_name = str(item.get("site_name") or module_meta["default_site_name"]).strip() or module_meta["default_site_name"]
         title = str(item.get("title") or module_meta["label"]).strip() or module_meta["label"]
-        tone = str(item.get("tone") or "azure").strip().lower()
+        tone = str(item.get("tone") or module_meta.get("tone") or "azure").strip().lower()
         if tone not in {item["key"] for item in self.TONES}:
-            tone = "azure"
+            tone = str(module_meta.get("tone") or "azure")
+        if is_singleton:
+            site_url = self._normalize_site_url(module_meta["default_site_url"])
+            site_name = str(module_meta["default_site_name"]).strip()
+            title = module_meta["label"]
         return {
-            "id": self._safe_card_id(item.get("id") or fallback_id),
+            "id": self._safe_card_id(module_key if is_singleton else (item.get("id") or fallback_id)),
             "title": title,
             "module_key": module_key,
             "site_name": site_name,
             "site_url": site_url,
             "enabled": self._to_bool(item.get("enabled", False)),
             "auto_run": self._to_bool(item.get("auto_run", True)),
-            "show_status": self._to_bool(item.get("show_status", True)),
+            "show_status": True,
             "notify": self._to_bool(item.get("notify", True)),
             "tone": tone,
             "cookie": str(item.get("cookie") or "").strip(),
-            "uid": str(item.get("uid") or "").strip(),
+            "uid": "" if is_singleton else str(item.get("uid") or "").strip(),
             "note": str(item.get("note") or "").strip(),
         }
 
@@ -1116,6 +1151,9 @@ class VuePanel(_PluginBase):
                 return item
         return self.MODULES[0]
 
+    def _module_is_singleton(self, module_key: str) -> bool:
+        return bool(self._module_meta(module_key).get("singleton"))
+
     def _tone_label(self, tone_key: str) -> str:
         for item in self.TONES:
             if item["key"] == tone_key:
@@ -1125,12 +1163,11 @@ class VuePanel(_PluginBase):
     def _build_card_tags(self, card: Dict[str, Any]) -> List[str]:
         tags = []
         tags.append("已启用" if card.get("enabled") else "已停用")
-        tags.append("状态卡片显示中" if card.get("show_status") else "状态卡片已隐藏")
-        tags.append("参与自动执行" if card.get("auto_run") else "仅手动执行")
-        tags.append("发送通知" if card.get("notify") else "静默执行")
-        tags.append(self._tone_label(card.get("tone") or "azure"))
+        tags.append("定时运行" if card.get("auto_run") else "仅手动执行")
         if card.get("cookie"):
             tags.append("Cookie 已配置")
+        if card.get("notify"):
+            tags.append("发送通知")
         if card.get("module_key") == "newapi_checkin" and card.get("uid"):
             tags.append(f"UID {card['uid']}")
         return tags
