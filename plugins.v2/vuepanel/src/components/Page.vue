@@ -1,26 +1,28 @@
 <template>
   <div class="vuepanel-page">
     <div class="vpp-shell">
-      <header class="vpp-hero">
-        <div class="vpp-hero-copy">
-          <div class="vpp-kicker">Vue-面板</div>
-          <h1 class="vpp-title">{{ dashboard.title || 'Vue-面板' }}</h1>
-          <p class="vpp-subtitle">{{ dashboard.subtitle || '每个功能都是独立卡片，可直接配置、查看日志和复制。' }}</p>
-
-          <div class="vpp-chip-row">
-            <span class="vpp-chip">主题 {{ themeLabel }}</span>
-            <span class="vpp-chip">卡片 {{ cards.length }}</span>
-            <span class="vpp-chip">启用 {{ enabledCount }}</span>
-            <span class="vpp-chip">下次 {{ status.next_run_time || dashboard.next_run_time || '未启用' }}</span>
-            <span class="vpp-chip">最近 {{ status.last_run || '暂无' }}</span>
-          </div>
+      <header class="vpp-control-panel">
+        <div class="vpp-panel-left">
+          <v-text-field
+            v-model="searchQuery"
+            class="vpp-search-field"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            clearable
+            placeholder="搜索功能模块..."
+            prepend-inner-icon="mdi-magnify"
+          />
         </div>
 
-        <div class="vpp-hero-actions">
-          <v-btn color="primary" variant="flat" :loading="loading.refreshAll" @click="refreshStatus">刷新状态</v-btn>
-          <v-btn color="success" variant="flat" :loading="loading.runAll" @click="runAll">执行启用任务</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'config')">全局设置</v-btn>
-          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+        <div class="vpp-panel-right">
+          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-flash" :loading="loading.runAll" @click="runAll">
+            执行启用
+            <span class="vpp-toolbar-badge">{{ enabledCount }}</span>
+          </v-btn>
+          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-refresh" :loading="loading.refreshAll" @click="refreshStatus">刷新</v-btn>
+          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-cog-outline" @click="emit('switch', 'config')">设置</v-btn>
+          <v-btn class="vpp-toolbar-btn is-icon" icon="mdi-close" variant="text" @click="closePlugin" />
         </div>
       </header>
 
@@ -35,15 +37,21 @@
       </v-alert>
 
       <section class="vpp-stat-grid">
-        <article v-for="item in summaryCards" :key="item.label" class="vpp-stat-card">
-          <span class="vpp-stat-label">{{ item.label }}</span>
-          <strong class="vpp-stat-value">{{ item.value }}</strong>
+        <article v-for="item in controlStats" :key="item.label" class="vpp-stat-card">
+          <div class="vpp-stat-icon-wrap">
+            <v-icon :icon="item.icon" size="18" />
+          </div>
+          <div class="vpp-stat-copy">
+            <strong class="vpp-stat-value">{{ item.value }}</strong>
+            <span class="vpp-stat-label">{{ item.label }}</span>
+          </div>
+          <span class="vpp-stat-glow" />
         </article>
       </section>
 
       <section class="vpp-card-grid">
         <article
-          v-for="card in cards"
+          v-for="card in displayCards"
           :key="card.card_id"
           class="vpp-card"
           :class="[{ 'is-enabled': card.enabled, 'is-disabled': !card.enabled }, `level-${runtimeTone(card.level)}`]"
@@ -123,6 +131,10 @@
             <v-btn class="vpp-action-btn is-copy" variant="text" prepend-icon="mdi-content-copy" @click="openCopyDialog(card)">复制</v-btn>
           </div>
         </article>
+
+        <div v-if="!displayCards.length" class="vpp-empty-state vpp-grid-empty">
+          {{ searchQuery ? '没有找到匹配的功能模块。' : '当前还没有可展示的功能卡片。' }}
+        </div>
       </section>
     </div>
 
@@ -337,13 +349,39 @@ const editor = reactive(createCardDraft())
 const copyForm = reactive({ title: '', note: '' })
 const selectedCardId = ref('')
 const lastLogRefresh = ref('')
+const searchQuery = ref('')
 
 let logTimer = null
 
 const dashboard = computed(() => status.dashboard || {})
 const cards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
 const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length)
-const summaryCards = computed(() => (dashboard.value.overview || []).slice(0, 6))
+const successCount = computed(() => cards.value.filter((card) => card.level === 'success').length)
+const errorCount = computed(() => cards.value.filter((card) => card.level === 'error').length)
+const displayCards = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
+  if (!keyword) return cards.value
+  return cards.value.filter((card) =>
+    [
+      card.title,
+      card.site_name,
+      card.site_domain,
+      card.site_url,
+      card.module_name,
+      card.module_summary,
+      card.status_text,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword)),
+  )
+})
+const controlStats = computed(() => [
+  { label: '总数', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
+  { label: '已启', value: String(enabledCount.value), icon: 'mdi-check-decagram-outline' },
+  { label: '正常', value: String(successCount.value), icon: 'mdi-play-circle-outline' },
+  { label: '日志', value: String(status.history.length), icon: 'mdi-file-document-outline' },
+  { label: '异常', value: String(errorCount.value), icon: 'mdi-alert-circle-outline' },
+])
 const toneSelectItems = computed(() =>
   (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
 )
@@ -726,7 +764,7 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
-.vpp-hero,
+.vpp-control-panel,
 .vpp-stat-card,
 .vpp-card,
 .vpp-dialog-card {
@@ -737,17 +775,76 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(18px);
 }
 
-.vpp-hero {
+.vpp-control-panel {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
+  gap: 14px;
+  padding: 16px;
   border-radius: 18px;
   background: var(--vpp-surface-soft);
 }
 
-.vpp-hero-copy,
+.vpp-panel-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.vpp-search-field :deep(.v-field) {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.vpp-search-field :deep(.v-field__input),
+.vpp-search-field :deep(.v-label),
+.vpp-search-field :deep(.v-icon) {
+  color: rgba(235, 240, 247, 0.8);
+}
+
+.vpp-panel-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vpp-toolbar-btn {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--vpp-line) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #8d7cff;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.vpp-toolbar-btn:hover {
+  border-color: rgba(100, 200, 255, 0.34) !important;
+  box-shadow: 0 0 14px rgba(100, 200, 255, 0.16);
+  background: rgba(100, 200, 255, 0.06) !important;
+}
+
+.vpp-toolbar-btn.is-icon {
+  min-width: 36px;
+  padding: 0;
+}
+
+.vpp-toolbar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ffb400;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .vpp-card-copy {
   min-width: 0;
 }
@@ -758,60 +855,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--mp-text-secondary);
-}
-
-.vpp-title {
-  margin: 8px 0 6px;
-  font-size: clamp(24px, 3vw, 32px);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-}
-
-.vpp-subtitle {
-  max-width: 760px;
-  margin: 0;
-  color: var(--mp-text-secondary);
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.vpp-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.vpp-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--vpp-line);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--mp-text-secondary);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.vpp-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 260px;
-}
-
-.vpp-hero-actions :deep(.v-btn) {
-  min-height: 38px;
-  padding: 0 16px;
-  border-radius: 8px;
-  border: 1px solid var(--vpp-line);
-  background: rgba(255, 255, 255, 0.05);
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 700;
 }
 
 .vpp-alert {
@@ -826,12 +869,35 @@ onBeforeUnmount(() => {
 
 .vpp-stat-card {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 74px;
-  padding: 16px 18px;
+  align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  padding: 16px;
   border-radius: 14px;
   background: var(--vpp-surface-soft);
+}
+
+.vpp-stat-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(100, 200, 255, 0.14), rgba(100, 200, 255, 0.04));
+  color: #7ed3ff;
+}
+
+.vpp-stat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vpp-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #69c9ff;
 }
 
 .vpp-stat-label {
@@ -839,10 +905,13 @@ onBeforeUnmount(() => {
   color: var(--mp-text-secondary);
 }
 
-.vpp-stat-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: #69c9ff;
+.vpp-stat-glow {
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #64c8ff;
+  box-shadow: 0 0 12px rgba(100, 200, 255, 0.85);
 }
 
 .vpp-card-grid {
@@ -1337,6 +1406,10 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.vpp-grid-empty {
+  grid-column: 1 / -1;
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -1350,13 +1423,13 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 980px) {
-  .vpp-hero {
+  .vpp-control-panel {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .vpp-hero-actions {
-    justify-content: flex-start;
-    min-width: 0;
+  .vpp-panel-right {
+    flex-wrap: wrap;
   }
 
   .vpp-switch-grid,
@@ -1366,7 +1439,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
-  .vpp-hero,
+  .vpp-control-panel,
   .vpp-dialog-head,
   .vpp-dialog-body,
   .vpp-dialog-actions {

@@ -1,111 +1,110 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_31a127f8_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_d10462e6_lang = '';
 
-const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-31a127f8"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-d10462e6"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuepanel-page" };
 const _hoisted_2 = { class: "vpp-shell" };
-const _hoisted_3 = { class: "vpp-hero" };
-const _hoisted_4 = { class: "vpp-hero-copy" };
-const _hoisted_5 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "Vue-面板", -1));
-const _hoisted_6 = { class: "vpp-title" };
-const _hoisted_7 = { class: "vpp-subtitle" };
-const _hoisted_8 = { class: "vpp-chip-row" };
-const _hoisted_9 = { class: "vpp-chip" };
-const _hoisted_10 = { class: "vpp-chip" };
-const _hoisted_11 = { class: "vpp-chip" };
-const _hoisted_12 = { class: "vpp-chip" };
-const _hoisted_13 = { class: "vpp-chip" };
-const _hoisted_14 = { class: "vpp-hero-actions" };
-const _hoisted_15 = { class: "vpp-stat-grid" };
-const _hoisted_16 = { class: "vpp-stat-label" };
-const _hoisted_17 = { class: "vpp-stat-value" };
-const _hoisted_18 = { class: "vpp-card-grid" };
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-card-glow" }, null, -1));
-const _hoisted_20 = { class: "vpp-card-head" };
-const _hoisted_21 = { class: "vpp-logo-wrap" };
-const _hoisted_22 = ["src", "alt", "onError"];
-const _hoisted_23 = {
+const _hoisted_3 = { class: "vpp-control-panel" };
+const _hoisted_4 = { class: "vpp-panel-left" };
+const _hoisted_5 = { class: "vpp-panel-right" };
+const _hoisted_6 = { class: "vpp-toolbar-badge" };
+const _hoisted_7 = { class: "vpp-stat-grid" };
+const _hoisted_8 = { class: "vpp-stat-icon-wrap" };
+const _hoisted_9 = { class: "vpp-stat-copy" };
+const _hoisted_10 = { class: "vpp-stat-value" };
+const _hoisted_11 = { class: "vpp-stat-label" };
+const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-stat-glow" }, null, -1));
+const _hoisted_13 = { class: "vpp-card-grid" };
+const _hoisted_14 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-card-glow" }, null, -1));
+const _hoisted_15 = { class: "vpp-card-head" };
+const _hoisted_16 = { class: "vpp-logo-wrap" };
+const _hoisted_17 = ["src", "alt", "onError"];
+const _hoisted_18 = {
   key: 1,
   class: "vpp-logo-fallback"
 };
-const _hoisted_24 = { class: "vpp-card-copy" };
-const _hoisted_25 = { class: "vpp-card-title-row" };
-const _hoisted_26 = { class: "vpp-card-title" };
-const _hoisted_27 = { class: "vpp-card-desc" };
-const _hoisted_28 = { class: "vpp-card-meta" };
-const _hoisted_29 = { class: "vpp-runtime-row" };
-const _hoisted_30 = { class: "vpp-runtime-title" };
-const _hoisted_31 = { class: "vpp-runtime-text" };
-const _hoisted_32 = {
+const _hoisted_19 = { class: "vpp-card-copy" };
+const _hoisted_20 = { class: "vpp-card-title-row" };
+const _hoisted_21 = { class: "vpp-card-title" };
+const _hoisted_22 = { class: "vpp-card-desc" };
+const _hoisted_23 = { class: "vpp-card-meta" };
+const _hoisted_24 = { class: "vpp-runtime-row" };
+const _hoisted_25 = { class: "vpp-runtime-title" };
+const _hoisted_26 = { class: "vpp-runtime-text" };
+const _hoisted_27 = {
   key: 0,
   class: "vpp-metric-grid"
 };
-const _hoisted_33 = { class: "vpp-metric-label" };
-const _hoisted_34 = { class: "vpp-metric-value" };
-const _hoisted_35 = { class: "vpp-detail-grid" };
-const _hoisted_36 = { class: "vpp-detail-item" };
-const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "计划", -1));
-const _hoisted_38 = { class: "vpp-detail-item" };
-const _hoisted_39 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "上次执行", -1));
-const _hoisted_40 = { class: "vpp-detail-item" };
-const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "日志", -1));
-const _hoisted_42 = {
+const _hoisted_28 = { class: "vpp-metric-label" };
+const _hoisted_29 = { class: "vpp-metric-value" };
+const _hoisted_30 = { class: "vpp-detail-grid" };
+const _hoisted_31 = { class: "vpp-detail-item" };
+const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "计划", -1));
+const _hoisted_33 = { class: "vpp-detail-item" };
+const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "上次执行", -1));
+const _hoisted_35 = { class: "vpp-detail-item" };
+const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-detail-label" }, "日志", -1));
+const _hoisted_37 = {
   key: 1,
   class: "vpp-note-box"
 };
-const _hoisted_43 = { class: "vpp-tag-row" };
-const _hoisted_44 = { class: "vpp-action-row" };
-const _hoisted_45 = { class: "vpp-dialog-head" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "配置", -1));
-const _hoisted_47 = { class: "vpp-dialog-title" };
-const _hoisted_48 = { class: "vpp-dialog-body" };
-const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。 ", -1));
-const _hoisted_50 = { class: "vpp-switch-grid" };
+const _hoisted_38 = { class: "vpp-tag-row" };
+const _hoisted_39 = { class: "vpp-action-row" };
+const _hoisted_40 = {
+  key: 0,
+  class: "vpp-empty-state vpp-grid-empty"
+};
+const _hoisted_41 = { class: "vpp-dialog-head" };
+const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "配置", -1));
+const _hoisted_43 = { class: "vpp-dialog-title" };
+const _hoisted_44 = { class: "vpp-dialog-body" };
+const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。 ", -1));
+const _hoisted_46 = { class: "vpp-switch-grid" };
+const _hoisted_47 = { class: "vpp-switch-card" };
+const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
+const _hoisted_49 = { class: "vpp-switch-card" };
+const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
 const _hoisted_51 = { class: "vpp-switch-card" };
-const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
-const _hoisted_53 = { class: "vpp-switch-card" };
-const _hoisted_54 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
-const _hoisted_55 = { class: "vpp-switch-card" };
-const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
-const _hoisted_57 = { class: "vpp-form-grid" };
-const _hoisted_58 = { class: "vpp-dialog-actions" };
-const _hoisted_59 = { class: "vpp-dialog-head" };
-const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
-const _hoisted_61 = { class: "vpp-dialog-title" };
-const _hoisted_62 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
+const _hoisted_53 = { class: "vpp-form-grid" };
+const _hoisted_54 = { class: "vpp-dialog-actions" };
+const _hoisted_55 = { class: "vpp-dialog-head" };
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
+const _hoisted_57 = { class: "vpp-dialog-title" };
+const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
   /*#__PURE__*/_createElementVNode("span", { class: "vpp-live-dot" }),
   /*#__PURE__*/_createElementVNode("span", null, "实时轮询中")
 ], -1));
-const _hoisted_63 = { class: "vpp-dialog-body" };
-const _hoisted_64 = { class: "vpp-log-toolbar" };
-const _hoisted_65 = {
+const _hoisted_59 = { class: "vpp-dialog-body" };
+const _hoisted_60 = { class: "vpp-log-toolbar" };
+const _hoisted_61 = {
   key: 0,
   class: "vpp-empty-state"
 };
-const _hoisted_66 = {
+const _hoisted_62 = {
   key: 1,
   class: "vpp-log-list mp-scroll"
 };
-const _hoisted_67 = { class: "vpp-log-head" };
-const _hoisted_68 = { class: "vpp-log-summary" };
-const _hoisted_69 = {
+const _hoisted_63 = { class: "vpp-log-head" };
+const _hoisted_64 = { class: "vpp-log-summary" };
+const _hoisted_65 = {
   key: 0,
   class: "vpp-log-lines"
 };
-const _hoisted_70 = { class: "vpp-dialog-actions" };
-const _hoisted_71 = { class: "vpp-dialog-head" };
-const _hoisted_72 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
-const _hoisted_73 = { class: "vpp-dialog-title" };
-const _hoisted_74 = { class: "vpp-dialog-body" };
-const _hoisted_75 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。 ", -1));
-const _hoisted_76 = { class: "vpp-copy-origin" };
-const _hoisted_77 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "复制来源", -1));
-const _hoisted_78 = { class: "vpp-dialog-actions" };
+const _hoisted_66 = { class: "vpp-dialog-actions" };
+const _hoisted_67 = { class: "vpp-dialog-head" };
+const _hoisted_68 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
+const _hoisted_69 = { class: "vpp-dialog-title" };
+const _hoisted_70 = { class: "vpp-dialog-body" };
+const _hoisted_71 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。 ", -1));
+const _hoisted_72 = { class: "vpp-copy-origin" };
+const _hoisted_73 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "复制来源", -1));
+const _hoisted_74 = { class: "vpp-dialog-actions" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -148,13 +147,39 @@ const editor = reactive(createCardDraft());
 const copyForm = reactive({ title: '', note: '' });
 const selectedCardId = ref('');
 const lastLogRefresh = ref('');
+const searchQuery = ref('');
 
 let logTimer = null;
 
 const dashboard = computed(() => status.dashboard || {});
 const cards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : []);
 const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length);
-const summaryCards = computed(() => (dashboard.value.overview || []).slice(0, 6));
+const successCount = computed(() => cards.value.filter((card) => card.level === 'success').length);
+const errorCount = computed(() => cards.value.filter((card) => card.level === 'error').length);
+const displayCards = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase();
+  if (!keyword) return cards.value
+  return cards.value.filter((card) =>
+    [
+      card.title,
+      card.site_name,
+      card.site_domain,
+      card.site_url,
+      card.module_name,
+      card.module_summary,
+      card.status_text,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword)),
+  )
+});
+const controlStats = computed(() => [
+  { label: '总数', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
+  { label: '已启', value: String(enabledCount.value), icon: 'mdi-check-decagram-outline' },
+  { label: '正常', value: String(successCount.value), icon: 'mdi-play-circle-outline' },
+  { label: '日志', value: String(status.history.length), icon: 'mdi-file-document-outline' },
+  { label: '异常', value: String(errorCount.value), icon: 'mdi-alert-circle-outline' },
+]);
 const toneSelectItems = computed(() =>
   (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
 );
@@ -509,10 +534,11 @@ onBeforeUnmount(() => {
 });
 
 return (_ctx, _cache) => {
+  const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_alert = _resolveComponent("v-alert");
+  const _component_v_icon = _resolveComponent("v-icon");
   const _component_v_switch = _resolveComponent("v-switch");
-  const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_select = _resolveComponent("v-select");
   const _component_v_textarea = _resolveComponent("v-textarea");
   const _component_v_card = _resolveComponent("v-card");
@@ -522,57 +548,60 @@ return (_ctx, _cache) => {
     _createElementVNode("div", _hoisted_2, [
       _createElementVNode("header", _hoisted_3, [
         _createElementVNode("div", _hoisted_4, [
-          _hoisted_5,
-          _createElementVNode("h1", _hoisted_6, _toDisplayString(dashboard.value.title || 'Vue-面板'), 1),
-          _createElementVNode("p", _hoisted_7, _toDisplayString(dashboard.value.subtitle || '每个功能都是独立卡片，可直接配置、查看日志和复制。'), 1),
-          _createElementVNode("div", _hoisted_8, [
-            _createElementVNode("span", _hoisted_9, "主题 " + _toDisplayString(__props.themeLabel), 1),
-            _createElementVNode("span", _hoisted_10, "卡片 " + _toDisplayString(cards.value.length), 1),
-            _createElementVNode("span", _hoisted_11, "启用 " + _toDisplayString(enabledCount.value), 1),
-            _createElementVNode("span", _hoisted_12, "下次 " + _toDisplayString(status.next_run_time || dashboard.value.next_run_time || '未启用'), 1),
-            _createElementVNode("span", _hoisted_13, "最近 " + _toDisplayString(status.last_run || '暂无'), 1)
-          ])
+          _createVNode(_component_v_text_field, {
+            modelValue: searchQuery.value,
+            "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((searchQuery).value = $event)),
+            class: "vpp-search-field",
+            variant: "outlined",
+            density: "comfortable",
+            "hide-details": "",
+            clearable: "",
+            placeholder: "搜索功能模块...",
+            "prepend-inner-icon": "mdi-magnify"
+          }, null, 8, ["modelValue"])
         ]),
-        _createElementVNode("div", _hoisted_14, [
+        _createElementVNode("div", _hoisted_5, [
           _createVNode(_component_v_btn, {
-            color: "primary",
-            variant: "flat",
-            loading: loading.refreshAll,
-            onClick: refreshStatus
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("刷新状态")
-            ]),
-            _: 1
-          }, 8, ["loading"]),
-          _createVNode(_component_v_btn, {
-            color: "success",
-            variant: "flat",
+            class: "vpp-toolbar-btn",
+            variant: "text",
+            "prepend-icon": "mdi-flash",
             loading: loading.runAll,
             onClick: runAll
           }, {
             default: _withCtx(() => [
-              _createTextVNode("执行启用任务")
+              _createTextVNode(" 执行启用 "),
+              _createElementVNode("span", _hoisted_6, _toDisplayString(enabledCount.value), 1)
             ]),
             _: 1
           }, 8, ["loading"]),
           _createVNode(_component_v_btn, {
+            class: "vpp-toolbar-btn",
             variant: "text",
-            onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'config')))
+            "prepend-icon": "mdi-refresh",
+            loading: loading.refreshAll,
+            onClick: refreshStatus
           }, {
             default: _withCtx(() => [
-              _createTextVNode("全局设置")
+              _createTextVNode("刷新")
+            ]),
+            _: 1
+          }, 8, ["loading"]),
+          _createVNode(_component_v_btn, {
+            class: "vpp-toolbar-btn",
+            variant: "text",
+            "prepend-icon": "mdi-cog-outline",
+            onClick: _cache[1] || (_cache[1] = $event => (emit('switch', 'config')))
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode("设置")
             ]),
             _: 1
           }),
           _createVNode(_component_v_btn, {
+            class: "vpp-toolbar-btn is-icon",
+            icon: "mdi-close",
             variant: "text",
             onClick: closePlugin
-          }, {
-            default: _withCtx(() => [
-              _createTextVNode("关闭")
-            ]),
-            _: 1
           })
         ])
       ]),
@@ -590,27 +619,36 @@ return (_ctx, _cache) => {
             _: 1
           }, 8, ["type"]))
         : _createCommentVNode("", true),
-      _createElementVNode("section", _hoisted_15, [
-        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(summaryCards.value, (item) => {
+      _createElementVNode("section", _hoisted_7, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(controlStats.value, (item) => {
           return (_openBlock(), _createElementBlock("article", {
             key: item.label,
             class: "vpp-stat-card"
           }, [
-            _createElementVNode("span", _hoisted_16, _toDisplayString(item.label), 1),
-            _createElementVNode("strong", _hoisted_17, _toDisplayString(item.value), 1)
+            _createElementVNode("div", _hoisted_8, [
+              _createVNode(_component_v_icon, {
+                icon: item.icon,
+                size: "18"
+              }, null, 8, ["icon"])
+            ]),
+            _createElementVNode("div", _hoisted_9, [
+              _createElementVNode("strong", _hoisted_10, _toDisplayString(item.value), 1),
+              _createElementVNode("span", _hoisted_11, _toDisplayString(item.label), 1)
+            ]),
+            _hoisted_12
           ]))
         }), 128))
       ]),
-      _createElementVNode("section", _hoisted_18, [
-        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cards.value, (card) => {
+      _createElementVNode("section", _hoisted_13, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(displayCards.value, (card) => {
           return (_openBlock(), _createElementBlock("article", {
             key: card.card_id,
             class: _normalizeClass(["vpp-card", [{ 'is-enabled': card.enabled, 'is-disabled': !card.enabled }, `level-${runtimeTone(card.level)}`]]),
             style: _normalizeStyle(toneStyle(card.tone))
           }, [
-            _hoisted_19,
-            _createElementVNode("div", _hoisted_20, [
-              _createElementVNode("div", _hoisted_21, [
+            _hoisted_14,
+            _createElementVNode("div", _hoisted_15, [
+              _createElementVNode("div", _hoisted_16, [
                 (logoSrc(card))
                   ? (_openBlock(), _createElementBlock("img", {
                       key: 0,
@@ -618,61 +656,61 @@ return (_ctx, _cache) => {
                       alt: `${card.site_name} logo`,
                       class: "vpp-logo",
                       onError: $event => (markLogoFailed(card.card_id))
-                    }, null, 40, _hoisted_22))
-                  : (_openBlock(), _createElementBlock("span", _hoisted_23, _toDisplayString(card.module_icon || '•'), 1))
+                    }, null, 40, _hoisted_17))
+                  : (_openBlock(), _createElementBlock("span", _hoisted_18, _toDisplayString(card.module_icon || '•'), 1))
               ]),
-              _createElementVNode("div", _hoisted_24, [
-                _createElementVNode("div", _hoisted_25, [
-                  _createElementVNode("h2", _hoisted_26, _toDisplayString(card.title), 1),
+              _createElementVNode("div", _hoisted_19, [
+                _createElementVNode("div", _hoisted_20, [
+                  _createElementVNode("h2", _hoisted_21, _toDisplayString(card.title), 1),
                   _createElementVNode("span", {
                     class: _normalizeClass(["vpp-status-pill", `is-${card.status_key}`])
                   }, _toDisplayString(card.status_label), 3)
                 ]),
-                _createElementVNode("p", _hoisted_27, _toDisplayString(card.module_summary || 'plugin card'), 1),
-                _createElementVNode("div", _hoisted_28, [
+                _createElementVNode("p", _hoisted_22, _toDisplayString(card.module_summary || 'plugin card'), 1),
+                _createElementVNode("div", _hoisted_23, [
                   _createElementVNode("span", null, _toDisplayString(card.site_name || card.module_name), 1),
                   _createElementVNode("span", null, _toDisplayString(card.site_domain || card.site_url || '--'), 1)
                 ])
               ])
             ]),
-            _createElementVNode("div", _hoisted_29, [
+            _createElementVNode("div", _hoisted_24, [
               _createElementVNode("span", {
                 class: _normalizeClass(["vpp-runtime-pill", `is-${runtimeTone(card.level)}`])
               }, _toDisplayString(runtimeLabel(card.level)), 3),
-              _createElementVNode("span", _hoisted_30, _toDisplayString(card.status_title || '等待刷新'), 1)
+              _createElementVNode("span", _hoisted_25, _toDisplayString(card.status_title || '等待刷新'), 1)
             ]),
-            _createElementVNode("p", _hoisted_31, _toDisplayString(card.status_text || '当前还没有可展示的运行状态。'), 1),
+            _createElementVNode("p", _hoisted_26, _toDisplayString(card.status_text || '当前还没有可展示的运行状态。'), 1),
             (card.metrics?.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_32, [
+              ? (_openBlock(), _createElementBlock("div", _hoisted_27, [
                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(card.metrics.slice(0, 3), (metric) => {
                     return (_openBlock(), _createElementBlock("div", {
                       key: `${card.card_id}-${metric.label}`,
                       class: "vpp-metric"
                     }, [
-                      _createElementVNode("span", _hoisted_33, _toDisplayString(metric.label), 1),
-                      _createElementVNode("strong", _hoisted_34, _toDisplayString(metric.value), 1)
+                      _createElementVNode("span", _hoisted_28, _toDisplayString(metric.label), 1),
+                      _createElementVNode("strong", _hoisted_29, _toDisplayString(metric.value), 1)
                     ]))
                   }), 128))
                 ]))
               : _createCommentVNode("", true),
-            _createElementVNode("div", _hoisted_35, [
-              _createElementVNode("div", _hoisted_36, [
-                _hoisted_37,
+            _createElementVNode("div", _hoisted_30, [
+              _createElementVNode("div", _hoisted_31, [
+                _hoisted_32,
                 _createElementVNode("strong", null, _toDisplayString(scheduleText(card)), 1)
               ]),
-              _createElementVNode("div", _hoisted_38, [
-                _hoisted_39,
+              _createElementVNode("div", _hoisted_33, [
+                _hoisted_34,
                 _createElementVNode("strong", null, _toDisplayString(card.last_run || '暂无'), 1)
               ]),
-              _createElementVNode("div", _hoisted_40, [
-                _hoisted_41,
+              _createElementVNode("div", _hoisted_35, [
+                _hoisted_36,
                 _createElementVNode("strong", null, _toDisplayString(card.log_count || 0) + " 条", 1)
               ])
             ]),
             (card.note || card.detail_lines?.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_42, _toDisplayString(card.note || card.detail_lines?.[0] || card.module_description), 1))
+              ? (_openBlock(), _createElementBlock("div", _hoisted_37, _toDisplayString(card.note || card.detail_lines?.[0] || card.module_description), 1))
               : _createCommentVNode("", true),
-            _createElementVNode("div", _hoisted_43, [
+            _createElementVNode("div", _hoisted_38, [
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(previewTags(card.tags), (tag) => {
                 return (_openBlock(), _createElementBlock("span", {
                   key: `${card.card_id}-${tag}`,
@@ -680,7 +718,7 @@ return (_ctx, _cache) => {
                 }, _toDisplayString(tag), 1))
               }), 128))
             ]),
-            _createElementVNode("div", _hoisted_44, [
+            _createElementVNode("div", _hoisted_39, [
               _createVNode(_component_v_btn, {
                 class: "vpp-action-btn is-config",
                 variant: "text",
@@ -716,64 +754,67 @@ return (_ctx, _cache) => {
               }, 1032, ["onClick"])
             ])
           ], 6))
-        }), 128))
+        }), 128)),
+        (!displayCards.value.length)
+          ? (_openBlock(), _createElementBlock("div", _hoisted_40, _toDisplayString(searchQuery.value ? '没有找到匹配的功能模块。' : '当前还没有可展示的功能卡片。'), 1))
+          : _createCommentVNode("", true)
       ])
     ]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.config,
-      "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((dialog.config) = $event)),
+      "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((dialog.config) = $event)),
       "max-width": "860"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-config" }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_45, [
+            _createElementVNode("div", _hoisted_41, [
               _createElementVNode("div", null, [
-                _hoisted_46,
-                _createElementVNode("h3", _hoisted_47, _toDisplayString(editor.title || activeDashboardCard.value?.title || '功能配置'), 1)
+                _hoisted_42,
+                _createElementVNode("h3", _hoisted_43, _toDisplayString(editor.title || activeDashboardCard.value?.title || '功能配置'), 1)
               ]),
               _createElementVNode("span", {
                 class: _normalizeClass(["vpp-status-pill", `is-${editor.enabled ? 'enabled' : 'disabled'}`])
               }, _toDisplayString(editor.enabled ? '启用' : '停用'), 3)
             ]),
-            _createElementVNode("div", _hoisted_48, [
-              _hoisted_49,
-              _createElementVNode("div", _hoisted_50, [
+            _createElementVNode("div", _hoisted_44, [
+              _hoisted_45,
+              _createElementVNode("div", _hoisted_46, [
+                _createElementVNode("label", _hoisted_47, [
+                  _hoisted_48,
+                  _createVNode(_component_v_switch, {
+                    modelValue: editor.enabled,
+                    "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((editor.enabled) = $event)),
+                    "hide-details": "",
+                    color: "primary",
+                    density: "compact"
+                  }, null, 8, ["modelValue"])
+                ]),
+                _createElementVNode("label", _hoisted_49, [
+                  _hoisted_50,
+                  _createVNode(_component_v_switch, {
+                    modelValue: editor.auto_run,
+                    "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((editor.auto_run) = $event)),
+                    "hide-details": "",
+                    color: "primary",
+                    density: "compact"
+                  }, null, 8, ["modelValue"])
+                ]),
                 _createElementVNode("label", _hoisted_51, [
                   _hoisted_52,
                   _createVNode(_component_v_switch, {
-                    modelValue: editor.enabled,
-                    "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((editor.enabled) = $event)),
-                    "hide-details": "",
-                    color: "primary",
-                    density: "compact"
-                  }, null, 8, ["modelValue"])
-                ]),
-                _createElementVNode("label", _hoisted_53, [
-                  _hoisted_54,
-                  _createVNode(_component_v_switch, {
-                    modelValue: editor.auto_run,
-                    "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((editor.auto_run) = $event)),
-                    "hide-details": "",
-                    color: "primary",
-                    density: "compact"
-                  }, null, 8, ["modelValue"])
-                ]),
-                _createElementVNode("label", _hoisted_55, [
-                  _hoisted_56,
-                  _createVNode(_component_v_switch, {
                     modelValue: editor.notify,
-                    "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((editor.notify) = $event)),
+                    "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((editor.notify) = $event)),
                     "hide-details": "",
                     color: "primary",
                     density: "compact"
                   }, null, 8, ["modelValue"])
                 ])
               ]),
-              _createElementVNode("div", _hoisted_57, [
+              _createElementVNode("div", _hoisted_53, [
                 _createVNode(_component_v_text_field, {
                   modelValue: editor.title,
-                  "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((editor.title) = $event)),
+                  "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((editor.title) = $event)),
                   label: "功能名称",
                   variant: "outlined",
                   density: "comfortable",
@@ -781,7 +822,7 @@ return (_ctx, _cache) => {
                 }, null, 8, ["modelValue"]),
                 _createVNode(_component_v_text_field, {
                   modelValue: editor.site_name,
-                  "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((editor.site_name) = $event)),
+                  "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((editor.site_name) = $event)),
                   label: "网站名称",
                   variant: "outlined",
                   density: "comfortable",
@@ -789,7 +830,7 @@ return (_ctx, _cache) => {
                 }, null, 8, ["modelValue"]),
                 _createVNode(_component_v_text_field, {
                   modelValue: editor.site_url,
-                  "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((editor.site_url) = $event)),
+                  "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((editor.site_url) = $event)),
                   label: "网站地址",
                   variant: "outlined",
                   density: "comfortable",
@@ -799,7 +840,7 @@ return (_ctx, _cache) => {
                   ? (_openBlock(), _createBlock(_component_v_text_field, {
                       key: 0,
                       modelValue: editor.uid,
-                      "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((editor.uid) = $event)),
+                      "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((editor.uid) = $event)),
                       label: "UID",
                       variant: "outlined",
                       density: "comfortable",
@@ -808,7 +849,7 @@ return (_ctx, _cache) => {
                   : _createCommentVNode("", true),
                 _createVNode(_component_v_text_field, {
                   modelValue: editor.cron,
-                  "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((editor.cron) = $event)),
+                  "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((editor.cron) = $event)),
                   label: "Cron",
                   variant: "outlined",
                   density: "comfortable",
@@ -816,7 +857,7 @@ return (_ctx, _cache) => {
                 }, null, 8, ["modelValue"]),
                 _createVNode(_component_v_select, {
                   modelValue: editor.tone,
-                  "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((editor.tone) = $event)),
+                  "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editor.tone) = $event)),
                   items: toneSelectItems.value,
                   "item-title": "label",
                   "item-value": "value",
@@ -828,7 +869,7 @@ return (_ctx, _cache) => {
               ]),
               _createVNode(_component_v_text_field, {
                 modelValue: editor.cookie,
-                "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editor.cookie) = $event)),
+                "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editor.cookie) = $event)),
                 label: "Cookie",
                 variant: "outlined",
                 density: "comfortable",
@@ -837,7 +878,7 @@ return (_ctx, _cache) => {
               }, null, 8, ["modelValue"]),
               _createVNode(_component_v_textarea, {
                 modelValue: editor.note,
-                "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editor.note) = $event)),
+                "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((editor.note) = $event)),
                 label: "功能描述",
                 variant: "outlined",
                 rows: "3",
@@ -846,10 +887,10 @@ return (_ctx, _cache) => {
                 class: "vpp-field-block"
               }, null, 8, ["modelValue"])
             ]),
-            _createElementVNode("div", _hoisted_58, [
+            _createElementVNode("div", _hoisted_54, [
               _createVNode(_component_v_btn, {
                 variant: "text",
-                onClick: _cache[12] || (_cache[12] = $event => (dialog.config = false))
+                onClick: _cache[13] || (_cache[13] = $event => (dialog.config = false))
               }, {
                 default: _withCtx(() => [
                   _createTextVNode("取消")
@@ -876,40 +917,40 @@ return (_ctx, _cache) => {
     }, 8, ["modelValue"]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.logs,
-      "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((dialog.logs) = $event)),
+      "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((dialog.logs) = $event)),
       "max-width": "960"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-logs" }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_59, [
+            _createElementVNode("div", _hoisted_55, [
               _createElementVNode("div", null, [
-                _hoisted_60,
-                _createElementVNode("h3", _hoisted_61, _toDisplayString(activeDashboardCard.value?.title || '实时日志'), 1)
+                _hoisted_56,
+                _createElementVNode("h3", _hoisted_57, _toDisplayString(activeDashboardCard.value?.title || '实时日志'), 1)
               ]),
-              _hoisted_62
+              _hoisted_58
             ]),
-            _createElementVNode("div", _hoisted_63, [
-              _createElementVNode("div", _hoisted_64, [
+            _createElementVNode("div", _hoisted_59, [
+              _createElementVNode("div", _hoisted_60, [
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1),
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.site_domain || activeDashboardCard.value?.site_url || '--'), 1),
                 _createElementVNode("span", null, "最近刷新 " + _toDisplayString(lastLogRefresh.value || '刚刚'), 1)
               ]),
               (!selectedLogs.value.length)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_65, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
-                : (_openBlock(), _createElementBlock("div", _hoisted_66, [
+                ? (_openBlock(), _createElementBlock("div", _hoisted_61, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
+                : (_openBlock(), _createElementBlock("div", _hoisted_62, [
                     (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(selectedLogs.value, (item) => {
                       return (_openBlock(), _createElementBlock("article", {
                         key: item.id || `${item.time}-${item.summary}`,
                         class: "vpp-log-item"
                       }, [
-                        _createElementVNode("div", _hoisted_67, [
+                        _createElementVNode("div", _hoisted_63, [
                           _createElementVNode("strong", null, _toDisplayString(item.status_title || item.title || activeDashboardCard.value?.title), 1),
                           _createElementVNode("span", null, _toDisplayString(item.time || '--'), 1)
                         ]),
-                        _createElementVNode("p", _hoisted_68, _toDisplayString(item.summary || '暂无详情'), 1),
+                        _createElementVNode("p", _hoisted_64, _toDisplayString(item.summary || '暂无详情'), 1),
                         (item.lines?.length)
-                          ? (_openBlock(), _createElementBlock("div", _hoisted_69, [
+                          ? (_openBlock(), _createElementBlock("div", _hoisted_65, [
                               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.lines, (line) => {
                                 return (_openBlock(), _createElementBlock("span", {
                                   key: `${item.id}-${line}`,
@@ -922,10 +963,10 @@ return (_ctx, _cache) => {
                     }), 128))
                   ]))
             ]),
-            _createElementVNode("div", _hoisted_70, [
+            _createElementVNode("div", _hoisted_66, [
               _createVNode(_component_v_btn, {
                 variant: "text",
-                onClick: _cache[14] || (_cache[14] = $event => (dialog.logs = false))
+                onClick: _cache[15] || (_cache[15] = $event => (dialog.logs = false))
               }, {
                 default: _withCtx(() => [
                   _createTextVNode("关闭")
@@ -965,28 +1006,28 @@ return (_ctx, _cache) => {
     }, 8, ["modelValue"]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.copy,
-      "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((dialog.copy) = $event)),
+      "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((dialog.copy) = $event)),
       "max-width": "680"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-copy" }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_71, [
+            _createElementVNode("div", _hoisted_67, [
               _createElementVNode("div", null, [
-                _hoisted_72,
-                _createElementVNode("h3", _hoisted_73, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
+                _hoisted_68,
+                _createElementVNode("h3", _hoisted_69, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
               ])
             ]),
-            _createElementVNode("div", _hoisted_74, [
-              _hoisted_75,
-              _createElementVNode("div", _hoisted_76, [
-                _hoisted_77,
+            _createElementVNode("div", _hoisted_70, [
+              _hoisted_71,
+              _createElementVNode("div", _hoisted_72, [
+                _hoisted_73,
                 _createElementVNode("strong", null, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1),
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.module_summary || '--'), 1)
               ]),
               _createVNode(_component_v_text_field, {
                 modelValue: copyForm.title,
-                "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((copyForm.title) = $event)),
+                "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((copyForm.title) = $event)),
                 label: "复制功能名称",
                 variant: "outlined",
                 density: "comfortable",
@@ -995,7 +1036,7 @@ return (_ctx, _cache) => {
               }, null, 8, ["modelValue"]),
               _createVNode(_component_v_textarea, {
                 modelValue: copyForm.note,
-                "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((copyForm.note) = $event)),
+                "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((copyForm.note) = $event)),
                 label: "功能描述",
                 variant: "outlined",
                 rows: "3",
@@ -1004,10 +1045,10 @@ return (_ctx, _cache) => {
                 class: "vpp-field-block"
               }, null, 8, ["modelValue"])
             ]),
-            _createElementVNode("div", _hoisted_78, [
+            _createElementVNode("div", _hoisted_74, [
               _createVNode(_component_v_btn, {
                 variant: "text",
-                onClick: _cache[18] || (_cache[18] = $event => (dialog.copy = false))
+                onClick: _cache[19] || (_cache[19] = $event => (dialog.copy = false))
               }, {
                 default: _withCtx(() => [
                   _createTextVNode("取消")
@@ -1037,6 +1078,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-31a127f8"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d10462e6"]]);
 
 export { PageView as default };
