@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.10"
+    plugin_version = "0.1.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -48,7 +48,7 @@ class VuePanel(_PluginBase):
             "key": "siqi_sign",
             "label": "思齐签到",
             "icon": "🪐",
-            "description": "访问 /attendance.php 完成签到。",
+            "description": "访问 /attendance.php 自动识别验证码并完成签到。",
             "summary": "siqi attendance",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
@@ -59,7 +59,7 @@ class VuePanel(_PluginBase):
             "key": "hnr_claim",
             "label": "HNR领取",
             "icon": "🧿",
-            "description": "访问 /hnrview.php 领取 HNR 奖励。",
+            "description": "访问 /hnrview.php 批量领取当前可领的 HNR 奖励。",
             "summary": "hnr reward claim",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
@@ -380,8 +380,8 @@ class VuePanel(_PluginBase):
     @staticmethod
     def _default_module_note(module_key: str) -> str:
         mapping = {
-            "siqi_sign": "填写 Cookie 后即可启用。",
-            "hnr_claim": "可与思齐签到共用同站 Cookie。",
+            "siqi_sign": "填写 Cookie 后即可启用，执行时会自动识别验证码并提交签到。",
+            "hnr_claim": "可与思齐签到共用同站 Cookie，执行时会按当前排名批量领取可用奖励。",
             "newapi_checkin": "需要单独填写 UID，复制后可管理多站点。",
         }
         return mapping.get(module_key, "")
@@ -645,6 +645,7 @@ class VuePanel(_PluginBase):
         claimed: List[str] = []
         failed: List[str] = []
         total_amount = 0
+        rank = str(info.get("rank") or "未知")
 
         for item in claims:
             reward_type = item.get("reward_type")
@@ -661,35 +662,41 @@ class VuePanel(_PluginBase):
                 success = False
                 if post_resp.status_code == 302:
                     success = "success=reward_claimed" in str(post_resp.headers.get("Location") or "")
+                    if not success:
+                        failed.append(f"{name}(重定向无成功标记)")
                 elif post_resp.status_code == 200:
                     success = "成功" in post_resp.text or "领取成功" in post_resp.text
+                    if not success:
+                        failed.append(f"{name}(HTTP {post_resp.status_code})")
+                else:
+                    failed.append(f"{name}(HTTP {post_resp.status_code})")
                 if success:
                     claimed.append(f"{name}(+{amount})")
                     total_amount += self._safe_int(amount, 0)
-                else:
-                    failed.append(name)
             except Exception:
-                failed.append(name)
+                failed.append(f"{name}(异常)")
 
         level = "success" if claimed and not failed else ("warning" if claimed else "error")
         status_title = "领取完成" if claimed else "领取失败"
         status_text = (
-            f"成功领取 {len(claimed)} 项奖励，共 {total_amount} 魔力。"
+            f"成功领取 {len(claimed)} 项奖励，共 {total_amount} 魔力，当前排名 {rank}。"
             if claimed
-            else f"全部奖励领取失败，当前排名 {info.get('rank') or '未知'}。"
+            else f"所有奖励领取失败，当前排名 {rank}。"
         )
         detail_lines: List[str] = []
         if claimed:
             detail_lines.append(f"已领取：{', '.join(claimed)}")
         if failed:
             detail_lines.append(f"失败：{', '.join(failed)}")
+        if not claimed and not failed:
+            detail_lines.append("页面未返回可解析的领取结果。")
         return self._build_result(
             success=bool(claimed),
             level=level,
             status_title=status_title,
             status_text=status_text,
             metrics=[
-                {"label": "排名", "value": str(info.get("rank") or "未知")},
+                {"label": "排名", "value": rank},
                 {"label": "成功数", "value": str(len(claimed))},
                 {"label": "总额", "value": str(total_amount)},
             ],
@@ -778,7 +785,7 @@ class VuePanel(_PluginBase):
 
     def _parse_siqi_page(self, html: str, url: str) -> Dict[str, Any]:
         imagehash_match = re.search(r'name="imagehash"\s+value="([a-f0-9]+)"', html, re.IGNORECASE)
-        captcha_match = re.search(r"captchaString\s*=\s*'([^']+)'", html)
+        captcha_match = re.search(r"(?:var\s+)?captchaString\s*=\s*['\"]([^'\"]+)['\"]", html, re.IGNORECASE)
         form_match = re.search(r'<form[^>]*action=["\']([^"\']*)', html, re.IGNORECASE)
         return {
             "invalid_cookie": ("未登录" in html) or ("登录" in html and "注册" in html),
