@@ -1,7 +1,7 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, m as makeLayoutProps, c as makeThemeProps, d as provideTheme, f as createLayout, u as useRtl, h as provideDefaults, j as convertToUnit, S as SUPPORTS_INTERSECTION, k as getCurrentInstanceName, l as destructComputed, n as isCssColor, o as getForeground, q as clamp, r as consoleWarn, s as makeLayoutItemProps, t as useProxiedModel, v as useToggleScope, w as useLayoutItem, x as getUid, y as deepEqual, z as wrapInArray, A as findChildrenWithProvide, I as IconValue, B as useIcon, C as flattenFragments, D as useResizeObserver, E as hasEvent, F as IN_BROWSER, G as isObject, H as keyCodes, J as useLocale, K as filterInputAttrs, L as matchesSelector, M as omit, N as EventProp, O as defineComponent, P as deprecate, Q as getPropertyFromItem, R as pick, T as focusChild, U as consoleError, V as refElement, W as useDisplay, X as focusableChildren, Y as getNextElement, Z as callEvent, _ as createRange, $ as noop, a0 as useTheme, a1 as keys, a2 as getEventCoordinates, a3 as HSVtoRGB, a4 as RGBtoHSV, a5 as HSVtoHSL, a6 as HSLtoHSV, a7 as HSVtoHex, a8 as HexToHSV, a9 as has, aa as getDecimals, ab as keyValues, ac as HSVtoCSS, ad as parseColor, ae as RGBtoCSS, af as getContrast, ag as humanReadableFileSize, ah as breakpoints, ai as provideLocale, aj as useLayout, ak as CircularBuffer, al as VClassIcon, am as VComponentIcon, an as VLigatureIcon, ao as VSvgIcon } from './display-36ab135c.js';
-import ConfigView from './__federation_expose_Config-57e142bf.js';
-import PageView from './__federation_expose_Page-8f553601.js';
+import ConfigView from './__federation_expose_Config-20dfd8f6.js';
+import PageView from './__federation_expose_Page-8355f733.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
 true&&(function polyfill() {
@@ -17799,7 +17799,7 @@ function createRequest(baseURL = '') {
 
 const panelTheme = '';
 
-const App_vue_vue_type_style_index_0_scoped_67770cba_lang = '';
+const App_vue_vue_type_style_index_0_scoped_140dfa3c_lang = '';
 
 const {unref:_unref,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
 
@@ -17860,13 +17860,13 @@ return (_ctx, _cache) => {
                   default: _withCtx(() => [
                     _createVNode(_component_v_tab, { value: "page" }, {
                       default: _withCtx(() => [
-                        _createTextVNode("运行监控看板")
+                        _createTextVNode("功能面板")
                       ]),
                       _: 1
                     }),
                     _createVNode(_component_v_tab, { value: "config" }, {
                       default: _withCtx(() => [
-                        _createTextVNode("模块化配置后台")
+                        _createTextVNode("全局设置")
                       ]),
                       _: 1
                     })
@@ -17922,7 +17922,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-67770cba"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-140dfa3c"]]);
 
 const {createApp} = await importShared('vue');
 

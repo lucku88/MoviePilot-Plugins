@@ -5,7 +5,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import pytz
 import requests
@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.7"
+    plugin_version = "0.1.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -47,28 +47,31 @@ class VuePanel(_PluginBase):
         {
             "key": "siqi_sign",
             "label": "思齐签到",
-            "icon": "🪪",
+            "icon": "🪐",
             "description": "访问 /attendance.php 完成签到。",
+            "summary": "siqi attendance",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
-            "singleton": True,
+            "singleton": False,
             "tone": "emerald",
         },
         {
             "key": "hnr_claim",
             "label": "HNR领取",
-            "icon": "🎁",
+            "icon": "🧿",
             "description": "访问 /hnrview.php 领取 HNR 奖励。",
+            "summary": "hnr reward claim",
             "default_site_name": "思齐主站",
             "default_site_url": "https://si-qi.xyz",
-            "singleton": True,
+            "singleton": False,
             "tone": "amber",
         },
         {
             "key": "newapi_checkin",
             "label": "New API签到",
-            "icon": "🤖",
-            "description": "调用 /api/user/checkin 执行签到，支持多站点独立配置。",
+            "icon": "🛰️",
+            "description": "调用 /api/user/checkin 执行签到，支持复制独立卡片。",
+            "summary": "new api checkin",
             "default_site_name": "New API 站点",
             "default_site_url": "https://open.xingyungept.cn",
             "singleton": False,
@@ -315,7 +318,7 @@ class VuePanel(_PluginBase):
             "next_trigger_mode": self._load_next_trigger_mode(),
             "last_run": self.get_data("last_run") or "",
             "dashboard": dashboard,
-            "history": (self.get_data("history") or [])[:12],
+            "history": (self.get_data("history") or [])[: self.HISTORY_LIMIT],
             "config": self._get_config(),
         }
 
@@ -369,21 +372,17 @@ class VuePanel(_PluginBase):
         }
 
     def _default_cards(self) -> List[Dict[str, Any]]:
-        cards: List[Dict[str, Any]] = []
-        for module_meta in self.MODULES:
-            module_key = module_meta["key"]
-            if self._module_is_singleton(module_key):
-                cards.append(self._fixed_card_template(module_key, note=self._default_module_note(module_key)))
-            else:
-                cards.append(self._collection_card_template(module_key))
-        return cards
+        return [
+            self._collection_card_template(module_meta["key"], note=self._default_module_note(module_meta["key"]))
+            for module_meta in self.MODULES
+        ]
 
     @staticmethod
     def _default_module_note(module_key: str) -> str:
         mapping = {
             "siqi_sign": "填写 Cookie 后即可启用。",
-            "hnr_claim": "和思齐签到共用同站 Cookie。",
-            "newapi_checkin": "可在 New API 模块内继续新增不同站点。",
+            "hnr_claim": "可与思齐签到共用同站 Cookie。",
+            "newapi_checkin": "需要单独填写 UID，复制后可管理多站点。",
         }
         return mapping.get(module_key, "")
 
@@ -414,7 +413,7 @@ class VuePanel(_PluginBase):
             "newapi_checkin",
             site_name="Open 站点",
             uid="225",
-            note="可在 New API 模块内继续新增不同站点。",
+            note="需要单独填写 UID，复制后可管理多站点。",
         )
 
     def _collection_card_template(
@@ -839,24 +838,30 @@ class VuePanel(_PluginBase):
         }
 
     def _build_dashboard(self, states: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-        site_map: Dict[str, Dict[str, Any]] = {}
         success_count = 0
         error_count = 0
         auto_count = 0
         pending_count = 0
         history_items = list(self.get_data("history") or [])
         display_history_items = history_items if history_items else self._build_state_history_items(states)
+        card_logs = self._build_card_history_map(display_history_items, limit=12)
+        cards: List[Dict[str, Any]] = []
 
         for card in self._cards:
             module_meta = self._module_meta(card["module_key"])
             state = dict(states.get(card["id"]) or self._placeholder_state(card))
+            card_log_items = list(card_logs.get(card["id"]) or [])
             state.update(
                 {
                     "title": card["title"],
                     "site_name": card["site_name"],
                     "site_url": card["site_url"],
+                    "site_domain": self._site_domain(card["site_url"]),
+                    "site_logo": self._site_logo_url(card["site_url"]),
                     "module_name": module_meta["label"],
                     "module_icon": module_meta["icon"],
+                    "module_summary": str(module_meta.get("summary") or module_meta["key"].replace("_", " ")).lower(),
+                    "module_description": str(module_meta.get("description") or ""),
                     "enabled": card["enabled"],
                     "auto_run": card["auto_run"],
                     "cron": self._get_card_cron(card),
@@ -866,6 +871,12 @@ class VuePanel(_PluginBase):
                     "note": card.get("note") or "",
                     "uid": card.get("uid") or "",
                     "cookie_configured": bool(card.get("cookie")),
+                    "status_label": "启用" if card.get("enabled") else "停用",
+                    "status_key": "enabled" if card.get("enabled") else "disabled",
+                    "log_items": card_log_items,
+                    "log_count": len(card_log_items),
+                    "copy_title": card["title"],
+                    "copy_description": card.get("note") or str(module_meta.get("description") or ""),
                 }
             )
             state["tags"] = self._build_card_tags(card)
@@ -877,61 +888,42 @@ class VuePanel(_PluginBase):
                 pending_count += 1
             if card.get("auto_run"):
                 auto_count += 1
-            site_key = self._site_group_key(card)
-            if site_key not in site_map:
-                site_map[site_key] = {
-                    "site_key": site_key,
-                    "site_name": card["site_name"],
-                    "site_url": card["site_url"],
-                    "subtitle": "",
-                    "modules": {},
-                }
-            module_key = card["module_key"]
-            site_group = site_map[site_key]
-            if module_key not in site_group["modules"]:
-                module_meta = self._module_meta(module_key)
-                site_group["modules"][module_key] = {
-                    "module_key": module_key,
-                    "module_name": module_meta["label"],
-                    "module_icon": module_meta["icon"],
-                    "cards": [],
-                }
-            site_group["modules"][module_key]["cards"].append(state)
+            cards.append(state)
 
-        groups: List[Dict[str, Any]] = []
-        for item in site_map.values():
-            modules = list(item["modules"].values())
-            card_total = sum(len(group["cards"]) for group in modules)
-            item["subtitle"] = f"{card_total} 张状态卡片"
-            item["modules"] = modules
-            groups.append(item)
+        cards.sort(
+            key=lambda item: (
+                self._module_order(item.get("module_key") or ""),
+                str(item.get("site_name") or "").lower(),
+                str(item.get("title") or "").lower(),
+            )
+        )
 
-        groups.sort(key=lambda item: f"{item['site_name']}|{item['site_url']}".lower())
-        module_sections = self._build_module_sections(groups, display_history_items)
+        module_sections = self._build_module_sections(cards, display_history_items)
         notifications = self._build_notification_items(display_history_items)
         activity_logs = self._build_activity_logs(display_history_items)
 
         overview = [
-            {"label": "模块数量", "value": str(len(module_sections))},
-            {"label": "配置卡片", "value": str(len(self._cards))},
-            {"label": "状态卡片", "value": str(len(self._cards))},
+            {"label": "功能模块", "value": str(len(module_sections))},
+            {"label": "卡片总数", "value": str(len(self._cards))},
+            {"label": "启用卡片", "value": str(sum(1 for item in self._cards if item.get("enabled")))},
             {"label": "自动执行", "value": str(auto_count)},
             {"label": "成功状态", "value": str(success_count)},
             {"label": "异常状态", "value": str(error_count)},
             {"label": "待处理", "value": str(pending_count)},
-            {"label": "通知数", "value": str(len(notifications))},
+            {"label": "日志条数", "value": str(len(display_history_items))},
         ]
 
         return {
             "schema_version": self.plugin_version,
             "cards_version": self._cards_fingerprint(),
-            "title": "模块状态页",
-            "subtitle": "按模块拆分状态、调度与最近执行记录，固定任务和多站点任务各自独立展示。",
+            "title": "Vue-面板",
+            "subtitle": "每个功能卡片都可独立配置、查看日志和复制，自动适配当前主题。",
             "next_run_time": self._format_time(self._load_next_run_time()) if self._enabled else "",
             "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._enabled else "",
             "next_trigger_mode": self._load_next_trigger_mode(),
             "overview": overview,
-            "groups": groups,
+            "groups": [],
+            "cards": cards,
             "module_sections": module_sections,
             "notifications": notifications,
             "activity_logs": activity_logs,
@@ -941,7 +933,7 @@ class VuePanel(_PluginBase):
             "tone_options": list(self.TONES),
         }
 
-    def _build_module_sections(self, groups: List[Dict[str, Any]], history_items: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    def _build_module_sections(self, cards: List[Dict[str, Any]], history_items: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         history_map = self._build_module_history_map(history_items or [])
         bucket: Dict[str, Dict[str, Any]] = {}
         for module_meta in self.MODULES:
@@ -949,6 +941,7 @@ class VuePanel(_PluginBase):
                 "module_key": module_meta["key"],
                 "module_name": module_meta["label"],
                 "module_icon": module_meta["icon"],
+                "module_summary": str(module_meta.get("summary") or module_meta["key"].replace("_", " ")).lower(),
                 "singleton": module_meta.get("singleton", True) is not False,
                 "tone": module_meta.get("tone") or "azure",
                 "cards": [],
@@ -959,18 +952,16 @@ class VuePanel(_PluginBase):
                 "latest_run": "",
             }
 
-        for group in groups:
-            for module in group.get("modules") or []:
-                target = bucket.get(module.get("module_key") or "")
-                if not target:
-                    continue
-                cards = list(module.get("cards") or [])
-                cards.sort(key=lambda item: f"{item.get('site_name') or ''}|{item.get('title') or ''}".lower())
-                target["cards"].extend(cards)
+        for item in cards:
+            target = bucket.get(item.get("module_key") or "")
+            if not target:
+                continue
+            target["cards"].append(item)
 
         sections: List[Dict[str, Any]] = []
         for section in bucket.values():
             cards = list(section.get("cards") or [])
+            cards.sort(key=lambda item: f"{item.get('site_name') or ''}|{item.get('title') or ''}".lower())
             history = list(section.get("history") or [])[:8]
             if not cards and not history:
                 continue
@@ -991,6 +982,22 @@ class VuePanel(_PluginBase):
             ]
             sections.append(section)
         return sections
+
+    def _build_card_history_map(self, history_items: Any, limit: int = 12) -> Dict[str, List[Dict[str, Any]]]:
+        bucket: Dict[str, List[Dict[str, Any]]] = {}
+        if not isinstance(history_items, list):
+            return bucket
+        for item in history_items:
+            if not isinstance(item, dict):
+                continue
+            card_id = str(item.get("card_id") or "").strip()
+            if not card_id:
+                continue
+            bucket.setdefault(card_id, []).append(item)
+        for card_id, items in bucket.items():
+            items.sort(key=lambda item: str(item.get("time") or ""), reverse=True)
+            bucket[card_id] = items[:limit]
+        return bucket
 
     def _build_state_history_items(self, states: Dict[str, Dict[str, Any]], limit: int = 20) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
@@ -1312,7 +1319,13 @@ class VuePanel(_PluginBase):
         return self.MODULES[0]
 
     def _module_is_singleton(self, module_key: str) -> bool:
-        return self._module_meta(module_key).get("singleton", True) is not False
+        return False
+
+    def _module_order(self, module_key: str) -> int:
+        for index, item in enumerate(self.MODULES):
+            if item["key"] == module_key:
+                return index
+        return len(self.MODULES) + 1
 
     def _tone_label(self, tone_key: str) -> str:
         for item in self.TONES:
@@ -1337,6 +1350,22 @@ class VuePanel(_PluginBase):
 
     def _site_group_key(self, card: Dict[str, Any]) -> str:
         return f"{card.get('site_name') or ''}|{card.get('site_url') or ''}".lower()
+
+    def _site_domain(self, site_url: str) -> str:
+        try:
+            parsed = urlparse(self._normalize_site_url(site_url))
+            return parsed.netloc or ""
+        except Exception:
+            return ""
+
+    def _site_logo_url(self, site_url: str) -> str:
+        try:
+            parsed = urlparse(self._normalize_site_url(site_url))
+            if not parsed.scheme or not parsed.netloc:
+                return ""
+            return f"{parsed.scheme}://{parsed.netloc}/favicon.ico"
+        except Exception:
+            return ""
 
     def _cards_fingerprint(self) -> str:
         values = []
@@ -1374,9 +1403,9 @@ class VuePanel(_PluginBase):
                 title = str(item.get("title") or "")
                 if "🎁" in title or "HNR" in title:
                     module_key = "hnr_claim"
-                elif "🪪" in title or "思齐" in title:
+                elif "🪐" in title or "思齐" in title:
                     module_key = "siqi_sign"
-                elif "🤖" in title:
+                elif "🛰️" in title:
                     module_key = "newapi_checkin"
             if module_key not in bucket:
                 continue

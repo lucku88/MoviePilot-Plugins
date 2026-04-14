@@ -4,8 +4,8 @@
       <v-main>
         <v-container fluid class="mp-shell">
           <v-tabs v-model="tab" color="primary" class="mp-tabs" grow>
-            <v-tab value="page">运行监控看板</v-tab>
-            <v-tab value="config">模块化配置后台</v-tab>
+            <v-tab value="page">功能面板</v-tab>
+            <v-tab value="config">全局设置</v-tab>
           </v-tabs>
 
           <v-window v-model="tab" class="mp-window">

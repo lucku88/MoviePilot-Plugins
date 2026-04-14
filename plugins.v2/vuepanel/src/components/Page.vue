@@ -1,182 +1,305 @@
 <template>
   <div class="vuepanel-page">
     <div class="vpp-shell">
-      <header class="vpp-card vpp-hero">
-        <div class="vpp-copy">
-          <div class="vpp-badge">Vue-面板</div>
-          <h1 class="vpp-title">{{ dashboard.title || '状态页' }}</h1>
+      <header class="vpp-hero">
+        <div class="vpp-hero-copy">
+          <div class="vpp-kicker">Vue-面板</div>
+          <h1 class="vpp-title">{{ dashboard.title || 'Vue-面板' }}</h1>
+          <p class="vpp-subtitle">{{ dashboard.subtitle || '每个功能都是独立卡片，可直接配置、查看日志和复制。' }}</p>
+
           <div class="vpp-chip-row">
             <span class="vpp-chip">主题 {{ themeLabel }}</span>
-            <span class="vpp-chip">计划执行 {{ status.next_run_time || dashboard.next_run_time || '未启用' }}</span>
-            <span class="vpp-chip">最近执行 {{ status.last_run || '暂无' }}</span>
-            <span class="vpp-chip">模块 {{ moduleSections.length }} 个</span>
-            <span class="vpp-chip">日志 {{ activityLogCount }}</span>
+            <span class="vpp-chip">卡片 {{ cards.length }}</span>
+            <span class="vpp-chip">启用 {{ enabledCount }}</span>
+            <span class="vpp-chip">下次 {{ status.next_run_time || dashboard.next_run_time || '未启用' }}</span>
+            <span class="vpp-chip">最近 {{ status.last_run || '暂无' }}</span>
           </div>
         </div>
 
-        <div class="vpp-action-grid">
-          <v-btn color="success" variant="flat" :loading="loading" @click="runAll">执行启用任务</v-btn>
-          <v-btn color="primary" variant="flat" :loading="loading" @click="refreshStatus">刷新状态</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
+        <div class="vpp-hero-actions">
+          <v-btn color="primary" variant="flat" :loading="loading.refreshAll" @click="refreshStatus">刷新状态</v-btn>
+          <v-btn color="success" variant="flat" :loading="loading.runAll" @click="runAll">执行启用任务</v-btn>
+          <v-btn variant="text" @click="emit('switch', 'config')">全局设置</v-btn>
           <v-btn variant="text" @click="closePlugin">关闭</v-btn>
         </div>
       </header>
 
-      <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
+      <v-alert
+        v-if="message.text"
+        :type="message.type"
+        variant="tonal"
+        rounded="xl"
+        class="vpp-alert"
+      >
+        {{ message.text }}
+      </v-alert>
 
       <section class="vpp-stat-grid">
-        <article v-for="item in summaryCards" :key="item.label" class="vpp-card vpp-stat">
-          <div class="vpp-stat-label">{{ item.label }}</div>
-          <div class="vpp-stat-value">{{ item.value }}</div>
+        <article v-for="item in summaryCards" :key="item.label" class="vpp-stat-card">
+          <span class="vpp-stat-label">{{ item.label }}</span>
+          <strong class="vpp-stat-value">{{ item.value }}</strong>
         </article>
       </section>
 
-      <section
-        v-for="section in moduleSections"
-        :key="section.module_key"
-        class="vpp-card vpp-module"
-        :style="toneStyle(section.tone)"
-      >
-        <div class="vpp-module-head">
-          <div>
-            <div class="vpp-kicker">{{ section.singleton ? '固定模块' : '多站点模块' }}</div>
-            <h2 class="vpp-section-title">{{ section.module_icon }} {{ section.module_name }}</h2>
-          </div>
+      <section class="vpp-card-grid">
+        <article
+          v-for="card in cards"
+          :key="card.card_id"
+          class="vpp-card"
+          :style="toneStyle(card.tone)"
+        >
+          <div class="vpp-card-glow" />
 
-          <div class="vpp-pill-row">
-            <span v-for="stat in section.stats || []" :key="`${section.module_key}-${stat.label}`" class="vpp-pill">
-              {{ stat.label }} {{ stat.value }}
-            </span>
-            <span v-if="section.latest_run" class="vpp-pill">最近 {{ section.latest_run }}</span>
-          </div>
-        </div>
+          <div class="vpp-card-head">
+            <div class="vpp-logo-wrap">
+              <img
+                v-if="logoSrc(card)"
+                :src="logoSrc(card)"
+                :alt="`${card.site_name} logo`"
+                class="vpp-logo"
+                @error="markLogoFailed(card.card_id)"
+              />
+              <span v-else class="vpp-logo-fallback">{{ card.module_icon || '•' }}</span>
+            </div>
 
-        <div class="vpp-module-body" :class="{ single: section.singleton }">
-          <div class="vpp-card-grid" :class="{ single: section.singleton, multi: !section.singleton }">
-            <article
-              v-for="card in section.cards || []"
-              :key="card.card_id"
-              class="vpp-panel"
-              :style="toneStyle(card.tone || section.tone)"
-            >
-              <div class="vpp-panel-top">
-                <div>
-                  <div class="vpp-panel-kicker">{{ card.site_name }}</div>
-                  <div class="vpp-panel-title">{{ card.status_title }}</div>
-                </div>
-                <span class="vpp-level" :class="`is-${cardLevel(card.level)}`">{{ levelLabel(card.level) }}</span>
+            <div class="vpp-card-copy">
+              <div class="vpp-card-title-row">
+                <h2 class="vpp-card-title">{{ card.title }}</h2>
+                <span class="vpp-status-pill" :class="`is-${card.status_key}`">{{ card.status_label }}</span>
               </div>
 
-              <div v-if="!section.singleton" class="vpp-panel-site">{{ card.site_url }}</div>
-              <div class="vpp-panel-text">{{ card.status_text }}</div>
+              <p class="vpp-card-desc">{{ card.module_summary || 'plugin card' }}</p>
 
-              <div v-if="card.metrics?.length" class="vpp-metric-grid">
-                <div v-for="metric in card.metrics" :key="`${card.card_id}-${metric.label}`" class="vpp-metric">
-                  <div class="vpp-metric-label">{{ metric.label }}</div>
-                  <div class="vpp-metric-value">{{ metric.value }}</div>
-                </div>
+              <div class="vpp-card-meta">
+                <span>{{ card.site_name || card.module_name }}</span>
+                <span>{{ card.site_domain || card.site_url || '--' }}</span>
               </div>
-
-              <div v-if="card.tags?.length" class="vpp-tag-row">
-                <span
-                  v-for="tag in card.tags"
-                  :key="`${card.card_id}-${tag}`"
-                  class="vpp-tag"
-                  :class="`is-${tagTone(tag)}`"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-
-              <div v-if="card.detail_lines?.length" class="vpp-detail-list">
-                <div v-for="line in card.detail_lines" :key="`${card.card_id}-${line}`" class="vpp-detail-item">{{ line }}</div>
-              </div>
-
-              <div class="vpp-meta-grid">
-                <div class="vpp-meta-item">
-                  <span class="vpp-meta-label">执行</span>
-                  <strong>{{ card.last_run || '未执行' }}</strong>
-                </div>
-                <div class="vpp-meta-item">
-                  <span class="vpp-meta-label">计划</span>
-                  <strong>{{ scheduleText(card) }}</strong>
-                </div>
-              </div>
-
-              <div class="vpp-btn-row">
-                <v-btn color="primary" variant="flat" :loading="runningCardId === card.card_id" @click="runCard(card)">执行</v-btn>
-                <v-btn variant="text" :loading="refreshingCardId === card.card_id" @click="refreshCard(card)">刷新</v-btn>
-              </div>
-            </article>
-
-            <div v-if="!(section.cards || []).length" class="vpp-empty">
-              当前模块还没有可显示的状态卡片。
             </div>
           </div>
 
-          <aside class="vpp-side-stack">
-            <section v-if="sectionNotifications(section).length" class="vpp-side-card">
-              <div class="vpp-side-head">
-                <div>
-                  <div class="vpp-kicker">模块通知</div>
-                  <div class="vpp-side-title">需要关注的变化</div>
-                </div>
-                <span class="vpp-side-count">{{ sectionNotifications(section).length }}</span>
-              </div>
+          <div class="vpp-runtime-row">
+            <span class="vpp-runtime-pill" :class="`is-${runtimeTone(card.level)}`">
+              {{ runtimeLabel(card.level) }}
+            </span>
+            <span class="vpp-runtime-title">{{ card.status_title || '等待刷新' }}</span>
+          </div>
 
-              <div class="vpp-side-list">
-                <article
-                  v-for="item in sectionNotifications(section).slice(0, 3)"
-                  :key="`${section.module_key}-notice-${item.id}`"
-                  class="vpp-side-item notice"
-                >
-                  <div class="vpp-side-top">
-                    <strong>{{ item.title }}</strong>
-                    <span class="vpp-side-time">{{ item.time }}</span>
-                  </div>
-                  <div class="vpp-side-summary">{{ item.summary }}</div>
-                </article>
-              </div>
-            </section>
+          <p class="vpp-runtime-text">{{ card.status_text || '当前还没有可展示的运行状态。' }}</p>
 
-            <section class="vpp-side-card">
-              <div class="vpp-side-head">
-                <div>
-                  <div class="vpp-kicker">执行记录</div>
-                  <div class="vpp-side-title">最近日志</div>
-                </div>
-                <span class="vpp-side-count">{{ sectionLogs(section).length }}</span>
-              </div>
+          <div v-if="card.metrics?.length" class="vpp-metric-grid">
+            <div v-for="metric in card.metrics.slice(0, 3)" :key="`${card.card_id}-${metric.label}`" class="vpp-metric">
+              <span class="vpp-metric-label">{{ metric.label }}</span>
+              <strong class="vpp-metric-value">{{ metric.value }}</strong>
+            </div>
+          </div>
 
-              <div v-if="!sectionLogs(section).length" class="vpp-empty">
-                当前模块还没有执行记录。
-              </div>
+          <div class="vpp-detail-grid">
+            <div class="vpp-detail-item">
+              <span class="vpp-detail-label">计划</span>
+              <strong>{{ scheduleText(card) }}</strong>
+            </div>
+            <div class="vpp-detail-item">
+              <span class="vpp-detail-label">上次执行</span>
+              <strong>{{ card.last_run || '暂无' }}</strong>
+            </div>
+            <div class="vpp-detail-item">
+              <span class="vpp-detail-label">日志</span>
+              <strong>{{ card.log_count || 0 }} 条</strong>
+            </div>
+          </div>
 
-              <div v-else class="vpp-side-list">
-                <article
-                  v-for="item in sectionLogs(section).slice(0, 6)"
-                  :key="`${section.module_key}-log-${item.id}`"
-                  class="vpp-side-item log"
-                >
-                  <div class="vpp-side-top">
-                    <strong>{{ historyTitle(section, item) }}</strong>
-                    <span class="vpp-side-time">{{ item.time }}</span>
-                  </div>
-                  <div v-if="historyMeta(section, item)" class="vpp-side-meta">{{ historyMeta(section, item) }}</div>
-                  <div class="vpp-side-summary">{{ historySummary(item) }}</div>
-                  <div v-if="item.lines?.length" class="vpp-side-lines">{{ item.lines.join(' / ') }}</div>
-                </article>
-              </div>
-            </section>
-          </aside>
-        </div>
+          <div v-if="card.note || card.detail_lines?.length" class="vpp-note-box">
+            {{ card.note || card.detail_lines?.[0] || card.module_description }}
+          </div>
+
+          <div class="vpp-tag-row">
+            <span v-for="tag in previewTags(card.tags)" :key="`${card.card_id}-${tag}`" class="vpp-tag">{{ tag }}</span>
+          </div>
+
+          <div class="vpp-action-row">
+            <v-btn variant="tonal" @click="openConfigDialog(card)">配置</v-btn>
+            <v-btn variant="tonal" @click="openLogsDialog(card)">日志</v-btn>
+            <v-btn color="primary" variant="flat" @click="openCopyDialog(card)">复制</v-btn>
+          </div>
+        </article>
       </section>
     </div>
+
+    <v-dialog v-model="dialog.config" max-width="860">
+      <v-card class="vpp-dialog-card">
+        <div class="vpp-dialog-head">
+          <div>
+            <div class="vpp-kicker">配置</div>
+            <h3 class="vpp-dialog-title">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</h3>
+          </div>
+          <span class="vpp-status-pill" :class="`is-${editor.enabled ? 'enabled' : 'disabled'}`">
+            {{ editor.enabled ? '启用' : '停用' }}
+          </span>
+        </div>
+
+        <div class="vpp-dialog-body">
+          <div class="vpp-switch-grid">
+            <label class="vpp-switch-card">
+              <span class="vpp-switch-label">启用功能</span>
+              <v-switch v-model="editor.enabled" hide-details color="primary" density="compact" />
+            </label>
+            <label class="vpp-switch-card">
+              <span class="vpp-switch-label">定时执行</span>
+              <v-switch v-model="editor.auto_run" hide-details color="primary" density="compact" />
+            </label>
+            <label class="vpp-switch-card">
+              <span class="vpp-switch-label">发送通知</span>
+              <v-switch v-model="editor.notify" hide-details color="primary" density="compact" />
+            </label>
+          </div>
+
+          <div class="vpp-form-grid">
+            <v-text-field v-model="editor.title" label="功能名称" variant="outlined" density="comfortable" hide-details="auto" />
+            <v-text-field v-model="editor.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
+            <v-text-field v-model="editor.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
+            <v-text-field
+              v-if="editor.module_key === 'newapi_checkin'"
+              v-model="editor.uid"
+              label="UID"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            />
+            <v-text-field v-model="editor.cron" label="Cron" variant="outlined" density="comfortable" hide-details="auto" />
+            <v-select
+              v-model="editor.tone"
+              :items="toneSelectItems"
+              item-title="label"
+              item-value="value"
+              label="卡片色调"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            />
+          </div>
+
+          <v-text-field
+            v-model="editor.cookie"
+            label="Cookie"
+            variant="outlined"
+            density="comfortable"
+            hide-details="auto"
+            class="vpp-field-block"
+          />
+
+          <v-textarea
+            v-model="editor.note"
+            label="功能描述"
+            variant="outlined"
+            rows="3"
+            auto-grow
+            hide-details="auto"
+            class="vpp-field-block"
+          />
+        </div>
+
+        <div class="vpp-dialog-actions">
+          <v-btn variant="text" @click="dialog.config = false">取消</v-btn>
+          <v-btn color="primary" variant="flat" :loading="saving.config" @click="saveCardConfig">保存配置</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialog.logs" max-width="960">
+      <v-card class="vpp-dialog-card">
+        <div class="vpp-dialog-head">
+          <div>
+            <div class="vpp-kicker">日志</div>
+            <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '实时日志' }}</h3>
+          </div>
+          <div class="vpp-log-state">
+            <span class="vpp-live-dot" />
+            <span>实时轮询中</span>
+          </div>
+        </div>
+
+        <div class="vpp-dialog-body">
+          <div class="vpp-log-toolbar">
+            <span>{{ activeDashboardCard?.site_name || '--' }}</span>
+            <span>{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</span>
+            <span>最近刷新 {{ lastLogRefresh || '刚刚' }}</span>
+          </div>
+
+          <div v-if="!selectedLogs.length" class="vpp-empty-state">
+            当前卡片还没有执行日志，先执行一次或等待下次轮询。
+          </div>
+
+          <div v-else class="vpp-log-list mp-scroll">
+            <article v-for="item in selectedLogs" :key="item.id || `${item.time}-${item.summary}`" class="vpp-log-item">
+              <div class="vpp-log-head">
+                <strong>{{ item.status_title || item.title || activeDashboardCard?.title }}</strong>
+                <span>{{ item.time || '--' }}</span>
+              </div>
+              <p class="vpp-log-summary">{{ item.summary || '暂无详情' }}</p>
+              <div v-if="item.lines?.length" class="vpp-log-lines">
+                <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="vpp-dialog-actions">
+          <v-btn variant="text" @click="dialog.logs = false">关闭</v-btn>
+          <v-btn variant="tonal" :loading="loading.cardRefresh" @click="refreshFocusedCard">刷新状态</v-btn>
+          <v-btn color="primary" variant="flat" :loading="loading.cardRun" @click="runFocusedCard">立即执行</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialog.copy" max-width="680">
+      <v-card class="vpp-dialog-card">
+        <div class="vpp-dialog-head">
+          <div>
+            <div class="vpp-kicker">复制</div>
+            <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '复制功能卡片' }}</h3>
+          </div>
+        </div>
+
+        <div class="vpp-dialog-body">
+          <div class="vpp-copy-origin">
+            <span>复制来源</span>
+            <strong>{{ activeDashboardCard?.site_name || '--' }}</strong>
+            <span>{{ activeDashboardCard?.module_summary || '--' }}</span>
+          </div>
+
+          <v-text-field
+            v-model="copyForm.title"
+            label="复制功能名称"
+            variant="outlined"
+            density="comfortable"
+            hide-details="auto"
+            class="vpp-field-block"
+          />
+
+          <v-textarea
+            v-model="copyForm.note"
+            label="功能描述"
+            variant="outlined"
+            rows="3"
+            auto-grow
+            hide-details="auto"
+            class="vpp-field-block"
+          />
+        </div>
+
+        <div class="vpp-dialog-actions">
+          <v-btn variant="text" @click="dialog.copy = false">取消</v-btn>
+          <v-btn color="primary" variant="flat" :loading="saving.copy" @click="confirmCopyCard">确定复制</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+
+const DEFAULT_CRON = '5 8 * * *'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -187,140 +310,240 @@ const props = defineProps({
 
 const emit = defineEmits(['switch', 'close'])
 
-const loading = ref(false)
-const runningCardId = ref('')
-const refreshingCardId = ref('')
-const status = reactive({ dashboard: {}, history: [] })
+const status = reactive({
+  enabled: false,
+  next_run_time: '',
+  last_run: '',
+  history: [],
+  dashboard: {},
+})
+
+const panelConfig = ref(createEmptyConfig())
 const message = reactive({ text: '', type: 'success' })
+const dialog = reactive({ config: false, logs: false, copy: false })
+const loading = reactive({ refreshAll: false, runAll: false, cardRefresh: false, cardRun: false })
+const saving = reactive({ config: false, copy: false })
+const failedLogos = reactive({})
+const editor = reactive(createCardDraft())
+const copyForm = reactive({ title: '', note: '' })
+const selectedCardId = ref('')
+const lastLogRefresh = ref('')
+
+let logTimer = null
 
 const dashboard = computed(() => status.dashboard || {})
-const moduleSections = computed(() => dashboard.value.module_sections || [])
-const activityLogCount = computed(() => moduleSections.value.reduce((total, section) => total + sectionLogs(section).length, 0))
-const summaryCards = computed(() => {
-  const overview = dashboard.value.overview || []
-  const map = new Map(overview.map((item) => [item.label, item]))
-  const preferred = ['配置卡片', '状态卡片', '自动执行', '成功状态', '异常状态']
-  const picked = preferred.map((label) => map.get(label)).filter(Boolean)
-  return picked.length ? picked : overview.slice(0, 5)
+const cards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
+const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length)
+const summaryCards = computed(() => (dashboard.value.overview || []).slice(0, 6))
+const toneSelectItems = computed(() =>
+  (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
+)
+const activeDashboardCard = computed(() => cards.value.find((item) => item.card_id === selectedCardId.value) || null)
+const selectedLogs = computed(() => {
+  const cardId = selectedCardId.value
+  const fallbackLogs = activeDashboardCard.value?.log_items || []
+  const merged = new Map()
+  for (const item of [...fallbackLogs, ...(status.history || [])]) {
+    if (!item || item.card_id !== cardId) continue
+    const key = item.id || `${item.time || ''}-${item.summary || ''}`
+    if (!merged.has(key)) merged.set(key, item)
+  }
+  return [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
 })
+
+function createEmptyConfig() {
+  return {
+    enabled: false,
+    notify: true,
+    onlyonce: false,
+    use_proxy: false,
+    force_ipv4: true,
+    cron: DEFAULT_CRON,
+    http_timeout: 15,
+    http_retry_times: 3,
+    random_delay_max_seconds: 5,
+    cards: [],
+    module_options: [],
+    tone_options: [],
+  }
+}
+
+function createCardDraft(source = {}) {
+  return {
+    id: String(source.id || source.card_id || ''),
+    title: String(source.title || ''),
+    module_key: String(source.module_key || 'siqi_sign'),
+    site_name: String(source.site_name || ''),
+    site_url: String(source.site_url || ''),
+    enabled: !!source.enabled,
+    auto_run: source.auto_run !== false,
+    notify: source.notify !== false,
+    cron: String(source.cron || DEFAULT_CRON),
+    tone: String(source.tone || 'azure'),
+    cookie: String(source.cookie || ''),
+    uid: String(source.uid || ''),
+    note: String(source.note || ''),
+  }
+}
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
 }
 
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value ?? null))
+}
+
+function moduleMeta(moduleKey) {
+  return (panelConfig.value.module_options || []).find((item) => item.key === moduleKey) || {
+    key: moduleKey,
+    label: moduleKey,
+    description: '',
+    summary: String(moduleKey || '').replaceAll('_', ' '),
+    default_site_name: '',
+    default_site_url: '',
+    tone: 'azure',
+  }
+}
+
+function nextCardId(moduleKey) {
+  return `${moduleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function normalizeCard(source = {}, options = {}) {
+  const meta = moduleMeta(String(source.module_key || source.module || 'siqi_sign'))
+  const toneValues = new Set((panelConfig.value.tone_options || []).map((item) => item.key))
+  const tone = toneValues.has(source.tone) ? source.tone : (meta.tone || 'azure')
+  return {
+    id: String(options.newId ? nextCardId(meta.key) : (source.id || source.card_id || nextCardId(meta.key))),
+    title: String(source.title || meta.label || '').trim() || meta.label,
+    module_key: meta.key,
+    site_name: String(source.site_name || meta.default_site_name || meta.label || '').trim() || meta.label,
+    site_url: String(source.site_url || meta.default_site_url || '').trim(),
+    enabled: !!source.enabled,
+    auto_run: source.auto_run !== false,
+    notify: source.notify !== false,
+    cron: String(source.cron || DEFAULT_CRON).trim() || DEFAULT_CRON,
+    tone,
+    cookie: String(source.cookie || '').trim(),
+    uid: meta.key === 'newapi_checkin' ? String(source.uid || '').trim() : '',
+    note: String(source.note || '').trim(),
+  }
+}
+
+function normalizeConfig(source = {}) {
+  const next = createEmptyConfig()
+  next.enabled = !!source.enabled
+  next.notify = source.notify !== false
+  next.onlyonce = !!source.onlyonce
+  next.use_proxy = !!source.use_proxy
+  next.force_ipv4 = source.force_ipv4 !== false
+  next.cron = String(source.cron || DEFAULT_CRON)
+  next.http_timeout = Number(source.http_timeout || 15)
+  next.http_retry_times = Number(source.http_retry_times || 3)
+  next.random_delay_max_seconds = Number(source.random_delay_max_seconds || 5)
+  next.module_options = Array.isArray(source.module_options) ? deepClone(source.module_options) : []
+  next.tone_options = Array.isArray(source.tone_options) ? deepClone(source.tone_options) : []
+  next.cards = Array.isArray(source.cards) ? source.cards.map((item) => normalizeCard(item)) : []
+  return next
+}
+
+function serializeConfig(cardsOverride = null) {
+  const cards = Array.isArray(cardsOverride) ? cardsOverride : panelConfig.value.cards
+  return {
+    enabled: !!panelConfig.value.enabled,
+    notify: !!panelConfig.value.notify,
+    onlyonce: !!panelConfig.value.onlyonce,
+    use_proxy: !!panelConfig.value.use_proxy,
+    force_ipv4: panelConfig.value.force_ipv4 !== false,
+    cron: String(panelConfig.value.cron || DEFAULT_CRON),
+    http_timeout: Number(panelConfig.value.http_timeout || 15),
+    http_retry_times: Number(panelConfig.value.http_retry_times || 3),
+    random_delay_max_seconds: Number(panelConfig.value.random_delay_max_seconds || 5),
+    cards: cards.map((item) => normalizeCard(item)),
+  }
+}
+
 function toneStyle(tone) {
   const map = {
-    emerald: { '--vpp-tone-rgb': '40,181,120' },
-    azure: { '--vpp-tone-rgb': '46,134,255' },
-    amber: { '--vpp-tone-rgb': '255,170,63' },
-    rose: { '--vpp-tone-rgb': '230,92,124' },
-    violet: { '--vpp-tone-rgb': '132,108,255' },
-    slate: { '--vpp-tone-rgb': '120,132,155' },
+    emerald: { '--vpp-tone-rgb': '38, 183, 120' },
+    azure: { '--vpp-tone-rgb': '67, 126, 255' },
+    amber: { '--vpp-tone-rgb': '255, 171, 67' },
+    rose: { '--vpp-tone-rgb': '231, 92, 128' },
+    violet: { '--vpp-tone-rgb': '150, 117, 255' },
+    slate: { '--vpp-tone-rgb': '128, 140, 158' },
   }
   return map[tone] || map.azure
 }
 
-function cardLevel(level) {
+function runtimeTone(level) {
   if (level === 'success') return 'success'
   if (level === 'warning') return 'warning'
   if (level === 'error') return 'danger'
   return 'info'
 }
 
-function levelLabel(level) {
-  return ({ success: '正常', warning: '待处理', error: '异常', info: '信息' })[level] || '信息'
-}
-
-function tagTone(tag) {
-  if (tag.includes('已启用')) return 'success'
-  if (tag.includes('已停用')) return 'disabled'
-  if (tag.includes('Cron 无效')) return 'danger'
-  if (tag.includes('Cookie')) return 'primary'
-  if (tag.includes('UID')) return 'info'
-  return 'warning'
+function runtimeLabel(level) {
+  return {
+    success: '正常',
+    warning: '待处理',
+    error: '异常',
+    info: '信息',
+  }[level] || '信息'
 }
 
 function scheduleText(card) {
-  if (!card?.auto_run) return '仅手动'
-  if (!status.enabled) return '插件停用'
-  return card?.next_run_time || 'Cron 无效'
+  if (!card?.enabled) return '已停用'
+  if (!card?.auto_run) return '仅手动执行'
+  return card?.next_run_time || card?.cron || '等待调度'
 }
 
-function fallbackLogFromCard(section, card) {
-  const time = String(card?.last_run || card?.last_checked || '').trim()
-  if (!time) return null
-  return {
-    id: `fallback-${card.card_id}-${time}`,
-    title: card.status_title || card.site_name || section.module_name,
-    summary: card.status_text || '',
-    level: card.level || 'info',
-    time,
-    lines: card.detail_lines || [],
-    site_name: card.site_name || '',
-    site_url: card.site_url || '',
-  }
+function previewTags(tags = []) {
+  return Array.isArray(tags) ? tags.slice(0, 4) : []
 }
 
-function historySummary(item) {
-  return item.summary || (item.lines || []).join(' / ') || '暂无详情'
+function logoSrc(card) {
+  return failedLogos[card.card_id] ? '' : (card.site_logo || '')
 }
 
-function historyTitle(section, item) {
-  if (!section?.singleton) return item?.site_name || item?.title || section?.module_name || ''
-  return item?.title || section?.module_name || ''
+function markLogoFailed(cardId) {
+  failedLogos[cardId] = true
 }
 
-function historyMeta(section, item) {
-  if (section?.singleton) return item?.site_name || item?.site_url || ''
-  const parts = []
-  if (item?.title && item.title !== item?.site_name) parts.push(item.title)
-  if (item?.site_url) parts.push(item.site_url)
-  return parts.join(' / ')
+function rawCardById(cardId) {
+  return (panelConfig.value.cards || []).find((item) => item.id === cardId) || null
 }
 
-function sectionLogs(section) {
-  const activityLogs = Array.isArray(section?.activity_logs) ? section.activity_logs.filter(Boolean) : []
-  if (activityLogs.length) {
-    return activityLogs.slice().sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
-  }
-
-  const historyLogs = Array.isArray(section?.history)
-    ? section.history
-        .filter(Boolean)
-        .map((item) => ({
-          id: item.id || `${section.module_key}-${item.time || item.title}`,
-          title: item.title || item.status_title || section.module_name,
-          summary: item.summary || '',
-          level: item.level || 'info',
-          time: item.time || '',
-          lines: item.lines || [],
-          site_name: item.site_name || '',
-          site_url: item.site_url || '',
-        }))
-        .filter((item) => item.time)
-    : []
-  if (historyLogs.length) {
-    return historyLogs.slice().sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
-  }
-
-  return (section?.cards || [])
-    .map((card) => fallbackLogFromCard(section, card))
-    .filter(Boolean)
-    .sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
+function openConfigDialog(card) {
+  const source = rawCardById(card.card_id) || card
+  Object.assign(editor, normalizeCard(source))
+  selectedCardId.value = card.card_id
+  dialog.config = true
 }
 
-function sectionNotifications(section) {
-  const notices = Array.isArray(section?.notifications) ? section.notifications.filter(Boolean) : []
-  if (notices.length) {
-    return notices.slice().sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
-  }
-  return sectionLogs(section).filter((item) => item.level === 'warning' || item.level === 'error').slice(0, 4)
+function openLogsDialog(card) {
+  selectedCardId.value = card.card_id
+  dialog.logs = true
+}
+
+function openCopyDialog(card) {
+  selectedCardId.value = card.card_id
+  copyForm.title = `${card.title} 副本`
+  copyForm.note = card.note || card.module_description || ''
+  dialog.copy = true
 }
 
 async function loadStatus(showError = true) {
   try {
-    Object.assign(status, (await props.api.get('/plugin/VuePanel/status')) || {})
+    const payload = await props.api.get('/plugin/VuePanel/status')
+    status.enabled = !!payload.enabled
+    status.next_run_time = payload.next_run_time || ''
+    status.last_run = payload.last_run || ''
+    status.history = Array.isArray(payload.history) ? payload.history : []
+    status.dashboard = payload.dashboard || {}
+    panelConfig.value = normalizeConfig(payload.config || {})
+    lastLogRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
     return true
   } catch (error) {
     if (showError) flash(error?.message || '加载状态失败', 'error')
@@ -328,81 +551,149 @@ async function loadStatus(showError = true) {
   }
 }
 
+async function persistCards(nextCards, successText) {
+  const payload = serializeConfig(nextCards)
+  const response = await props.api.post('/plugin/VuePanel/config', payload)
+  flash(response.message || successText || '配置已保存')
+  await loadStatus(false)
+  return response
+}
+
 async function refreshStatus() {
-  loading.value = true
+  loading.refreshAll = true
   try {
-    const res = await props.api.post('/plugin/VuePanel/refresh', {})
-    flash(res.message || '已刷新')
+    const response = await props.api.post('/plugin/VuePanel/refresh', {})
+    flash(response.message || '状态已刷新')
     await loadStatus(false)
   } catch (error) {
-    flash(error?.message || '刷新失败', 'error')
+    flash(error?.message || '刷新状态失败', 'error')
   } finally {
-    loading.value = false
+    loading.refreshAll = false
   }
 }
 
 async function runAll() {
-  loading.value = true
+  loading.runAll = true
   try {
-    const res = await props.api.post('/plugin/VuePanel/run', {})
-    flash(res.message || '执行完成')
+    const response = await props.api.post('/plugin/VuePanel/run', {})
+    flash(response.message || '已执行启用任务')
     await loadStatus(false)
   } catch (error) {
-    flash(error?.message || '执行失败', 'error')
+    flash(error?.message || '执行任务失败', 'error')
   } finally {
-    loading.value = false
+    loading.runAll = false
   }
 }
 
-async function runCard(card) {
-  runningCardId.value = card.card_id
+async function saveCardConfig() {
+  saving.config = true
   try {
-    const res = await props.api.post('/plugin/VuePanel/card/run', { card_id: card.card_id })
-    flash(res.message || '卡片执行完成')
+    const nextCards = (panelConfig.value.cards || []).map((item) =>
+      item.id === editor.id ? normalizeCard(editor) : normalizeCard(item),
+    )
+    await persistCards(nextCards, '卡片配置已保存')
+    dialog.config = false
+  } catch (error) {
+    flash(error?.message || '保存卡片配置失败', 'error')
+  } finally {
+    saving.config = false
+  }
+}
+
+async function confirmCopyCard() {
+  saving.copy = true
+  try {
+    const source = rawCardById(selectedCardId.value)
+    if (!source) throw new Error('未找到复制来源')
+    const copyCard = normalizeCard(
+      {
+        ...source,
+        id: nextCardId(source.module_key),
+        title: copyForm.title || `${source.title} 副本`,
+        note: copyForm.note,
+      },
+      { newId: true },
+    )
+    const nextCards = [...(panelConfig.value.cards || []).map((item) => normalizeCard(item)), copyCard]
+    await persistCards(nextCards, '卡片已复制')
+    dialog.copy = false
+  } catch (error) {
+    flash(error?.message || '复制卡片失败', 'error')
+  } finally {
+    saving.copy = false
+  }
+}
+
+async function runFocusedCard() {
+  if (!selectedCardId.value) return
+  loading.cardRun = true
+  try {
+    const response = await props.api.post('/plugin/VuePanel/card/run', { card_id: selectedCardId.value })
+    flash(response.message || '卡片执行完成')
     await loadStatus(false)
   } catch (error) {
     flash(error?.message || '卡片执行失败', 'error')
   } finally {
-    runningCardId.value = ''
+    loading.cardRun = false
   }
 }
 
-async function refreshCard(card) {
-  refreshingCardId.value = card.card_id
+async function refreshFocusedCard() {
+  if (!selectedCardId.value) return
+  loading.cardRefresh = true
   try {
-    const res = await props.api.post('/plugin/VuePanel/card/refresh', { card_id: card.card_id })
-    flash(res.message || '卡片状态已刷新')
+    const response = await props.api.post('/plugin/VuePanel/card/refresh', { card_id: selectedCardId.value })
+    flash(response.message || '卡片状态已刷新')
     await loadStatus(false)
   } catch (error) {
     flash(error?.message || '卡片刷新失败', 'error')
   } finally {
-    refreshingCardId.value = ''
+    loading.cardRefresh = false
   }
+}
+
+function stopLogPolling() {
+  if (logTimer) {
+    window.clearInterval(logTimer)
+    logTimer = null
+  }
+}
+
+function startLogPolling() {
+  stopLogPolling()
+  loadStatus(false)
+  logTimer = window.setInterval(() => {
+    loadStatus(false)
+  }, 5000)
 }
 
 function closePlugin() {
   emit('close')
 }
 
+watch(
+  () => dialog.logs,
+  (opened) => {
+    if (opened) startLogPolling()
+    else stopLogPolling()
+  },
+)
+
 onMounted(async () => {
+  panelConfig.value = normalizeConfig(props.initialConfig || {})
   await loadStatus()
+})
+
+onBeforeUnmount(() => {
+  stopLogPolling()
 })
 </script>
 
 <style scoped>
 .vuepanel-page {
-  --vpp-panel: color-mix(in srgb, var(--mp-bg-panel) 96%, transparent);
-  --vpp-panel-strong: color-mix(in srgb, var(--mp-bg-card) 96%, transparent);
-  --vpp-text: var(--mp-text-primary);
-  --vpp-muted: var(--mp-text-secondary);
-  --vpp-border: var(--mp-border-color);
-  --vpp-border-strong: var(--mp-border-strong);
-  --vpp-shadow: var(--mp-shadow-card);
-  --vpp-accent: var(--mp-color-primary);
-  --vpp-accent-soft: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
   min-height: 100%;
-  padding: 8px 0 18px;
-  color: var(--vpp-text);
+  padding: 8px 0 20px;
+  color: var(--mp-text-primary);
 }
 
 .vuepanel-page,
@@ -411,455 +702,561 @@ onMounted(async () => {
 }
 
 .vpp-shell {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 12px;
   display: grid;
-  gap: 10px;
-}
-
-.vpp-card,
-.vpp-panel,
-.vpp-side-card {
-  border: 1px solid var(--vpp-border);
-  border-radius: 18px;
-  background: var(--vpp-panel);
-  box-shadow: var(--vpp-shadow);
-  backdrop-filter: blur(16px);
-}
-
-.vpp-card,
-.vpp-panel,
-.vpp-side-card {
-  padding: 12px;
+  gap: 14px;
 }
 
 .vpp-hero,
-.vpp-chip-row,
-.vpp-action-grid,
-.vpp-module-head,
-.vpp-pill-row,
-.vpp-panel-top,
-.vpp-tag-row,
-.vpp-btn-row,
-.vpp-side-head,
-.vpp-side-top {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.vpp-stat-card,
+.vpp-card,
+.vpp-dialog-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--mp-border-color) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.24));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mp-bg-panel) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.06)), var(--mp-bg-card)),
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.08), transparent 42%);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(18px);
 }
 
 .vpp-hero {
-  justify-content: space-between;
+  display: flex;
   align-items: flex-start;
-  background: linear-gradient(135deg, var(--vpp-accent-soft) 0%, transparent 42%), var(--vpp-panel);
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 28px;
 }
 
-.vpp-copy {
-  flex: 1;
+.vpp-hero::before,
+.vpp-card::before,
+.vpp-dialog-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.2) 48%, transparent 100%);
+  opacity: 0;
+  transform: translateX(-30%);
+  transition: opacity 240ms ease, transform 420ms ease;
+  pointer-events: none;
+}
+
+.vpp-hero:hover::before,
+.vpp-card:hover::before,
+.vpp-dialog-card:hover::before {
+  opacity: 1;
+  transform: translateX(0%);
+}
+
+.vpp-hero-copy,
+.vpp-card-copy {
   min-width: 0;
-}
-
-.vpp-badge,
-.vpp-chip,
-.vpp-pill,
-.vpp-panel-site,
-.vpp-level,
-.vpp-tag,
-.vpp-side-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-}
-
-.vpp-badge {
-  padding: 5px 10px;
-  background: var(--vpp-accent-soft);
-  color: var(--vpp-accent);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.vpp-title,
-.vpp-section-title,
-.vpp-panel-title,
-.vpp-side-title {
-  margin: 0;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-
-.vpp-title {
-  margin-top: 8px;
-  font-size: clamp(22px, 3.8vw, 30px);
-  line-height: 1.05;
-}
-
-.vpp-section-title,
-.vpp-panel-title {
-  font-size: 17px;
-  line-height: 1.12;
-}
-
-.vpp-side-title {
-  font-size: 14px;
-}
-
-.vpp-chip-row {
-  margin-top: 10px;
-}
-
-.vpp-chip,
-.vpp-pill {
-  padding: 6px 10px;
-  border: 1px solid var(--vpp-border-strong);
-  background: var(--vpp-panel-strong);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.vpp-action-grid {
-  justify-content: flex-end;
-  min-width: min(100%, 420px);
-}
-
-.vpp-action-grid :deep(.v-btn),
-.vpp-btn-row :deep(.v-btn) {
-  min-height: 38px;
-  border-radius: 12px;
-  font-weight: 800;
-  text-transform: none;
-}
-
-.vpp-kicker,
-.vpp-stat-label,
-.vpp-panel-kicker,
-.vpp-panel-text,
-.vpp-panel-site,
-.vpp-metric-label,
-.vpp-detail-item,
-.vpp-meta-label,
-.vpp-side-meta,
-.vpp-side-summary,
-.vpp-side-lines,
-.vpp-side-time {
-  color: var(--vpp-muted);
 }
 
 .vpp-kicker {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--vpp-accent);
+  color: var(--mp-text-secondary);
 }
 
-.vpp-stat-grid,
-.vpp-module-body,
-.vpp-card-grid,
-.vpp-metric-grid,
-.vpp-meta-grid,
-.vpp-side-stack,
-.vpp-side-list,
-.vpp-detail-list {
-  display: grid;
+.vpp-title {
+  margin: 10px 0 8px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.vpp-subtitle {
+  max-width: 780px;
+  margin: 0;
+  color: var(--mp-text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.vpp-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.vpp-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-soft) 76%, transparent);
+  color: var(--mp-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vpp-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
+  min-width: 260px;
+}
+
+.vpp-alert {
+  border: 1px solid var(--mp-border-color);
 }
 
 .vpp-stat-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }
 
-.vpp-stat {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--mp-color-primary) 7%, transparent) 0%, transparent 100%), var(--vpp-panel-strong);
+.vpp-stat-card {
+  padding: 16px 18px;
+  border-radius: 22px;
+}
+
+.vpp-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--mp-text-secondary);
 }
 
 .vpp-stat-value {
-  margin-top: 6px;
+  display: block;
+  margin-top: 10px;
   font-size: 24px;
-  font-weight: 900;
+  letter-spacing: -0.04em;
 }
 
-.vpp-module {
+.vpp-card-grid {
   display: grid;
-  gap: 12px;
-  background: linear-gradient(180deg, rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.08), transparent 52%), var(--vpp-panel);
+  grid-template-columns: repeat(auto-fit, minmax(296px, 1fr));
+  gap: 16px;
 }
 
-.vpp-module-head {
-  justify-content: space-between;
-  align-items: flex-start;
+.vpp-card {
+  --vpp-tone-rgb: 67, 126, 255;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 340px;
+  padding: 18px;
+  border-radius: 24px;
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
 }
 
-.vpp-module-body {
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
-  align-items: start;
+.vpp-card:hover {
+  transform: translateY(-8px);
+  border-color: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.5) 80%, var(--mp-border-strong));
+  box-shadow:
+    0 22px 54px rgba(15, 23, 42, 0.16),
+    0 6px 24px rgba(var(--vpp-tone-rgb), 0.16);
 }
 
-.vpp-module-body.single {
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.88fr);
-}
-
-.vpp-card-grid.single {
-  grid-template-columns: 1fr;
-}
-
-.vpp-card-grid.multi {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.vpp-panel {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  gap: 8px;
-  background: linear-gradient(180deg, rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.12), transparent 62%), var(--vpp-panel-strong);
-}
-
-.vpp-panel::before {
-  content: '';
+.vpp-card-glow {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 4px;
-  background: rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.48);
+  inset: 0 auto auto 0;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(var(--vpp-tone-rgb), 0.14), transparent 68%);
+  pointer-events: none;
 }
 
-.vpp-panel-top,
-.vpp-side-top {
-  justify-content: space-between;
+.vpp-card-head {
+  display: flex;
+  gap: 14px;
   align-items: flex-start;
 }
 
-.vpp-level,
-.vpp-tag,
-.vpp-panel-site,
-.vpp-side-count {
+.vpp-logo-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.4) 60%, var(--mp-border-color));
+  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.12) 80%, var(--mp-bg-card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.vpp-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.vpp-logo-fallback {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.vpp-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vpp-card-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.vpp-status-pill,
+.vpp-runtime-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.vpp-status-pill.is-enabled {
+  color: #0f8a5a;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.vpp-status-pill.is-disabled {
+  color: var(--mp-text-secondary);
+  background: color-mix(in srgb, var(--mp-text-secondary) 12%, transparent);
+}
+
+.vpp-runtime-pill.is-success {
+  color: #0f8a5a;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.vpp-runtime-pill.is-warning {
+  color: #aa6f00;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.vpp-runtime-pill.is-danger {
+  color: #bc334d;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.vpp-runtime-pill.is-info {
+  color: #2557d9;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.vpp-card-desc {
+  margin: 6px 0 0;
+  color: var(--mp-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.vpp-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  color: var(--mp-text-secondary);
+  font-size: 12px;
+}
+
+.vpp-runtime-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vpp-runtime-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vpp-runtime-text {
+  min-height: 42px;
+  margin: 0;
+  color: var(--mp-text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.vpp-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vpp-metric,
+.vpp-detail-item {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-card) 92%, rgba(var(--vpp-tone-rgb), 0.05));
+}
+
+.vpp-metric-label,
+.vpp-detail-label {
+  display: block;
+  font-size: 11px;
+  color: var(--mp-text-secondary);
+}
+
+.vpp-metric-value,
+.vpp-detail-item strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vpp-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vpp-note-box {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px dashed color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.36) 70%, var(--mp-border-color));
+  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.08) 72%, transparent);
+  color: var(--mp-text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.vpp-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vpp-tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-soft) 68%, transparent);
+  color: var(--mp-text-secondary);
   font-size: 11px;
   font-weight: 700;
 }
 
-.vpp-level {
-  padding: 5px 9px;
-  background: rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.12);
-  color: var(--vpp-text);
-}
-
-.vpp-level.is-success {
-  background: color-mix(in srgb, var(--mp-color-success) 16%, transparent);
-  color: var(--mp-color-success);
-}
-
-.vpp-level.is-warning {
-  background: color-mix(in srgb, var(--mp-color-warning) 18%, transparent);
-  color: var(--mp-color-warning);
-}
-
-.vpp-level.is-danger {
-  background: color-mix(in srgb, var(--mp-color-danger) 16%, transparent);
-  color: var(--mp-color-danger);
-}
-
-.vpp-panel-site {
-  justify-content: flex-start;
-  padding: 4px 8px;
-  background: rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.08);
-}
-
-.vpp-panel-text,
-.vpp-side-summary,
-.vpp-side-lines {
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.vpp-metric-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.vpp-metric,
-.vpp-meta-item {
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--mp-bg-input) 94%, transparent);
-  border: 1px solid color-mix(in srgb, var(--vpp-border) 92%, transparent);
-}
-
-.vpp-metric-value {
-  margin-top: 4px;
-  font-size: 15px;
-  font-weight: 900;
-}
-
-.vpp-tag-row {
+.vpp-action-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, max-content));
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: auto;
 }
 
-.vpp-tag {
-  justify-content: flex-start;
-  padding: 6px 9px;
-  background: rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.11);
-  color: var(--vpp-text);
+.vpp-dialog-card {
+  border-radius: 28px !important;
+  color: var(--mp-text-primary);
 }
 
-.vpp-tag.is-success {
-  background: color-mix(in srgb, var(--mp-color-success) 14%, transparent);
-  color: var(--mp-color-success);
+.vpp-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 12px;
 }
 
-.vpp-tag.is-danger {
-  background: color-mix(in srgb, var(--mp-color-danger) 14%, transparent);
-  color: var(--mp-color-danger);
+.vpp-dialog-title {
+  margin: 8px 0 0;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
 }
 
-.vpp-tag.is-warning {
-  background: color-mix(in srgb, var(--mp-color-warning) 16%, transparent);
-  color: var(--mp-color-warning);
+.vpp-dialog-body {
+  padding: 12px 24px 0;
 }
 
-.vpp-tag.is-disabled {
-  background: color-mix(in srgb, var(--mp-color-disabled) 14%, transparent);
-  color: var(--mp-color-disabled);
+.vpp-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 24px 24px;
 }
 
-.vpp-tag.is-primary {
-  background: color-mix(in srgb, var(--mp-color-primary) 14%, transparent);
-  color: var(--mp-color-primary);
+.vpp-switch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.vpp-tag.is-info {
-  background: color-mix(in srgb, var(--mp-color-secondary) 14%, transparent);
-  color: var(--mp-color-secondary);
+.vpp-switch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-card) 90%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.05));
 }
 
-.vpp-detail-list {
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--mp-bg-input) 92%, transparent);
+.vpp-switch-label {
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.vpp-detail-item,
-.vpp-meta-label,
-.vpp-side-meta,
-.vpp-side-time {
+.vpp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.vpp-field-block {
+  margin-top: 14px;
+}
+
+.vpp-log-state,
+.vpp-copy-origin,
+.vpp-log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--mp-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vpp-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.18);
+  animation: pulse 1.8s ease infinite;
+}
+
+.vpp-log-toolbar {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-soft) 66%, transparent);
+}
+
+.vpp-log-list {
+  display: grid;
+  gap: 12px;
+  max-height: 52vh;
+  padding-right: 6px;
+}
+
+.vpp-log-item {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--mp-border-color);
+  background: color-mix(in srgb, var(--mp-bg-card) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.04));
+}
+
+.vpp-log-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.vpp-log-summary {
+  margin: 10px 0 0;
+  color: var(--mp-text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.vpp-log-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vpp-log-line {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mp-text-secondary) 10%, transparent);
+  color: var(--mp-text-secondary);
   font-size: 11px;
 }
 
-.vpp-meta-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.vpp-meta-item {
-  display: grid;
-  gap: 4px;
-}
-
-.vpp-meta-item strong,
-.vpp-side-top strong {
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.vpp-btn-row {
-  justify-content: flex-end;
-}
-
-.vpp-side-stack {
-  align-content: start;
-}
-
-.vpp-side-card {
-  background: linear-gradient(180deg, rgba(var(--vpp-tone-rgb, 46, 134, 255), 0.08), transparent 52%), var(--vpp-panel-strong);
-}
-
-.vpp-side-head {
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
-}
-
-.vpp-side-count {
-  min-width: 30px;
-  padding: 4px 8px;
-  background: var(--vpp-accent-soft);
-  color: var(--vpp-accent);
-}
-
-.vpp-side-item {
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--vpp-border);
-  background: color-mix(in srgb, var(--mp-bg-input) 92%, transparent);
-}
-
-.vpp-side-top strong {
-  flex: 1;
-  min-width: 0;
-}
-
-.vpp-empty {
-  padding: 16px;
+.vpp-empty-state {
+  padding: 22px 18px;
+  border-radius: 18px;
+  border: 1px dashed var(--mp-border-color);
+  color: var(--mp-text-secondary);
   text-align: center;
-  border: 1px dashed var(--vpp-border);
-  border-radius: 16px;
-  background: var(--vpp-panel-strong);
-  color: var(--vpp-muted);
 }
 
-@media (max-width: 1080px) {
-  .vpp-action-grid {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 980px) {
+  .vpp-hero {
+    flex-direction: column;
+  }
+
+  .vpp-hero-actions {
     justify-content: flex-start;
     min-width: 0;
   }
 
-  .vpp-stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .vpp-module-body,
-  .vpp-module-body.single,
-  .vpp-card-grid.multi,
-  .vpp-metric-grid {
-    grid-template-columns: 1fr;
+  .vpp-metric-grid,
+  .vpp-detail-grid,
+  .vpp-switch-grid,
+  .vpp-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 760px) {
-  .vpp-shell {
-    padding: 0 10px;
-  }
-
-  .vpp-card,
-  .vpp-panel,
-  .vpp-side-card {
-    border-radius: 16px;
-    padding: 12px;
-  }
-
+@media (max-width: 720px) {
   .vpp-hero,
-  .vpp-module-head,
-  .vpp-panel-top,
-  .vpp-side-head,
-  .vpp-side-top {
+  .vpp-dialog-head,
+  .vpp-dialog-body,
+  .vpp-dialog-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .vpp-card {
+    min-height: auto;
+  }
+
+  .vpp-card-title-row,
+  .vpp-log-head {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .vpp-stat-grid,
-  .vpp-meta-grid {
+  .vpp-metric-grid,
+  .vpp-detail-grid,
+  .vpp-switch-grid,
+  .vpp-form-grid,
+  .vpp-action-row {
     grid-template-columns: 1fr;
-  }
-
-  .vpp-btn-row {
-    justify-content: stretch;
-  }
-
-  .vpp-btn-row :deep(.v-btn) {
-    flex: 1 1 calc(50% - 8px);
   }
 }
 </style>
