@@ -1,0 +1,194 @@
+.mp-panel {
+  --mp-host-primary: #4f86ff;
+  --mp-host-secondary: #8b5cf6;
+  --mp-host-surface: #ffffff;
+  --mp-host-background: #eef3fb;
+  --mp-host-on-surface: #182132;
+  --mp-host-muted: #6b7280;
+  --mp-host-outline: rgba(15, 23, 42, 0.14);
+
+  --mp-color-primary: var(--mp-host-primary);
+  --mp-color-secondary: var(--mp-host-secondary);
+  --mp-color-success: #24b36b;
+  --mp-color-warning: #f1a53b;
+  --mp-color-danger: #e45858;
+  --mp-color-disabled: #8b97aa;
+
+  --mp-bg-page: #eef3fb;
+  --mp-bg-panel: rgba(255, 255, 255, 0.84);
+  --mp-bg-card: rgba(255, 255, 255, 0.94);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 10%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 16%, transparent);
+  --mp-text-primary: #1a2233;
+  --mp-text-secondary: #64748b;
+  --mp-border-color: rgba(15, 23, 42, 0.12);
+  --mp-shadow-color: rgba(15, 23, 42, 0.08);
+  --mp-shadow-panel: 0 20px 48px var(--mp-shadow-color);
+  --mp-shadow-card: 0 16px 36px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
+
+  --mp-radius-xl: 22px;
+  --mp-radius-lg: 18px;
+  --mp-radius-md: 14px;
+  --mp-radius-sm: 12px;
+
+  --mp-space-1: 4px;
+  --mp-space-2: 8px;
+  --mp-space-3: 12px;
+  --mp-space-4: 16px;
+  --mp-space-5: 20px;
+  --mp-space-6: 24px;
+
+  --mp-font-xs: 11px;
+  --mp-font-sm: 12px;
+  --mp-font-md: 14px;
+  --mp-font-lg: 16px;
+  --mp-font-xl: 18px;
+  --mp-font-hero: clamp(26px, 3.8vw, 34px);
+
+  min-height: 100vh;
+  color: var(--mp-text-primary);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--mp-color-primary) 16%, transparent), transparent 32%),
+    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--mp-color-secondary) 14%, transparent), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--mp-bg-page) 92%, white) 0%, var(--mp-bg-page) 100%);
+}
+
+.mp-panel *,
+.mp-panel *::before,
+.mp-panel *::after {
+  box-sizing: border-box;
+}
+
+.mp-panel .v-application,
+.mp-panel .v-main {
+  background: transparent !important;
+  color: inherit;
+}
+
+.mp-panel .v-container {
+  max-width: 100%;
+}
+
+.mp-panel.mp-theme-light {
+  --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 86%, white);
+  --mp-bg-panel: rgba(255, 255, 255, 0.82);
+  --mp-bg-card: rgba(255, 255, 255, 0.96);
+  --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 92%, #0f172a);
+  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 52%, #64748b);
+  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 14%, transparent);
+  --mp-shadow-color: rgba(15, 23, 42, 0.08);
+}
+
+.mp-panel.mp-theme-dark {
+  --mp-color-primary: color-mix(in srgb, var(--mp-host-primary) 74%, #6ea8ff);
+  --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 76%, #b692ff);
+  --mp-bg-page: color-mix(in srgb, #08101f 82%, var(--mp-host-background));
+  --mp-bg-panel: rgba(11, 18, 31, 0.84);
+  --mp-bg-card: rgba(15, 23, 42, 0.94);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 18%, transparent);
+  --mp-text-primary: #f7f9fc;
+  --mp-text-secondary: color-mix(in srgb, white 62%, var(--mp-host-muted));
+  --mp-border-color: rgba(148, 163, 184, 0.22);
+  --mp-shadow-color: rgba(0, 0, 0, 0.34);
+}
+
+.mp-panel.mp-theme-purple {
+  --mp-color-primary: color-mix(in srgb, var(--mp-host-secondary) 78%, #c084fc);
+  --mp-color-secondary: color-mix(in srgb, var(--mp-host-primary) 54%, #a855f7);
+  --mp-bg-page: linear-gradient(180deg, #160f23 0%, #1d1530 100%);
+  --mp-bg-panel: rgba(25, 17, 43, 0.88);
+  --mp-bg-card: rgba(34, 22, 56, 0.96);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 14%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 22%, transparent);
+  --mp-text-primary: #f6ecff;
+  --mp-text-secondary: #c8b8f5;
+  --mp-border-color: rgba(177, 149, 255, 0.22);
+  --mp-shadow-color: rgba(8, 2, 18, 0.4);
+}
+
+.mp-panel.mp-theme-transparent {
+  --mp-color-primary: color-mix(in srgb, var(--mp-host-primary) 78%, white);
+  --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 78%, white);
+  --mp-bg-page: transparent;
+  --mp-bg-panel: rgba(255, 255, 255, 0.12);
+  --mp-bg-card: rgba(255, 255, 255, 0.18);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 16%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 24%, transparent);
+  --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 84%, white);
+  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 52%, #d7def0);
+  --mp-border-color: rgba(255, 255, 255, 0.2);
+  --mp-shadow-color: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.mp-panel.mp-theme-custom {
+  --mp-color-primary: var(--mp-host-primary);
+  --mp-color-secondary: var(--mp-host-secondary);
+  --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 84%, transparent);
+  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 82%, transparent);
+  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 92%, transparent);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 11%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 18%, transparent);
+  --mp-text-primary: var(--mp-host-on-surface);
+  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 56%, transparent);
+  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 16%, transparent);
+}
+
+.mp-shell {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 18px 16px 28px;
+}
+
+.mp-tabs {
+  margin-bottom: 12px;
+  border: 1px solid var(--mp-border-color);
+  border-radius: var(--mp-radius-xl);
+  background: var(--mp-bg-panel);
+  box-shadow: var(--mp-shadow-panel);
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.mp-tabs :deep(.v-slide-group__content) {
+  gap: 6px;
+  padding: 8px;
+}
+
+.mp-tabs :deep(.v-tab) {
+  min-height: 40px;
+  border-radius: var(--mp-radius-md);
+  color: var(--mp-text-secondary);
+  font-weight: 700;
+}
+
+.mp-tabs :deep(.v-tab.v-tab--selected) {
+  color: var(--mp-text-primary);
+  background: var(--mp-bg-soft);
+}
+
+.mp-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--mp-color-primary) 36%, transparent) transparent;
+}
+
+.mp-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mp-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--mp-color-primary) 32%, transparent);
+  border-radius: 999px;
+}
+
+.mp-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .mp-shell {
+    padding: 12px 10px 22px;
+  }
+}

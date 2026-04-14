@@ -83,13 +83,15 @@
   },
   "VuePanel": {
     "name": "Vue-面板",
-    "description": "思齐签到与 HNR领取使用固定单卡并独立设置 Cron，New API 签到在同一模块内管理多站点卡片与模块历史。",
+    "description": "个人用模块化面板。",
     "labels": "站点,面板,签到,领取,Vue",
-    "version": "0.1.3",
+    "version": "0.1.5",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.5": "统一 Vue-面板 的插件说明、仓库索引和 README 文案为“个人用模块化面板”，并发布重构后的多主题模块化面板版本。",
+      "v0.1.4": "重做 Vue-面板 的主题变量、基础组件、配置页和状态页：适配浅色/深色/幻紫/透明主题，新增模块化配置后台、运行监控看板、结构化通知区和可筛选执行日志。",
       "v0.1.3": "去掉 Vue-面板 全局表单里的冗余 Cron/超时项，改为每张卡片独立设置 Cron，修正固定模块 Cookie 遮挡，并把状态页重排为按模块展示卡片与最近执行记录。",
       "v0.1.2": "调整 Vue-面板 配置模型与页面布局：思齐签到、HNR领取改为固定单卡，New API 签到收拢为单模块内多站点配置，并同步收紧状态页和配置页密度。",
       "v0.1.1": "补齐 Vue-面板 的调度元数据保存逻辑，保存 last_run、next_run_time、next_trigger_time 和 next_trigger_mode，避免 MoviePilot 读取调度状态时缺字段。",

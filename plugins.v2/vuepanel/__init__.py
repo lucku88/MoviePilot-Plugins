@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
-    plugin_desc = "按网站 / 功能模块组织签到与领取卡片，支持思齐签到、HNR领取与 New API 多站点签到。"
+    plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -816,6 +816,8 @@ class VuePanel(_PluginBase):
         success_count = 0
         error_count = 0
         auto_count = 0
+        pending_count = 0
+        history_items = list(self.get_data("history") or [])
 
         for card in self._cards:
             module_meta = self._module_meta(card["module_key"])
@@ -843,6 +845,8 @@ class VuePanel(_PluginBase):
                 success_count += 1
             if state.get("level") == "error":
                 error_count += 1
+            if state.get("level") in {"warning", "info"} and state.get("enabled"):
+                pending_count += 1
             if card.get("auto_run"):
                 auto_count += 1
             site_key = self._site_group_key(card)
@@ -876,13 +880,18 @@ class VuePanel(_PluginBase):
 
         groups.sort(key=lambda item: f"{item['site_name']}|{item['site_url']}".lower())
         module_sections = self._build_module_sections(groups)
+        notifications = self._build_notification_items(history_items)
+        activity_logs = self._build_activity_logs(history_items)
 
         overview = [
             {"label": "模块数量", "value": str(len(module_sections))},
             {"label": "配置卡片", "value": str(len(self._cards))},
+            {"label": "状态卡片", "value": str(len(self._cards))},
             {"label": "自动执行", "value": str(auto_count)},
             {"label": "成功状态", "value": str(success_count)},
             {"label": "异常状态", "value": str(error_count)},
+            {"label": "待处理", "value": str(pending_count)},
+            {"label": "通知数", "value": str(len(notifications))},
         ]
 
         return {
@@ -896,6 +905,8 @@ class VuePanel(_PluginBase):
             "overview": overview,
             "groups": groups,
             "module_sections": module_sections,
+            "notifications": notifications,
+            "activity_logs": activity_logs,
             "hidden_count": "0",
             "history": [],
             "module_options": list(self.MODULES),
@@ -914,6 +925,8 @@ class VuePanel(_PluginBase):
                 "tone": module_meta.get("tone") or "azure",
                 "cards": [],
                 "history": list(history_map.get(module_meta["key"]) or []),
+                "notifications": [],
+                "activity_logs": [],
                 "stats": [],
                 "latest_run": "",
             }
@@ -940,6 +953,8 @@ class VuePanel(_PluginBase):
             latest_values.extend(str(item.get("time") or "") for item in history if item.get("time"))
             section["latest_run"] = max(latest_values) if latest_values else ""
             section["history"] = history
+            section["notifications"] = self._build_notification_items(history, limit=5, module_key=section["module_key"])
+            section["activity_logs"] = self._build_activity_logs(history, limit=20, module_key=section["module_key"])
             section["stats"] = [
                 {"label": "卡片", "value": str(len(cards))},
                 {"label": "启用", "value": str(enabled_count)},
@@ -1041,11 +1056,15 @@ class VuePanel(_PluginBase):
         history = self.get_data("history") or []
         lines = [state.get("status_text") or ""]
         lines.extend(state.get("detail_lines") or [])
+        entry_time = self._format_time(self._aware_now())
         history.insert(
             0,
             {
-                "time": self._format_time(self._aware_now()),
+                "id": f"{state.get('card_id') or state.get('module_key') or 'event'}-{int(time.time() * 1000)}",
+                "time": entry_time,
                 "title": state.get("title") or state.get("site_name") or "",
+                "summary": state.get("status_text") or "",
+                "status_title": state.get("status_title") or "",
                 "level": state.get("level") or "info",
                 "lines": [line for line in lines if line],
                 "card_id": state.get("card_id") or "",
@@ -1054,6 +1073,7 @@ class VuePanel(_PluginBase):
                 "module_icon": state.get("module_icon") or "",
                 "site_name": state.get("site_name") or "",
                 "site_url": state.get("site_url") or "",
+                "tags": list(state.get("tags") or []),
             },
         )
         self.save_data("history", history[: self.HISTORY_LIMIT])
@@ -1296,6 +1316,72 @@ class VuePanel(_PluginBase):
                 continue
             bucket[module_key].append(item)
         return bucket
+
+    def _build_notification_items(self, history_items: List[Dict[str, Any]], limit: int = 10, module_key: str = "") -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+        for item in history_items:
+            if module_key and item.get("module_key") != module_key:
+                continue
+            items.append(
+                {
+                    "id": str(item.get("id") or f"{item.get('module_key')}-{item.get('time')}"),
+                    "module_key": str(item.get("module_key") or ""),
+                    "module_name": str(item.get("module_name") or ""),
+                    "module_icon": str(item.get("module_icon") or ""),
+                    "title": str(item.get("status_title") or item.get("title") or ""),
+                    "summary": str(item.get("summary") or ""),
+                    "time": str(item.get("time") or ""),
+                    "level": str(item.get("level") or "info"),
+                    "site_name": str(item.get("site_name") or ""),
+                    "site_url": str(item.get("site_url") or ""),
+                    "detail_lines": [line for line in (item.get("lines") or []) if line],
+                    "parts": self._build_history_parts(item),
+                    "copy_text": "\n".join(
+                        [part for part in [str(item.get("title") or ""), str(item.get("summary") or ""), *[line for line in (item.get("lines") or []) if line]] if part]
+                    ),
+                }
+            )
+        return items[:limit]
+
+    def _build_activity_logs(self, history_items: List[Dict[str, Any]], limit: int = 30, module_key: str = "") -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+        for item in history_items:
+            if module_key and item.get("module_key") != module_key:
+                continue
+            items.append(
+                {
+                    "id": str(item.get("id") or f"{item.get('module_key')}-{item.get('time')}"),
+                    "module_key": str(item.get("module_key") or ""),
+                    "module_name": str(item.get("module_name") or ""),
+                    "module_icon": str(item.get("module_icon") or ""),
+                    "title": str(item.get("title") or ""),
+                    "summary": str(item.get("summary") or ""),
+                    "level": str(item.get("level") or "info"),
+                    "time": str(item.get("time") or ""),
+                    "site_name": str(item.get("site_name") or ""),
+                    "site_url": str(item.get("site_url") or ""),
+                    "lines": [line for line in (item.get("lines") or []) if line],
+                    "tags": list(item.get("tags") or []),
+                }
+            )
+        return items[:limit]
+
+    def _build_history_parts(self, item: Dict[str, Any]) -> List[Dict[str, str]]:
+        parts: List[Dict[str, str]] = [{"label": "结果", "value": self._history_level_label(str(item.get("level") or "info"))}]
+        if item.get("site_name"):
+            parts.append({"label": "站点", "value": str(item.get("site_name") or "")})
+        if item.get("site_url"):
+            parts.append({"label": "地址", "value": str(item.get("site_url") or "")})
+        return parts[:3]
+
+    @staticmethod
+    def _history_level_label(level: str) -> str:
+        return {
+            "success": "成功",
+            "warning": "警告",
+            "error": "异常",
+            "info": "信息",
+        }.get(level, "信息")
 
     def _get_card_cron(self, card: Dict[str, Any]) -> str:
         return str(card.get("cron") or "").strip()

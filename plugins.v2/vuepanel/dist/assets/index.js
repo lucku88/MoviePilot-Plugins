@@ -1,8 +1,8 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, m as makeLayoutProps, c as makeThemeProps, d as provideTheme, f as createLayout, u as useRtl, h as provideDefaults, j as convertToUnit, S as SUPPORTS_INTERSECTION, k as getCurrentInstanceName, l as destructComputed, n as isCssColor, o as getForeground, q as clamp, r as consoleWarn, s as makeLayoutItemProps, t as useProxiedModel, v as useToggleScope, w as useLayoutItem, x as getUid, y as deepEqual, z as wrapInArray, A as findChildrenWithProvide, I as IconValue, B as useIcon, C as flattenFragments, D as useResizeObserver, E as hasEvent, F as IN_BROWSER, G as isObject, H as keyCodes, J as useLocale, K as filterInputAttrs, L as matchesSelector, M as omit, N as EventProp, O as defineComponent, P as deprecate, Q as getPropertyFromItem, R as pick, T as focusChild, U as consoleError, V as refElement, W as useDisplay, X as focusableChildren, Y as getNextElement, Z as callEvent, _ as createRange, $ as noop, a0 as useTheme, a1 as keys, a2 as getEventCoordinates, a3 as HSVtoRGB, a4 as RGBtoHSV, a5 as HSVtoHSL, a6 as HSLtoHSV, a7 as HSVtoHex, a8 as HexToHSV, a9 as has, aa as getDecimals, ab as keyValues, ac as HSVtoCSS, ad as parseColor, ae as RGBtoCSS, af as getContrast, ag as humanReadableFileSize, ah as breakpoints, ai as provideLocale, aj as useLayout, ak as CircularBuffer, al as VClassIcon, am as VComponentIcon, an as VLigatureIcon, ao as VSvgIcon } from './display-36ab135c.js';
-import ConfigView from './__federation_expose_Config-7aeda002.js';
-import PageView from './__federation_expose_Page-edfc9421.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
+import ConfigView from './__federation_expose_Config-fdeee4a9.js';
+import PageView from './__federation_expose_Page-607b10dd.js';
+import { _ as _export_sfc } from './EmptyState-040be838.js';
 
 true&&(function polyfill() {
     const relList = document.createElement('link').relList;
@@ -816,7 +816,7 @@ const VImg$1 = '';
 const VResponsive$1 = '';
 
 // Utilities
-const {computed: computed$1r} = await importShared('vue');
+const {computed: computed$1s} = await importShared('vue');
 // Composables
 const makeDimensionProps = propsFactory({
   height: [Number, String],
@@ -827,7 +827,7 @@ const makeDimensionProps = propsFactory({
   width: [Number, String]
 }, 'dimension');
 function useDimension(props) {
-  const dimensionStyles = computed$1r(() => ({
+  const dimensionStyles = computed$1s(() => ({
     height: convertToUnit(props.height),
     maxHeight: convertToUnit(props.maxHeight),
     maxWidth: convertToUnit(props.maxWidth),
@@ -841,10 +841,10 @@ function useDimension(props) {
 }
 
 const {createVNode:_createVNode$1E} = await importShared('vue');
-const {computed: computed$1q} = await importShared('vue');
+const {computed: computed$1r} = await importShared('vue');
 function useAspectStyles(props) {
   return {
-    aspectStyles: computed$1q(() => {
+    aspectStyles: computed$1r(() => {
       const ratio = Number(props.aspectRatio);
       return ratio ? {
         paddingBottom: String(1 / ratio * 100) + '%'
@@ -962,7 +962,7 @@ const Intersect = {
 };
 
 const {withDirectives:_withDirectives$i,mergeProps:_mergeProps$C,resolveDirective:_resolveDirective$I,Fragment:_Fragment$m,createVNode:_createVNode$1D} = await importShared('vue');
-const {computed: computed$1p,nextTick: nextTick$h,onBeforeMount: onBeforeMount$2,ref: ref$F,shallowRef: shallowRef$z,vShow,watch: watch$v,withDirectives} = await importShared('vue');
+const {computed: computed$1q,nextTick: nextTick$h,onBeforeMount: onBeforeMount$2,ref: ref$G,shallowRef: shallowRef$z,vShow,watch: watch$v,withDirectives} = await importShared('vue');
 const makeVImgProps = propsFactory({
   alt: String,
   cover: Boolean,
@@ -1006,11 +1006,11 @@ const VImg = genericComponent()({
       slots
     } = _ref;
     const currentSrc = shallowRef$z(''); // Set from srcset
-    const image = ref$F();
+    const image = ref$G();
     const state = shallowRef$z(props.eager ? 'loading' : 'idle');
     const naturalWidth = shallowRef$z();
     const naturalHeight = shallowRef$z();
-    const normalisedSrc = computed$1p(() => {
+    const normalisedSrc = computed$1q(() => {
       return props.src && typeof props.src === 'object' ? {
         src: props.src.src,
         srcset: props.srcset || props.src.srcset,
@@ -1023,7 +1023,7 @@ const VImg = genericComponent()({
         aspect: Number(props.aspectRatio || 0)
       };
     });
-    const aspectRatio = computed$1p(() => {
+    const aspectRatio = computed$1q(() => {
       return normalisedSrc.value.aspect || naturalWidth.value / naturalHeight.value || 0;
     });
     watch$v(() => props.src, () => {
@@ -1097,7 +1097,7 @@ const VImg = genericComponent()({
       };
       poll();
     }
-    const containClasses = computed$1p(() => ({
+    const containClasses = computed$1q(() => ({
       'v-img__img--cover': props.cover,
       'v-img__img--contain': !props.cover
     }));
@@ -1211,14 +1211,14 @@ const VImg = genericComponent()({
 });
 
 // Utilities
-const {computed: computed$1o,isRef: isRef$3} = await importShared('vue');
+const {computed: computed$1p,isRef: isRef$3} = await importShared('vue');
 // Composables
 const makeBorderProps = propsFactory({
   border: [Boolean, Number, String]
 }, 'border');
 function useBorder(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const borderClasses = computed$1o(() => {
+  const borderClasses = computed$1p(() => {
     const border = isRef$3(props) ? props.value : props.border;
     const classes = [];
     if (border === true || border === '') {
@@ -1236,7 +1236,7 @@ function useBorder(props) {
 }
 
 // Utilities
-const {computed: computed$1n,isRef: isRef$2} = await importShared('vue');
+const {computed: computed$1o,isRef: isRef$2} = await importShared('vue');
 // Composables
 function useColor(colors) {
   return destructComputed(() => {
@@ -1269,7 +1269,7 @@ function useColor(colors) {
   });
 }
 function useTextColor(props, name) {
-  const colors = computed$1n(() => ({
+  const colors = computed$1o(() => ({
     text: isRef$2(props) ? props.value : name ? props[name] : null
   }));
   const {
@@ -1282,7 +1282,7 @@ function useTextColor(props, name) {
   };
 }
 function useBackgroundColor(props, name) {
-  const colors = computed$1n(() => ({
+  const colors = computed$1o(() => ({
     background: isRef$2(props) ? props.value : name ? props[name] : null
   }));
   const {
@@ -1296,7 +1296,7 @@ function useBackgroundColor(props, name) {
 }
 
 // Utilities
-const {computed: computed$1m,isRef: isRef$1} = await importShared('vue');
+const {computed: computed$1n,isRef: isRef$1} = await importShared('vue');
 // Composables
 const makeElevationProps = propsFactory({
   elevation: {
@@ -1311,7 +1311,7 @@ const makeElevationProps = propsFactory({
   }
 }, 'elevation');
 function useElevation(props) {
-  const elevationClasses = computed$1m(() => {
+  const elevationClasses = computed$1n(() => {
     const elevation = isRef$1(props) ? props.value : props.elevation;
     const classes = [];
     if (elevation == null) return classes;
@@ -1324,7 +1324,7 @@ function useElevation(props) {
 }
 
 // Utilities
-const {computed: computed$1l,isRef} = await importShared('vue');
+const {computed: computed$1m,isRef} = await importShared('vue');
 // Composables
 const makeRoundedProps = propsFactory({
   rounded: {
@@ -1334,7 +1334,7 @@ const makeRoundedProps = propsFactory({
 }, 'rounded');
 function useRounded(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const roundedClasses = computed$1l(() => {
+  const roundedClasses = computed$1m(() => {
     const rounded = isRef(props) ? props.value : props.rounded;
     const classes = [];
     if (rounded === true || rounded === '') {
@@ -1352,7 +1352,7 @@ function useRounded(props) {
 }
 
 const {resolveDirective:_resolveDirective$H,createVNode:_createVNode$1C} = await importShared('vue');
-const {computed: computed$1k,shallowRef: shallowRef$y,toRef: toRef$y} = await importShared('vue');
+const {computed: computed$1l,shallowRef: shallowRef$y,toRef: toRef$y} = await importShared('vue');
 const allowedDensities$1 = [null, 'prominent', 'default', 'comfortable', 'compact'];
 const makeVToolbarProps = propsFactory({
   absolute: Boolean,
@@ -1412,8 +1412,8 @@ const VToolbar = genericComponent()({
       rtlClasses
     } = useRtl();
     const isExtended = shallowRef$y(!!(props.extended || slots.extension?.()));
-    const contentHeight = computed$1k(() => parseInt(Number(props.height) + (props.density === 'prominent' ? Number(props.height) : 0) - (props.density === 'comfortable' ? 8 : 0) - (props.density === 'compact' ? 16 : 0), 10));
-    const extensionHeight = computed$1k(() => isExtended.value ? parseInt(Number(props.extensionHeight) + (props.density === 'prominent' ? Number(props.extensionHeight) : 0) - (props.density === 'comfortable' ? 4 : 0) - (props.density === 'compact' ? 8 : 0), 10) : 0);
+    const contentHeight = computed$1l(() => parseInt(Number(props.height) + (props.density === 'prominent' ? Number(props.height) : 0) - (props.density === 'comfortable' ? 8 : 0) - (props.density === 'compact' ? 16 : 0), 10));
+    const extensionHeight = computed$1l(() => isExtended.value ? parseInt(Number(props.extensionHeight) + (props.density === 'prominent' ? Number(props.extensionHeight) : 0) - (props.density === 'comfortable' ? 4 : 0) - (props.density === 'compact' ? 8 : 0), 10) : 0);
     provideDefaults({
       VBtn: {
         variant: 'text'
@@ -1498,7 +1498,7 @@ const VToolbar = genericComponent()({
 });
 
 // Utilities
-const {computed: computed$1j,onBeforeUnmount: onBeforeUnmount$8,onMounted: onMounted$c,ref: ref$E,shallowRef: shallowRef$x,watch: watch$u} = await importShared('vue');
+const {computed: computed$1k,onBeforeUnmount: onBeforeUnmount$9,onMounted: onMounted$d,ref: ref$F,shallowRef: shallowRef$x,watch: watch$u} = await importShared('vue');
 // Composables
 const makeScrollProps = propsFactory({
   scrollTarget: {
@@ -1515,13 +1515,13 @@ function useScroll(props) {
     canScroll
   } = args;
   let previousScroll = 0;
-  const target = ref$E(null);
+  const target = ref$F(null);
   const currentScroll = shallowRef$x(0);
   const savedScroll = shallowRef$x(0);
   const currentThreshold = shallowRef$x(0);
   const isScrollActive = shallowRef$x(false);
   const isScrollingUp = shallowRef$x(false);
-  const scrollThreshold = computed$1j(() => {
+  const scrollThreshold = computed$1k(() => {
     return Number(props.scrollThreshold);
   });
 
@@ -1529,7 +1529,7 @@ function useScroll(props) {
    * 1: at top
    * 0: at threshold
    */
-  const scrollRatio = computed$1j(() => {
+  const scrollRatio = computed$1k(() => {
     return clamp((scrollThreshold.value - currentScroll.value) / scrollThreshold.value || 0);
   });
   const onScroll = () => {
@@ -1546,7 +1546,7 @@ function useScroll(props) {
   watch$u(isScrollActive, () => {
     savedScroll.value = 0;
   });
-  onMounted$c(() => {
+  onMounted$d(() => {
     watch$u(() => props.scrollTarget, scrollTarget => {
       const newTarget = scrollTarget ? document.querySelector(scrollTarget) : window;
       if (!newTarget) {
@@ -1563,7 +1563,7 @@ function useScroll(props) {
       immediate: true
     });
   });
-  onBeforeUnmount$8(() => {
+  onBeforeUnmount$9(() => {
     target.value?.removeEventListener('scroll', onScroll);
   });
 
@@ -1587,18 +1587,18 @@ function useScroll(props) {
 }
 
 // Utilities
-const {computed: computed$1i,onMounted: onMounted$b,readonly: readonly$1,shallowRef: shallowRef$w} = await importShared('vue');
+const {computed: computed$1j,onMounted: onMounted$c,readonly: readonly$1,shallowRef: shallowRef$w} = await importShared('vue');
 
 
 // Composables
 function useSsrBoot() {
   const isBooted = shallowRef$w(false);
-  onMounted$b(() => {
+  onMounted$c(() => {
     window.requestAnimationFrame(() => {
       isBooted.value = true;
     });
   });
-  const ssrBootStyles = computed$1i(() => !isBooted.value ? {
+  const ssrBootStyles = computed$1j(() => !isBooted.value ? {
     transition: 'none !important'
   } : undefined);
   return {
@@ -1608,7 +1608,7 @@ function useSsrBoot() {
 }
 
 const {createVNode:_createVNode$1B,mergeProps:_mergeProps$B,resolveDirective:_resolveDirective$G} = await importShared('vue');
-const {computed: computed$1h,ref: ref$D,shallowRef: shallowRef$v,toRef: toRef$x,watchEffect: watchEffect$8} = await importShared('vue');
+const {computed: computed$1i,ref: ref$E,shallowRef: shallowRef$v,toRef: toRef$x,watchEffect: watchEffect$8} = await importShared('vue');
 const makeVAppBarProps = propsFactory({
   scrollBehavior: String,
   modelValue: {
@@ -1638,9 +1638,9 @@ const VAppBar = genericComponent()({
     let {
       slots
     } = _ref;
-    const vToolbarRef = ref$D();
+    const vToolbarRef = ref$E();
     const isActive = useProxiedModel(props, 'modelValue');
-    const scrollBehavior = computed$1h(() => {
+    const scrollBehavior = computed$1i(() => {
       const behavior = new Set(props.scrollBehavior?.split(' ') ?? []);
       return {
         hide: behavior.has('hide'),
@@ -1653,7 +1653,7 @@ const VAppBar = genericComponent()({
       };
     });
 
-    const canScroll = computed$1h(() => {
+    const canScroll = computed$1i(() => {
       const behavior = scrollBehavior.value;
       return behavior.hide ||
       // behavior.fullyHide ||
@@ -1669,16 +1669,16 @@ const VAppBar = genericComponent()({
     } = useScroll(props, {
       canScroll
     });
-    const isCollapsed = computed$1h(() => props.collapse || scrollBehavior.value.collapse && (scrollBehavior.value.inverted ? scrollRatio.value > 0 : scrollRatio.value === 0));
-    const isFlat = computed$1h(() => props.flat || scrollBehavior.value.elevate && (scrollBehavior.value.inverted ? currentScroll.value > 0 : currentScroll.value === 0));
-    const opacity = computed$1h(() => scrollBehavior.value.fadeImage ? scrollBehavior.value.inverted ? 1 - scrollRatio.value : scrollRatio.value : undefined);
-    const height = computed$1h(() => {
+    const isCollapsed = computed$1i(() => props.collapse || scrollBehavior.value.collapse && (scrollBehavior.value.inverted ? scrollRatio.value > 0 : scrollRatio.value === 0));
+    const isFlat = computed$1i(() => props.flat || scrollBehavior.value.elevate && (scrollBehavior.value.inverted ? currentScroll.value > 0 : currentScroll.value === 0));
+    const opacity = computed$1i(() => scrollBehavior.value.fadeImage ? scrollBehavior.value.inverted ? 1 - scrollRatio.value : scrollRatio.value : undefined);
+    const height = computed$1i(() => {
       if (scrollBehavior.value.hide && scrollBehavior.value.inverted) return 0;
       const height = vToolbarRef.value?.contentHeight ?? 0;
       const extensionHeight = vToolbarRef.value?.extensionHeight ?? 0;
       return height + extensionHeight;
     });
-    useToggleScope(computed$1h(() => !!props.scrollBehavior), () => {
+    useToggleScope(computed$1i(() => !!props.scrollBehavior), () => {
       watchEffect$8(() => {
         if (scrollBehavior.value.hide) {
           if (scrollBehavior.value.inverted) {
@@ -1698,7 +1698,7 @@ const VAppBar = genericComponent()({
       layoutItemStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$1h(() => parseInt(props.order, 10)),
+      order: computed$1i(() => parseInt(props.order, 10)),
       position: toRef$x(props, 'location'),
       layoutSize: height,
       elementSize: shallowRef$v(undefined),
@@ -1734,7 +1734,7 @@ const VBtnToggle$1 = '';
 const VBtnGroup$1 = '';
 
 // Utilities
-const {computed: computed$1g} = await importShared('vue');
+const {computed: computed$1h} = await importShared('vue');
 const allowedDensities = [null, 'default', 'comfortable', 'compact'];
 
 // typeof allowedDensities[number] evalutes to any
@@ -1750,7 +1750,7 @@ const makeDensityProps = propsFactory({
 }, 'density');
 function useDensity(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const densityClasses = computed$1g(() => {
+  const densityClasses = computed$1h(() => {
     return `${name}--density-${props.density}`;
   });
   return {
@@ -1759,7 +1759,7 @@ function useDensity(props) {
 }
 
 const {createVNode:_createVNode$1A,Fragment:_Fragment$l} = await importShared('vue');
-const {computed: computed$1f,unref: unref$2} = await importShared('vue');
+const {computed: computed$1g,unref: unref$2} = await importShared('vue');
 const allowedVariants$2 = ['elevated', 'flat', 'tonal', 'outlined', 'text', 'plain'];
 function genOverlays(isClickable, name) {
   return _createVNode$1A(_Fragment$l, null, [isClickable && _createVNode$1A("span", {
@@ -1780,7 +1780,7 @@ const makeVariantProps = propsFactory({
 }, 'variant');
 function useVariant(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const variantClasses = computed$1f(() => {
+  const variantClasses = computed$1g(() => {
     const {
       variant
     } = unref$2(props);
@@ -1789,7 +1789,7 @@ function useVariant(props) {
   const {
     colorClasses,
     colorStyles
-  } = useColor(computed$1f(() => {
+  } = useColor(computed$1g(() => {
     const {
       variant,
       color
@@ -1860,7 +1860,7 @@ const VBtnGroup = genericComponent()({
   }
 });
 
-const {computed: computed$1e,inject: inject$c,onBeforeUnmount: onBeforeUnmount$7,onMounted: onMounted$a,provide: provide$9,reactive: reactive$2,toRef: toRef$v,watch: watch$t} = await importShared('vue');
+const {computed: computed$1f,inject: inject$c,onBeforeUnmount: onBeforeUnmount$8,onMounted: onMounted$b,provide: provide$9,reactive: reactive$3,toRef: toRef$v,watch: watch$t} = await importShared('vue');
 const makeGroupProps = propsFactory({
   modelValue: {
     type: null,
@@ -1891,19 +1891,19 @@ function useGroupItem(props, injectKey) {
     throw new Error(`[Vuetify] Could not find useGroup injection with symbol ${injectKey.description}`);
   }
   const value = toRef$v(props, 'value');
-  const disabled = computed$1e(() => !!(group.disabled.value || props.disabled));
+  const disabled = computed$1f(() => !!(group.disabled.value || props.disabled));
   group.register({
     id,
     value,
     disabled
   }, vm);
-  onBeforeUnmount$7(() => {
+  onBeforeUnmount$8(() => {
     group.unregister(id);
   });
-  const isSelected = computed$1e(() => {
+  const isSelected = computed$1f(() => {
     return group.isSelected(id);
   });
-  const selectedClass = computed$1e(() => isSelected.value && [group.selectedClass.value, props.selectedClass]);
+  const selectedClass = computed$1f(() => isSelected.value && [group.selectedClass.value, props.selectedClass]);
   watch$t(isSelected, value => {
     vm.emit('group:selected', {
       value
@@ -1922,7 +1922,7 @@ function useGroupItem(props, injectKey) {
 }
 function useGroup(props, injectKey) {
   let isUnmounted = false;
-  const items = reactive$2([]);
+  const items = reactive$3([]);
   const selected = useProxiedModel(props, 'modelValue', [], v => {
     if (v == null) return [];
     return getIds(items, wrapInArray(v));
@@ -1962,10 +1962,10 @@ function useGroup(props, injectKey) {
       selected.value = [item.id];
     }
   }
-  onMounted$a(() => {
+  onMounted$b(() => {
     forceMandatoryValue();
   });
-  onBeforeUnmount$7(() => {
+  onBeforeUnmount$8(() => {
     isUnmounted = true;
   });
   function select(id, value) {
@@ -2021,8 +2021,8 @@ function useGroup(props, injectKey) {
     prev: () => step(items.length - 1),
     next: () => step(1),
     isSelected: id => selected.value.includes(id),
-    selectedClass: computed$1e(() => props.selectedClass),
-    items: computed$1e(() => items),
+    selectedClass: computed$1f(() => props.selectedClass),
+    items: computed$1f(() => items),
     getItemIndex: value => getItemIndex(items, value)
   };
   provide$9(injectKey, state);
@@ -2137,7 +2137,7 @@ function useSize(props) {
 }
 
 const {createVNode:_createVNode$1x} = await importShared('vue');
-const {computed: computed$1d,ref: ref$C,Text,toRef: toRef$u} = await importShared('vue');
+const {computed: computed$1e,ref: ref$D,Text,toRef: toRef$u} = await importShared('vue');
 const makeVIconProps = propsFactory({
   color: String,
   start: Boolean,
@@ -2158,13 +2158,13 @@ const VIcon = genericComponent()({
       attrs,
       slots
     } = _ref;
-    const slotIcon = ref$C();
+    const slotIcon = ref$D();
     const {
       themeClasses
     } = provideTheme(props);
     const {
       iconData
-    } = useIcon(computed$1d(() => slotIcon.value || props.icon));
+    } = useIcon(computed$1e(() => slotIcon.value || props.icon));
     const {
       sizeClasses
     } = useSize(props);
@@ -2203,16 +2203,16 @@ const VIcon = genericComponent()({
 const VProgressCircular$1 = '';
 
 // Utilities
-const {onBeforeUnmount: onBeforeUnmount$6,ref: ref$B,shallowRef: shallowRef$u,watch: watch$s} = await importShared('vue');
+const {onBeforeUnmount: onBeforeUnmount$7,ref: ref$C,shallowRef: shallowRef$u,watch: watch$s} = await importShared('vue');
 function useIntersectionObserver(callback, options) {
-  const intersectionRef = ref$B();
+  const intersectionRef = ref$C();
   const isIntersecting = shallowRef$u(false);
   if (SUPPORTS_INTERSECTION) {
     const observer = new IntersectionObserver(entries => {
       callback?.(entries, observer);
       isIntersecting.value = !!entries.find(entry => entry.isIntersecting);
     }, options);
-    onBeforeUnmount$6(() => {
+    onBeforeUnmount$7(() => {
       observer.disconnect();
     });
     watch$s(intersectionRef, (newValue, oldValue) => {
@@ -2232,7 +2232,7 @@ function useIntersectionObserver(callback, options) {
 }
 
 const {createVNode:_createVNode$1w} = await importShared('vue');
-const {computed: computed$1c,ref: ref$A,toRef: toRef$t,watchEffect: watchEffect$7} = await importShared('vue');
+const {computed: computed$1d,ref: ref$B,toRef: toRef$t,watchEffect: watchEffect$7} = await importShared('vue');
 const makeVProgressCircularProps = propsFactory({
   bgColor: String,
   color: String,
@@ -2265,7 +2265,7 @@ const VProgressCircular = genericComponent()({
     } = _ref;
     const MAGIC_RADIUS_CONSTANT = 20;
     const CIRCUMFERENCE = 2 * Math.PI * MAGIC_RADIUS_CONSTANT;
-    const root = ref$A();
+    const root = ref$B();
     const {
       themeClasses
     } = provideTheme(props);
@@ -2289,15 +2289,15 @@ const VProgressCircular = genericComponent()({
       resizeRef,
       contentRect
     } = useResizeObserver();
-    const normalizedValue = computed$1c(() => Math.max(0, Math.min(100, parseFloat(props.modelValue))));
-    const width = computed$1c(() => Number(props.width));
-    const size = computed$1c(() => {
+    const normalizedValue = computed$1d(() => Math.max(0, Math.min(100, parseFloat(props.modelValue))));
+    const width = computed$1d(() => Number(props.width));
+    const size = computed$1d(() => {
       // Get size from element if size prop value is small, large etc
       return sizeStyles.value ? Number(props.size) : contentRect.value ? contentRect.value.width : Math.max(width.value, 32);
     });
-    const diameter = computed$1c(() => MAGIC_RADIUS_CONSTANT / (1 - width.value / size.value) * 2);
-    const strokeWidth = computed$1c(() => width.value / size.value * diameter.value);
-    const strokeDashOffset = computed$1c(() => convertToUnit((100 - normalizedValue.value) / 100 * CIRCUMFERENCE));
+    const diameter = computed$1d(() => MAGIC_RADIUS_CONSTANT / (1 - width.value / size.value) * 2);
+    const strokeWidth = computed$1d(() => width.value / size.value * diameter.value);
+    const strokeDashOffset = computed$1d(() => convertToUnit((100 - normalizedValue.value) / 100 * CIRCUMFERENCE));
     watchEffect$7(() => {
       intersectionRef.value = root.value;
       resizeRef.value = root.value;
@@ -2352,7 +2352,7 @@ const VProgressCircular = genericComponent()({
 
 const VProgressLinear$1 = '';
 
-const {computed: computed$1b} = await importShared('vue');
+const {computed: computed$1c} = await importShared('vue');
 const oppositeMap = {
   center: 'center',
   top: 'bottom',
@@ -2369,7 +2369,7 @@ function useLocation(props) {
   const {
     isRtl
   } = useRtl();
-  const locationStyles = computed$1b(() => {
+  const locationStyles = computed$1c(() => {
     if (!props.location) return {};
     const {
       side,
@@ -2409,7 +2409,7 @@ function useLocation(props) {
 }
 
 const {createVNode:_createVNode$1v} = await importShared('vue');
-const {computed: computed$1a,Transition: Transition$2} = await importShared('vue');
+const {computed: computed$1b,Transition: Transition$2} = await importShared('vue');
 const makeVProgressLinearProps = propsFactory({
   absolute: Boolean,
   active: {
@@ -2477,7 +2477,7 @@ const VProgressLinear = genericComponent()({
     const {
       backgroundColorClasses,
       backgroundColorStyles
-    } = useBackgroundColor(computed$1a(() => props.bgColor || props.color));
+    } = useBackgroundColor(computed$1b(() => props.bgColor || props.color));
     const {
       backgroundColorClasses: barColorClasses,
       backgroundColorStyles: barColorStyles
@@ -2489,13 +2489,13 @@ const VProgressLinear = genericComponent()({
       intersectionRef,
       isIntersecting
     } = useIntersectionObserver();
-    const max = computed$1a(() => parseInt(props.max, 10));
-    const height = computed$1a(() => parseInt(props.height, 10));
-    const normalizedBuffer = computed$1a(() => parseFloat(props.bufferValue) / max.value * 100);
-    const normalizedValue = computed$1a(() => parseFloat(progress.value) / max.value * 100);
-    const isReversed = computed$1a(() => isRtl.value !== props.reverse);
-    const transition = computed$1a(() => props.indeterminate ? 'fade-transition' : 'slide-x-transition');
-    const opacity = computed$1a(() => {
+    const max = computed$1b(() => parseInt(props.max, 10));
+    const height = computed$1b(() => parseInt(props.height, 10));
+    const normalizedBuffer = computed$1b(() => parseFloat(props.bufferValue) / max.value * 100);
+    const normalizedValue = computed$1b(() => parseFloat(progress.value) / max.value * 100);
+    const isReversed = computed$1b(() => isRtl.value !== props.reverse);
+    const transition = computed$1b(() => props.indeterminate ? 'fade-transition' : 'slide-x-transition');
+    const opacity = computed$1b(() => {
       return props.bgOpacity == null ? props.bgOpacity : parseFloat(props.bgOpacity);
     });
     function handleClick(e) {
@@ -2577,14 +2577,14 @@ const VProgressLinear = genericComponent()({
 });
 
 const {createVNode:_createVNode$1u} = await importShared('vue');
-const {computed: computed$19} = await importShared('vue');
+const {computed: computed$1a} = await importShared('vue');
 // Composables
 const makeLoaderProps = propsFactory({
   loading: [Boolean, String]
 }, 'loader');
 function useLoader(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const loaderClasses = computed$19(() => ({
+  const loaderClasses = computed$1a(() => ({
     [`${name}--loading`]: props.loading
   }));
   return {
@@ -2609,7 +2609,7 @@ function LoaderSlot(props, _ref) {
 }
 
 // Utilities
-const {computed: computed$18} = await importShared('vue');
+const {computed: computed$19} = await importShared('vue');
 const positionValues = ['static', 'relative', 'fixed', 'absolute', 'sticky'];
 // Composables
 const makePositionProps = propsFactory({
@@ -2620,7 +2620,7 @@ const makePositionProps = propsFactory({
 }, 'position');
 function usePosition(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
-  const positionClasses = computed$18(() => {
+  const positionClasses = computed$19(() => {
     return props.position ? `${name}--${props.position}` : undefined;
   });
   return {
@@ -2629,14 +2629,14 @@ function usePosition(props) {
 }
 
 // Utilities
-const {computed: computed$17,nextTick: nextTick$g,onScopeDispose: onScopeDispose$6,resolveDynamicComponent,toRef: toRef$s} = await importShared('vue');
+const {computed: computed$18,nextTick: nextTick$g,onScopeDispose: onScopeDispose$6,resolveDynamicComponent,toRef: toRef$s} = await importShared('vue');
 function useRouter() {
   return getCurrentInstance('useRouter')?.proxy?.$router;
 }
 function useLink(props, attrs) {
   const RouterLink = resolveDynamicComponent('RouterLink');
-  const isLink = computed$17(() => !!(props.href || props.to));
-  const isClickable = computed$17(() => {
+  const isLink = computed$18(() => !!(props.href || props.to));
+  const isClickable = computed$18(() => {
     return isLink?.value || hasEvent(attrs, 'click') || hasEvent(props, 'click');
   });
   if (typeof RouterLink === 'string') {
@@ -2652,8 +2652,8 @@ function useLink(props, attrs) {
     isClickable,
     route: link?.route,
     navigate: link?.navigate,
-    isActive: link && computed$17(() => props.exact ? link.isExactActive?.value : link.isActive?.value),
-    href: computed$17(() => props.to ? link?.route.value.href : props.href)
+    isActive: link && computed$18(() => props.exact ? link.isExactActive?.value : link.isActive?.value),
+    href: computed$18(() => props.to ? link?.route.value.href : props.href)
   };
 }
 const makeRouterProps = propsFactory({
@@ -2999,7 +2999,7 @@ const Ripple = {
 };
 
 const {withDirectives:_withDirectives$h,resolveDirective:_resolveDirective$E,createVNode:_createVNode$1t} = await importShared('vue');
-const {computed: computed$16} = await importShared('vue');
+const {computed: computed$17} = await importShared('vue');
 const makeVBtnProps = propsFactory({
   active: {
     type: Boolean,
@@ -3092,7 +3092,7 @@ const VBtn = genericComponent()({
     } = useSize(props);
     const group = useGroupItem(props, props.symbol, false);
     const link = useLink(props, attrs);
-    const isActive = computed$16(() => {
+    const isActive = computed$17(() => {
       if (props.active !== undefined) {
         return props.active;
       }
@@ -3101,11 +3101,11 @@ const VBtn = genericComponent()({
       }
       return group?.isSelected.value;
     });
-    const isDisabled = computed$16(() => group?.disabled.value || props.disabled);
-    const isElevated = computed$16(() => {
+    const isDisabled = computed$17(() => group?.disabled.value || props.disabled);
+    const isElevated = computed$17(() => {
       return props.variant === 'elevated' && !(props.disabled || props.flat || props.border);
     });
-    const valueAttr = computed$16(() => {
+    const valueAttr = computed$17(() => {
       if (props.value === undefined) return undefined;
       return Object(props.value) === props.value ? JSON.stringify(props.value, null, 0) : props.value;
     });
@@ -3240,7 +3240,7 @@ const VAlert$1 = '';
 const VAlertTitle = createSimpleFunctional('v-alert-title');
 
 const {mergeProps:_mergeProps$x,resolveDirective:_resolveDirective$B,createVNode:_createVNode$1q} = await importShared('vue');
-const {computed: computed$15,toRef: toRef$r} = await importShared('vue');
+const {computed: computed$16,toRef: toRef$r} = await importShared('vue');
 const allowedTypes = ['success', 'info', 'warning', 'error'];
 const makeVAlertProps = propsFactory({
   border: {
@@ -3300,12 +3300,12 @@ const VAlert = genericComponent()({
       slots
     } = _ref;
     const isActive = useProxiedModel(props, 'modelValue');
-    const icon = computed$15(() => {
+    const icon = computed$16(() => {
       if (props.icon === false) return undefined;
       if (!props.type) return props.icon;
       return props.icon ?? `$${props.type}`;
     });
-    const variantProps = computed$15(() => ({
+    const variantProps = computed$16(() => ({
       color: props.color ?? props.type,
       variant: props.variant
     }));
@@ -3342,7 +3342,7 @@ const VAlert = genericComponent()({
     const {
       t
     } = useLocale();
-    const closeProps = computed$15(() => ({
+    const closeProps = computed$16(() => ({
       'aria-label': t(props.closeLabel),
       onClick(e) {
         isActive.value = false;
@@ -3456,7 +3456,7 @@ const VLabel = genericComponent()({
 const VSelectionControlGroup$1 = '';
 
 const {createVNode:_createVNode$1o} = await importShared('vue');
-const {computed: computed$14,onScopeDispose: onScopeDispose$5,provide: provide$8,toRef: toRef$q} = await importShared('vue');
+const {computed: computed$15,onScopeDispose: onScopeDispose$5,provide: provide$8,toRef: toRef$q} = await importShared('vue');
 const VSelectionControlGroupSymbol = Symbol.for('vuetify:selection-control-group');
 const makeSelectionControlGroupProps = propsFactory({
   color: String,
@@ -3507,8 +3507,8 @@ const VSelectionControlGroup = genericComponent()({
     } = _ref;
     const modelValue = useProxiedModel(props, 'modelValue');
     const uid = getUid();
-    const id = computed$14(() => props.id || `v-selection-control-group-${uid}`);
-    const name = computed$14(() => props.name || id.value);
+    const id = computed$15(() => props.id || `v-selection-control-group-${uid}`);
+    const name = computed$15(() => props.name || id.value);
     const updateHandlers = new Set();
     provide$8(VSelectionControlGroupSymbol, {
       modelValue,
@@ -3530,7 +3530,7 @@ const VSelectionControlGroup = genericComponent()({
         error: toRef$q(props, 'error'),
         inline: toRef$q(props, 'inline'),
         modelValue,
-        multiple: computed$14(() => !!props.multiple || props.multiple == null && Array.isArray(modelValue.value)),
+        multiple: computed$15(() => !!props.multiple || props.multiple == null && Array.isArray(modelValue.value)),
         name,
         falseIcon: toRef$q(props, 'falseIcon'),
         trueIcon: toRef$q(props, 'trueIcon'),
@@ -3552,7 +3552,7 @@ const VSelectionControlGroup = genericComponent()({
 });
 
 const {withDirectives:_withDirectives$g,resolveDirective:_resolveDirective$A,Fragment:_Fragment$k,createVNode:_createVNode$1n,mergeProps:_mergeProps$w} = await importShared('vue');
-const {computed: computed$13,inject: inject$b,nextTick: nextTick$e,ref: ref$z,shallowRef: shallowRef$t} = await importShared('vue');
+const {computed: computed$14,inject: inject$b,nextTick: nextTick$e,ref: ref$A,shallowRef: shallowRef$t} = await importShared('vue');
 const makeVSelectionControlProps = propsFactory({
   label: String,
   trueValue: null,
@@ -3567,10 +3567,10 @@ function useSelectionControl(props) {
     densityClasses
   } = useDensity(props);
   const modelValue = useProxiedModel(props, 'modelValue');
-  const trueValue = computed$13(() => props.trueValue !== undefined ? props.trueValue : props.value !== undefined ? props.value : true);
-  const falseValue = computed$13(() => props.falseValue !== undefined ? props.falseValue : false);
-  const isMultiple = computed$13(() => !!props.multiple || props.multiple == null && Array.isArray(modelValue.value));
-  const model = computed$13({
+  const trueValue = computed$14(() => props.trueValue !== undefined ? props.trueValue : props.value !== undefined ? props.value : true);
+  const falseValue = computed$14(() => props.falseValue !== undefined ? props.falseValue : false);
+  const isMultiple = computed$14(() => !!props.multiple || props.multiple == null && Array.isArray(modelValue.value));
+  const model = computed$14({
     get() {
       const val = group ? group.modelValue.value : modelValue.value;
       return isMultiple.value ? val.some(v => props.valueComparator(v, trueValue.value)) : props.valueComparator(val, trueValue.value);
@@ -3592,16 +3592,16 @@ function useSelectionControl(props) {
   const {
     textColorClasses,
     textColorStyles
-  } = useTextColor(computed$13(() => {
+  } = useTextColor(computed$14(() => {
     return model.value && !props.error && !props.disabled ? props.color : undefined;
   }));
   const {
     backgroundColorClasses,
     backgroundColorStyles
-  } = useBackgroundColor(computed$13(() => {
+  } = useBackgroundColor(computed$14(() => {
     return model.value && !props.error && !props.disabled ? props.color : undefined;
   }));
-  const icon = computed$13(() => model.value ? props.trueIcon : props.falseIcon);
+  const icon = computed$14(() => model.value ? props.trueIcon : props.falseIcon);
   return {
     group,
     densityClasses,
@@ -3642,10 +3642,10 @@ const VSelectionControl = genericComponent()({
       trueValue
     } = useSelectionControl(props);
     const uid = getUid();
-    const id = computed$13(() => props.id || `input-${uid}`);
+    const id = computed$14(() => props.id || `input-${uid}`);
     const isFocused = shallowRef$t(false);
     const isFocusVisible = shallowRef$t(false);
-    const input = ref$z();
+    const input = ref$A();
     group?.onForceUpdate(() => {
       if (input.value) {
         input.value.checked = model.value;
@@ -3740,7 +3740,7 @@ const VSelectionControl = genericComponent()({
 });
 
 const {createVNode:_createVNode$1m,mergeProps:_mergeProps$v,resolveDirective:_resolveDirective$z} = await importShared('vue');
-const {computed: computed$12} = await importShared('vue');
+const {computed: computed$13} = await importShared('vue');
 const makeVCheckboxBtnProps = propsFactory({
   indeterminate: Boolean,
   indeterminateIcon: {
@@ -3770,10 +3770,10 @@ const VCheckboxBtn = genericComponent()({
         indeterminate.value = false;
       }
     }
-    const falseIcon = computed$12(() => {
+    const falseIcon = computed$13(() => {
       return indeterminate.value ? props.indeterminateIcon : props.falseIcon;
     });
-    const trueIcon = computed$12(() => {
+    const trueIcon = computed$13(() => {
       return indeterminate.value ? props.indeterminateIcon : props.trueIcon;
     });
     useRender(() => {
@@ -3827,7 +3827,7 @@ function useInputIcon(props) {
 const VMessages$1 = '';
 
 const {createVNode:_createVNode$1k} = await importShared('vue');
-const {computed: computed$11} = await importShared('vue');
+const {computed: computed$12} = await importShared('vue');
 const makeVMessagesProps = propsFactory({
   active: Boolean,
   color: String,
@@ -3851,11 +3851,11 @@ const VMessages = genericComponent()({
     let {
       slots
     } = _ref;
-    const messages = computed$11(() => wrapInArray(props.messages));
+    const messages = computed$12(() => wrapInArray(props.messages));
     const {
       textColorClasses,
       textColorStyles
-    } = useTextColor(computed$11(() => props.color));
+    } = useTextColor(computed$12(() => props.color));
     useRender(() => _createVNode$1k(MaybeTransition, {
       "transition": props.transition,
       "tag": "div",
@@ -3875,7 +3875,7 @@ const VMessages = genericComponent()({
   }
 });
 
-const {computed: computed$10} = await importShared('vue');
+const {computed: computed$11} = await importShared('vue');
 // Composables
 const makeFocusProps = propsFactory({
   focused: Boolean,
@@ -3884,7 +3884,7 @@ const makeFocusProps = propsFactory({
 function useFocus(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
   const isFocused = useProxiedModel(props, 'focused');
-  const focusClasses = computed$10(() => {
+  const focusClasses = computed$11(() => {
     return {
       [`${name}--focused`]: isFocused.value
     };
@@ -3903,7 +3903,7 @@ function useFocus(props) {
   };
 }
 
-const {computed: computed$$,inject: inject$a,provide: provide$7,ref: ref$y,shallowRef: shallowRef$s,toRef: toRef$p,watch: watch$q} = await importShared('vue');
+const {computed: computed$10,inject: inject$a,provide: provide$7,ref: ref$z,shallowRef: shallowRef$s,toRef: toRef$p,watch: watch$q} = await importShared('vue');
 const FormKey = Symbol.for('vuetify:form');
 const makeFormProps = propsFactory({
   disabled: Boolean,
@@ -3920,11 +3920,11 @@ const makeFormProps = propsFactory({
 }, 'form');
 function createForm(props) {
   const model = useProxiedModel(props, 'modelValue');
-  const isDisabled = computed$$(() => props.disabled);
-  const isReadonly = computed$$(() => props.readonly);
+  const isDisabled = computed$10(() => props.disabled);
+  const isReadonly = computed$10(() => props.readonly);
   const isValidating = shallowRef$s(false);
-  const items = ref$y([]);
-  const errors = ref$y([]);
+  const items = ref$z([]);
+  const errors = ref$z([]);
   async function validate() {
     const results = [];
     let valid = true;
@@ -4026,7 +4026,7 @@ function useForm() {
   return inject$a(FormKey, null);
 }
 
-const {computed: computed$_,nextTick: nextTick$d,onBeforeMount: onBeforeMount$1,onBeforeUnmount: onBeforeUnmount$5,onMounted: onMounted$9,ref: ref$x,shallowRef: shallowRef$r,unref: unref$1,watch: watch$p} = await importShared('vue');
+const {computed: computed$$,nextTick: nextTick$d,onBeforeMount: onBeforeMount$1,onBeforeUnmount: onBeforeUnmount$6,onMounted: onMounted$a,ref: ref$y,shallowRef: shallowRef$r,unref: unref$1,watch: watch$p} = await importShared('vue');
 const makeValidationProps = propsFactory({
   disabled: {
     type: Boolean,
@@ -4060,17 +4060,17 @@ function useValidation(props) {
   let name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getCurrentInstanceName();
   let id = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : getUid();
   const model = useProxiedModel(props, 'modelValue');
-  const validationModel = computed$_(() => props.validationValue === undefined ? model.value : props.validationValue);
+  const validationModel = computed$$(() => props.validationValue === undefined ? model.value : props.validationValue);
   const form = useForm();
-  const internalErrorMessages = ref$x([]);
+  const internalErrorMessages = ref$y([]);
   const isPristine = shallowRef$r(true);
-  const isDirty = computed$_(() => !!(wrapInArray(model.value === '' ? null : model.value).length || wrapInArray(validationModel.value === '' ? null : validationModel.value).length));
-  const isDisabled = computed$_(() => !!(props.disabled ?? form?.isDisabled.value));
-  const isReadonly = computed$_(() => !!(props.readonly ?? form?.isReadonly.value));
-  const errorMessages = computed$_(() => {
+  const isDirty = computed$$(() => !!(wrapInArray(model.value === '' ? null : model.value).length || wrapInArray(validationModel.value === '' ? null : validationModel.value).length));
+  const isDisabled = computed$$(() => !!(props.disabled ?? form?.isDisabled.value));
+  const isReadonly = computed$$(() => !!(props.readonly ?? form?.isReadonly.value));
+  const errorMessages = computed$$(() => {
     return props.errorMessages.length ? wrapInArray(props.errorMessages).slice(0, Math.max(0, +props.maxErrors)) : internalErrorMessages.value;
   });
-  const validateOn = computed$_(() => {
+  const validateOn = computed$$(() => {
     let value = (props.validateOn ?? form?.validateOn.value) || 'input';
     if (value === 'lazy') value = 'input lazy';
     const set = new Set(value?.split(' ') ?? []);
@@ -4081,7 +4081,7 @@ function useValidation(props) {
       lazy: set.has('lazy')
     };
   });
-  const isValid = computed$_(() => {
+  const isValid = computed$$(() => {
     if (props.error || props.errorMessages.length) return false;
     if (!props.rules.length) return true;
     if (isPristine.value) {
@@ -4091,7 +4091,7 @@ function useValidation(props) {
     }
   });
   const isValidating = shallowRef$r(false);
-  const validationClasses = computed$_(() => {
+  const validationClasses = computed$$(() => {
     return {
       [`${name}--error`]: isValid.value === false,
       [`${name}--dirty`]: isDirty.value,
@@ -4099,7 +4099,7 @@ function useValidation(props) {
       [`${name}--readonly`]: isReadonly.value
     };
   });
-  const uid = computed$_(() => props.name ?? unref$1(id));
+  const uid = computed$$(() => props.name ?? unref$1(id));
   onBeforeMount$1(() => {
     form?.register({
       id: uid.value,
@@ -4108,10 +4108,10 @@ function useValidation(props) {
       resetValidation
     });
   });
-  onBeforeUnmount$5(() => {
+  onBeforeUnmount$6(() => {
     form?.unregister(uid.value);
   });
-  onMounted$9(async () => {
+  onMounted$a(async () => {
     if (!validateOn.value.lazy) {
       await validate(true);
     }
@@ -4188,7 +4188,7 @@ function useValidation(props) {
 }
 
 const {resolveDirective:_resolveDirective$y,createVNode:_createVNode$1j} = await importShared('vue');
-const {computed: computed$Z} = await importShared('vue');
+const {computed: computed$_} = await importShared('vue');
 const makeVInputProps = propsFactory({
   id: String,
   appendIcon: IconValue,
@@ -4239,8 +4239,8 @@ const VInput = genericComponent()({
       InputIcon
     } = useInputIcon(props);
     const uid = getUid();
-    const id = computed$Z(() => props.id || `input-${uid}`);
-    const messagesId = computed$Z(() => `${id.value}-messages`);
+    const id = computed$_(() => props.id || `input-${uid}`);
+    const messagesId = computed$_(() => `${id.value}-messages`);
     const {
       errorMessages,
       isDirty,
@@ -4254,7 +4254,7 @@ const VInput = genericComponent()({
       validate,
       validationClasses
     } = useValidation(props, 'v-input', id);
-    const slotProps = computed$Z(() => ({
+    const slotProps = computed$_(() => ({
       id,
       messagesId,
       isDirty,
@@ -4267,7 +4267,7 @@ const VInput = genericComponent()({
       resetValidation,
       validate
     }));
-    const messages = computed$Z(() => {
+    const messages = computed$_(() => {
       if (props.errorMessages?.length || !isPristine.value && errorMessages.value.length) {
         return errorMessages.value;
       } else if (props.hint && (props.persistentHint || props.focused)) {
@@ -4319,7 +4319,7 @@ const VInput = genericComponent()({
 });
 
 const {createVNode:_createVNode$1i,mergeProps:_mergeProps$u,resolveDirective:_resolveDirective$x} = await importShared('vue');
-const {computed: computed$Y} = await importShared('vue');
+const {computed: computed$Z} = await importShared('vue');
 const makeVCheckboxProps = propsFactory({
   ...makeVInputProps(),
   ...omit(makeVCheckboxBtnProps(), ['inline'])
@@ -4344,7 +4344,7 @@ const VCheckbox = genericComponent()({
       blur
     } = useFocus(props);
     const uid = getUid();
-    const id = computed$Y(() => props.id || `checkbox-${uid}`);
+    const id = computed$Z(() => props.id || `checkbox-${uid}`);
     useRender(() => {
       const [rootAttrs, controlAttrs] = filterInputAttrs(attrs);
       const [inputProps, _1] = VInput.filterProps(props);
@@ -4519,7 +4519,7 @@ const VChipGroup = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$t,Fragment:_Fragment$j,withDirectives:_withDirectives$f,vShow:_vShow$8,resolveDirective:_resolveDirective$w,createVNode:_createVNode$1f} = await importShared('vue');
-const {computed: computed$X} = await importShared('vue');
+const {computed: computed$Y} = await importShared('vue');
 const makeVChipProps = propsFactory({
   activeClass: String,
   appendAvatar: String,
@@ -4621,9 +4621,9 @@ const VChip = genericComponent()({
     const isActive = useProxiedModel(props, 'modelValue');
     const group = useGroupItem(props, VChipGroupSymbol, false);
     const link = useLink(props, attrs);
-    const isLink = computed$X(() => props.link !== false && link.isLink.value);
-    const isClickable = computed$X(() => !props.disabled && props.link !== false && (!!group || props.link || link.isClickable.value));
-    const closeProps = computed$X(() => ({
+    const isLink = computed$Y(() => props.link !== false && link.isLink.value);
+    const isClickable = computed$Y(() => !props.disabled && props.link !== false && (!!group || props.link || link.isClickable.value));
+    const closeProps = computed$Y(() => ({
       'aria-label': t(props.closeLabel),
       onClick(e) {
         e.stopPropagation();
@@ -4766,7 +4766,7 @@ const VChip = genericComponent()({
 const VList$1 = '';
 
 // Utilities
-const {computed: computed$W,inject: inject$9,provide: provide$6,shallowRef: shallowRef$q} = await importShared('vue');
+const {computed: computed$X,inject: inject$9,provide: provide$6,shallowRef: shallowRef$q} = await importShared('vue');
 
 // List
 const ListKey = Symbol.for('vuetify:list');
@@ -5046,21 +5046,21 @@ const classicSelectStrategy = mandatory => {
   return strategy;
 };
 
-const {computed: computed$V,inject: inject$8,onBeforeUnmount: onBeforeUnmount$4,provide: provide$5,ref: ref$w,shallowRef: shallowRef$p,toRaw: toRaw$1} = await importShared('vue');
+const {computed: computed$W,inject: inject$8,onBeforeUnmount: onBeforeUnmount$5,provide: provide$5,ref: ref$x,shallowRef: shallowRef$p,toRaw: toRaw$1} = await importShared('vue');
 const VNestedSymbol = Symbol.for('vuetify:nested');
 const emptyNested = {
   id: shallowRef$p(),
   root: {
     register: () => null,
     unregister: () => null,
-    parents: ref$w(new Map()),
-    children: ref$w(new Map()),
+    parents: ref$x(new Map()),
+    children: ref$x(new Map()),
     open: () => null,
     openOnSelect: () => null,
     select: () => null,
-    opened: ref$w(new Set()),
-    selected: ref$w(new Map()),
-    selectedValues: ref$w([])
+    opened: ref$x(new Set()),
+    selected: ref$x(new Map()),
+    selectedValues: ref$x([])
   }
 };
 const makeNestedProps = propsFactory({
@@ -5072,10 +5072,10 @@ const makeNestedProps = propsFactory({
 }, 'nested');
 const useNested = props => {
   let isUnmounted = false;
-  const children = ref$w(new Map());
-  const parents = ref$w(new Map());
+  const children = ref$x(new Map());
+  const parents = ref$x(new Map());
   const opened = useProxiedModel(props, 'opened', props.opened, v => new Set(v), v => [...v.values()]);
-  const selectStrategy = computed$V(() => {
+  const selectStrategy = computed$W(() => {
     if (typeof props.selectStrategy === 'object') return props.selectStrategy;
     switch (props.selectStrategy) {
       case 'single-leaf':
@@ -5091,7 +5091,7 @@ const useNested = props => {
         return classicSelectStrategy(props.mandatory);
     }
   });
-  const openStrategy = computed$V(() => {
+  const openStrategy = computed$W(() => {
     if (typeof props.openStrategy === 'object') return props.openStrategy;
     switch (props.openStrategy) {
       case 'list':
@@ -5104,7 +5104,7 @@ const useNested = props => {
     }
   });
   const selected = useProxiedModel(props, 'selected', props.selected, v => selectStrategy.value.in(v, children.value, parents.value), v => selectStrategy.value.out(v, children.value, parents.value));
-  onBeforeUnmount$4(() => {
+  onBeforeUnmount$5(() => {
     isUnmounted = true;
   });
   function getPath(id) {
@@ -5122,7 +5122,7 @@ const useNested = props => {
     root: {
       opened,
       selected,
-      selectedValues: computed$V(() => {
+      selectedValues: computed$W(() => {
         const arr = [];
         for (const [key, value] of selected.value.entries()) {
           if (value === 'on') arr.push(key);
@@ -5204,22 +5204,22 @@ const useNested = props => {
 const useNestedItem = (id, isGroup) => {
   const parent = inject$8(VNestedSymbol, emptyNested);
   const uidSymbol = Symbol(getUid());
-  const computedId = computed$V(() => id.value !== undefined ? id.value : uidSymbol);
+  const computedId = computed$W(() => id.value !== undefined ? id.value : uidSymbol);
   const item = {
     ...parent,
     id: computedId,
     open: (open, e) => parent.root.open(computedId.value, open, e),
     openOnSelect: (open, e) => parent.root.openOnSelect(computedId.value, open, e),
-    isOpen: computed$V(() => parent.root.opened.value.has(computedId.value)),
-    parent: computed$V(() => parent.root.parents.value.get(computedId.value)),
+    isOpen: computed$W(() => parent.root.opened.value.has(computedId.value)),
+    parent: computed$W(() => parent.root.parents.value.get(computedId.value)),
     select: (selected, e) => parent.root.select(computedId.value, selected, e),
-    isSelected: computed$V(() => parent.root.selected.value.get(toRaw$1(computedId.value)) === 'on'),
-    isIndeterminate: computed$V(() => parent.root.selected.value.get(computedId.value) === 'indeterminate'),
-    isLeaf: computed$V(() => !parent.root.children.value.get(computedId.value)),
+    isSelected: computed$W(() => parent.root.selected.value.get(toRaw$1(computedId.value)) === 'on'),
+    isIndeterminate: computed$W(() => parent.root.selected.value.get(computedId.value) === 'indeterminate'),
+    isLeaf: computed$W(() => !parent.root.children.value.get(computedId.value)),
     isGroupActivator: parent.isGroupActivator
   };
   !parent.isGroupActivator && parent.root.register(computedId.value, parent.id.value, isGroup);
-  onBeforeUnmount$4(() => {
+  onBeforeUnmount$5(() => {
     !parent.isGroupActivator && parent.root.unregister(computedId.value);
   });
   isGroup && provide$5(VNestedSymbol, item);
@@ -5234,7 +5234,7 @@ const useNestedGroupActivator = () => {
 };
 
 const {withDirectives:_withDirectives$e,vShow:_vShow$7,createVNode:_createVNode$1e} = await importShared('vue');
-const {computed: computed$U,toRef: toRef$n} = await importShared('vue');
+const {computed: computed$V,toRef: toRef$n} = await importShared('vue');
 const VListGroupActivator = defineComponent({
   name: 'VListGroupActivator',
   setup(_, _ref) {
@@ -5279,7 +5279,7 @@ const VListGroup = genericComponent()({
       open,
       id: _id
     } = useNestedItem(toRef$n(props, 'value'), true);
-    const id = computed$U(() => `v-list-group--id-${String(_id.value)}`);
+    const id = computed$V(() => `v-list-group--id-${String(_id.value)}`);
     const list = useList();
     const {
       isBooted
@@ -5287,13 +5287,13 @@ const VListGroup = genericComponent()({
     function onClick(e) {
       open(!isOpen.value, e);
     }
-    const activatorProps = computed$U(() => ({
+    const activatorProps = computed$V(() => ({
       onClick,
       class: 'v-list-group__header',
       id: id.value
     }));
-    const toggleIcon = computed$U(() => isOpen.value ? props.collapseIcon : props.expandIcon);
-    const activatorDefaults = computed$U(() => ({
+    const toggleIcon = computed$V(() => isOpen.value ? props.collapseIcon : props.expandIcon);
+    const activatorDefaults = computed$V(() => ({
       VListItem: {
         active: isOpen.value,
         activeColor: props.activeColor,
@@ -5349,7 +5349,7 @@ const VListItemSubtitle = createSimpleFunctional('v-list-item-subtitle');
 const VListItemTitle = createSimpleFunctional('v-list-item-title');
 
 const {withDirectives:_withDirectives$d,resolveDirective:_resolveDirective$v,createVNode:_createVNode$1d,Fragment:_Fragment$i} = await importShared('vue');
-const {computed: computed$T,watch: watch$o} = await importShared('vue');
+const {computed: computed$U,watch: watch$o} = await importShared('vue');
 const makeVListItemProps = propsFactory({
   active: {
     type: Boolean,
@@ -5408,7 +5408,7 @@ const VListItem = genericComponent()({
       emit
     } = _ref;
     const link = useLink(props, attrs);
-    const id = computed$T(() => props.value === undefined ? link.href.value : props.value);
+    const id = computed$U(() => props.value === undefined ? link.href.value : props.value);
     const {
       select,
       isSelected,
@@ -5419,12 +5419,12 @@ const VListItem = genericComponent()({
       openOnSelect
     } = useNestedItem(id, false);
     const list = useList();
-    const isActive = computed$T(() => props.active !== false && (props.active || link.isActive?.value || isSelected.value));
-    const isLink = computed$T(() => props.link !== false && link.isLink.value);
-    const isClickable = computed$T(() => !props.disabled && props.link !== false && (props.link || link.isClickable.value || props.value != null && !!list));
-    const roundedProps = computed$T(() => props.rounded || props.nav);
-    const color = computed$T(() => props.color ?? props.activeColor);
-    const variantProps = computed$T(() => ({
+    const isActive = computed$U(() => props.active !== false && (props.active || link.isActive?.value || isSelected.value));
+    const isLink = computed$U(() => props.link !== false && link.isLink.value);
+    const isClickable = computed$U(() => !props.disabled && props.link !== false && (props.link || link.isClickable.value || props.value != null && !!list));
+    const roundedProps = computed$U(() => props.rounded || props.nav);
+    const color = computed$U(() => props.color ?? props.activeColor);
+    const variantProps = computed$U(() => ({
       color: isActive.value ? color.value ?? props.baseColor : props.baseColor,
       variant: props.variant
     }));
@@ -5461,8 +5461,8 @@ const VListItem = genericComponent()({
     const {
       roundedClasses
     } = useRounded(roundedProps);
-    const lineClasses = computed$T(() => props.lines ? `v-list-item--${props.lines}-line` : undefined);
-    const slotProps = computed$T(() => ({
+    const lineClasses = computed$U(() => props.lines ? `v-list-item--${props.lines}-line` : undefined);
+    const slotProps = computed$U(() => ({
       isActive: isActive.value,
       select,
       isSelected: isSelected.value,
@@ -5635,7 +5635,7 @@ const VListSubheader = genericComponent()({
 const VDivider$1 = '';
 
 const {createVNode:_createVNode$1b} = await importShared('vue');
-const {computed: computed$S,toRef: toRef$l} = await importShared('vue');
+const {computed: computed$T,toRef: toRef$l} = await importShared('vue');
 const makeVDividerProps = propsFactory({
   color: String,
   inset: Boolean,
@@ -5659,7 +5659,7 @@ const VDivider = genericComponent()({
       textColorClasses,
       textColorStyles
     } = useTextColor(toRef$l(props, 'color'));
-    const dividerStyles = computed$S(() => {
+    const dividerStyles = computed$T(() => {
       const styles = {};
       if (props.length) {
         styles[props.vertical ? 'maxHeight' : 'maxWidth'] = convertToUnit(props.length);
@@ -5756,7 +5756,7 @@ const VListChildren = genericComponent()({
 });
 
 // Utilities
-const {computed: computed$R} = await importShared('vue');
+const {computed: computed$S} = await importShared('vue');
 // Composables
 const makeItemsProps = propsFactory({
   items: {
@@ -5807,7 +5807,7 @@ function transformItems$1(props, items) {
   return array;
 }
 function useItems(props) {
-  const items = computed$R(() => transformItems$1(props, props.items));
+  const items = computed$S(() => transformItems$1(props, props.items));
   return useTransformItems(items, value => transformItem$1(props, value));
 }
 function useTransformItems(items, transform) {
@@ -5838,7 +5838,7 @@ function useTransformItems(items, transform) {
 }
 
 const {createVNode:_createVNode$19,resolveDirective:_resolveDirective$t} = await importShared('vue');
-const {computed: computed$Q,ref: ref$v,shallowRef: shallowRef$o,toRef: toRef$k} = await importShared('vue');
+const {computed: computed$R,ref: ref$w,shallowRef: shallowRef$o,toRef: toRef$k} = await importShared('vue');
 function isPrimitive(value) {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
@@ -5870,7 +5870,7 @@ function transformItems(props, items) {
   return array;
 }
 function useListItems(props) {
-  const items = computed$Q(() => transformItems(props, props.items));
+  const items = computed$R(() => transformItems(props, props.items));
   return {
     items
   };
@@ -5950,7 +5950,7 @@ const VList = genericComponent()({
       open,
       select
     } = useNested(props);
-    const lineClasses = computed$Q(() => props.lines ? `v-list--${props.lines}-line` : undefined);
+    const lineClasses = computed$R(() => props.lines ? `v-list--${props.lines}-line` : undefined);
     const activeColor = toRef$k(props, 'activeColor');
     const baseColor = toRef$k(props, 'baseColor');
     const color = toRef$k(props, 'color');
@@ -5974,7 +5974,7 @@ const VList = genericComponent()({
       }
     });
     const isFocused = shallowRef$o(false);
-    const contentRef = ref$v();
+    const contentRef = ref$w();
     function onFocusin(e) {
       isFocused.value = true;
     }
@@ -6141,7 +6141,7 @@ function anchorToPoint(anchor, box) {
   }, box);
 }
 
-const {computed: computed$P,nextTick: nextTick$c,onScopeDispose: onScopeDispose$4,ref: ref$u,watch: watch$n} = await importShared('vue');
+const {computed: computed$Q,nextTick: nextTick$c,onScopeDispose: onScopeDispose$4,ref: ref$v,watch: watch$n} = await importShared('vue');
 const locationStrategies = {
   static: staticLocationStrategy,
   // specific viewport position, usually centered
@@ -6165,8 +6165,8 @@ const makeLocationStrategyProps = propsFactory({
   offset: [Number, String, Array]
 }, 'VOverlay-location-strategies');
 function useLocationStrategies(props, data) {
-  const contentStyles = ref$u({});
-  const updateLocation = ref$u();
+  const contentStyles = ref$v({});
+  const updateLocation = ref$v();
   if (IN_BROWSER) {
     useToggleScope(() => !!(data.isActive.value && props.locationStrategy), reset => {
       watch$n(() => props.locationStrategy, reset);
@@ -6268,12 +6268,12 @@ function connectedLocationStrategy(data, props, contentStyles) {
     }
   });
   const [minWidth, minHeight, maxWidth, maxHeight] = ['minWidth', 'minHeight', 'maxWidth', 'maxHeight'].map(key => {
-    return computed$P(() => {
+    return computed$Q(() => {
       const val = parseFloat(props[key]);
       return isNaN(val) ? Infinity : val;
     });
   });
-  const offset = computed$P(() => {
+  const offset = computed$Q(() => {
     if (Array.isArray(props.offset)) {
       return props.offset;
     }
@@ -6715,7 +6715,7 @@ function useDelay(props, cb) {
   };
 }
 
-const {computed: computed$O,effectScope,inject: inject$7,mergeProps: mergeProps$8,nextTick: nextTick$a,onScopeDispose: onScopeDispose$2,ref: ref$t,watch: watch$m,watchEffect: watchEffect$5} = await importShared('vue');
+const {computed: computed$P,effectScope,inject: inject$7,mergeProps: mergeProps$8,nextTick: nextTick$a,onScopeDispose: onScopeDispose$2,ref: ref$u,watch: watch$m,watchEffect: watchEffect$5} = await importShared('vue');
 const makeActivatorProps = propsFactory({
   activator: [String, Object],
   activatorProps: {
@@ -6739,12 +6739,12 @@ function useActivator(props, _ref) {
     isActive,
     isTop
   } = _ref;
-  const activatorEl = ref$t();
+  const activatorEl = ref$u();
   let isHovered = false;
   let isFocused = false;
   let firstEnter = true;
-  const openOnFocus = computed$O(() => props.openOnFocus || props.openOnFocus == null && props.openOnHover);
-  const openOnClick = computed$O(() => props.openOnClick || props.openOnClick == null && !props.openOnHover && !openOnFocus.value);
+  const openOnFocus = computed$P(() => props.openOnFocus || props.openOnFocus == null && props.openOnHover);
+  const openOnClick = computed$P(() => props.openOnClick || props.openOnClick == null && !props.openOnHover && !openOnFocus.value);
   const {
     runOpenDelay,
     runCloseDelay
@@ -6785,7 +6785,7 @@ function useActivator(props, _ref) {
       runCloseDelay();
     }
   };
-  const activatorEvents = computed$O(() => {
+  const activatorEvents = computed$P(() => {
     const events = {};
     if (openOnClick.value) {
       events.onClick = availableEvents.onClick;
@@ -6800,7 +6800,7 @@ function useActivator(props, _ref) {
     }
     return events;
   });
-  const contentEvents = computed$O(() => {
+  const contentEvents = computed$P(() => {
     const events = {};
     if (props.openOnHover) {
       events.onMouseenter = () => {
@@ -6831,7 +6831,7 @@ function useActivator(props, _ref) {
     }
     return events;
   });
-  const scrimEvents = computed$O(() => {
+  const scrimEvents = computed$P(() => {
     const events = {};
     if (props.openOnHover) {
       events.onMouseenter = () => {
@@ -6853,7 +6853,7 @@ function useActivator(props, _ref) {
       isActive.value = false;
     }
   });
-  const activatorRef = ref$t();
+  const activatorRef = ref$u();
   watchEffect$5(() => {
     if (!activatorRef.value) return;
     nextTick$a(() => {
@@ -6951,7 +6951,7 @@ function _useActivator(props, vm, _ref2) {
   }
 }
 
-const {onMounted: onMounted$8,shallowRef: shallowRef$n} = await importShared('vue');
+const {onMounted: onMounted$9,shallowRef: shallowRef$n} = await importShared('vue');
 function useHydration() {
   if (!IN_BROWSER) return shallowRef$n(false);
   const {
@@ -6959,7 +6959,7 @@ function useHydration() {
   } = useDisplay();
   if (ssr) {
     const isMounted = shallowRef$n(false);
-    onMounted$8(() => {
+    onMounted$9(() => {
       isMounted.value = true;
     });
     return isMounted;
@@ -6969,13 +6969,13 @@ function useHydration() {
 }
 
 // Utilities
-const {computed: computed$N,shallowRef: shallowRef$m,watch: watch$l} = await importShared('vue');
+const {computed: computed$O,shallowRef: shallowRef$m,watch: watch$l} = await importShared('vue');
 const makeLazyProps = propsFactory({
   eager: Boolean
 }, 'lazy');
 function useLazy(props, active) {
   const isBooted = shallowRef$m(false);
-  const hasContent = computed$N(() => isBooted.value || props.eager || active.value);
+  const hasContent = computed$O(() => isBooted.value || props.eager || active.value);
   watch$l(active, () => isBooted.value = true);
   function onAfterLeave() {
     if (!props.eager) isBooted.value = false;
@@ -6998,14 +6998,14 @@ function useScopeId() {
   };
 }
 
-const {computed: computed$M,inject: inject$6,onScopeDispose: onScopeDispose$1,provide: provide$4,reactive: reactive$1,readonly,shallowRef: shallowRef$l,toRaw,watchEffect: watchEffect$4} = await importShared('vue');
+const {computed: computed$N,inject: inject$6,onScopeDispose: onScopeDispose$1,provide: provide$4,reactive: reactive$2,readonly,shallowRef: shallowRef$l,toRaw,watchEffect: watchEffect$4} = await importShared('vue');
 const StackSymbol = Symbol.for('vuetify:stack');
-const globalStack = reactive$1([]);
+const globalStack = reactive$2([]);
 function useStack(isActive, zIndex, disableGlobalStack) {
   const vm = getCurrentInstance('useStack');
   const createStackEntry = !disableGlobalStack;
   const parent = inject$6(StackSymbol, undefined);
-  const stack = reactive$1({
+  const stack = reactive$2({
     activeChildren: new Set()
   });
   provide$4(StackSymbol, stack);
@@ -7032,20 +7032,20 @@ function useStack(isActive, zIndex, disableGlobalStack) {
       setTimeout(() => globalTop.value = _isTop);
     });
   }
-  const localTop = computed$M(() => !stack.activeChildren.size);
+  const localTop = computed$N(() => !stack.activeChildren.size);
   return {
     globalTop: readonly(globalTop),
     localTop,
-    stackStyles: computed$M(() => ({
+    stackStyles: computed$N(() => ({
       zIndex: _zIndex.value
     }))
   };
 }
 
 // Utilities
-const {computed: computed$L,warn} = await importShared('vue');
+const {computed: computed$M,warn} = await importShared('vue');
 function useTeleport(target) {
-  const teleportTarget = computed$L(() => {
+  const teleportTarget = computed$M(() => {
     const _target = target.value;
     if (_target === true || !IN_BROWSER) return undefined;
     const targetElement = _target === false ? document.body : typeof _target === 'string' ? document.querySelector(_target) : _target;
@@ -7154,7 +7154,7 @@ const ClickOutside = {
 };
 
 const {withDirectives:_withDirectives$c,resolveDirective:_resolveDirective$q,vShow:_vShow$6,Fragment:_Fragment$h,createVNode:_createVNode$16,mergeProps:_mergeProps$r} = await importShared('vue');
-const {computed: computed$K,mergeProps: mergeProps$7,ref: ref$s,Teleport,toRef: toRef$j,Transition: Transition$1,watch: watch$k} = await importShared('vue');
+const {computed: computed$L,mergeProps: mergeProps$7,ref: ref$t,Teleport,toRef: toRef$j,Transition: Transition$1,watch: watch$k} = await importShared('vue');
 function Scrim(props) {
   const {
     modelValue,
@@ -7224,7 +7224,7 @@ const VOverlay = genericComponent()({
       emit
     } = _ref;
     const model = useProxiedModel(props, 'modelValue');
-    const isActive = computed$K({
+    const isActive = computed$L({
       get: () => model.value,
       set: v => {
         if (!(v && props.disabled)) model.value = v;
@@ -7232,7 +7232,7 @@ const VOverlay = genericComponent()({
     });
     const {
       teleportTarget
-    } = useTeleport(computed$K(() => props.attach || props.contained));
+    } = useTeleport(computed$L(() => props.attach || props.contained));
     const {
       themeClasses
     } = provideTheme(props);
@@ -7244,7 +7244,7 @@ const VOverlay = genericComponent()({
       hasContent,
       onAfterLeave
     } = useLazy(props, isActive);
-    const scrimColor = useBackgroundColor(computed$K(() => {
+    const scrimColor = useBackgroundColor(computed$L(() => {
       return typeof props.scrim === 'string' ? props.scrim : null;
     }));
     const {
@@ -7272,8 +7272,8 @@ const VOverlay = genericComponent()({
     watch$k(() => props.disabled, v => {
       if (v) isActive.value = false;
     });
-    const root = ref$s();
-    const contentEl = ref$s();
+    const root = ref$t();
+    const contentEl = ref$t();
     const {
       contentStyles,
       updateLocation
@@ -7327,7 +7327,7 @@ const VOverlay = genericComponent()({
         }
       });
     });
-    const top = ref$s();
+    const top = ref$t();
     watch$k(() => isActive.value && (props.absolute || props.contained) && teleportTarget.value == null, val => {
       if (val) {
         const scrollParent = getScrollParent(root.value);
@@ -7503,7 +7503,7 @@ function forwardRefs(target) {
 }
 
 const {mergeProps:_mergeProps$q,createVNode:_createVNode$15} = await importShared('vue');
-const {computed: computed$J,inject: inject$5,mergeProps: mergeProps$6,nextTick: nextTick$9,provide: provide$3,ref: ref$r,shallowRef: shallowRef$k,watch: watch$j} = await importShared('vue');
+const {computed: computed$K,inject: inject$5,mergeProps: mergeProps$6,nextTick: nextTick$9,provide: provide$3,ref: ref$s,shallowRef: shallowRef$k,watch: watch$j} = await importShared('vue');
 const makeVMenuProps = propsFactory({
   // TODO
   // disableKeys: Boolean,
@@ -7535,8 +7535,8 @@ const VMenu = genericComponent()({
       scopeId
     } = useScopeId();
     const uid = getUid();
-    const id = computed$J(() => props.id || `v-menu-${uid}`);
-    const overlay = ref$r();
+    const id = computed$K(() => props.id || `v-menu-${uid}`);
+    const overlay = ref$s();
     const parent = inject$5(VMenuSymbol, null);
     const openChildren = shallowRef$k(0);
     provide$3(VMenuSymbol, {
@@ -7611,7 +7611,7 @@ const VMenu = genericComponent()({
         setTimeout(() => setTimeout(() => onActivatorKeydown(e)));
       }
     }
-    const activatorProps = computed$J(() => mergeProps$6({
+    const activatorProps = computed$K(() => mergeProps$6({
       'aria-haspopup': 'menu',
       'aria-expanded': String(isActive.value),
       'aria-owns': id.value,
@@ -7658,7 +7658,7 @@ const VTextField$1 = '';
 const VCounter$1 = '';
 
 const {withDirectives:_withDirectives$b,createVNode:_createVNode$14,vShow:_vShow$5} = await importShared('vue');
-const {computed: computed$I} = await importShared('vue');
+const {computed: computed$J} = await importShared('vue');
 const makeVCounterProps = propsFactory({
   active: Boolean,
   max: [Number, String],
@@ -7681,7 +7681,7 @@ const VCounter = genericComponent()({
     let {
       slots
     } = _ref;
-    const counter = computed$I(() => {
+    const counter = computed$J(() => {
       return props.max ? `${props.value} / ${props.max}` : String(props.value);
     });
     useRender(() => _createVNode$14(MaybeTransition, {
@@ -7726,7 +7726,7 @@ const VFieldLabel = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$p,Fragment:_Fragment$g,withDirectives:_withDirectives$a,vShow:_vShow$4,resolveDirective:_resolveDirective$o,createVNode:_createVNode$12} = await importShared('vue');
-const {computed: computed$H,ref: ref$q,toRef: toRef$i,watch: watch$i} = await importShared('vue');
+const {computed: computed$I,ref: ref$r,toRef: toRef$i,watch: watch$i} = await importShared('vue');
 const allowedVariants$1 = ['underlined', 'outlined', 'filled', 'solo', 'solo-inverted', 'solo-filled', 'plain'];
 const makeVFieldProps = propsFactory({
   appendInnerIcon: IconValue,
@@ -7807,15 +7807,15 @@ const VField = genericComponent()({
     const {
       rtlClasses
     } = useRtl();
-    const isActive = computed$H(() => props.dirty || props.active);
-    const hasLabel = computed$H(() => !props.singleLine && !!(props.label || slots.label));
+    const isActive = computed$I(() => props.dirty || props.active);
+    const hasLabel = computed$I(() => !props.singleLine && !!(props.label || slots.label));
     const uid = getUid();
-    const id = computed$H(() => props.id || `input-${uid}`);
-    const messagesId = computed$H(() => `${id.value}-messages`);
-    const labelRef = ref$q();
-    const floatingLabelRef = ref$q();
-    const controlRef = ref$q();
-    const isPlainOrUnderlined = computed$H(() => ['plain', 'underlined'].includes(props.variant));
+    const id = computed$I(() => props.id || `input-${uid}`);
+    const messagesId = computed$I(() => `${id.value}-messages`);
+    const labelRef = ref$r();
+    const floatingLabelRef = ref$r();
+    const controlRef = ref$r();
+    const isPlainOrUnderlined = computed$I(() => ['plain', 'underlined'].includes(props.variant));
     const {
       backgroundColorClasses,
       backgroundColorStyles
@@ -7823,7 +7823,7 @@ const VField = genericComponent()({
     const {
       textColorClasses,
       textColorStyles
-    } = useTextColor(computed$H(() => {
+    } = useTextColor(computed$I(() => {
       return props.error || props.disabled ? undefined : isActive.value && isFocused.value ? props.color : props.baseColor;
     }));
     watch$i(isActive, val => {
@@ -7863,7 +7863,7 @@ const VField = genericComponent()({
     }, {
       flush: 'post'
     });
-    const slotProps = computed$H(() => ({
+    const slotProps = computed$I(() => ({
       isActive,
       isFocused,
       controlRef,
@@ -7999,7 +7999,7 @@ function filterFieldProps(attrs) {
 }
 
 const {Fragment:_Fragment$f,withDirectives:_withDirectives$9,createVNode:_createVNode$11,mergeProps:_mergeProps$o,resolveDirective:_resolveDirective$n} = await importShared('vue');
-const {cloneVNode,computed: computed$G,nextTick: nextTick$8,ref: ref$p} = await importShared('vue');
+const {cloneVNode,computed: computed$H,nextTick: nextTick$8,ref: ref$q} = await importShared('vue');
 const activeTypes = ['color', 'file', 'time', 'date', 'datetime-local', 'week', 'month'];
 const makeVTextFieldProps = propsFactory({
   autofocus: Boolean,
@@ -8044,23 +8044,23 @@ const VTextField = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const counterValue = computed$G(() => {
+    const counterValue = computed$H(() => {
       return typeof props.counterValue === 'function' ? props.counterValue(model.value) : (model.value ?? '').toString().length;
     });
-    const max = computed$G(() => {
+    const max = computed$H(() => {
       if (attrs.maxlength) return attrs.maxlength;
       if (!props.counter || typeof props.counter !== 'number' && typeof props.counter !== 'string') return undefined;
       return props.counter;
     });
-    const isPlainOrUnderlined = computed$G(() => ['plain', 'underlined'].includes(props.variant));
+    const isPlainOrUnderlined = computed$H(() => ['plain', 'underlined'].includes(props.variant));
     function onIntersect(isIntersecting, entries) {
       if (!props.autofocus || !isIntersecting) return;
       entries[0].target?.focus?.();
     }
-    const vInputRef = ref$p();
-    const vFieldRef = ref$p();
-    const inputRef = ref$p();
-    const isActive = computed$G(() => activeTypes.includes(props.type) || props.persistentPlaceholder || isFocused.value || props.active);
+    const vInputRef = ref$q();
+    const vFieldRef = ref$q();
+    const inputRef = ref$q();
+    const isActive = computed$H(() => activeTypes.includes(props.type) || props.persistentPlaceholder || isFocused.value || props.active);
     function onFocus() {
       if (inputRef.value !== document.activeElement) {
         inputRef.value?.focus();
@@ -8236,7 +8236,7 @@ const VVirtualScrollItem = genericComponent()({
   }
 });
 
-const {computed: computed$F,ref: ref$o,shallowRef: shallowRef$j,watch: watch$g,watchEffect: watchEffect$3} = await importShared('vue');
+const {computed: computed$G,ref: ref$p,shallowRef: shallowRef$j,watch: watch$g,watchEffect: watchEffect$3} = await importShared('vue');
 const UP = -1;
 const DOWN = 1;
 const makeVirtualProps = propsFactory({
@@ -8248,13 +8248,13 @@ const makeVirtualProps = propsFactory({
 function useVirtual(props, items, offset) {
   const first = shallowRef$j(0);
   const baseItemHeight = shallowRef$j(props.itemHeight);
-  const itemHeight = computed$F({
+  const itemHeight = computed$G({
     get: () => parseInt(baseItemHeight.value ?? 0, 10),
     set(val) {
       baseItemHeight.value = val;
     }
   });
-  const containerRef = ref$o();
+  const containerRef = ref$p();
   const {
     resizeRef,
     contentRect
@@ -8267,7 +8267,7 @@ function useVirtual(props, items, offset) {
   let sizes = Array.from({
     length: items.value.length
   });
-  const visibleItems = computed$F(() => {
+  const visibleItems = computed$G(() => {
     const height = (!contentRect.value || containerRef.value === document.documentElement ? display.height.value : contentRect.value.height) - (offset?.value ?? 0);
     return Math.ceil(height / itemHeight.value * 1.7 + 1);
   });
@@ -8310,15 +8310,15 @@ function useVirtual(props, items, offset) {
     const offset = calculateOffset(index);
     containerRef.value.scrollTop = offset;
   }
-  const last = computed$F(() => Math.min(items.value.length, first.value + visibleItems.value));
-  const computedItems = computed$F(() => {
+  const last = computed$G(() => Math.min(items.value.length, first.value + visibleItems.value));
+  const computedItems = computed$G(() => {
     return items.value.slice(first.value, last.value).map((item, index) => ({
       raw: item,
       index: index + first.value
     }));
   });
-  const paddingTop = computed$F(() => calculateOffset(first.value));
-  const paddingBottom = computed$F(() => calculateOffset(items.value.length) - calculateOffset(last.value));
+  const paddingTop = computed$G(() => calculateOffset(first.value));
+  const paddingBottom = computed$G(() => calculateOffset(items.value.length) - calculateOffset(last.value));
   watch$g(() => items.value.length, () => {
     sizes = createRange(items.value.length).map(() => itemHeight.value);
     sizeMap.forEach((height, item) => {
@@ -8343,7 +8343,7 @@ function useVirtual(props, items, offset) {
 }
 
 const {Fragment:_Fragment$d,createVNode:_createVNode$$} = await importShared('vue');
-const {onMounted: onMounted$7,onScopeDispose,toRef: toRef$h} = await importShared('vue');
+const {onMounted: onMounted$8,onScopeDispose,toRef: toRef$h} = await importShared('vue');
 const makeVVirtualScrollProps = propsFactory({
   items: {
     type: Array,
@@ -8375,7 +8375,7 @@ const VVirtualScroll = genericComponent()({
       computedItems
     } = useVirtual(props, toRef$h(props, 'items'));
     useToggleScope(() => props.renderless, () => {
-      onMounted$7(() => {
+      onMounted$8(() => {
         containerRef.value = getScrollParent(vm.vnode.el, true);
         containerRef.value?.addEventListener('scroll', handleScroll);
       });
@@ -8495,7 +8495,7 @@ function useScrolling(listRef, textFieldRef) {
 }
 
 const {createTextVNode:_createTextVNode$4,mergeProps:_mergeProps$m,createVNode:_createVNode$_,Fragment:_Fragment$c} = await importShared('vue');
-const {computed: computed$E,mergeProps: mergeProps$5,ref: ref$n,shallowRef: shallowRef$h,watch: watch$e} = await importShared('vue');
+const {computed: computed$F,mergeProps: mergeProps$5,ref: ref$o,shallowRef: shallowRef$h,watch: watch$e} = await importShared('vue');
 const makeSelectProps = propsFactory({
   chips: Boolean,
   closableChips: Boolean,
@@ -8560,11 +8560,11 @@ const VSelect = genericComponent()({
     const {
       t
     } = useLocale();
-    const vTextFieldRef = ref$n();
-    const vMenuRef = ref$n();
-    const vVirtualScrollRef = ref$n();
+    const vTextFieldRef = ref$o();
+    const vMenuRef = ref$o();
+    const vVirtualScrollRef = ref$o();
     const _menu = useProxiedModel(props, 'menu');
-    const menu = computed$E({
+    const menu = computed$F({
       get: () => _menu.value,
       set: v => {
         if (_menu.value && !v && vMenuRef.value?.ΨopenChildren) return;
@@ -8581,7 +8581,7 @@ const VSelect = genericComponent()({
       return props.multiple ? transformed : transformed[0] ?? null;
     });
     const form = useForm();
-    const selections = computed$E(() => {
+    const selections = computed$F(() => {
       return model.value.map(v => {
         return items.value.find(item => {
           const itemRawValue = getPropertyFromItem(item.raw, props.itemValue);
@@ -8591,19 +8591,19 @@ const VSelect = genericComponent()({
         }) || v;
       });
     });
-    const selected = computed$E(() => selections.value.map(selection => selection.props.value));
+    const selected = computed$F(() => selections.value.map(selection => selection.props.value));
     const isFocused = shallowRef$h(false);
-    const label = computed$E(() => menu.value ? props.closeText : props.openText);
+    const label = computed$F(() => menu.value ? props.closeText : props.openText);
     let keyboardLookupPrefix = '';
     let keyboardLookupLastTime;
-    const displayItems = computed$E(() => {
+    const displayItems = computed$F(() => {
       if (props.hideSelected) {
         return items.value.filter(item => !selections.value.some(s => s === item));
       }
       return items.value;
     });
-    const menuDisabled = computed$E(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
-    const listRef = ref$n();
+    const menuDisabled = computed$F(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
+    const listRef = ref$o();
     const {
       onListScroll,
       onListKeydown
@@ -8868,7 +8868,7 @@ const VSelect = genericComponent()({
 /* eslint-disable no-labels */
 
 // Utilities
-const {computed: computed$D,ref: ref$m,unref,watchEffect: watchEffect$2} = await importShared('vue');
+const {computed: computed$E,ref: ref$n,unref,watchEffect: watchEffect$2} = await importShared('vue');
 // Composables
 const defaultFilter = (value, query, item) => {
   if (value == null || query == null) return -1;
@@ -8932,9 +8932,9 @@ function filterItems(items, query, options) {
   return array;
 }
 function useFilter(props, items, query, options) {
-  const filteredItems = ref$m([]);
-  const filteredMatches = ref$m(new Map());
-  const transformedItems = computed$D(() => options?.transform ? unref(items).map(options?.transform) : unref(items));
+  const filteredItems = ref$n([]);
+  const filteredMatches = ref$n(new Map());
+  const transformedItems = computed$E(() => options?.transform ? unref(items).map(options?.transform) : unref(items));
   watchEffect$2(() => {
     const _query = typeof query === 'function' ? query() : unref(query);
     const strQuery = typeof _query !== 'string' && typeof _query !== 'number' ? '' : String(_query);
@@ -8971,7 +8971,7 @@ function useFilter(props, items, query, options) {
 }
 
 const {createTextVNode:_createTextVNode$3,mergeProps:_mergeProps$l,createVNode:_createVNode$Z,Fragment:_Fragment$b} = await importShared('vue');
-const {computed: computed$C,mergeProps: mergeProps$4,nextTick: nextTick$7,ref: ref$l,shallowRef: shallowRef$g,watch: watch$d} = await importShared('vue');
+const {computed: computed$D,mergeProps: mergeProps$4,nextTick: nextTick$7,ref: ref$m,shallowRef: shallowRef$g,watch: watch$d} = await importShared('vue');
 function highlightResult$1(text, matches, length) {
   if (matches == null) return text;
   if (Array.isArray(matches)) throw new Error('Multiple matches is not implemented');
@@ -9016,14 +9016,14 @@ const VAutocomplete = genericComponent()({
     const {
       t
     } = useLocale();
-    const vTextFieldRef = ref$l();
+    const vTextFieldRef = ref$m();
     const isFocused = shallowRef$g(false);
     const isPristine = shallowRef$g(true);
     const listHasFocus = shallowRef$g(false);
-    const vMenuRef = ref$l();
-    const vVirtualScrollRef = ref$l();
+    const vMenuRef = ref$m();
+    const vVirtualScrollRef = ref$m();
     const _menu = useProxiedModel(props, 'menu');
-    const menu = computed$C({
+    const menu = computed$D({
       get: () => _menu.value,
       set: v => {
         if (_menu.value && !v && vMenuRef.value?.ΨopenChildren) return;
@@ -9031,8 +9031,8 @@ const VAutocomplete = genericComponent()({
       }
     });
     const selectionIndex = shallowRef$g(-1);
-    const color = computed$C(() => vTextFieldRef.value?.color);
-    const label = computed$C(() => menu.value ? props.closeText : props.openText);
+    const color = computed$D(() => vTextFieldRef.value?.color);
+    const label = computed$D(() => menu.value ? props.closeText : props.openText);
     const {
       items,
       transformIn,
@@ -9052,7 +9052,7 @@ const VAutocomplete = genericComponent()({
       filteredItems,
       getMatches
     } = useFilter(props, items, () => isPristine.value ? '' : search.value);
-    const selections = computed$C(() => {
+    const selections = computed$D(() => {
       return model.value.map(v => {
         return items.value.find(item => {
           const itemRawValue = getPropertyFromItem(item.raw, props.itemValue);
@@ -9062,20 +9062,20 @@ const VAutocomplete = genericComponent()({
         }) || v;
       });
     });
-    const displayItems = computed$C(() => {
+    const displayItems = computed$D(() => {
       if (props.hideSelected) {
         return filteredItems.value.filter(filteredItem => !selections.value.some(s => s.value === filteredItem.value));
       }
       return filteredItems.value;
     });
-    const selected = computed$C(() => selections.value.map(selection => selection.props.value));
-    const selection = computed$C(() => selections.value[selectionIndex.value]);
-    const highlightFirst = computed$C(() => {
+    const selected = computed$D(() => selections.value.map(selection => selection.props.value));
+    const selection = computed$D(() => selections.value[selectionIndex.value]);
+    const highlightFirst = computed$D(() => {
       const selectFirst = props.autoSelectFirst === true || props.autoSelectFirst === 'exact' && search.value === displayItems.value[0]?.title;
       return selectFirst && displayItems.value.length > 0 && !isPristine.value && !listHasFocus.value;
     });
-    const menuDisabled = computed$C(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
-    const listRef = ref$l();
+    const menuDisabled = computed$D(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
+    const listRef = ref$m();
     const {
       onListScroll,
       onListKeydown
@@ -9652,7 +9652,7 @@ const VBanner = genericComponent()({
 const VBottomNavigation$1 = '';
 
 const {createVNode:_createVNode$V} = await importShared('vue');
-const {computed: computed$B,toRef: toRef$e} = await importShared('vue');
+const {computed: computed$C,toRef: toRef$e} = await importShared('vue');
 const makeVBottomNavigationProps = propsFactory({
   bgColor: String,
   color: String,
@@ -9718,15 +9718,15 @@ const VBottomNavigation = genericComponent()({
     const {
       ssrBootStyles
     } = useSsrBoot();
-    const height = computed$B(() => Number(props.height) - (props.density === 'comfortable' ? 8 : 0) - (props.density === 'compact' ? 16 : 0));
+    const height = computed$C(() => Number(props.height) - (props.density === 'comfortable' ? 8 : 0) - (props.density === 'compact' ? 16 : 0));
     const isActive = toRef$e(props, 'active');
     const {
       layoutItemStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$B(() => parseInt(props.order, 10)),
-      position: computed$B(() => 'bottom'),
-      layoutSize: computed$B(() => isActive.value ? height.value : 0),
+      order: computed$C(() => parseInt(props.order, 10)),
+      position: computed$C(() => 'bottom'),
+      layoutSize: computed$C(() => isActive.value ? height.value : 0),
       elementSize: height,
       active: isActive,
       absolute: toRef$e(props, 'absolute')
@@ -9736,7 +9736,7 @@ const VBottomNavigation = genericComponent()({
       VBtn: {
         color: toRef$e(props, 'color'),
         density: toRef$e(props, 'density'),
-        stacked: computed$B(() => props.mode !== 'horizontal'),
+        stacked: computed$C(() => props.mode !== 'horizontal'),
         variant: 'text'
       }
     }, {
@@ -9786,7 +9786,7 @@ const VBreadcrumbsDivider = genericComponent()({
 });
 
 const {createVNode:_createVNode$T} = await importShared('vue');
-const {computed: computed$A} = await importShared('vue');
+const {computed: computed$B} = await importShared('vue');
 const makeVBreadcrumbsItemProps = propsFactory({
   active: Boolean,
   activeClass: String,
@@ -9809,8 +9809,8 @@ const VBreadcrumbsItem = genericComponent()({
       attrs
     } = _ref;
     const link = useLink(props, attrs);
-    const isActive = computed$A(() => props.active || link.isActive?.value);
-    const color = computed$A(() => isActive.value ? props.activeColor : props.color);
+    const isActive = computed$B(() => props.active || link.isActive?.value);
+    const color = computed$B(() => isActive.value ? props.activeColor : props.color);
     const {
       textColorClasses,
       textColorStyles
@@ -9838,7 +9838,7 @@ const VBreadcrumbsItem = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$j,Fragment:_Fragment$a,resolveDirective:_resolveDirective$l,createVNode:_createVNode$S} = await importShared('vue');
-const {computed: computed$z,toRef: toRef$d} = await importShared('vue');
+const {computed: computed$A,toRef: toRef$d} = await importShared('vue');
 const makeVBreadcrumbsProps = propsFactory({
   activeClass: String,
   activeColor: String,
@@ -9889,7 +9889,7 @@ const VBreadcrumbs = genericComponent()({
         disabled: toRef$d(props, 'disabled')
       }
     });
-    const items = computed$z(() => props.items.map(item => {
+    const items = computed$A(() => props.items.map(item => {
       return typeof item === 'string' ? {
         item: {
           title: item
@@ -10061,7 +10061,7 @@ const VCardItem = genericComponent()({
 const VCardText = createSimpleFunctional('v-card-text');
 
 const {withDirectives:_withDirectives$7,resolveDirective:_resolveDirective$j,createVNode:_createVNode$P} = await importShared('vue');
-const {computed: computed$y} = await importShared('vue');
+const {computed: computed$z} = await importShared('vue');
 const makeVCardProps = propsFactory({
   appendAvatar: String,
   appendIcon: IconValue,
@@ -10142,8 +10142,8 @@ const VCard = genericComponent()({
       roundedClasses
     } = useRounded(props);
     const link = useLink(props, attrs);
-    const isLink = computed$y(() => props.link !== false && link.isLink.value);
-    const isClickable = computed$y(() => !props.disabled && props.link !== false && (props.link || link.isClickable.value));
+    const isLink = computed$z(() => props.link !== false && link.isLink.value);
+    const isClickable = computed$z(() => !props.disabled && props.link !== false && (props.link || link.isClickable.value));
     useRender(() => {
       const Tag = isLink.value ? 'a' : props.tag;
       const hasTitle = !!(slots.title || props.title);
@@ -10325,7 +10325,7 @@ const Touch = {
 };
 
 const {withDirectives:_withDirectives$6,resolveDirective:_resolveDirective$i,createVNode:_createVNode$O} = await importShared('vue');
-const {computed: computed$x,provide: provide$2,ref: ref$k,shallowRef: shallowRef$f,watch: watch$c} = await importShared('vue');
+const {computed: computed$y,provide: provide$2,ref: ref$l,shallowRef: shallowRef$f,watch: watch$c} = await importShared('vue');
 const VWindowSymbol = Symbol.for('vuetify:v-window');
 const VWindowGroupSymbol = Symbol.for('vuetify:v-window-group');
 const makeVWindowProps = propsFactory({
@@ -10389,18 +10389,18 @@ const VWindow = genericComponent()({
       t
     } = useLocale();
     const group = useGroup(props, VWindowGroupSymbol);
-    const rootRef = ref$k();
-    const isRtlReverse = computed$x(() => isRtl.value ? !props.reverse : props.reverse);
+    const rootRef = ref$l();
+    const isRtlReverse = computed$y(() => isRtl.value ? !props.reverse : props.reverse);
     const isReversed = shallowRef$f(false);
-    const transition = computed$x(() => {
+    const transition = computed$y(() => {
       const axis = props.direction === 'vertical' ? 'y' : 'x';
       const reverse = isRtlReverse.value ? !isReversed.value : isReversed.value;
       const direction = reverse ? '-reverse' : '';
       return `v-window-${axis}${direction}-transition`;
     });
     const transitionCount = shallowRef$f(0);
-    const transitionHeight = ref$k(undefined);
-    const activeIndex = computed$x(() => {
+    const transitionHeight = ref$l(undefined);
+    const activeIndex = computed$y(() => {
       return group.items.value.findIndex(item => group.selected.value.includes(item.id));
     });
     watch$c(activeIndex, (newVal, oldVal) => {
@@ -10423,15 +10423,15 @@ const VWindow = genericComponent()({
       transitionHeight,
       rootRef
     });
-    const canMoveBack = computed$x(() => props.continuous || activeIndex.value !== 0);
-    const canMoveForward = computed$x(() => props.continuous || activeIndex.value !== group.items.value.length - 1);
+    const canMoveBack = computed$y(() => props.continuous || activeIndex.value !== 0);
+    const canMoveForward = computed$y(() => props.continuous || activeIndex.value !== group.items.value.length - 1);
     function prev() {
       canMoveBack.value && group.prev();
     }
     function next() {
       canMoveForward.value && group.next();
     }
-    const arrows = computed$x(() => {
+    const arrows = computed$y(() => {
       const arrows = [];
       const prevProps = {
         icon: isRtl.value ? props.nextIcon : props.prevIcon,
@@ -10453,7 +10453,7 @@ const VWindow = genericComponent()({
       }) : _createVNode$O(VBtn, nextProps, null) : _createVNode$O("div", null, null));
       return arrows;
     });
-    const touchOptions = computed$x(() => {
+    const touchOptions = computed$y(() => {
       if (props.touch === false) return props.touch;
       const options = {
         left: () => {
@@ -10501,7 +10501,7 @@ const VWindow = genericComponent()({
 });
 
 const {createVNode:_createVNode$N,mergeProps:_mergeProps$i,Fragment:_Fragment$9} = await importShared('vue');
-const {onMounted: onMounted$6,ref: ref$j,watch: watch$b} = await importShared('vue');
+const {onMounted: onMounted$7,ref: ref$k,watch: watch$b} = await importShared('vue');
 const makeVCarouselProps = propsFactory({
   color: String,
   cycle: Boolean,
@@ -10542,14 +10542,14 @@ const VCarousel = genericComponent()({
     const {
       t
     } = useLocale();
-    const windowRef = ref$j();
+    const windowRef = ref$k();
     let slideTimeout = -1;
     watch$b(model, restartTimeout);
     watch$b(() => props.interval, restartTimeout);
     watch$b(() => props.cycle, val => {
       if (val) restartTimeout();else window.clearTimeout(slideTimeout);
     });
-    onMounted$6(startTimeout);
+    onMounted$7(startTimeout);
     function startTimeout() {
       if (!props.cycle || !windowRef.value) return;
       slideTimeout = window.setTimeout(windowRef.value.group.next, +props.interval > 0 ? +props.interval : 6000);
@@ -10622,7 +10622,7 @@ const VCarousel = genericComponent()({
 });
 
 const {withDirectives:_withDirectives$5,createVNode:_createVNode$M,vShow:_vShow$2} = await importShared('vue');
-const {computed: computed$w,inject: inject$4,nextTick: nextTick$6,shallowRef: shallowRef$e} = await importShared('vue');
+const {computed: computed$x,inject: inject$4,nextTick: nextTick$6,shallowRef: shallowRef$e} = await importShared('vue');
 const makeVWindowItemProps = propsFactory({
   reverseTransition: {
     type: [Boolean, String],
@@ -10656,7 +10656,7 @@ const VWindowItem = genericComponent()({
     } = useSsrBoot();
     if (!window || !groupItem) throw new Error('[Vuetify] VWindowItem must be used inside VWindow');
     const isTransitioning = shallowRef$e(false);
-    const hasTransition = computed$w(() => isBooted.value && (window.isReversed.value ? props.reverseTransition !== false : props.transition !== false));
+    const hasTransition = computed$x(() => isBooted.value && (window.isReversed.value ? props.reverseTransition !== false : props.transition !== false));
     function onAfterTransition() {
       if (!isTransitioning.value || !window) {
         return;
@@ -10704,7 +10704,7 @@ const VWindowItem = genericComponent()({
         window.transitionHeight.value = convertToUnit(el.clientHeight);
       });
     }
-    const transition = computed$w(() => {
+    const transition = computed$x(() => {
       const name = window.isReversed.value ? props.reverseTransition : props.transition;
       return !hasTransition.value ? false : {
         name: typeof name !== 'string' ? window.transition.value : name,
@@ -10771,7 +10771,7 @@ const VColorPicker$1 = '';
 const VColorPickerCanvas$1 = '';
 
 const {createVNode:_createVNode$K} = await importShared('vue');
-const {computed: computed$v,onMounted: onMounted$5,ref: ref$i,shallowRef: shallowRef$d,watch: watch$a} = await importShared('vue');
+const {computed: computed$w,onMounted: onMounted$6,ref: ref$j,shallowRef: shallowRef$d,watch: watch$a} = await importShared('vue');
 const makeVColorPickerCanvasProps = propsFactory({
   color: {
     type: Object
@@ -10804,11 +10804,11 @@ const VColorPickerCanvas = defineComponent({
     } = _ref;
     const isInteracting = shallowRef$d(false);
     const isOutsideUpdate = shallowRef$d(false);
-    const dotPosition = ref$i({
+    const dotPosition = ref$j({
       x: 0,
       y: 0
     });
-    const dotStyles = computed$v(() => {
+    const dotStyles = computed$w(() => {
       const {
         x,
         y
@@ -10820,7 +10820,7 @@ const VColorPickerCanvas = defineComponent({
         transform: `translate(${convertToUnit(x - radius)}, ${convertToUnit(y - radius)})`
       };
     });
-    const canvasRef = ref$i();
+    const canvasRef = ref$j();
     const canvasWidth = shallowRef$d(parseFloat(props.width));
     const canvasHeight = shallowRef$d(parseFloat(props.height));
     const {
@@ -10934,7 +10934,7 @@ const VColorPickerCanvas = defineComponent({
       deep: true,
       immediate: true
     });
-    onMounted$5(() => updateCanvas());
+    onMounted$6(() => updateCanvas());
     useRender(() => _createVNode$K("div", {
       "ref": resizeRef,
       "class": ['v-color-picker-canvas', props.class],
@@ -11125,7 +11125,7 @@ const modes = {
 };
 
 const {createVNode:_createVNode$J} = await importShared('vue');
-const {computed: computed$u} = await importShared('vue');
+const {computed: computed$v} = await importShared('vue');
 const VColorPickerInput = _ref => {
   let {
     label,
@@ -11161,13 +11161,13 @@ const VColorPickerEdit = defineComponent({
     let {
       emit
     } = _ref2;
-    const enabledModes = computed$u(() => {
+    const enabledModes = computed$v(() => {
       return props.modes.map(key => ({
         ...modes[key],
         name: key
       }));
     });
-    const inputs = computed$u(() => {
+    const inputs = computed$v(() => {
       const mode = enabledModes.value.find(m => m.name === props.mode);
       if (!mode) return [];
       const color = props.color ? mode.to(props.color) : null;
@@ -11212,7 +11212,7 @@ const VSlider$1 = '';
 
 const VSliderThumb$1 = '';
 
-const {computed: computed$t,provide: provide$1,ref: ref$h,shallowRef: shallowRef$c,toRef: toRef$c} = await importShared('vue');
+const {computed: computed$u,provide: provide$1,ref: ref$i,shallowRef: shallowRef$c,toRef: toRef$c} = await importShared('vue');
 const VSliderSymbol = Symbol.for('vuetify:v-slider');
 function getOffset(e, el, direction) {
   const vertical = direction === 'vertical';
@@ -11286,10 +11286,10 @@ const makeSliderProps = propsFactory({
   })
 }, 'Slider');
 const useSteps = props => {
-  const min = computed$t(() => parseFloat(props.min));
-  const max = computed$t(() => parseFloat(props.max));
-  const step = computed$t(() => +props.step > 0 ? parseFloat(props.step) : 0);
-  const decimals = computed$t(() => Math.max(getDecimals(step.value), getDecimals(min.value)));
+  const min = computed$u(() => parseFloat(props.min));
+  const max = computed$u(() => parseFloat(props.max));
+  const step = computed$u(() => +props.step > 0 ? parseFloat(props.step) : 0);
+  const decimals = computed$u(() => Math.max(getDecimals(step.value), getDecimals(min.value)));
   function roundValue(value) {
     value = parseFloat(value);
     if (step.value <= 0) return value;
@@ -11319,7 +11319,7 @@ const useSlider = _ref => {
     isRtl
   } = useRtl();
   const isReversed = toRef$c(props, 'reverse');
-  const horizontalDirection = computed$t(() => {
+  const horizontalDirection = computed$u(() => {
     let hd = isRtl.value ? 'rtl' : 'ltr';
     if (props.reverse) {
       hd = hd === 'rtl' ? 'ltr' : 'rtl';
@@ -11333,19 +11333,19 @@ const useSlider = _ref => {
     decimals,
     roundValue
   } = steps;
-  const thumbSize = computed$t(() => parseInt(props.thumbSize, 10));
-  const tickSize = computed$t(() => parseInt(props.tickSize, 10));
-  const trackSize = computed$t(() => parseInt(props.trackSize, 10));
-  const numTicks = computed$t(() => (max.value - min.value) / step.value);
+  const thumbSize = computed$u(() => parseInt(props.thumbSize, 10));
+  const tickSize = computed$u(() => parseInt(props.tickSize, 10));
+  const trackSize = computed$u(() => parseInt(props.trackSize, 10));
+  const numTicks = computed$u(() => (max.value - min.value) / step.value);
   const disabled = toRef$c(props, 'disabled');
-  const vertical = computed$t(() => props.direction === 'vertical');
-  const thumbColor = computed$t(() => props.error || props.disabled ? undefined : props.thumbColor ?? props.color);
-  const trackColor = computed$t(() => props.error || props.disabled ? undefined : props.trackColor ?? props.color);
-  const trackFillColor = computed$t(() => props.error || props.disabled ? undefined : props.trackFillColor ?? props.color);
+  const vertical = computed$u(() => props.direction === 'vertical');
+  const thumbColor = computed$u(() => props.error || props.disabled ? undefined : props.thumbColor ?? props.color);
+  const trackColor = computed$u(() => props.error || props.disabled ? undefined : props.trackColor ?? props.color);
+  const trackFillColor = computed$u(() => props.error || props.disabled ? undefined : props.trackFillColor ?? props.color);
   const mousePressed = shallowRef$c(false);
   const startOffset = shallowRef$c(0);
-  const trackContainerRef = ref$h();
-  const activeThumbRef = ref$h();
+  const trackContainerRef = ref$i();
+  const activeThumbRef = ref$i();
   function parseMouseMove(e) {
     const vertical = props.direction === 'vertical';
     const start = vertical ? 'top' : 'left';
@@ -11427,7 +11427,7 @@ const useSlider = _ref => {
     return clamp(isNaN(percentage) ? 0 : percentage, 0, 100);
   };
   const showTicks = toRef$c(props, 'showTicks');
-  const parsedTicks = computed$t(() => {
+  const parsedTicks = computed$u(() => {
     if (!showTicks.value) return [];
     if (!props.ticks) {
       return numTicks.value !== Infinity ? createRange(numTicks.value + 1).map(t => {
@@ -11449,7 +11449,7 @@ const useSlider = _ref => {
       label: props.ticks[key]
     }));
   });
-  const hasLabels = computed$t(() => parsedTicks.value.some(_ref2 => {
+  const hasLabels = computed$u(() => parsedTicks.value.some(_ref2 => {
     let {
       label
     } = _ref2;
@@ -11496,7 +11496,7 @@ const useSlider = _ref => {
 };
 
 const {vShow:_vShow$1,withDirectives:_withDirectives$4,resolveDirective:_resolveDirective$g,createVNode:_createVNode$I} = await importShared('vue');
-const {computed: computed$s,inject: inject$3} = await importShared('vue');
+const {computed: computed$t,inject: inject$3} = await importShared('vue');
 const makeVSliderThumbProps = propsFactory({
   focused: Boolean,
   max: {
@@ -11570,7 +11570,7 @@ const VSliderThumb = genericComponent()({
       up
     } = keyValues;
     const relevantKeys = [pageup, pagedown, end, home, left, right, down, up];
-    const multipliers = computed$s(() => {
+    const multipliers = computed$t(() => {
       if (step.value) return [1, 2, 3];else return [1, 5, 10];
     });
     function parseKeydown(e, value) {
@@ -11601,7 +11601,7 @@ const VSliderThumb = genericComponent()({
       const positionPercentage = convertToUnit(vertical.value || isReversed.value ? 100 - props.position : props.position, '%');
       const {
         elevationClasses
-      } = useElevation(computed$s(() => !disabled.value ? elevation.value : undefined));
+      } = useElevation(computed$t(() => !disabled.value ? elevation.value : undefined));
       return _createVNode$I("div", {
         "class": ['v-slider-thumb', {
           'v-slider-thumb--focused': props.focused,
@@ -11649,7 +11649,7 @@ const VSliderThumb = genericComponent()({
 const VSliderTrack$1 = '';
 
 const {createVNode:_createVNode$H} = await importShared('vue');
-const {computed: computed$r,inject: inject$2} = await importShared('vue');
+const {computed: computed$s,inject: inject$2} = await importShared('vue');
 const makeVSliderTrackProps = propsFactory({
   start: {
     type: Number,
@@ -11696,22 +11696,22 @@ const VSliderTrack = genericComponent()({
       backgroundColorClasses: trackColorClasses,
       backgroundColorStyles: trackColorStyles
     } = useBackgroundColor(trackColor);
-    const startDir = computed$r(() => `inset-${vertical.value ? 'block-end' : 'inline-start'}`);
-    const endDir = computed$r(() => vertical.value ? 'height' : 'width');
-    const backgroundStyles = computed$r(() => {
+    const startDir = computed$s(() => `inset-${vertical.value ? 'block-end' : 'inline-start'}`);
+    const endDir = computed$s(() => vertical.value ? 'height' : 'width');
+    const backgroundStyles = computed$s(() => {
       return {
         [startDir.value]: '0%',
         [endDir.value]: '100%'
       };
     });
-    const trackFillWidth = computed$r(() => props.stop - props.start);
-    const trackFillStyles = computed$r(() => {
+    const trackFillWidth = computed$s(() => props.stop - props.start);
+    const trackFillStyles = computed$s(() => {
       return {
         [startDir.value]: convertToUnit(props.start, '%'),
         [endDir.value]: convertToUnit(trackFillWidth.value, '%')
       };
     });
-    const computedTicks = computed$r(() => {
+    const computedTicks = computed$s(() => {
       if (!showTicks.value) return [];
       const ticks = vertical.value ? parsedTicks.value.slice().reverse() : parsedTicks.value;
       return ticks.map((tick, index) => {
@@ -11768,7 +11768,7 @@ const VSliderTrack = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$g,createVNode:_createVNode$G,Fragment:_Fragment$8} = await importShared('vue');
-const {computed: computed$q,ref: ref$g} = await importShared('vue');
+const {computed: computed$r,ref: ref$h} = await importShared('vue');
 const makeVSliderProps = propsFactory({
   ...makeFocusProps(),
   ...makeSliderProps(),
@@ -11792,7 +11792,7 @@ const VSlider = genericComponent()({
       slots,
       emit
     } = _ref;
-    const thumbContainerRef = ref$g();
+    const thumbContainerRef = ref$h();
     const {
       rtlClasses
     } = useRtl();
@@ -11838,7 +11838,7 @@ const VSlider = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const trackStop = computed$q(() => position(model.value));
+    const trackStop = computed$r(() => position(model.value));
     useRender(() => {
       const [inputProps, _] = VInput.filterProps(props);
       const hasPrepend = !!(props.label || slots.label || slots.prepend);
@@ -12404,7 +12404,7 @@ const VSheet = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$f,createVNode:_createVNode$C} = await importShared('vue');
-const {onMounted: onMounted$4,ref: ref$f} = await importShared('vue');
+const {onMounted: onMounted$5,ref: ref$g} = await importShared('vue');
 const makeVColorPickerProps = propsFactory({
   canvasHeight: {
     type: [String, Number],
@@ -12450,7 +12450,7 @@ const VColorPicker = defineComponent({
   },
   setup(props) {
     const mode = useProxiedModel(props, 'mode');
-    const lastPickedColor = ref$f(null);
+    const lastPickedColor = ref$g(null);
     const currentColor = useProxiedModel(props, 'modelValue', undefined, v => {
       if (v == null || v === '') return null;
       let c;
@@ -12479,7 +12479,7 @@ const VColorPicker = defineComponent({
       currentColor.value = hsva;
       lastPickedColor.value = hsva;
     };
-    onMounted$4(() => {
+    onMounted$5(() => {
       if (!props.modes.includes(mode.value)) mode.value = props.modes[0];
     });
     provideDefaults({
@@ -12547,7 +12547,7 @@ const VColorPicker = defineComponent({
 const VCombobox$1 = '';
 
 const {createTextVNode:_createTextVNode$2,mergeProps:_mergeProps$e,createVNode:_createVNode$B,Fragment:_Fragment$7} = await importShared('vue');
-const {computed: computed$p,mergeProps: mergeProps$3,nextTick: nextTick$5,ref: ref$e,shallowRef: shallowRef$b,watch: watch$9} = await importShared('vue');
+const {computed: computed$q,mergeProps: mergeProps$3,nextTick: nextTick$5,ref: ref$f,shallowRef: shallowRef$b,watch: watch$9} = await importShared('vue');
 function highlightResult(text, matches, length) {
   if (matches == null) return text;
   if (Array.isArray(matches)) throw new Error('Multiple matches is not implemented');
@@ -12596,14 +12596,14 @@ const VCombobox = genericComponent()({
     const {
       t
     } = useLocale();
-    const vTextFieldRef = ref$e();
+    const vTextFieldRef = ref$f();
     const isFocused = shallowRef$b(false);
     const isPristine = shallowRef$b(true);
     const listHasFocus = shallowRef$b(false);
-    const vMenuRef = ref$e();
-    const vVirtualScrollRef = ref$e();
+    const vMenuRef = ref$f();
+    const vVirtualScrollRef = ref$f();
     const _menu = useProxiedModel(props, 'menu');
-    const menu = computed$p({
+    const menu = computed$q({
       get: () => _menu.value,
       set: v => {
         if (_menu.value && !v && vMenuRef.value?.ΨopenChildren) return;
@@ -12612,8 +12612,8 @@ const VCombobox = genericComponent()({
     });
     const selectionIndex = shallowRef$b(-1);
     let cleared = false;
-    const color = computed$p(() => vTextFieldRef.value?.color);
-    const label = computed$p(() => menu.value ? props.closeText : props.openText);
+    const color = computed$q(() => vTextFieldRef.value?.color);
+    const label = computed$q(() => menu.value ? props.closeText : props.openText);
     const {
       items,
       transformIn,
@@ -12629,7 +12629,7 @@ const VCombobox = genericComponent()({
     });
     const form = useForm();
     const _search = shallowRef$b(!props.multiple ? model.value[0]?.title ?? '' : '');
-    const search = computed$p({
+    const search = computed$q({
       get: () => {
         return _search.value;
       },
@@ -12671,7 +12671,7 @@ const VCombobox = genericComponent()({
       filteredItems,
       getMatches
     } = useFilter(props, items, () => isPristine.value ? '' : search.value);
-    const selections = computed$p(() => {
+    const selections = computed$q(() => {
       return model.value.map(v => {
         return items.value.find(item => {
           const itemRawValue = getPropertyFromItem(item.raw, props.itemValue);
@@ -12681,20 +12681,20 @@ const VCombobox = genericComponent()({
         }) || v;
       });
     });
-    const displayItems = computed$p(() => {
+    const displayItems = computed$q(() => {
       if (props.hideSelected) {
         return filteredItems.value.filter(filteredItem => !selections.value.some(s => s.value === filteredItem.value));
       }
       return filteredItems.value;
     });
-    const selected = computed$p(() => selections.value.map(selection => selection.props.value));
-    const selection = computed$p(() => selections.value[selectionIndex.value]);
-    const highlightFirst = computed$p(() => {
+    const selected = computed$q(() => selections.value.map(selection => selection.props.value));
+    const selection = computed$q(() => selections.value[selectionIndex.value]);
+    const highlightFirst = computed$q(() => {
       const selectFirst = props.autoSelectFirst === true || props.autoSelectFirst === 'exact' && search.value === displayItems.value[0]?.title;
       return selectFirst && displayItems.value.length > 0 && !isPristine.value && !listHasFocus.value;
     });
-    const menuDisabled = computed$p(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
-    const listRef = ref$e();
+    const menuDisabled = computed$q(() => props.hideNoData && !items.value.length || props.readonly || form?.isReadonly.value);
+    const listRef = ref$f();
     const {
       onListScroll,
       onListKeydown
@@ -13020,7 +13020,7 @@ const VCombobox = genericComponent()({
 const VDialog$1 = '';
 
 const {mergeProps:_mergeProps$d,createVNode:_createVNode$A} = await importShared('vue');
-const {computed: computed$o,mergeProps: mergeProps$2,nextTick: nextTick$4,ref: ref$d,watch: watch$8} = await importShared('vue');
+const {computed: computed$p,mergeProps: mergeProps$2,nextTick: nextTick$4,ref: ref$e,watch: watch$8} = await importShared('vue');
 const makeVDialogProps = propsFactory({
   fullscreen: Boolean,
   retainFocus: {
@@ -13051,7 +13051,7 @@ const VDialog = genericComponent()({
     const {
       scopeId
     } = useScopeId();
-    const overlay = ref$d();
+    const overlay = ref$e();
     function onFocusin(e) {
       const before = e.relatedTarget;
       const after = e.target;
@@ -13092,7 +13092,7 @@ const VDialog = genericComponent()({
         });
       }
     });
-    const activatorProps = computed$o(() => mergeProps$2({
+    const activatorProps = computed$p(() => mergeProps$2({
       'aria-haspopup': 'dialog',
       'aria-expanded': String(isActive.value)
     }, props.activatorProps));
@@ -13132,7 +13132,7 @@ const VDialog = genericComponent()({
 const VExpansionPanel$1 = '';
 
 const {createVNode:_createVNode$z,resolveDirective:_resolveDirective$e} = await importShared('vue');
-const {computed: computed$n,toRef: toRef$a} = await importShared('vue');
+const {computed: computed$o,toRef: toRef$a} = await importShared('vue');
 const VExpansionPanelSymbol = Symbol.for('vuetify:v-expansion-panel');
 const allowedVariants = ['default', 'accordion', 'inset', 'popout'];
 const makeVExpansionPanelsProps = propsFactory({
@@ -13162,7 +13162,7 @@ const VExpansionPanels = genericComponent()({
     const {
       themeClasses
     } = provideTheme(props);
-    const variantClass = computed$n(() => props.variant && `v-expansion-panels--variant-${props.variant}`);
+    const variantClass = computed$o(() => props.variant && `v-expansion-panels--variant-${props.variant}`);
     provideDefaults({
       VExpansionPanel: {
         color: toRef$a(props, 'color')
@@ -13213,7 +13213,7 @@ const VExpansionPanelText = genericComponent()({
 });
 
 const {withDirectives:_withDirectives$2,resolveDirective:_resolveDirective$d,createVNode:_createVNode$x} = await importShared('vue');
-const {computed: computed$m,inject} = await importShared('vue');
+const {computed: computed$n,inject} = await importShared('vue');
 const makeVExpansionPanelTitleProps = propsFactory({
   color: String,
   expandIcon: {
@@ -13248,7 +13248,7 @@ const VExpansionPanelTitle = genericComponent()({
       backgroundColorClasses,
       backgroundColorStyles
     } = useBackgroundColor(props, 'color');
-    const slotProps = computed$m(() => ({
+    const slotProps = computed$n(() => ({
       collapseIcon: props.collapseIcon,
       disabled: expansionPanel.disabled.value,
       expanded: expansionPanel.isSelected.value,
@@ -13277,7 +13277,7 @@ const VExpansionPanelTitle = genericComponent()({
 });
 
 const {createVNode:_createVNode$w} = await importShared('vue');
-const {computed: computed$l,provide,toRef: toRef$9} = await importShared('vue');
+const {computed: computed$m,provide,toRef: toRef$9} = await importShared('vue');
 const makeVExpansionPanelProps = propsFactory({
   title: String,
   text: String,
@@ -13311,16 +13311,16 @@ const VExpansionPanel = genericComponent()({
     const {
       roundedClasses
     } = useRounded(props);
-    const isDisabled = computed$l(() => groupItem?.disabled.value || props.disabled);
-    const selectedIndices = computed$l(() => groupItem.group.items.value.reduce((arr, item, index) => {
+    const isDisabled = computed$m(() => groupItem?.disabled.value || props.disabled);
+    const selectedIndices = computed$m(() => groupItem.group.items.value.reduce((arr, item, index) => {
       if (groupItem.group.selected.value.includes(item.id)) arr.push(index);
       return arr;
     }, []));
-    const isBeforeSelected = computed$l(() => {
+    const isBeforeSelected = computed$m(() => {
       const index = groupItem.group.items.value.findIndex(item => item.id === groupItem.id);
       return !groupItem.isSelected.value && selectedIndices.value.some(selectedIndex => selectedIndex - index === 1);
     });
-    const isAfterSelected = computed$l(() => {
+    const isAfterSelected = computed$m(() => {
       const index = groupItem.group.items.value.findIndex(item => item.id === groupItem.id);
       return !groupItem.isSelected.value && selectedIndices.value.some(selectedIndex => selectedIndex - index === -1);
     });
@@ -13367,7 +13367,7 @@ const VExpansionPanel = genericComponent()({
 const VFileInput$1 = '';
 
 const {resolveDirective:_resolveDirective$c,createVNode:_createVNode$v,mergeProps:_mergeProps$c,Fragment:_Fragment$6} = await importShared('vue');
-const {computed: computed$k,nextTick: nextTick$3,ref: ref$c,watch: watch$7} = await importShared('vue');
+const {computed: computed$l,nextTick: nextTick$3,ref: ref$d,watch: watch$7} = await importShared('vue');
 const makeVFileInputProps = propsFactory({
   chips: Boolean,
   counter: Boolean,
@@ -13426,30 +13426,30 @@ const VFileInput = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const base = computed$k(() => typeof props.showSize !== 'boolean' ? props.showSize : undefined);
-    const totalBytes = computed$k(() => (model.value ?? []).reduce((bytes, _ref2) => {
+    const base = computed$l(() => typeof props.showSize !== 'boolean' ? props.showSize : undefined);
+    const totalBytes = computed$l(() => (model.value ?? []).reduce((bytes, _ref2) => {
       let {
         size = 0
       } = _ref2;
       return bytes + size;
     }, 0));
-    const totalBytesReadable = computed$k(() => humanReadableFileSize(totalBytes.value, base.value));
-    const fileNames = computed$k(() => (model.value ?? []).map(file => {
+    const totalBytesReadable = computed$l(() => humanReadableFileSize(totalBytes.value, base.value));
+    const fileNames = computed$l(() => (model.value ?? []).map(file => {
       const {
         name = '',
         size = 0
       } = file;
       return !props.showSize ? name : `${name} (${humanReadableFileSize(size, base.value)})`;
     }));
-    const counterValue = computed$k(() => {
+    const counterValue = computed$l(() => {
       const fileCount = model.value?.length ?? 0;
       if (props.showSize) return t(props.counterSizeString, fileCount, totalBytesReadable.value);else return t(props.counterString, fileCount);
     });
-    const vInputRef = ref$c();
-    const vFieldRef = ref$c();
-    const inputRef = ref$c();
-    const isActive = computed$k(() => isFocused.value || props.active);
-    const isPlainOrUnderlined = computed$k(() => ['plain', 'underlined'].includes(props.variant));
+    const vInputRef = ref$d();
+    const vFieldRef = ref$d();
+    const inputRef = ref$d();
+    const isActive = computed$l(() => isFocused.value || props.active);
+    const isPlainOrUnderlined = computed$l(() => ['plain', 'underlined'].includes(props.variant));
     function onFocus() {
       if (inputRef.value !== document.activeElement) {
         inputRef.value?.focus();
@@ -13583,7 +13583,7 @@ const VFileInput = genericComponent()({
 const VFooter$1 = '';
 
 const {createVNode:_createVNode$u,resolveDirective:_resolveDirective$b} = await importShared('vue');
-const {computed: computed$j,shallowRef: shallowRef$a,toRef: toRef$8} = await importShared('vue');
+const {computed: computed$k,shallowRef: shallowRef$a,toRef: toRef$8} = await importShared('vue');
 const makeVFooterProps = propsFactory({
   app: Boolean,
   color: String,
@@ -13631,16 +13631,16 @@ const VFooter = genericComponent()({
       if (!entries.length) return;
       autoHeight.value = entries[0].target.clientHeight;
     });
-    const height = computed$j(() => props.height === 'auto' ? autoHeight.value : parseInt(props.height, 10));
+    const height = computed$k(() => props.height === 'auto' ? autoHeight.value : parseInt(props.height, 10));
     const {
       layoutItemStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$j(() => parseInt(props.order, 10)),
-      position: computed$j(() => 'bottom'),
+      order: computed$k(() => parseInt(props.order, 10)),
+      position: computed$k(() => 'bottom'),
       layoutSize: height,
-      elementSize: computed$j(() => props.height === 'auto' ? undefined : height.value),
-      active: computed$j(() => props.app),
+      elementSize: computed$k(() => props.height === 'auto' ? undefined : height.value),
+      active: computed$k(() => props.app),
       absolute: toRef$8(props, 'absolute')
     });
     useRender(() => _createVNode$u(props.tag, {
@@ -13655,7 +13655,7 @@ const VFooter = genericComponent()({
 });
 
 const {createVNode:_createVNode$t} = await importShared('vue');
-const {ref: ref$b} = await importShared('vue');
+const {ref: ref$c} = await importShared('vue');
 const makeVFormProps = propsFactory({
   ...makeComponentProps(),
   ...makeFormProps()
@@ -13673,7 +13673,7 @@ const VForm = genericComponent()({
       emit
     } = _ref;
     const form = createForm(props);
-    const formRef = ref$b();
+    const formRef = ref$c();
     function onReset(e) {
       e.preventDefault();
       form.reset();
@@ -13740,7 +13740,7 @@ const VContainer = genericComponent()({
   }
 });
 
-const {capitalize: capitalize$1,computed: computed$i,h: h$1} = await importShared('vue');
+const {capitalize: capitalize$1,computed: computed$j,h: h$1} = await importShared('vue');
 const breakpointProps = (() => {
   return breakpoints.reduce((props, val) => {
     props[val] = {
@@ -13830,7 +13830,7 @@ const VCol = genericComponent()({
     let {
       slots
     } = _ref;
-    const classes = computed$i(() => {
+    const classes = computed$j(() => {
       const classList = [];
 
       // Loop through `col`, `offset`, `order` breakpoint props
@@ -13860,7 +13860,7 @@ const VCol = genericComponent()({
   }
 });
 
-const {capitalize,computed: computed$h,h} = await importShared('vue');
+const {capitalize,computed: computed$i,h} = await importShared('vue');
 const ALIGNMENT = ['start', 'end', 'center'];
 const SPACE = ['space-between', 'space-around', 'space-evenly'];
 function makeRowProps(prefix, def) {
@@ -13946,7 +13946,7 @@ const VRow = genericComponent()({
     let {
       slots
     } = _ref;
-    const classes = computed$h(() => {
+    const classes = computed$i(() => {
       const classList = [];
 
       // Loop through `align`, `justify`, `alignContent` breakpoint props
@@ -14129,7 +14129,7 @@ const VLayout = genericComponent()({
 const VLayoutItem$1 = '';
 
 const {createVNode:_createVNode$p} = await importShared('vue');
-const {computed: computed$g,toRef: toRef$7} = await importShared('vue');
+const {computed: computed$h,toRef: toRef$7} = await importShared('vue');
 const makeVLayoutItemProps = propsFactory({
   position: {
     type: String,
@@ -14154,7 +14154,7 @@ const VLayoutItem = genericComponent()({
       layoutItemStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$g(() => parseInt(props.order, 10)),
+      order: computed$h(() => parseInt(props.order, 10)),
       position: toRef$7(props, 'position'),
       elementSize: toRef$7(props, 'size'),
       layoutSize: toRef$7(props, 'size'),
@@ -14298,7 +14298,7 @@ const VMain = genericComponent()({
 const VNavigationDrawer$1 = '';
 
 // Utilities
-const {computed: computed$f,onBeforeUnmount: onBeforeUnmount$3,onMounted: onMounted$3,shallowRef: shallowRef$9,watch: watch$6} = await importShared('vue');
+const {computed: computed$g,onBeforeUnmount: onBeforeUnmount$4,onMounted: onMounted$4,shallowRef: shallowRef$9,watch: watch$6} = await importShared('vue');
 function useSticky(_ref) {
   let {
     rootEl,
@@ -14307,7 +14307,7 @@ function useSticky(_ref) {
   } = _ref;
   const isStuck = shallowRef$9(false);
   const stuckPosition = shallowRef$9(0);
-  const stickyStyles = computed$f(() => {
+  const stickyStyles = computed$g(() => {
     const side = typeof isStuck.value === 'boolean' ? 'top' : isStuck.value;
     return [isSticky.value ? {
       top: 'auto',
@@ -14319,7 +14319,7 @@ function useSticky(_ref) {
       top: layoutItemStyles.value.top
     }];
   });
-  onMounted$3(() => {
+  onMounted$4(() => {
     watch$6(isSticky, val => {
       if (val) {
         window.addEventListener('scroll', onScroll, {
@@ -14332,7 +14332,7 @@ function useSticky(_ref) {
       immediate: true
     });
   });
-  onBeforeUnmount$3(() => {
+  onBeforeUnmount$4(() => {
     window.removeEventListener('scroll', onScroll);
   });
   let lastScrollTop = 0;
@@ -14472,7 +14472,7 @@ function oops$1() {
   throw new Error();
 }
 
-const {computed: computed$e,onBeforeUnmount: onBeforeUnmount$2,onMounted: onMounted$2,shallowRef: shallowRef$8} = await importShared('vue');
+const {computed: computed$f,onBeforeUnmount: onBeforeUnmount$3,onMounted: onMounted$3,shallowRef: shallowRef$8} = await importShared('vue');
 
 
 // Types
@@ -14485,7 +14485,7 @@ function useTouch(_ref) {
     touchless,
     position
   } = _ref;
-  onMounted$2(() => {
+  onMounted$3(() => {
     window.addEventListener('touchstart', onTouchstart, {
       passive: true
     });
@@ -14496,12 +14496,12 @@ function useTouch(_ref) {
       passive: true
     });
   });
-  onBeforeUnmount$2(() => {
+  onBeforeUnmount$3(() => {
     window.removeEventListener('touchstart', onTouchstart);
     window.removeEventListener('touchmove', onTouchmove);
     window.removeEventListener('touchend', onTouchend);
   });
-  const isHorizontal = computed$e(() => ['left', 'right'].includes(position.value));
+  const isHorizontal = computed$f(() => ['left', 'right'].includes(position.value));
   const {
     addMovement,
     endTouch,
@@ -14585,7 +14585,7 @@ function useTouch(_ref) {
       isActive.value = dragProgress.value > 0.5;
     }
   }
-  const dragStyles = computed$e(() => {
+  const dragStyles = computed$f(() => {
     return isDragging.value ? {
       transform: position.value === 'left' ? `translateX(calc(-100% + ${dragProgress.value * width.value}px))` : position.value === 'right' ? `translateX(calc(100% - ${dragProgress.value * width.value}px))` : position.value === 'top' ? `translateY(calc(-100% + ${dragProgress.value * width.value}px))` : position.value === 'bottom' ? `translateY(calc(100% - ${dragProgress.value * width.value}px))` : oops(),
       transition: 'none'
@@ -14602,7 +14602,7 @@ function oops() {
 }
 
 const {mergeProps:_mergeProps$b,createVNode:_createVNode$l,Fragment:_Fragment$5} = await importShared('vue');
-const {computed: computed$d,nextTick: nextTick$2,onBeforeMount,ref: ref$a,shallowRef: shallowRef$7,toRef: toRef$6,Transition,watch: watch$5} = await importShared('vue');
+const {computed: computed$e,nextTick: nextTick$2,onBeforeMount,ref: ref$b,shallowRef: shallowRef$7,toRef: toRef$6,Transition,watch: watch$5} = await importShared('vue');
 const locations = ['start', 'end', 'left', 'right', 'top', 'bottom'];
 const makeVNavigationDrawerProps = propsFactory({
   color: String,
@@ -14693,16 +14693,16 @@ const VNavigationDrawer = genericComponent()({
     const {
       scopeId
     } = useScopeId();
-    const rootEl = ref$a();
+    const rootEl = ref$b();
     const isHovering = shallowRef$7(false);
-    const width = computed$d(() => {
+    const width = computed$e(() => {
       return props.rail && props.expandOnHover && isHovering.value ? Number(props.width) : Number(props.rail ? props.railWidth : props.width);
     });
-    const location = computed$d(() => {
+    const location = computed$e(() => {
       return toPhysical(props.location, isRtl.value);
     });
-    const isTemporary = computed$d(() => !props.permanent && (mobile.value || props.temporary));
-    const isSticky = computed$d(() => props.sticky && !isTemporary.value && location.value !== 'bottom');
+    const isTemporary = computed$e(() => !props.permanent && (mobile.value || props.temporary));
+    const isSticky = computed$e(() => props.sticky && !isTemporary.value && location.value !== 'bottom');
     if (props.expandOnHover && props.rail != null) {
       watch$5(isHovering, val => emit('update:rail', !val));
     }
@@ -14730,7 +14730,7 @@ const VNavigationDrawer = genericComponent()({
       touchless: toRef$6(props, 'touchless'),
       position: location
     });
-    const layoutSize = computed$d(() => {
+    const layoutSize = computed$e(() => {
       const size = isTemporary.value ? 0 : props.rail && props.expandOnHover ? Number(props.railWidth) : width.value;
       return isDragging.value ? size * dragProgress.value : size;
     });
@@ -14739,13 +14739,13 @@ const VNavigationDrawer = genericComponent()({
       layoutItemScrimStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$d(() => parseInt(props.order, 10)),
+      order: computed$e(() => parseInt(props.order, 10)),
       position: location,
       layoutSize,
       elementSize: width,
-      active: computed$d(() => isActive.value || isDragging.value),
-      disableTransitions: computed$d(() => isDragging.value),
-      absolute: computed$d(() =>
+      active: computed$e(() => isActive.value || isDragging.value),
+      disableTransitions: computed$e(() => isDragging.value),
+      absolute: computed$e(() =>
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       props.absolute || isSticky.value && typeof isStuck.value !== 'string')
     });
@@ -14757,10 +14757,10 @@ const VNavigationDrawer = genericComponent()({
       isSticky,
       layoutItemStyles
     });
-    const scrimColor = useBackgroundColor(computed$d(() => {
+    const scrimColor = useBackgroundColor(computed$e(() => {
       return typeof props.scrim === 'string' ? props.scrim : null;
     }));
-    const scrimStyles = computed$d(() => ({
+    const scrimStyles = computed$e(() => ({
       ...(isDragging.value ? {
         opacity: dragProgress.value * 0.2,
         transition: 'none'
@@ -14841,13 +14841,13 @@ const VNoSsr = defineComponent({
 const VPagination$1 = '';
 
 // Utilities
-const {onBeforeUpdate,ref: ref$9} = await importShared('vue');
+const {onBeforeUpdate,ref: ref$a} = await importShared('vue');
 
 
 // Types
 
 function useRefs() {
-  const refs = ref$9([]);
+  const refs = ref$a([]);
   onBeforeUpdate(() => refs.value = []);
   function updateRef(e, i) {
     refs.value[i] = e;
@@ -14859,7 +14859,7 @@ function useRefs() {
 }
 
 const {createVNode:_createVNode$k,mergeProps:_mergeProps$a} = await importShared('vue');
-const {computed: computed$c,nextTick: nextTick$1,shallowRef: shallowRef$6,toRef: toRef$5} = await importShared('vue');
+const {computed: computed$d,nextTick: nextTick$1,shallowRef: shallowRef$6,toRef: toRef$5} = await importShared('vue');
 const makeVPaginationProps = propsFactory({
   activeColor: String,
   start: {
@@ -14987,9 +14987,9 @@ const VPagination = genericComponent()({
       const itemWidth = firstItem.offsetWidth + parseFloat(getComputedStyle(firstItem).marginRight) * 2;
       maxButtons.value = getMax(totalWidth, itemWidth);
     });
-    const length = computed$c(() => parseInt(props.length, 10));
-    const start = computed$c(() => parseInt(props.start, 10));
-    const totalVisible = computed$c(() => {
+    const length = computed$d(() => parseInt(props.length, 10));
+    const start = computed$d(() => parseInt(props.start, 10));
+    const totalVisible = computed$d(() => {
       if (props.totalVisible) return parseInt(props.totalVisible, 10);else if (maxButtons.value >= 0) return maxButtons.value;
       return getMax(width.value, 58);
     });
@@ -14999,7 +14999,7 @@ const VPagination = genericComponent()({
       // Round to two decimal places to avoid floating point errors
       +((totalWidth - itemWidth * minButtons) / itemWidth).toFixed(2)));
     }
-    const range = computed$c(() => {
+    const range = computed$d(() => {
       if (length.value <= 0 || isNaN(length.value) || length.value > Number.MAX_SAFE_INTEGER) return [];
       if (totalVisible.value <= 1) return [page.value];
       if (length.value <= totalVisible.value) {
@@ -15043,7 +15043,7 @@ const VPagination = genericComponent()({
         elevation: toRef$5(props, 'elevation')
       }
     });
-    const items = computed$c(() => {
+    const items = computed$d(() => {
       return range.value.map((item, index) => {
         const ref = e => updateRef(e, index);
         if (typeof item === 'string') {
@@ -15078,7 +15078,7 @@ const VPagination = genericComponent()({
         }
       });
     });
-    const controls = computed$c(() => {
+    const controls = computed$d(() => {
       const prevDisabled = !!props.disabled || page.value <= start.value;
       const nextDisabled = !!props.disabled || page.value >= start.value + length.value - 1;
       return {
@@ -15179,7 +15179,7 @@ const VPagination = genericComponent()({
 const VParallax$1 = '';
 
 const {createVNode:_createVNode$j,resolveDirective:_resolveDirective$8} = await importShared('vue');
-const {computed: computed$b,onBeforeUnmount: onBeforeUnmount$1,ref: ref$8,watch: watch$4,watchEffect: watchEffect$1} = await importShared('vue');
+const {computed: computed$c,onBeforeUnmount: onBeforeUnmount$2,ref: ref$9,watch: watch$4,watchEffect: watchEffect$1} = await importShared('vue');
 function floor(val) {
   return Math.floor(Math.abs(val)) * Math.sign(val);
 }
@@ -15208,7 +15208,7 @@ const VParallax = genericComponent()({
     const {
       height: displayHeight
     } = useDisplay();
-    const root = ref$8();
+    const root = ref$9();
     watchEffect$1(() => {
       intersectionRef.value = resizeRef.value = root.value?.$el;
     });
@@ -15225,12 +15225,12 @@ const VParallax = genericComponent()({
         scrollParent.removeEventListener('scroll', onScroll);
       }
     });
-    onBeforeUnmount$1(() => {
+    onBeforeUnmount$2(() => {
       scrollParent?.removeEventListener('scroll', onScroll);
     });
     watch$4(displayHeight, onScroll);
     watch$4(() => contentRect.value?.height, onScroll);
-    const scale = computed$b(() => {
+    const scale = computed$c(() => {
       return 1 - clamp(+props.scale);
     });
     let frame = -1;
@@ -15290,7 +15290,7 @@ const VRadio = genericComponent()({
 const VRadioGroup$1 = '';
 
 const {mergeProps:_mergeProps$8,resolveDirective:_resolveDirective$6,createVNode:_createVNode$h,Fragment:_Fragment$4} = await importShared('vue');
-const {computed: computed$a} = await importShared('vue');
+const {computed: computed$b} = await importShared('vue');
 const makeVRadioGroupProps = propsFactory({
   height: {
     type: [Number, String],
@@ -15324,7 +15324,7 @@ const VRadioGroup = genericComponent()({
       slots
     } = _ref;
     const uid = getUid();
-    const id = computed$a(() => props.id || `radio-group-${uid}`);
+    const id = computed$b(() => props.id || `radio-group-${uid}`);
     const model = useProxiedModel(props, 'modelValue');
     useRender(() => {
       const [rootAttrs, controlAttrs] = filterInputAttrs(attrs);
@@ -15379,7 +15379,7 @@ const VRadioGroup = genericComponent()({
 });
 
 const {mergeProps:_mergeProps$7,createVNode:_createVNode$g,Fragment:_Fragment$3} = await importShared('vue');
-const {computed: computed$9,ref: ref$7} = await importShared('vue');
+const {computed: computed$a,ref: ref$8} = await importShared('vue');
 const makeVRangeSliderProps = propsFactory({
   ...makeFocusProps(),
   ...makeVInputProps(),
@@ -15404,9 +15404,9 @@ const VRangeSlider = genericComponent()({
       slots,
       emit
     } = _ref;
-    const startThumbRef = ref$7();
-    const stopThumbRef = ref$7();
-    const inputRef = ref$7();
+    const startThumbRef = ref$8();
+    const stopThumbRef = ref$8();
+    const inputRef = ref$8();
     const {
       rtlClasses
     } = useRtl();
@@ -15471,8 +15471,8 @@ const VRangeSlider = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const trackStart = computed$9(() => position(model.value[0]));
-    const trackStop = computed$9(() => position(model.value[1]));
+    const trackStart = computed$a(() => position(model.value[0]));
+    const trackStop = computed$a(() => position(model.value[1]));
     useRender(() => {
       const [inputProps, _] = VInput.filterProps(props);
       const hasPrepend = !!(props.label || slots.label || slots.prepend);
@@ -15589,7 +15589,7 @@ const VRangeSlider = genericComponent()({
 const VRating$1 = '';
 
 const {createTextVNode:_createTextVNode$1,mergeProps:_mergeProps$6,createVNode:_createVNode$f,Fragment:_Fragment$2} = await importShared('vue');
-const {computed: computed$8,shallowRef: shallowRef$5} = await importShared('vue');
+const {computed: computed$9,shallowRef: shallowRef$5} = await importShared('vue');
 const makeVRatingProps = propsFactory({
   name: String,
   itemAriaLabel: {
@@ -15649,11 +15649,11 @@ const VRating = genericComponent()({
       themeClasses
     } = provideTheme(props);
     const rating = useProxiedModel(props, 'modelValue');
-    const normalizedValue = computed$8(() => clamp(parseFloat(rating.value), 0, +props.length));
-    const range = computed$8(() => createRange(Number(props.length), 1));
-    const increments = computed$8(() => range.value.flatMap(v => props.halfIncrements ? [v - 0.5, v] : [v]));
+    const normalizedValue = computed$9(() => clamp(parseFloat(rating.value), 0, +props.length));
+    const range = computed$9(() => createRange(Number(props.length), 1));
+    const increments = computed$9(() => range.value.flatMap(v => props.halfIncrements ? [v - 0.5, v] : [v]));
     const hoverIndex = shallowRef$5(-1);
-    const itemState = computed$8(() => increments.value.map(value => {
+    const itemState = computed$9(() => increments.value.map(value => {
       const isHovering = props.hover && hoverIndex.value > -1;
       const isFilled = normalizedValue.value >= value;
       const isHovered = hoverIndex.value >= value;
@@ -15668,7 +15668,7 @@ const VRating = genericComponent()({
         color
       };
     }));
-    const eventState = computed$8(() => [0, ...increments.value].map(value => {
+    const eventState = computed$9(() => [0, ...increments.value].map(value => {
       function onMouseenter() {
         hoverIndex.value = value;
       }
@@ -15685,7 +15685,7 @@ const VRating = genericComponent()({
         onClick
       };
     }));
-    const name = computed$8(() => props.name ?? `v-rating-${getUid()}`);
+    const name = computed$9(() => props.name ?? `v-rating-${getUid()}`);
     function VRatingItem(_ref2) {
       let {
         value,
@@ -15828,7 +15828,7 @@ function calculateCenteredOffset(_ref2) {
 }
 
 const {createVNode:_createVNode$e} = await importShared('vue');
-const {computed: computed$7,shallowRef: shallowRef$4,watch: watch$3} = await importShared('vue');
+const {computed: computed$8,shallowRef: shallowRef$4,watch: watch$3} = await importShared('vue');
 const VSlideGroupSymbol = Symbol.for('vuetify:v-slide-group');
 const makeVSlideGroupProps = propsFactory({
   centerActive: Boolean,
@@ -15879,7 +15879,7 @@ const VSlideGroup = genericComponent()({
     const scrollOffset = shallowRef$4(0);
     const containerSize = shallowRef$4(0);
     const contentSize = shallowRef$4(0);
-    const isHorizontal = computed$7(() => props.direction === 'horizontal');
+    const isHorizontal = computed$8(() => props.direction === 'horizontal');
     const {
       resizeRef: containerRef,
       contentRect: containerRect
@@ -15888,11 +15888,11 @@ const VSlideGroup = genericComponent()({
       resizeRef: contentRef,
       contentRect
     } = useResizeObserver();
-    const firstSelectedIndex = computed$7(() => {
+    const firstSelectedIndex = computed$8(() => {
       if (!group.selected.value.length) return -1;
       return group.items.value.findIndex(item => item.id === group.selected.value[0]);
     });
-    const lastSelectedIndex = computed$7(() => {
+    const lastSelectedIndex = computed$8(() => {
       if (!group.selected.value.length) return -1;
       return group.items.value.findIndex(item => item.id === group.selected.value[group.selected.value.length - 1]);
     });
@@ -16034,7 +16034,7 @@ const VSlideGroup = genericComponent()({
       const newAbsoluteOffset = scrollOffset.value + (location === 'prev' ? -1 : 1) * containerSize.value;
       scrollOffset.value = clamp(newAbsoluteOffset, 0, contentSize.value - containerSize.value);
     }
-    const contentStyles = computed$7(() => {
+    const contentStyles = computed$8(() => {
       // This adds friction when scrolling the 'wrong' way when at max offset
       let scrollAmount = scrollOffset.value > contentSize.value - containerSize.value ? -(contentSize.value - containerSize.value) + bias(contentSize.value - containerSize.value - scrollOffset.value) : -scrollOffset.value;
 
@@ -16049,13 +16049,13 @@ const VSlideGroup = genericComponent()({
         willChange: disableTransition.value ? 'transform' : ''
       };
     });
-    const slotProps = computed$7(() => ({
+    const slotProps = computed$8(() => ({
       next: group.next,
       prev: group.prev,
       select: group.select,
       isSelected: group.isSelected
     }));
-    const hasAffixes = computed$7(() => {
+    const hasAffixes = computed$8(() => {
       switch (props.showArrows) {
         // Always show arrows on desktop & mobile
         case 'always':
@@ -16081,10 +16081,10 @@ const VSlideGroup = genericComponent()({
           return !mobile.value && (isOverflowing.value || Math.abs(scrollOffset.value) > 0);
       }
     });
-    const hasPrev = computed$7(() => {
+    const hasPrev = computed$8(() => {
       return Math.abs(scrollOffset.value) > 0;
     });
-    const hasNext = computed$7(() => {
+    const hasNext = computed$8(() => {
       // Check one scroll ahead to know the width of right-most item
       return contentSize.value > Math.abs(scrollOffset.value) + containerSize.value;
     });
@@ -16168,7 +16168,7 @@ const VSlideGroupItem = genericComponent()({
 const VSnackbar$1 = '';
 
 const {mergeProps:_mergeProps$5,resolveDirective:_resolveDirective$5,createVNode:_createVNode$d} = await importShared('vue');
-const {mergeProps: mergeProps$1,onMounted: onMounted$1,ref: ref$6,watch: watch$2} = await importShared('vue');
+const {mergeProps: mergeProps$1,onMounted: onMounted$2,ref: ref$7,watch: watch$2} = await importShared('vue');
 const makeVSnackbarProps = propsFactory({
   multiLine: Boolean,
   timeout: {
@@ -16218,10 +16218,10 @@ const VSnackbar = genericComponent()({
     const {
       roundedClasses
     } = useRounded(props);
-    const overlay = ref$6();
+    const overlay = ref$7();
     watch$2(isActive, startTimeout);
     watch$2(() => props.timeout, startTimeout);
-    onMounted$1(() => {
+    onMounted$2(() => {
       if (isActive.value) startTimeout();
     });
     let activeTimeout = -1;
@@ -16287,7 +16287,7 @@ const VSnackbar = genericComponent()({
 const VSwitch$1 = '';
 
 const {mergeProps:_mergeProps$4,Fragment:_Fragment$1,createVNode:_createVNode$c} = await importShared('vue');
-const {computed: computed$6,ref: ref$5} = await importShared('vue');
+const {computed: computed$7,ref: ref$6} = await importShared('vue');
 const makeVSwitchProps = propsFactory({
   indeterminate: Boolean,
   inset: Boolean,
@@ -16323,12 +16323,12 @@ const VSwitch = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const control = ref$5();
-    const loaderColor = computed$6(() => {
+    const control = ref$6();
+    const loaderColor = computed$7(() => {
       return typeof props.loading === 'string' && props.loading !== '' ? props.loading : props.color;
     });
     const uid = getUid();
-    const id = computed$6(() => props.id || `switch-${uid}`);
+    const id = computed$7(() => props.id || `switch-${uid}`);
     function onChange() {
       if (indeterminate.value) {
         indeterminate.value = false;
@@ -16432,7 +16432,7 @@ const VSwitch = genericComponent()({
 const VSystemBar$1 = '';
 
 const {createVNode:_createVNode$b,resolveDirective:_resolveDirective$4} = await importShared('vue');
-const {computed: computed$5,shallowRef: shallowRef$3,toRef: toRef$4} = await importShared('vue');
+const {computed: computed$6,shallowRef: shallowRef$3,toRef: toRef$4} = await importShared('vue');
 const makeVSystemBarProps = propsFactory({
   color: String,
   height: [Number, String],
@@ -16467,16 +16467,16 @@ const VSystemBar = genericComponent()({
     const {
       ssrBootStyles
     } = useSsrBoot();
-    const height = computed$5(() => props.height ?? (props.window ? 32 : 24));
+    const height = computed$6(() => props.height ?? (props.window ? 32 : 24));
     const {
       layoutItemStyles
     } = useLayoutItem({
       id: props.name,
-      order: computed$5(() => parseInt(props.order, 10)),
+      order: computed$6(() => parseInt(props.order, 10)),
       position: shallowRef$3('top'),
       layoutSize: height,
       elementSize: height,
-      active: computed$5(() => true),
+      active: computed$6(() => true),
       absolute: toRef$4(props, 'absolute')
     });
     useRender(() => _createVNode$b(props.tag, {
@@ -16498,7 +16498,7 @@ const VTab$1 = '';
 const VTabsSymbol = Symbol.for('vuetify:v-tabs');
 
 const {mergeProps:_mergeProps$3,createVNode:_createVNode$a} = await importShared('vue');
-const {computed: computed$4,ref: ref$4,shallowRef: shallowRef$2} = await importShared('vue');
+const {computed: computed$5,ref: ref$5,shallowRef: shallowRef$2} = await importShared('vue');
 const makeVTabProps = propsFactory({
   fixed: Boolean,
   sliderColor: String,
@@ -16524,10 +16524,10 @@ const VTab = genericComponent()({
       textColorClasses: sliderColorClasses,
       textColorStyles: sliderColorStyles
     } = useTextColor(props, 'sliderColor');
-    const isHorizontal = computed$4(() => props.direction === 'horizontal');
+    const isHorizontal = computed$5(() => props.direction === 'horizontal');
     const isSelected = shallowRef$2(false);
-    const rootEl = ref$4();
-    const sliderEl = ref$4();
+    const rootEl = ref$5();
+    const sliderEl = ref$5();
     function updateSlider(_ref2) {
       let {
         value
@@ -16591,7 +16591,7 @@ const VTab = genericComponent()({
 });
 
 const {createVNode:_createVNode$9,mergeProps:_mergeProps$2} = await importShared('vue');
-const {computed: computed$3,toRef: toRef$3} = await importShared('vue');
+const {computed: computed$4,toRef: toRef$3} = await importShared('vue');
 function parseItems(items) {
   if (!items) return [];
   return items.map(item => {
@@ -16639,7 +16639,7 @@ const VTabs = genericComponent()({
       slots
     } = _ref;
     const model = useProxiedModel(props, 'modelValue');
-    const parsedItems = computed$3(() => parseItems(props.items));
+    const parsedItems = computed$4(() => parseItems(props.items));
     const {
       densityClasses
     } = useDensity(props);
@@ -16733,7 +16733,7 @@ const VTable = genericComponent()({
 const VTextarea$1 = '';
 
 const {vModelText:_vModelText,withDirectives:_withDirectives,mergeProps:_mergeProps$1,resolveDirective:_resolveDirective$3,createVNode:_createVNode$7,Fragment:_Fragment} = await importShared('vue');
-const {computed: computed$2,nextTick,onBeforeUnmount,onMounted,ref: ref$3,shallowRef: shallowRef$1,watch: watch$1,watchEffect} = await importShared('vue');
+const {computed: computed$3,nextTick,onBeforeUnmount: onBeforeUnmount$1,onMounted: onMounted$1,ref: ref$4,shallowRef: shallowRef$1,watch: watch$1,watchEffect} = await importShared('vue');
 const makeVTextareaProps = propsFactory({
   autoGrow: Boolean,
   autofocus: Boolean,
@@ -16783,10 +16783,10 @@ const VTextarea = genericComponent()({
       focus,
       blur
     } = useFocus(props);
-    const counterValue = computed$2(() => {
+    const counterValue = computed$3(() => {
       return typeof props.counterValue === 'function' ? props.counterValue(model.value) : (model.value || '').toString().length;
     });
-    const max = computed$2(() => {
+    const max = computed$3(() => {
       if (attrs.maxlength) return attrs.maxlength;
       if (!props.counter || typeof props.counter !== 'number' && typeof props.counter !== 'string') return undefined;
       return props.counter;
@@ -16795,11 +16795,11 @@ const VTextarea = genericComponent()({
       if (!props.autofocus || !isIntersecting) return;
       entries[0].target?.focus?.();
     }
-    const vInputRef = ref$3();
-    const vFieldRef = ref$3();
+    const vInputRef = ref$4();
+    const vFieldRef = ref$4();
     const controlHeight = shallowRef$1('');
-    const textareaRef = ref$3();
-    const isActive = computed$2(() => props.persistentPlaceholder || isFocused.value || props.active);
+    const textareaRef = ref$4();
+    const isActive = computed$3(() => props.persistentPlaceholder || isFocused.value || props.active);
     function onFocus() {
       if (textareaRef.value !== document.activeElement) {
         textareaRef.value?.focus();
@@ -16832,9 +16832,9 @@ const VTextarea = genericComponent()({
         });
       }
     }
-    const sizerRef = ref$3();
-    const rows = ref$3(+props.rows);
-    const isPlainOrUnderlined = computed$2(() => ['plain', 'underlined'].includes(props.variant));
+    const sizerRef = ref$4();
+    const rows = ref$4(+props.rows);
+    const isPlainOrUnderlined = computed$3(() => ['plain', 'underlined'].includes(props.variant));
     watchEffect(() => {
       if (!props.autoGrow) rows.value = +props.rows;
     });
@@ -16854,7 +16854,7 @@ const VTextarea = genericComponent()({
         controlHeight.value = convertToUnit(newHeight);
       });
     }
-    onMounted(calculateInputHeight);
+    onMounted$1(calculateInputHeight);
     watch$1(model, calculateInputHeight);
     watch$1(() => props.rows, calculateInputHeight);
     watch$1(() => props.maxRows, calculateInputHeight);
@@ -16868,7 +16868,7 @@ const VTextarea = genericComponent()({
         observer?.disconnect();
       }
     });
-    onBeforeUnmount(() => {
+    onBeforeUnmount$1(() => {
       observer?.disconnect();
     });
     useRender(() => {
@@ -17009,7 +17009,7 @@ const VThemeProvider = genericComponent()({
 const VTimeline$1 = '';
 
 const {createVNode:_createVNode$5,resolveDirective:_resolveDirective$2} = await importShared('vue');
-const {computed: computed$1,toRef: toRef$2} = await importShared('vue');
+const {computed: computed$2,toRef: toRef$2} = await importShared('vue');
 const makeVTimelineProps = propsFactory({
   align: {
     type: String,
@@ -17073,11 +17073,11 @@ const VTimeline = genericComponent()({
         lineInset: toRef$2(props, 'lineInset')
       }
     });
-    const sideClasses = computed$1(() => {
+    const sideClasses = computed$2(() => {
       const side = props.side ? props.side : props.density !== 'default' ? 'end' : null;
       return side && `v-timeline--side-${side}`;
     });
-    const truncateClasses = computed$1(() => {
+    const truncateClasses = computed$2(() => {
       const classes = ['v-timeline--truncate-line-start', 'v-timeline--truncate-line-end'];
       switch (props.truncateLine) {
         case 'both':
@@ -17180,7 +17180,7 @@ const VTimelineDivider = genericComponent()({
 });
 
 const {resolveDirective:_resolveDirective,createVNode:_createVNode$3} = await importShared('vue');
-const {ref: ref$2,shallowRef,watch} = await importShared('vue');
+const {ref: ref$3,shallowRef,watch} = await importShared('vue');
 const makeVTimelineItemProps = propsFactory({
   density: String,
   dotColor: String,
@@ -17211,7 +17211,7 @@ const VTimelineItem = genericComponent()({
       dimensionStyles
     } = useDimension(props);
     const dotSize = shallowRef(0);
-    const dotRef = ref$2();
+    const dotRef = ref$3();
     watch(dotRef, newValue => {
       if (!newValue) return;
       dotSize.value = newValue.$el.querySelector('.v-timeline-divider__dot')?.getBoundingClientRect().width ?? 0;
@@ -17281,7 +17281,7 @@ const VToolbarItems = genericComponent()({
 const VTooltip$1 = '';
 
 const {createVNode:_createVNode$1,mergeProps:_mergeProps} = await importShared('vue');
-const {computed,mergeProps,ref: ref$1} = await importShared('vue');
+const {computed: computed$1,mergeProps,ref: ref$2} = await importShared('vue');
 const makeVTooltipProps = propsFactory({
   id: String,
   text: String,
@@ -17315,19 +17315,19 @@ const VTooltip = genericComponent()({
       scopeId
     } = useScopeId();
     const uid = getUid();
-    const id = computed(() => props.id || `v-tooltip-${uid}`);
-    const overlay = ref$1();
-    const location = computed(() => {
+    const id = computed$1(() => props.id || `v-tooltip-${uid}`);
+    const overlay = ref$2();
+    const location = computed$1(() => {
       return props.location.split(' ').length > 1 ? props.location : props.location + ' center';
     });
-    const origin = computed(() => {
+    const origin = computed$1(() => {
       return props.origin === 'auto' || props.origin === 'overlap' || props.origin.split(' ').length > 1 || props.location.split(' ').length > 1 ? props.origin : props.origin + ' center';
     });
-    const transition = computed(() => {
+    const transition = computed$1(() => {
       if (props.transition) return props.transition;
       return isActive.value ? 'scale-transition' : 'fade-transition';
     });
-    const activatorProps = computed(() => mergeProps({
+    const activatorProps = computed$1(() => mergeProps({
       'aria-describedby': id.value
     }, props.activatorProps));
     useRender(() => {
@@ -17646,6 +17646,122 @@ const directives = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
     Touch
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const {computed,onBeforeUnmount,onMounted,reactive: reactive$1,ref: ref$1} = await importShared('vue');
+
+
+const THEME_MAP = [
+  { match: /transparent|glass|blur|透明/i, value: 'transparent', label: '透明' },
+  { match: /purple|violet|fantasy|幻紫/i, value: 'purple', label: '幻紫' },
+  { match: /dark|night|深色/i, value: 'dark', label: '深色' },
+  { match: /light|浅色/i, value: 'light', label: '浅色' },
+];
+
+function parseColorToken(value, fallback) {
+  const text = String(value || '').trim();
+  if (!text) return fallback
+  if (/^\d+\s*,\s*\d+\s*,\s*\d+/.test(text)) return `rgb(${text})`
+  return text
+}
+
+function luminanceFromColor(color) {
+  const match = String(color || '').match(/rgba?\(([^)]+)\)/i);
+  if (!match) return 255
+  const [r, g, b] = match[1].split(',').slice(0, 3).map((item) => Number.parseFloat(item.trim()) || 0);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+function usePanelTheme(rootEl) {
+  const themeName = ref$1('light');
+  const themeLabel = ref$1('浅色');
+  const themeStyle = reactive$1({});
+
+  let themeObserver = null;
+  let mediaQuery = null;
+
+  function resolveThemeNode() {
+    let current = rootEl?.value;
+    while (current) {
+      if (current.getAttribute?.('data-theme')) return current
+      const cls = String(current.className || '').toLowerCase();
+      if (cls.includes('theme') || cls.includes('v-theme--') || cls.includes('dark') || cls.includes('light') || cls.includes('purple') || cls.includes('transparent')) {
+        return current
+      }
+      current = current.parentElement;
+    }
+    return document.body || document.documentElement
+  }
+
+  function resolveThemeValue(node) {
+    const raw = `${node?.getAttribute?.('data-theme') || ''} ${node?.className || ''}`.trim();
+    for (const item of THEME_MAP) {
+      if (item.match.test(raw)) return item
+    }
+    return null
+  }
+
+  function readHostColor(node, names, fallback) {
+    const style = window.getComputedStyle(node);
+    for (const name of names) {
+      const value = style.getPropertyValue(name);
+      if (value) return parseColorToken(value, fallback)
+    }
+    return fallback
+  }
+
+  function updateTheme() {
+    const node = resolveThemeNode();
+    const detected = resolveThemeValue(node);
+    const style = window.getComputedStyle(node);
+    const pageBg = parseColorToken(style.backgroundColor, '#eef3fb');
+    const text = parseColorToken(style.color, '#182132');
+    const prefersDark = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+    if (detected) {
+      themeName.value = detected.value;
+      themeLabel.value = detected.label;
+    } else {
+      const bgLuminance = luminanceFromColor(pageBg);
+      themeName.value = bgLuminance < 140 || prefersDark ? 'dark' : 'custom';
+      themeLabel.value = themeName.value === 'dark' ? '深色' : '自定义';
+    }
+
+    themeStyle['--mp-host-primary'] = readHostColor(node, ['--v-theme-primary', '--theme-primary'], '#4f86ff');
+    themeStyle['--mp-host-secondary'] = readHostColor(node, ['--v-theme-secondary', '--theme-secondary'], '#8b5cf6');
+    themeStyle['--mp-host-surface'] = readHostColor(node, ['--v-theme-surface', '--theme-surface'], '#ffffff');
+    themeStyle['--mp-host-background'] = readHostColor(node, ['--v-theme-background', '--theme-background'], pageBg);
+    themeStyle['--mp-host-on-surface'] = readHostColor(node, ['--v-theme-on-surface', '--theme-on-surface'], text);
+    themeStyle['--mp-host-muted'] = readHostColor(node, ['--v-theme-on-surface-variant', '--theme-muted'], '#64748b');
+    themeStyle['--mp-host-outline'] = readHostColor(node, ['--v-border-color', '--theme-border'], 'rgba(15, 23, 42, 0.14)');
+  }
+
+  function bindThemeObserver() {
+    updateTheme();
+    if (window.MutationObserver) {
+      themeObserver = new MutationObserver(updateTheme)
+      ;[resolveThemeNode(), document.documentElement, document.body].filter(Boolean).forEach((node) => {
+        themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+      });
+    }
+    if (window.matchMedia) {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener?.('change', updateTheme);
+    }
+  }
+
+  onMounted(bindThemeObserver);
+  onBeforeUnmount(() => {
+    themeObserver?.disconnect?.();
+    mediaQuery?.removeEventListener?.('change', updateTheme);
+  });
+
+  return {
+    themeName,
+    themeLabel,
+    themeStyle,
+    themeClass: computed(() => `mp-theme-${themeName.value}`),
+  }
+}
+
 function createRequest(baseURL = '') {
   const request = async (url, options = {}) => {
     const fullUrl = baseURL ? `${baseURL}${url}` : url;
@@ -17681,9 +17797,11 @@ function createRequest(baseURL = '') {
   }
 }
 
-const App_vue_vue_type_style_index_0_scoped_b7003fba_lang = '';
+const panelTheme = '';
 
-const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock} = await importShared('vue');
+const App_vue_vue_type_style_index_0_scoped_67770cba_lang = '';
+
+const {unref:_unref,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const {reactive,ref} = await importShared('vue');
@@ -17695,7 +17813,10 @@ const _sfc_main = {
 
 const tab = ref('page');
 const pluginConfig = reactive({});
+const rootEl = ref(null);
 const request = createRequest(({}).VITE_API_BASE || 'http://localhost:3000');
+const { themeName, themeLabel, themeClass, themeStyle } = usePanelTheme(rootEl);
+
 const api = {
   get: (url, config) => request.get(url, config),
   post: (url, data, config) => request.post(url, data, config),
@@ -17714,78 +17835,94 @@ return (_ctx, _cache) => {
   const _component_v_main = _resolveComponent("v-main");
   const _component_v_app = _resolveComponent("v-app");
 
-  return (_openBlock(), _createBlock(_component_v_app, null, {
-    default: _withCtx(() => [
-      _createVNode(_component_v_main, { class: "vp-app-shell" }, {
-        default: _withCtx(() => [
-          _createVNode(_component_v_container, { "max-width": "1460" }, {
-            default: _withCtx(() => [
-              _createVNode(_component_v_tabs, {
-                modelValue: tab.value,
-                "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((tab).value = $event)),
-                color: "primary",
-                class: "mb-4"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_tab, { value: "page" }, {
-                    default: _withCtx(() => [
-                      _createTextVNode("状态页")
-                    ]),
-                    _: 1
-                  }),
-                  _createVNode(_component_v_tab, { value: "config" }, {
-                    default: _withCtx(() => [
-                      _createTextVNode("配置页")
-                    ]),
-                    _: 1
-                  })
-                ]),
-                _: 1
-              }, 8, ["modelValue"]),
-              _createVNode(_component_v_window, {
-                modelValue: tab.value,
-                "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((tab).value = $event))
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_window_item, { value: "page" }, {
-                    default: _withCtx(() => [
-                      _createVNode(PageView, {
-                        api: api,
-                        "initial-config": pluginConfig,
-                        onSwitch: _cache[1] || (_cache[1] = $event => (tab.value = $event)),
-                        onClose: handleClose
-                      }, null, 8, ["initial-config"])
-                    ]),
-                    _: 1
-                  }),
-                  _createVNode(_component_v_window_item, { value: "config" }, {
-                    default: _withCtx(() => [
-                      _createVNode(ConfigView, {
-                        api: api,
-                        "initial-config": pluginConfig,
-                        onSwitch: _cache[2] || (_cache[2] = $event => (tab.value = $event)),
-                        onClose: handleClose
-                      }, null, 8, ["initial-config"])
-                    ]),
-                    _: 1
-                  })
-                ]),
-                _: 1
-              }, 8, ["modelValue"])
-            ]),
-            _: 1
-          })
-        ]),
-        _: 1
-      })
-    ]),
-    _: 1
-  }))
+  return (_openBlock(), _createElementBlock("div", {
+    ref_key: "rootEl",
+    ref: rootEl,
+    class: _normalizeClass(["mp-panel", _unref(themeClass)]),
+    style: _normalizeStyle(_unref(themeStyle))
+  }, [
+    _createVNode(_component_v_app, { class: "mp-app" }, {
+      default: _withCtx(() => [
+        _createVNode(_component_v_main, null, {
+          default: _withCtx(() => [
+            _createVNode(_component_v_container, {
+              fluid: "",
+              class: "mp-shell"
+            }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_tabs, {
+                  modelValue: tab.value,
+                  "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((tab).value = $event)),
+                  color: "primary",
+                  class: "mp-tabs",
+                  grow: ""
+                }, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_tab, { value: "page" }, {
+                      default: _withCtx(() => [
+                        _createTextVNode("运行监控看板")
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_tab, { value: "config" }, {
+                      default: _withCtx(() => [
+                        _createTextVNode("模块化配置后台")
+                      ]),
+                      _: 1
+                    })
+                  ]),
+                  _: 1
+                }, 8, ["modelValue"]),
+                _createVNode(_component_v_window, {
+                  modelValue: tab.value,
+                  "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((tab).value = $event)),
+                  class: "mp-window"
+                }, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_window_item, { value: "page" }, {
+                      default: _withCtx(() => [
+                        _createVNode(PageView, {
+                          api: api,
+                          "initial-config": pluginConfig,
+                          "theme-name": _unref(themeName),
+                          "theme-label": _unref(themeLabel),
+                          onSwitch: _cache[1] || (_cache[1] = $event => (tab.value = $event)),
+                          onClose: handleClose
+                        }, null, 8, ["initial-config", "theme-name", "theme-label"])
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_window_item, { value: "config" }, {
+                      default: _withCtx(() => [
+                        _createVNode(ConfigView, {
+                          api: api,
+                          "initial-config": pluginConfig,
+                          "theme-name": _unref(themeName),
+                          "theme-label": _unref(themeLabel),
+                          onSwitch: _cache[2] || (_cache[2] = $event => (tab.value = $event)),
+                          onClose: handleClose
+                        }, null, 8, ["initial-config", "theme-name", "theme-label"])
+                      ]),
+                      _: 1
+                    })
+                  ]),
+                  _: 1
+                }, 8, ["modelValue"])
+              ]),
+              _: 1
+            })
+          ]),
+          _: 1
+        })
+      ]),
+      _: 1
+    })
+  ], 6))
 }
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b7003fba"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-67770cba"]]);
 
 const {createApp} = await importShared('vue');
 
