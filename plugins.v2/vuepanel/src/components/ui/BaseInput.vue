@@ -23,7 +23,7 @@ const emit = defineEmits(['update:modelValue'])
 <style scoped>
 :deep(.mp-input .v-field) {
   border-radius: var(--mp-radius-md);
-  background: color-mix(in srgb, var(--mp-bg-card) 88%, transparent);
+  background: var(--mp-bg-input);
   color: var(--mp-text-primary);
 }
 
@@ -35,7 +35,7 @@ const emit = defineEmits(['update:modelValue'])
 }
 
 :deep(.mp-input .v-field__input) {
-  min-height: 40px;
+  min-height: 38px;
   padding-top: 0;
   padding-bottom: 0;
   font-size: var(--mp-font-md);

@@ -1,13 +1,13 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
-import { _ as _export_sfc, B as BasePanelCard, c as BaseButton, b as BaseTag, E as EmptyState, a as BaseInput } from './EmptyState-040be838.js';
+import { _ as _export_sfc, B as BasePanelCard, a as BaseButton, b as BaseTag, E as EmptyState } from './EmptyState-c135b286.js';
 
-const BaseCronField_vue_vue_type_style_index_0_scoped_5d2d1e2e_lang = '';
+const BaseCronField_vue_vue_type_style_index_0_scoped_5d451913_lang = '';
 
-const {resolveComponent:_resolveComponent$3,mergeProps:_mergeProps$2,openBlock:_openBlock$3,createBlock:_createBlock$2} = await importShared('vue');
+const {resolveComponent:_resolveComponent$4,mergeProps:_mergeProps$3,openBlock:_openBlock$4,createBlock:_createBlock$3} = await importShared('vue');
 
 
 
-const _sfc_main$3 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
+const _sfc_main$4 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
   __name: 'BaseCronField',
   props: {
   modelValue: { type: String, default: '' },
@@ -22,9 +22,9 @@ const _sfc_main$3 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
 
 
 return (_ctx, _cache) => {
-  const _component_VCronField = _resolveComponent$3("VCronField");
+  const _component_VCronField = _resolveComponent$4("VCronField");
 
-  return (_openBlock$3(), _createBlock$2(_component_VCronField, _mergeProps$2(_ctx.$attrs, {
+  return (_openBlock$4(), _createBlock$3(_component_VCronField, _mergeProps$3(_ctx.$attrs, {
     "model-value": __props.modelValue,
     class: "mp-cron",
     density: "comfortable",
@@ -34,9 +34,46 @@ return (_ctx, _cache) => {
 }
 
 });
-const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$3, [['__scopeId',"data-v-5d2d1e2e"]]);
+const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$4, [['__scopeId',"data-v-5d451913"]]);
 
-const BaseSwitch_vue_vue_type_style_index_0_scoped_9777a4cc_lang = '';
+const BaseInput_vue_vue_type_style_index_0_scoped_8b299c74_lang = '';
+
+const {resolveComponent:_resolveComponent$3,mergeProps:_mergeProps$2,openBlock:_openBlock$3,createBlock:_createBlock$2} = await importShared('vue');
+
+
+
+const _sfc_main$3 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
+  __name: 'BaseInput',
+  props: {
+  modelValue: { type: [String, Number], default: '' },
+},
+  emits: ['update:modelValue'],
+  setup(__props, { emit }) {
+
+
+
+
+
+
+
+return (_ctx, _cache) => {
+  const _component_v_text_field = _resolveComponent$3("v-text-field");
+
+  return (_openBlock$3(), _createBlock$2(_component_v_text_field, _mergeProps$2(_ctx.$attrs, {
+    "model-value": __props.modelValue,
+    class: "mp-input",
+    variant: "outlined",
+    density: "comfortable",
+    "hide-details": "auto",
+    "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => (emit('update:modelValue', $event)))
+  }), null, 16, ["model-value"]))
+}
+}
+
+});
+const BaseInput = /*#__PURE__*/_export_sfc(_sfc_main$3, [['__scopeId',"data-v-8b299c74"]]);
+
+const BaseSwitch_vue_vue_type_style_index_0_scoped_bf1c6152_lang = '';
 
 const {resolveComponent:_resolveComponent$2,mergeProps:_mergeProps$1,createVNode:_createVNode$1,toDisplayString:_toDisplayString$1,openBlock:_openBlock$2,createElementBlock:_createElementBlock$1,createCommentVNode:_createCommentVNode$1,pushScopeId:_pushScopeId$1,popScopeId:_popScopeId$1} = await importShared('vue');
 const _hoisted_1$1 = { class: "mp-switch-shell" };
@@ -81,9 +118,9 @@ return (_ctx, _cache) => {
 }
 
 });
-const BaseSwitch = /*#__PURE__*/_export_sfc(_sfc_main$2, [['__scopeId',"data-v-9777a4cc"]]);
+const BaseSwitch = /*#__PURE__*/_export_sfc(_sfc_main$2, [['__scopeId',"data-v-bf1c6152"]]);
 
-const BaseTextarea_vue_vue_type_style_index_0_scoped_a81d100a_lang = '';
+const BaseTextarea_vue_vue_type_style_index_0_scoped_932085c2_lang = '';
 
 const {resolveComponent:_resolveComponent$1,mergeProps:_mergeProps,openBlock:_openBlock$1,createBlock:_createBlock$1} = await importShared('vue');
 
@@ -121,11 +158,11 @@ return (_ctx, _cache) => {
 }
 
 });
-const BaseTextarea = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-a81d100a"]]);
+const BaseTextarea = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-932085c2"]]);
 
-const Config_vue_vue_type_style_index_0_scoped_a0996f5f_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_5e61d6cf_lang = '';
 
-const {createTextVNode:_createTextVNode,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,resolveComponent:_resolveComponent,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {createTextVNode:_createTextVNode,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,resolveComponent:_resolveComponent,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 const _hoisted_1 = { class: "config-page" };
 const _hoisted_2 = { class: "hero-actions" };
 const _hoisted_3 = { class: "hero-chips" };
@@ -136,30 +173,30 @@ const _hoisted_7 = { class: "switch-tile" };
 const _hoisted_8 = { class: "switch-tile" };
 const _hoisted_9 = { class: "switch-tile" };
 const _hoisted_10 = { class: "module-stack" };
-const _hoisted_11 = { class: "module-single-wrap" };
-const _hoisted_12 = { class: "task-editor" };
-const _hoisted_13 = { class: "task-head" };
-const _hoisted_14 = { class: "task-title" };
-const _hoisted_15 = { class: "task-subtitle" };
-const _hoisted_16 = { class: "task-switch-row" };
-const _hoisted_17 = { class: "switch-tile" };
-const _hoisted_18 = { class: "switch-tile" };
-const _hoisted_19 = { class: "task-field-grid" };
-const _hoisted_20 = { class: "field-block" };
-const _hoisted_21 = { class: "field-block field-span-2" };
-const _hoisted_22 = { class: "field-note" };
-const _hoisted_23 = {
+const _hoisted_11 = { class: "task-head" };
+const _hoisted_12 = { class: "task-kicker" };
+const _hoisted_13 = { class: "task-title" };
+const _hoisted_14 = { class: "task-subtitle" };
+const _hoisted_15 = { class: "task-switch-row" };
+const _hoisted_16 = { class: "switch-tile compact" };
+const _hoisted_17 = { class: "switch-tile compact" };
+const _hoisted_18 = { class: "task-field-grid fixed-grid" };
+const _hoisted_19 = { class: "field-block" };
+const _hoisted_20 = { class: "field-block field-span-2" };
+const _hoisted_21 = { class: "field-note" };
+const _hoisted_22 = {
   key: 1,
   class: "site-grid"
 };
-const _hoisted_24 = { class: "task-head" };
+const _hoisted_23 = { class: "task-head" };
+const _hoisted_24 = { class: "task-kicker" };
 const _hoisted_25 = { class: "task-title" };
 const _hoisted_26 = { class: "task-subtitle" };
 const _hoisted_27 = { class: "task-head-actions" };
 const _hoisted_28 = { class: "task-switch-row" };
-const _hoisted_29 = { class: "switch-tile" };
-const _hoisted_30 = { class: "switch-tile" };
-const _hoisted_31 = { class: "task-field-grid" };
+const _hoisted_29 = { class: "switch-tile compact" };
+const _hoisted_30 = { class: "switch-tile compact" };
+const _hoisted_31 = { class: "task-field-grid collection-grid" };
 const _hoisted_32 = { class: "field-block" };
 const _hoisted_33 = { class: "field-block" };
 const _hoisted_34 = {
@@ -206,10 +243,9 @@ const config = reactive({
   cards: [],
 });
 
-const singletonModules = computed(() => moduleItems.value.filter((item) => item.singleton));
-const collectionModules = computed(() => moduleItems.value.filter((item) => !item.singleton));
+const singletonModules = computed(() => moduleItems.value.filter((item) => item.singleton !== false));
+const collectionModules = computed(() => moduleItems.value.filter((item) => item.singleton === false));
 const scheduledCards = computed(() => config.cards.filter((card) => card.enabled && card.auto_run));
-const collectionCardCount = computed(() => collectionModules.value.reduce((total, module) => total + cardsForModule(module.key).length, 0));
 
 function flash(text, type = 'success') {
   message.text = text;
@@ -229,12 +265,24 @@ function moduleMeta(moduleKey) {
     default_site_name: '',
     default_site_url: '',
     tone: 'azure',
-    singleton: false,
+    singleton: true,
   }
 }
 
 function nextCardId(moduleKey) {
   return `${moduleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+function toneStyle(tone) {
+  const map = {
+    emerald: { '--task-tone': '31, 168, 104' },
+    azure: { '--task-tone': '79, 134, 255' },
+    amber: { '--task-tone': '229, 155, 47' },
+    rose: { '--task-tone': '220, 87, 87' },
+    violet: { '--task-tone': '139, 92, 246' },
+    slate: { '--task-tone': '120, 132, 155' },
+  };
+  return map[tone] || map.azure
 }
 
 function fixedCookieNote(moduleKey) {
@@ -404,7 +452,7 @@ return (_ctx, _cache) => {
     _createVNode(BasePanelCard, {
       kicker: "Vue-面板",
       title: "模块化配置后台",
-      subtitle: `当前主题：${__props.themeLabel}。配置区按模块拆分，后续新增功能时只需要继续扩展模块卡。`,
+      subtitle: `当前主题：${__props.themeLabel}。模块默认按固定单卡管理，只有明确声明的功能才会开放站点子卡。`,
       tone: "primary",
       class: "config-hero"
     }, {
@@ -449,19 +497,19 @@ return (_ctx, _cache) => {
           }),
           _createVNode(BaseTag, { tone: "success" }, {
             default: _withCtx(() => [
-              _createTextVNode("模块 " + _toDisplayString(moduleItems.value.length), 1)
+              _createTextVNode("固定模块 " + _toDisplayString(singletonModules.value.length), 1)
+            ]),
+            _: 1
+          }),
+          _createVNode(BaseTag, { tone: "info" }, {
+            default: _withCtx(() => [
+              _createTextVNode("多站点模块 " + _toDisplayString(collectionModules.value.length), 1)
             ]),
             _: 1
           }),
           _createVNode(BaseTag, { tone: "warning" }, {
             default: _withCtx(() => [
               _createTextVNode("定时卡 " + _toDisplayString(scheduledCards.value.length), 1)
-            ]),
-            _: 1
-          }),
-          _createVNode(BaseTag, { tone: "info" }, {
-            default: _withCtx(() => [
-              _createTextVNode("站点 " + _toDisplayString(collectionCardCount.value), 1)
             ]),
             _: 1
           })
@@ -485,8 +533,9 @@ return (_ctx, _cache) => {
     _createVNode(BasePanelCard, {
       kicker: "插件级设置",
       title: "全局选项",
-      subtitle: "这里只保留插件级开关，不再把每个任务的定时和行为参数混在全局层。",
-      tone: "azure"
+      subtitle: "这里只保留插件级开关，不把单卡 Cron、Cookie 和站点字段混进全局层。",
+      tone: "azure",
+      compact: ""
     }, {
       default: _withCtx(() => [
         _createElementVNode("div", _hoisted_4, [
@@ -503,7 +552,7 @@ return (_ctx, _cache) => {
               modelValue: config.notify,
               "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.notify) = $event)),
               label: "开启通知",
-              hint: "执行结果会整理成通知卡片展示。"
+              hint: "执行结果会写入状态页通知区。"
             }, null, 8, ["modelValue"])
           ]),
           _createElementVNode("div", _hoisted_7, [
@@ -511,7 +560,7 @@ return (_ctx, _cache) => {
               modelValue: config.onlyonce,
               "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.onlyonce) = $event)),
               label: "保存后执行一次",
-              hint: "用于快速校验新配置。"
+              hint: "用于快速校验配置是否可用。"
             }, null, 8, ["modelValue"])
           ]),
           _createElementVNode("div", _hoisted_8, [
@@ -519,7 +568,7 @@ return (_ctx, _cache) => {
               modelValue: config.use_proxy,
               "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.use_proxy) = $event)),
               label: "使用代理",
-              hint: "请求走宿主代理设置。"
+              hint: "请求跟随宿主代理设置。"
             }, null, 8, ["modelValue"])
           ]),
           _createElementVNode("div", _hoisted_9, [
@@ -527,7 +576,7 @@ return (_ctx, _cache) => {
               modelValue: config.force_ipv4,
               "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.force_ipv4) = $event)),
               label: "优先 IPv4",
-              hint: "保留原有网络偏好。"
+              hint: "保留原有网络访问偏好。"
             }, null, 8, ["modelValue"])
           ])
         ])
@@ -541,61 +590,65 @@ return (_ctx, _cache) => {
           kicker: "固定模块",
           title: `${module.icon} ${module.label}`,
           subtitle: module.description,
-          tone: module.tone
+          tone: module.tone,
+          compact: ""
         }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_11, [
-              _createElementVNode("article", _hoisted_12, [
-                _createElementVNode("div", _hoisted_13, [
-                  _createElementVNode("div", null, [
-                    _createElementVNode("div", _hoisted_14, _toDisplayString(ensureFixedCard(module.key).title), 1),
-                    _createElementVNode("div", _hoisted_15, _toDisplayString(ensureFixedCard(module.key).site_url), 1)
-                  ]),
-                  _createVNode(BaseTag, {
-                    tone: ensureFixedCard(module.key).enabled ? 'success' : 'disabled'
-                  }, {
-                    default: _withCtx(() => [
-                      _createTextVNode(_toDisplayString(ensureFixedCard(module.key).enabled ? '已启用' : '已停用'), 1)
-                    ]),
-                    _: 2
-                  }, 1032, ["tone"])
+            _createElementVNode("article", {
+              class: "task-editor fixed",
+              style: _normalizeStyle(toneStyle(ensureFixedCard(module.key).tone || module.tone))
+            }, [
+              _createElementVNode("div", _hoisted_11, [
+                _createElementVNode("div", null, [
+                  _createElementVNode("div", _hoisted_12, _toDisplayString(module.label), 1),
+                  _createElementVNode("div", _hoisted_13, _toDisplayString(ensureFixedCard(module.key).title), 1),
+                  _createElementVNode("div", _hoisted_14, _toDisplayString(ensureFixedCard(module.key).site_url), 1)
                 ]),
+                _createVNode(BaseTag, {
+                  tone: ensureFixedCard(module.key).enabled ? 'success' : 'disabled',
+                  size: "sm"
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode(_toDisplayString(ensureFixedCard(module.key).enabled ? '已启用' : '已停用'), 1)
+                  ]),
+                  _: 2
+                }, 1032, ["tone"])
+              ]),
+              _createElementVNode("div", _hoisted_15, [
                 _createElementVNode("div", _hoisted_16, [
-                  _createElementVNode("div", _hoisted_17, [
-                    _createVNode(BaseSwitch, {
-                      modelValue: ensureFixedCard(module.key).enabled,
-                      "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).enabled) = $event),
-                      label: "启用"
-                    }, null, 8, ["modelValue", "onUpdate:modelValue"])
-                  ]),
-                  _createElementVNode("div", _hoisted_18, [
-                    _createVNode(BaseSwitch, {
-                      modelValue: ensureFixedCard(module.key).auto_run,
-                      "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).auto_run) = $event),
-                      label: "定时运行"
-                    }, null, 8, ["modelValue", "onUpdate:modelValue"])
-                  ])
+                  _createVNode(BaseSwitch, {
+                    modelValue: ensureFixedCard(module.key).enabled,
+                    "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).enabled) = $event),
+                    label: "启用"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"])
                 ]),
+                _createElementVNode("div", _hoisted_17, [
+                  _createVNode(BaseSwitch, {
+                    modelValue: ensureFixedCard(module.key).auto_run,
+                    "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).auto_run) = $event),
+                    label: "定时运行"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                ])
+              ]),
+              _createElementVNode("div", _hoisted_18, [
                 _createElementVNode("div", _hoisted_19, [
-                  _createElementVNode("div", _hoisted_20, [
-                    _createVNode(BaseCronField, {
-                      modelValue: ensureFixedCard(module.key).cron,
-                      "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).cron) = $event),
-                      label: "定时运行 Cron"
-                    }, null, 8, ["modelValue", "onUpdate:modelValue"])
-                  ]),
-                  _createElementVNode("div", _hoisted_21, [
-                    _createVNode(BaseTextarea, {
-                      modelValue: ensureFixedCard(module.key).cookie,
-                      "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).cookie) = $event),
-                      label: "站点 Cookie",
-                      placeholder: "例如 c_secure_pass=..."
-                    }, null, 8, ["modelValue", "onUpdate:modelValue"]),
-                    _createElementVNode("div", _hoisted_22, _toDisplayString(fixedCookieNote(module.key)), 1)
-                  ])
+                  _createVNode(BaseCronField, {
+                    modelValue: ensureFixedCard(module.key).cron,
+                    "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).cron) = $event),
+                    label: "定时运行 Cron"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                ]),
+                _createElementVNode("div", _hoisted_20, [
+                  _createVNode(BaseTextarea, {
+                    modelValue: ensureFixedCard(module.key).cookie,
+                    "onUpdate:modelValue": $event => ((ensureFixedCard(module.key).cookie) = $event),
+                    label: "站点 Cookie",
+                    placeholder: "例如 c_secure_pass=..."
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                  _createElementVNode("div", _hoisted_21, _toDisplayString(fixedCookieNote(module.key)), 1)
                 ])
               ])
-            ])
+            ], 4)
           ]),
           _: 2
         }, 1032, ["title", "subtitle", "tone"]))
@@ -605,8 +658,9 @@ return (_ctx, _cache) => {
           key: module.key,
           kicker: "多站点模块",
           title: `${module.icon} ${module.label}`,
-          subtitle: `${module.description} 支持后续继续新增站点卡片。`,
-          tone: module.tone
+          subtitle: `${module.description} 只有这类显式多站点模块才支持在模块内继续新增站点卡。`,
+          tone: module.tone,
+          compact: ""
         }, {
           actions: _withCtx(() => [
             _createVNode(BaseButton, {
@@ -626,20 +680,23 @@ return (_ctx, _cache) => {
                   title: "暂无站点卡片",
                   description: "点击右上角新增站点，把不同网站和 Cookie 独立管理。"
                 }))
-              : (_openBlock(), _createElementBlock("div", _hoisted_23, [
+              : (_openBlock(), _createElementBlock("div", _hoisted_22, [
                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cardsForModule(module.key), (card, index) => {
                     return (_openBlock(), _createElementBlock("article", {
                       key: card.id,
-                      class: "task-editor"
+                      class: "task-editor",
+                      style: _normalizeStyle(toneStyle(card.tone || module.tone))
                     }, [
-                      _createElementVNode("div", _hoisted_24, [
+                      _createElementVNode("div", _hoisted_23, [
                         _createElementVNode("div", null, [
+                          _createElementVNode("div", _hoisted_24, "站点 " + _toDisplayString(index + 1), 1),
                           _createElementVNode("div", _hoisted_25, _toDisplayString(card.site_name || `${module.label} 站点 ${index + 1}`), 1),
                           _createElementVNode("div", _hoisted_26, _toDisplayString(card.site_url || '未填写站点地址'), 1)
                         ]),
                         _createElementVNode("div", _hoisted_27, [
                           _createVNode(BaseTag, {
-                            tone: card.enabled ? 'success' : 'disabled'
+                            tone: card.enabled ? 'success' : 'disabled',
+                            size: "sm"
                           }, {
                             default: _withCtx(() => [
                               _createTextVNode(_toDisplayString(card.enabled ? '已启用' : '已停用'), 1)
@@ -719,7 +776,7 @@ return (_ctx, _cache) => {
                           }, null, 8, ["modelValue", "onUpdate:modelValue"])
                         ])
                       ])
-                    ]))
+                    ], 4))
                   }), 128))
                 ]))
           ]),
@@ -732,6 +789,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a0996f5f"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-5e61d6cf"]]);
 
 export { ConfigView as default };

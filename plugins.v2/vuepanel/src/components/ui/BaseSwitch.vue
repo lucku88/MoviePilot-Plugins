@@ -70,4 +70,9 @@ const emit = defineEmits(['update:modelValue'])
   width: 12px;
   height: 12px;
 }
+
+:deep(.mp-switch .v-switch__track),
+:deep(.mp-switch .v-selection-control--dirty .v-switch__track) {
+  opacity: 1;
+}
 </style>

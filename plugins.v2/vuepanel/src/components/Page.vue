@@ -3,7 +3,7 @@
     <BasePanelCard
       kicker="Vue-面板"
       title="运行监控看板"
-      :subtitle="dashboard.subtitle || `当前主题：${themeLabel}。模块状态、通知和执行记录都在同一套看板里集中查看。`"
+      :subtitle="dashboard.subtitle || `当前主题：${themeLabel}。模块状态、调度和最近执行记录按模块拆开查看。`"
       tone="primary"
       class="board-hero"
     >
@@ -20,8 +20,8 @@
         <BaseTag tone="primary">主题 {{ themeLabel }}</BaseTag>
         <BaseTag tone="info">计划执行 {{ status.next_run_time || dashboard.next_run_time || '未启用' }}</BaseTag>
         <BaseTag tone="info">最近执行 {{ status.last_run || '暂无' }}</BaseTag>
-        <BaseTag tone="success">通知 {{ notifications.length }}</BaseTag>
-        <BaseTag tone="warning">日志 {{ activityLogs.length }}</BaseTag>
+        <BaseTag tone="success">模块 {{ moduleSections.length }}</BaseTag>
+        <BaseTag tone="warning">日志 {{ activityLogCount }}</BaseTag>
       </div>
     </BasePanelCard>
 
@@ -37,7 +37,7 @@
       />
     </section>
 
-    <section class="module-grid">
+    <section class="module-stack">
       <BasePanelCard
         v-for="section in moduleSections"
         :key="section.module_key"
@@ -45,6 +45,7 @@
         :title="`${section.module_icon} ${section.module_name}`"
         :subtitle="moduleSubtitle(section)"
         :tone="section.tone"
+        compact
       >
         <template #actions>
           <div class="module-head-actions">
@@ -54,82 +55,129 @@
           </div>
         </template>
 
-        <EmptyState
-          v-if="!(section.cards || []).length"
-          title="暂无状态卡片"
-          description="当前模块还没有可展示的状态信息。"
-        />
+        <div class="module-layout" :class="{ single: section.singleton }">
+          <div class="task-grid" :class="{ single: section.singleton }">
+            <EmptyState
+              v-if="!(section.cards || []).length"
+              title="暂无状态卡片"
+              description="当前模块还没有可展示的状态信息。"
+            />
 
-        <div v-else class="task-grid" :class="{ single: section.singleton }">
-          <article
-            v-for="card in section.cards"
-            :key="card.card_id"
-            class="task-card"
-          >
-            <div class="task-card-head">
-              <div>
-                <div class="task-card-site">{{ card.site_name }}</div>
-                <div class="task-card-title">{{ card.status_title }}</div>
+            <article
+              v-for="card in section.cards || []"
+              :key="card.card_id"
+              class="task-card"
+              :style="toneStyle(card.tone || section.tone)"
+            >
+              <div class="task-card-head">
+                <div>
+                  <div class="task-card-site">{{ card.site_name }}</div>
+                  <div class="task-card-title">{{ card.status_title }}</div>
+                </div>
+                <BaseTag :tone="levelTone(card.level)" size="sm" dot>{{ levelText(card.level) }}</BaseTag>
               </div>
-              <BaseTag :tone="levelTone(card.level)" size="sm" dot>{{ levelText(card.level) }}</BaseTag>
-            </div>
 
-            <div v-if="!section.singleton" class="task-card-url">{{ card.site_url }}</div>
-            <div class="task-card-summary">{{ card.status_text }}</div>
+              <div v-if="!section.singleton" class="task-card-url">{{ card.site_url }}</div>
+              <div class="task-card-summary">{{ card.status_text }}</div>
 
-            <div v-if="card.metrics?.length" class="metric-grid">
-              <div v-for="metric in card.metrics" :key="`${card.card_id}-${metric.label}`" class="metric-item">
-                <div class="metric-label">{{ metric.label }}</div>
-                <div class="metric-value">{{ metric.value }}</div>
+              <div v-if="card.metrics?.length" class="metric-grid">
+                <div v-for="metric in card.metrics" :key="`${card.card_id}-${metric.label}`" class="metric-item">
+                  <div class="metric-label">{{ metric.label }}</div>
+                  <div class="metric-value">{{ metric.value }}</div>
+                </div>
               </div>
-            </div>
 
-            <div class="tag-row">
-              <BaseTag
-                v-for="tag in card.tags || []"
-                :key="`${card.card_id}-${tag}`"
-                :tone="tagColor(tag)"
-                size="sm"
-              >
-                {{ tag }}
-              </BaseTag>
-            </div>
-
-            <div class="task-meta">
-              <div class="meta-block">
-                <span class="meta-label">上次执行</span>
-                <strong>{{ card.last_run || '未执行' }}</strong>
+              <div class="tag-row">
+                <BaseTag
+                  v-for="tag in card.tags || []"
+                  :key="`${card.card_id}-${tag}`"
+                  :tone="tagColor(tag)"
+                  size="sm"
+                >
+                  {{ tag }}
+                </BaseTag>
               </div>
-              <div class="meta-block">
-                <span class="meta-label">下次计划</span>
-                <strong>{{ scheduleText(card) }}</strong>
+
+              <div v-if="card.detail_lines?.length" class="task-detail">
+                <div v-for="line in card.detail_lines" :key="`${card.card_id}-${line}`" class="detail-line">{{ line }}</div>
               </div>
-            </div>
 
-            <div v-if="card.detail_lines?.length" class="task-detail">
-              <div v-for="line in card.detail_lines" :key="`${card.card_id}-${line}`" class="detail-line">{{ line }}</div>
-            </div>
+              <div class="task-meta">
+                <div class="meta-block">
+                  <span class="meta-label">上次执行</span>
+                  <strong>{{ card.last_run || '未执行' }}</strong>
+                </div>
+                <div class="meta-block">
+                  <span class="meta-label">下次计划</span>
+                  <strong>{{ scheduleText(card) }}</strong>
+                </div>
+              </div>
 
-            <div class="task-actions">
-              <BaseButton size="sm" :loading="runningCardId === card.card_id" @click="runCard(card)">执行</BaseButton>
-              <BaseButton variant="secondary" size="sm" :loading="refreshingCardId === card.card_id" @click="refreshCard(card)">刷新</BaseButton>
-            </div>
-          </article>
+              <div class="task-actions">
+                <BaseButton size="sm" :loading="runningCardId === card.card_id" @click="runCard(card)">执行</BaseButton>
+                <BaseButton variant="secondary" size="sm" :loading="refreshingCardId === card.card_id" @click="refreshCard(card)">刷新</BaseButton>
+              </div>
+            </article>
+          </div>
+
+          <aside class="module-side">
+            <section class="side-block">
+              <div class="side-head">
+                <div class="side-title">通知</div>
+                <BaseTag tone="violet" size="sm">{{ sectionNotifications(section).length }}</BaseTag>
+              </div>
+
+              <div v-if="!sectionNotifications(section).length" class="side-empty">当前模块暂无需要关注的通知。</div>
+
+              <div v-else class="side-list">
+                <article
+                  v-for="item in sectionNotifications(section).slice(0, 4)"
+                  :key="`${section.module_key}-notice-${item.id}`"
+                  class="side-item notice"
+                >
+                  <div class="side-item-head">
+                    <BaseTag :tone="levelTone(item.level)" size="sm" dot>{{ levelText(item.level) }}</BaseTag>
+                    <span class="side-time">{{ item.time }}</span>
+                  </div>
+                  <div class="side-item-title">{{ item.title }}</div>
+                  <div class="side-item-summary">{{ item.summary }}</div>
+                </article>
+              </div>
+            </section>
+
+            <section class="side-block">
+              <div class="side-head">
+                <div class="side-title">最近记录</div>
+                <BaseTag tone="primary" size="sm">{{ sectionLogs(section).length }}</BaseTag>
+              </div>
+
+              <div v-if="!sectionLogs(section).length" class="side-empty">执行或刷新后，最近记录会显示在这里。</div>
+
+              <div v-else class="side-list">
+                <article
+                  v-for="item in sectionLogs(section).slice(0, 6)"
+                  :key="`${section.module_key}-log-${item.id}`"
+                  class="side-item log"
+                >
+                  <div class="side-item-head">
+                    <div class="side-item-title">{{ item.title }}</div>
+                    <span class="side-time">{{ item.time }}</span>
+                  </div>
+                  <div v-if="item.site_name" class="side-item-meta">{{ item.site_name }}</div>
+                  <div class="side-item-summary">{{ item.summary }}</div>
+                  <div v-if="item.lines?.length" class="side-item-detail">{{ item.lines.join(' / ') }}</div>
+                </article>
+              </div>
+            </section>
+          </aside>
         </div>
       </BasePanelCard>
-    </section>
-
-    <section class="feed-grid">
-      <NotificationList :items="notifications" />
-      <ActivityLogList :items="activityLogs" />
     </section>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import ActivityLogList from './blocks/ActivityLogList.vue'
-import NotificationList from './blocks/NotificationList.vue'
 import BaseButton from './ui/BaseButton.vue'
 import BasePanelCard from './ui/BasePanelCard.vue'
 import BaseTag from './ui/BaseTag.vue'
@@ -153,12 +201,23 @@ const message = reactive({ text: '', type: 'success' })
 
 const dashboard = computed(() => status.dashboard || {})
 const moduleSections = computed(() => dashboard.value.module_sections || [])
-const notifications = computed(() => dashboard.value.notifications || [])
-const activityLogs = computed(() => dashboard.value.activity_logs || [])
+const activityLogCount = computed(() => moduleSections.value.reduce((total, section) => total + sectionLogs(section).length, 0))
 
 function flash(text, type = 'success') {
   message.text = text
   message.type = type
+}
+
+function toneStyle(tone) {
+  const map = {
+    emerald: { '--task-tone': '31, 168, 104' },
+    azure: { '--task-tone': '79, 134, 255' },
+    amber: { '--task-tone': '229, 155, 47' },
+    rose: { '--task-tone': '220, 87, 87' },
+    violet: { '--task-tone': '139, 92, 246' },
+    slate: { '--task-tone': '120, 132, 155' },
+  }
+  return map[tone] || map.azure
 }
 
 function statTone(label) {
@@ -190,13 +249,40 @@ function tagColor(tag) {
 
 function moduleSubtitle(section) {
   if (section.latest_run) return `最近一次执行：${section.latest_run}`
-  return section.singleton ? '固定任务卡片，适合快速查看执行和调度状态。' : '多站点模块，适合批量管理同类站点卡片。'
+  return section.singleton ? '固定任务单卡，适合快速查看当前状态和调度信息。' : '显式多站点模块，站点卡之间完全独立。'
 }
 
 function scheduleText(card) {
   if (!card?.auto_run) return '仅手动'
   if (!status.enabled) return '插件停用'
   return card?.next_run_time || 'Cron 无效'
+}
+
+function fallbackLogFromCard(section, card) {
+  const time = card.last_run || card.last_checked || ''
+  if (!time) return null
+  return {
+    id: `fallback-${card.card_id}-${time}`,
+    title: card.status_title || card.site_name || section.module_name,
+    summary: card.status_text || '',
+    level: card.level || 'info',
+    time,
+    lines: card.detail_lines || [],
+    site_name: card.site_name || '',
+    site_url: card.site_url || '',
+  }
+}
+
+function sectionLogs(section) {
+  const logs = Array.isArray(section?.activity_logs) ? section.activity_logs.filter(Boolean) : []
+  if (logs.length) return logs
+  return (section?.cards || []).map((card) => fallbackLogFromCard(section, card)).filter(Boolean)
+}
+
+function sectionNotifications(section) {
+  const notices = Array.isArray(section?.notifications) ? section.notifications.filter(Boolean) : []
+  if (notices.length) return notices
+  return sectionLogs(section).filter((item) => item.level === 'warning' || item.level === 'error').slice(0, 4)
 }
 
 async function loadStatus(showError = true) {
@@ -271,60 +357,62 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-board,
-.stats-grid,
-.module-grid,
-.feed-grid,
-.hero-actions,
-.hero-chips,
-.module-head-actions,
-.tag-row,
-.task-card-head,
-.task-meta,
-.task-actions {
-  display: grid;
-  gap: 12px;
-}
-
 .page-board {
-  gap: 12px;
+  display: grid;
+  gap: 10px;
+  padding-inline: 2px;
 }
 
 .board-hero {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--mp-color-primary) 14%, transparent) 0%, transparent 42%), var(--mp-bg-panel);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mp-color-primary) 12%, transparent) 0%, transparent 44%),
+    var(--mp-bg-panel);
 }
 
 .hero-actions,
 .hero-chips,
 .module-head-actions,
 .tag-row,
-.task-actions {
+.task-actions,
+.task-card-head,
+.task-meta,
+.side-head,
+.side-item-head {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .hero-actions {
   justify-content: flex-end;
 }
 
+.stats-grid,
+.module-stack,
+.module-layout,
+.task-grid,
+.metric-grid,
+.module-side,
+.side-list {
+  display: grid;
+  gap: 10px;
+}
+
 .stats-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.module-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.feed-grid {
-  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+.module-layout {
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.95fr);
   align-items: start;
 }
 
+.module-layout.single {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+}
+
 .task-grid {
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
 }
 
 .task-grid.single {
@@ -332,18 +420,22 @@ onMounted(async () => {
 }
 
 .task-card {
+  --task-tone: 79, 134, 255;
   display: grid;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--mp-border-color);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, rgb(var(--task-tone)) 22%, var(--mp-border-color));
   border-radius: var(--mp-radius-lg);
-  background: color-mix(in srgb, var(--mp-bg-card) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, rgb(var(--task-tone)) 8%, transparent), transparent 42%),
+    color-mix(in srgb, var(--mp-bg-card) 96%, transparent);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--mp-shadow-color) 72%, transparent);
 }
 
 .task-card-head,
-.task-meta {
-  display: flex;
-  gap: 8px;
+.task-meta,
+.side-head,
+.side-item-head {
   justify-content: space-between;
   align-items: flex-start;
 }
@@ -352,78 +444,126 @@ onMounted(async () => {
 .task-card-url,
 .metric-label,
 .meta-label,
-.detail-line {
+.detail-line,
+.side-item-meta,
+.side-item-summary,
+.side-item-detail,
+.side-time,
+.side-empty {
   color: var(--mp-text-secondary);
   font-size: var(--mp-font-sm);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
-.task-card-title {
-  margin-top: 4px;
+.task-card-title,
+.side-item-title {
+  margin-top: 2px;
   font-size: var(--mp-font-lg);
-  font-weight: 800;
+  font-weight: 900;
   color: var(--mp-text-primary);
 }
 
 .task-card-summary {
   font-size: var(--mp-font-md);
-  line-height: 1.7;
+  line-height: 1.6;
   color: var(--mp-text-primary);
 }
 
 .metric-grid {
-  display: grid;
-  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metric-item,
-.meta-block {
+.meta-block,
+.side-block {
   display: grid;
   gap: 4px;
-  padding: 10px 12px;
+  padding: 10px 11px;
   border-radius: var(--mp-radius-md);
-  background: color-mix(in srgb, var(--mp-bg-soft) 60%, transparent);
+  background: color-mix(in srgb, var(--mp-bg-soft) 55%, var(--mp-bg-panel-strong));
+  border: 1px solid color-mix(in srgb, var(--mp-border-color) 76%, transparent);
 }
 
 .metric-value,
 .meta-block strong {
   font-size: var(--mp-font-lg);
-  font-weight: 800;
+  font-weight: 850;
   color: var(--mp-text-primary);
 }
 
 .task-detail {
   display: grid;
-  gap: 6px;
-  padding: 12px;
+  gap: 5px;
+  padding: 10px 11px;
   border-radius: var(--mp-radius-md);
-  background: color-mix(in srgb, var(--mp-bg-soft) 48%, transparent);
+  background: color-mix(in srgb, var(--mp-bg-soft) 42%, transparent);
+}
+
+.module-side {
+  align-content: start;
+}
+
+.side-title {
+  font-size: var(--mp-font-md);
+  font-weight: 850;
+  color: var(--mp-text-primary);
+}
+
+.side-list {
+  gap: 8px;
+}
+
+.side-item {
+  display: grid;
+  gap: 6px;
+  padding: 10px 11px;
+  border-radius: var(--mp-radius-md);
+  border: 1px solid color-mix(in srgb, var(--mp-border-color) 78%, transparent);
+  background: color-mix(in srgb, var(--mp-bg-card) 94%, transparent);
+}
+
+.side-item.notice {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mp-color-secondary) 7%, transparent), transparent 42%),
+    color-mix(in srgb, var(--mp-bg-card) 94%, transparent);
+}
+
+.side-item.log {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mp-color-primary) 7%, transparent), transparent 42%),
+    color-mix(in srgb, var(--mp-bg-card) 94%, transparent);
 }
 
 @media (max-width: 1180px) {
   .stats-grid,
-  .module-grid,
-  .feed-grid,
   .task-grid,
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .module-layout,
+  .module-layout.single {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
+  .page-board {
+    padding-inline: 0;
+  }
+
   .hero-actions,
   .hero-chips,
   .module-head-actions,
   .task-actions,
   .task-card-head,
-  .task-meta {
+  .task-meta,
+  .side-head,
+  .side-item-head {
     justify-content: flex-start;
   }
 
   .stats-grid,
-  .module-grid,
-  .feed-grid,
   .task-grid,
   .metric-grid {
     grid-template-columns: 1fr;

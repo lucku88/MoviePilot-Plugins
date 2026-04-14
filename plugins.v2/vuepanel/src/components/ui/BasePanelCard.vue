@@ -38,11 +38,13 @@ defineProps({
   position: relative;
   overflow: hidden;
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px 14px;
   border: 1px solid var(--mp-border-color);
   border-radius: var(--mp-radius-xl);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--mp-card-accent, var(--mp-color-primary)) 10%, transparent), transparent 58%), var(--mp-bg-panel);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mp-card-accent, var(--mp-color-primary)) 7%, transparent), transparent 42%),
+    var(--mp-bg-panel-strong);
   box-shadow: var(--mp-shadow-card);
   backdrop-filter: blur(16px);
 }
@@ -52,8 +54,17 @@ defineProps({
   position: absolute;
   inset: 0 auto auto 0;
   width: 100%;
-  height: 4px;
-  background: color-mix(in srgb, var(--mp-card-accent, var(--mp-color-primary)) 56%, transparent);
+  height: 3px;
+  background: color-mix(in srgb, var(--mp-card-accent, var(--mp-color-primary)) 40%, transparent);
+}
+
+.mp-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--mp-radius-xl) - 2px);
+  border: 1px solid color-mix(in srgb, white 28%, transparent);
+  pointer-events: none;
 }
 
 .mp-card.is-default {
@@ -87,13 +98,14 @@ defineProps({
 }
 
 .mp-card.compact {
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 12px;
 }
 
 .mp-card-head,
 .mp-card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -115,7 +127,7 @@ defineProps({
 }
 
 .mp-card-title {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-size: var(--mp-font-xl);
   font-weight: 900;
   letter-spacing: -.02em;
@@ -123,10 +135,10 @@ defineProps({
 }
 
 .mp-card-subtitle {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--mp-text-secondary);
   font-size: var(--mp-font-sm);
-  line-height: 1.65;
+  line-height: 1.55;
 }
 
 .mp-card-body,

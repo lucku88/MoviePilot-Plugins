@@ -19,7 +19,7 @@ defineProps({
 
 <style scoped>
 .mp-stat-card {
-  gap: 6px;
+  gap: 4px;
 }
 
 .mp-stat-label {
@@ -29,7 +29,7 @@ defineProps({
 }
 
 .mp-stat-value {
-  font-size: clamp(24px, 3vw, 32px);
+  font-size: clamp(22px, 2.4vw, 28px);
   line-height: 1;
   font-weight: 900;
   letter-spacing: -.03em;

@@ -1,6 +1,6 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 
-const BaseButton_vue_vue_type_style_index_0_scoped_c38b0611_lang = '';
+const BaseButton_vue_vue_type_style_index_0_scoped_42b075ba_lang = '';
 
 const _export_sfc = (sfc, props) => {
   const target = sfc.__vccOpts || sfc;
@@ -10,14 +10,14 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-const {renderSlot:_renderSlot$2,resolveComponent:_resolveComponent$1,mergeProps:_mergeProps$1,withCtx:_withCtx,openBlock:_openBlock$4,createBlock:_createBlock$1} = await importShared('vue');
+const {renderSlot:_renderSlot$2,resolveComponent:_resolveComponent,mergeProps:_mergeProps,withCtx:_withCtx,openBlock:_openBlock$3,createBlock:_createBlock} = await importShared('vue');
 
 
 const {computed} = await importShared('vue');
 
 
 
-const _sfc_main$4 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
+const _sfc_main$3 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
   __name: 'BaseButton',
   props: {
   variant: { type: String, default: 'primary' },
@@ -38,9 +38,9 @@ const resolvedVariant = computed(() => {
 });
 
 return (_ctx, _cache) => {
-  const _component_v_btn = _resolveComponent$1("v-btn");
+  const _component_v_btn = _resolveComponent("v-btn");
 
-  return (_openBlock$4(), _createBlock$1(_component_v_btn, _mergeProps$1(_ctx.$attrs, {
+  return (_openBlock$3(), _createBlock(_component_v_btn, _mergeProps(_ctx.$attrs, {
     class: ['mp-btn', `is-${__props.variant}`, `is-${__props.size}`],
     variant: resolvedVariant.value,
     loading: __props.loading
@@ -54,46 +54,9 @@ return (_ctx, _cache) => {
 }
 
 });
-const BaseButton = /*#__PURE__*/_export_sfc(_sfc_main$4, [['__scopeId',"data-v-c38b0611"]]);
+const BaseButton = /*#__PURE__*/_export_sfc(_sfc_main$3, [['__scopeId',"data-v-42b075ba"]]);
 
-const BaseInput_vue_vue_type_style_index_0_scoped_5d14f09b_lang = '';
-
-const {resolveComponent:_resolveComponent,mergeProps:_mergeProps,openBlock:_openBlock$3,createBlock:_createBlock} = await importShared('vue');
-
-
-
-const _sfc_main$3 = /*#__PURE__*/Object.assign({ inheritAttrs: false }, {
-  __name: 'BaseInput',
-  props: {
-  modelValue: { type: [String, Number], default: '' },
-},
-  emits: ['update:modelValue'],
-  setup(__props, { emit }) {
-
-
-
-
-
-
-
-return (_ctx, _cache) => {
-  const _component_v_text_field = _resolveComponent("v-text-field");
-
-  return (_openBlock$3(), _createBlock(_component_v_text_field, _mergeProps(_ctx.$attrs, {
-    "model-value": __props.modelValue,
-    class: "mp-input",
-    variant: "outlined",
-    density: "comfortable",
-    "hide-details": "auto",
-    "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => (emit('update:modelValue', $event)))
-  }), null, 16, ["model-value"]))
-}
-}
-
-});
-const BaseInput = /*#__PURE__*/_export_sfc(_sfc_main$3, [['__scopeId',"data-v-5d14f09b"]]);
-
-const BasePanelCard_vue_vue_type_style_index_0_scoped_22842125_lang = '';
+const BasePanelCard_vue_vue_type_style_index_0_scoped_f459b691_lang = '';
 
 const {renderSlot:_renderSlot$1,toDisplayString:_toDisplayString$1,openBlock:_openBlock$2,createElementBlock:_createElementBlock$2,createCommentVNode:_createCommentVNode$2,createElementVNode:_createElementVNode$1,normalizeClass:_normalizeClass$1,pushScopeId:_pushScopeId$2,popScopeId:_popScopeId$2} = await importShared('vue');
 const _hoisted_1$2 = {
@@ -176,7 +139,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const BasePanelCard = /*#__PURE__*/_export_sfc(_sfc_main$2, [['__scopeId',"data-v-22842125"]]);
+const BasePanelCard = /*#__PURE__*/_export_sfc(_sfc_main$2, [['__scopeId',"data-v-f459b691"]]);
 
 const BaseTag_vue_vue_type_style_index_0_scoped_74d5f500_lang = '';
 
@@ -247,4 +210,4 @@ return (_ctx, _cache) => {
 };
 const EmptyState = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3d63d7ef"]]);
 
-export { BasePanelCard as B, EmptyState as E, _export_sfc as _, BaseInput as a, BaseTag as b, BaseButton as c };
+export { BasePanelCard as B, EmptyState as E, _export_sfc as _, BaseButton as a, BaseTag as b };

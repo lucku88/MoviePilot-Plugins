@@ -21,7 +21,7 @@ const emit = defineEmits(['update:modelValue'])
 <style scoped>
 :deep(.mp-cron .v-field) {
   border-radius: var(--mp-radius-md);
-  background: color-mix(in srgb, var(--mp-bg-card) 88%, transparent);
+  background: var(--mp-bg-input);
 }
 
 :deep(.mp-cron .v-field__input),

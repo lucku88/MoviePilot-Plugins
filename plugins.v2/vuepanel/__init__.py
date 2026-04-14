@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -818,6 +818,7 @@ class VuePanel(_PluginBase):
         auto_count = 0
         pending_count = 0
         history_items = list(self.get_data("history") or [])
+        display_history_items = history_items if history_items else self._build_state_history_items(states)
 
         for card in self._cards:
             module_meta = self._module_meta(card["module_key"])
@@ -879,9 +880,9 @@ class VuePanel(_PluginBase):
             groups.append(item)
 
         groups.sort(key=lambda item: f"{item['site_name']}|{item['site_url']}".lower())
-        module_sections = self._build_module_sections(groups)
-        notifications = self._build_notification_items(history_items)
-        activity_logs = self._build_activity_logs(history_items)
+        module_sections = self._build_module_sections(groups, display_history_items)
+        notifications = self._build_notification_items(display_history_items)
+        activity_logs = self._build_activity_logs(display_history_items)
 
         overview = [
             {"label": "模块数量", "value": str(len(module_sections))},
@@ -908,20 +909,20 @@ class VuePanel(_PluginBase):
             "notifications": notifications,
             "activity_logs": activity_logs,
             "hidden_count": "0",
-            "history": [],
+            "history": display_history_items[:12],
             "module_options": list(self.MODULES),
             "tone_options": list(self.TONES),
         }
 
-    def _build_module_sections(self, groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        history_map = self._build_module_history_map(self.get_data("history") or [])
+    def _build_module_sections(self, groups: List[Dict[str, Any]], history_items: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+        history_map = self._build_module_history_map(history_items or [])
         bucket: Dict[str, Dict[str, Any]] = {}
         for module_meta in self.MODULES:
             bucket[module_meta["key"]] = {
                 "module_key": module_meta["key"],
                 "module_name": module_meta["label"],
                 "module_icon": module_meta["icon"],
-                "singleton": bool(module_meta.get("singleton")),
+                "singleton": module_meta.get("singleton", True) is not False,
                 "tone": module_meta.get("tone") or "azure",
                 "cards": [],
                 "history": list(history_map.get(module_meta["key"]) or []),
@@ -963,6 +964,36 @@ class VuePanel(_PluginBase):
             ]
             sections.append(section)
         return sections
+
+    def _build_state_history_items(self, states: Dict[str, Dict[str, Any]], limit: int = 20) -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+        for card in self._cards:
+            state = dict(states.get(card["id"]) or {})
+            event_time = str(state.get("last_run") or state.get("last_checked") or "").strip()
+            if not event_time:
+                continue
+            module_meta = self._module_meta(card["module_key"])
+            items.append(
+                {
+                    "id": f"state-{card['id']}-{event_time}",
+                    "time": event_time,
+                    "title": str(state.get("title") or card.get("title") or card.get("site_name") or module_meta["label"]),
+                    "summary": str(state.get("status_text") or ""),
+                    "status_title": str(state.get("status_title") or ""),
+                    "level": str(state.get("level") or "info"),
+                    "lines": [line for line in (state.get("detail_lines") or []) if line],
+                    "card_id": str(state.get("card_id") or card["id"]),
+                    "module_key": str(state.get("module_key") or card["module_key"]),
+                    "module_name": str(state.get("module_name") or module_meta["label"]),
+                    "module_icon": str(state.get("module_icon") or module_meta["icon"]),
+                    "site_name": str(state.get("site_name") or card.get("site_name") or ""),
+                    "site_url": str(state.get("site_url") or card.get("site_url") or ""),
+                    "tags": list(state.get("tags") or self._build_card_tags(card)),
+                }
+            )
+
+        items.sort(key=lambda item: str(item.get("time") or ""), reverse=True)
+        return items[:limit]
 
     def _placeholder_state(self, card: Dict[str, Any]) -> Dict[str, Any]:
         module_meta = self._module_meta(card["module_key"])
@@ -1246,7 +1277,7 @@ class VuePanel(_PluginBase):
         return self.MODULES[0]
 
     def _module_is_singleton(self, module_key: str) -> bool:
-        return bool(self._module_meta(module_key).get("singleton"))
+        return self._module_meta(module_key).get("singleton", True) is not False
 
     def _tone_label(self, tone_key: str) -> str:
         for item in self.TONES:

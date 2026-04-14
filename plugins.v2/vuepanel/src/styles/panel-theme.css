@@ -9,27 +9,31 @@
 
   --mp-color-primary: var(--mp-host-primary);
   --mp-color-secondary: var(--mp-host-secondary);
-  --mp-color-success: #24b36b;
-  --mp-color-warning: #f1a53b;
-  --mp-color-danger: #e45858;
+  --mp-color-success: #1fa868;
+  --mp-color-warning: #e59b2f;
+  --mp-color-danger: #dc5757;
   --mp-color-disabled: #8b97aa;
 
   --mp-bg-page: #eef3fb;
-  --mp-bg-panel: rgba(255, 255, 255, 0.84);
-  --mp-bg-card: rgba(255, 255, 255, 0.94);
-  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 10%, transparent);
-  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 16%, transparent);
+  --mp-bg-panel: rgba(255, 255, 255, 0.86);
+  --mp-bg-panel-strong: rgba(255, 255, 255, 0.94);
+  --mp-bg-card: rgba(255, 255, 255, 0.98);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 8%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 14%, transparent);
+  --mp-bg-input: color-mix(in srgb, var(--mp-bg-card) 94%, transparent);
+  --mp-bg-subtle: color-mix(in srgb, var(--mp-host-on-surface) 4%, transparent);
   --mp-text-primary: #1a2233;
-  --mp-text-secondary: #64748b;
-  --mp-border-color: rgba(15, 23, 42, 0.12);
-  --mp-shadow-color: rgba(15, 23, 42, 0.08);
-  --mp-shadow-panel: 0 20px 48px var(--mp-shadow-color);
-  --mp-shadow-card: 0 16px 36px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
+  --mp-text-secondary: #66758c;
+  --mp-border-color: rgba(15, 23, 42, 0.11);
+  --mp-border-strong: rgba(15, 23, 42, 0.16);
+  --mp-shadow-color: rgba(15, 23, 42, 0.07);
+  --mp-shadow-panel: 0 18px 42px var(--mp-shadow-color);
+  --mp-shadow-card: 0 12px 28px color-mix(in srgb, var(--mp-shadow-color) 84%, transparent);
 
-  --mp-radius-xl: 22px;
-  --mp-radius-lg: 18px;
-  --mp-radius-md: 14px;
-  --mp-radius-sm: 12px;
+  --mp-radius-xl: 20px;
+  --mp-radius-lg: 16px;
+  --mp-radius-md: 12px;
+  --mp-radius-sm: 10px;
 
   --mp-space-1: 4px;
   --mp-space-2: 8px;
@@ -43,14 +47,14 @@
   --mp-font-md: 14px;
   --mp-font-lg: 16px;
   --mp-font-xl: 18px;
-  --mp-font-hero: clamp(26px, 3.8vw, 34px);
+  --mp-font-hero: clamp(24px, 3vw, 32px);
 
   min-height: 100vh;
   color: var(--mp-text-primary);
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--mp-color-primary) 16%, transparent), transparent 32%),
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--mp-color-secondary) 14%, transparent), transparent 28%),
-    linear-gradient(180deg, color-mix(in srgb, var(--mp-bg-page) 92%, white) 0%, var(--mp-bg-page) 100%);
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--mp-color-primary) 9%, transparent), transparent 24%),
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mp-color-secondary) 8%, transparent), transparent 26%),
+    var(--mp-bg-page);
 }
 
 .mp-panel *,
@@ -71,40 +75,50 @@
 
 .mp-panel.mp-theme-light {
   --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 86%, white);
-  --mp-bg-panel: rgba(255, 255, 255, 0.82);
-  --mp-bg-card: rgba(255, 255, 255, 0.96);
-  --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 92%, #0f172a);
+  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 88%, transparent);
+  --mp-bg-panel-strong: color-mix(in srgb, var(--mp-host-surface) 94%, transparent);
+  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 98%, transparent);
+  --mp-bg-input: color-mix(in srgb, var(--mp-host-surface) 96%, transparent);
+  --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 94%, #0f172a);
   --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 52%, #64748b);
-  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 14%, transparent);
-  --mp-shadow-color: rgba(15, 23, 42, 0.08);
+  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 12%, transparent);
+  --mp-border-strong: color-mix(in srgb, var(--mp-host-on-surface) 18%, transparent);
 }
 
 .mp-panel.mp-theme-dark {
-  --mp-color-primary: color-mix(in srgb, var(--mp-host-primary) 74%, #6ea8ff);
-  --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 76%, #b692ff);
-  --mp-bg-page: color-mix(in srgb, #08101f 82%, var(--mp-host-background));
-  --mp-bg-panel: rgba(11, 18, 31, 0.84);
-  --mp-bg-card: rgba(15, 23, 42, 0.94);
+  --mp-color-primary: color-mix(in srgb, var(--mp-host-primary) 74%, #73a7ff);
+  --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 76%, #ba9cff);
+  --mp-bg-page: color-mix(in srgb, #0b1220 84%, var(--mp-host-background));
+  --mp-bg-panel: rgba(13, 20, 34, 0.84);
+  --mp-bg-panel-strong: rgba(15, 23, 42, 0.92);
+  --mp-bg-card: rgba(18, 27, 46, 0.96);
+  --mp-bg-input: rgba(20, 30, 50, 0.92);
   --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
   --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 18%, transparent);
-  --mp-text-primary: #f7f9fc;
+  --mp-bg-subtle: rgba(148, 163, 184, 0.08);
+  --mp-text-primary: #f8fbff;
   --mp-text-secondary: color-mix(in srgb, white 62%, var(--mp-host-muted));
-  --mp-border-color: rgba(148, 163, 184, 0.22);
-  --mp-shadow-color: rgba(0, 0, 0, 0.34);
+  --mp-border-color: rgba(148, 163, 184, 0.16);
+  --mp-border-strong: rgba(148, 163, 184, 0.24);
+  --mp-shadow-color: rgba(0, 0, 0, 0.32);
 }
 
 .mp-panel.mp-theme-purple {
-  --mp-color-primary: color-mix(in srgb, var(--mp-host-secondary) 78%, #c084fc);
-  --mp-color-secondary: color-mix(in srgb, var(--mp-host-primary) 54%, #a855f7);
-  --mp-bg-page: linear-gradient(180deg, #160f23 0%, #1d1530 100%);
-  --mp-bg-panel: rgba(25, 17, 43, 0.88);
-  --mp-bg-card: rgba(34, 22, 56, 0.96);
+  --mp-color-primary: color-mix(in srgb, var(--mp-host-secondary) 80%, #bb86ff);
+  --mp-color-secondary: color-mix(in srgb, var(--mp-host-primary) 56%, #9b87ff);
+  --mp-bg-page: linear-gradient(180deg, #160f24 0%, #1e1631 100%);
+  --mp-bg-panel: rgba(26, 18, 43, 0.86);
+  --mp-bg-panel-strong: rgba(31, 21, 50, 0.92);
+  --mp-bg-card: rgba(39, 27, 61, 0.96);
+  --mp-bg-input: rgba(45, 31, 70, 0.92);
   --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 14%, transparent);
-  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 22%, transparent);
-  --mp-text-primary: #f6ecff;
-  --mp-text-secondary: #c8b8f5;
-  --mp-border-color: rgba(177, 149, 255, 0.22);
-  --mp-shadow-color: rgba(8, 2, 18, 0.4);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 20%, transparent);
+  --mp-bg-subtle: rgba(196, 181, 253, 0.08);
+  --mp-text-primary: #f7efff;
+  --mp-text-secondary: #cdbef7;
+  --mp-border-color: rgba(196, 181, 253, 0.16);
+  --mp-border-strong: rgba(196, 181, 253, 0.24);
+  --mp-shadow-color: rgba(8, 2, 18, 0.36);
 }
 
 .mp-panel.mp-theme-transparent {
@@ -112,12 +126,16 @@
   --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 78%, white);
   --mp-bg-page: transparent;
   --mp-bg-panel: rgba(255, 255, 255, 0.12);
-  --mp-bg-card: rgba(255, 255, 255, 0.18);
+  --mp-bg-panel-strong: rgba(255, 255, 255, 0.18);
+  --mp-bg-card: rgba(255, 255, 255, 0.14);
+  --mp-bg-input: rgba(255, 255, 255, 0.16);
   --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 16%, transparent);
   --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 24%, transparent);
+  --mp-bg-subtle: rgba(255, 255, 255, 0.08);
   --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 84%, white);
   --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 52%, #d7def0);
-  --mp-border-color: rgba(255, 255, 255, 0.2);
+  --mp-border-color: rgba(255, 255, 255, 0.18);
+  --mp-border-strong: rgba(255, 255, 255, 0.24);
   --mp-shadow-color: rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(18px);
 }
@@ -125,20 +143,24 @@
 .mp-panel.mp-theme-custom {
   --mp-color-primary: var(--mp-host-primary);
   --mp-color-secondary: var(--mp-host-secondary);
-  --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 84%, transparent);
-  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 82%, transparent);
-  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 92%, transparent);
-  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 11%, transparent);
-  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 18%, transparent);
+  --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 90%, transparent);
+  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 86%, transparent);
+  --mp-bg-panel-strong: color-mix(in srgb, var(--mp-host-surface) 92%, transparent);
+  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 96%, transparent);
+  --mp-bg-input: color-mix(in srgb, var(--mp-host-surface) 94%, transparent);
+  --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 10%, transparent);
+  --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 16%, transparent);
+  --mp-bg-subtle: color-mix(in srgb, var(--mp-host-on-surface) 4%, transparent);
   --mp-text-primary: var(--mp-host-on-surface);
-  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 56%, transparent);
-  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 16%, transparent);
+  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 58%, transparent);
+  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 12%, transparent);
+  --mp-border-strong: color-mix(in srgb, var(--mp-host-on-surface) 18%, transparent);
 }
 
 .mp-shell {
-  max-width: 1560px;
+  max-width: 1328px;
   margin: 0 auto;
-  padding: 18px 16px 28px;
+  padding: 14px 22px 30px;
 }
 
 .mp-tabs {
@@ -147,20 +169,21 @@
   border-radius: var(--mp-radius-xl);
   background: var(--mp-bg-panel);
   box-shadow: var(--mp-shadow-panel);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
   overflow: hidden;
 }
 
 .mp-tabs :deep(.v-slide-group__content) {
   gap: 6px;
-  padding: 8px;
+  padding: 6px;
 }
 
 .mp-tabs :deep(.v-tab) {
-  min-height: 40px;
+  min-height: 38px;
   border-radius: var(--mp-radius-md);
   color: var(--mp-text-secondary);
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: none;
 }
 
 .mp-tabs :deep(.v-tab.v-tab--selected) {
@@ -179,7 +202,7 @@
 }
 
 .mp-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--mp-color-primary) 32%, transparent);
+  background: color-mix(in srgb, var(--mp-color-primary) 30%, transparent);
   border-radius: 999px;
 }
 
@@ -187,8 +210,14 @@
   background: transparent;
 }
 
+@media (max-width: 900px) {
+  .mp-shell {
+    padding: 12px 14px 24px;
+  }
+}
+
 @media (max-width: 760px) {
   .mp-shell {
-    padding: 12px 10px 22px;
+    padding: 10px 10px 20px;
   }
 }

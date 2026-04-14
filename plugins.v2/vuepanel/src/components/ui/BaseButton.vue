@@ -40,13 +40,13 @@ const resolvedVariant = computed(() => {
 }
 
 .mp-btn.is-primary {
-  background: linear-gradient(135deg, var(--mp-color-primary), color-mix(in srgb, var(--mp-color-primary) 72%, var(--mp-color-secondary)));
+  background: var(--mp-color-primary);
   color: white;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--mp-color-primary) 24%, transparent);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--mp-color-primary) 22%, transparent);
 }
 
 .mp-btn.is-secondary {
-  background: var(--mp-bg-soft);
+  background: color-mix(in srgb, var(--mp-color-primary) 10%, var(--mp-bg-card));
   color: var(--mp-color-primary);
 }
 
@@ -60,14 +60,14 @@ const resolvedVariant = computed(() => {
 }
 
 .mp-btn.is-sm {
-  min-height: 34px;
-  padding-inline: 12px;
+  min-height: 32px;
+  padding-inline: 11px;
   font-size: var(--mp-font-sm);
 }
 
 .mp-btn.is-md {
-  min-height: 38px;
-  padding-inline: 14px;
+  min-height: 36px;
+  padding-inline: 13px;
   font-size: var(--mp-font-md);
 }
 </style>
