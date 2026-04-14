@@ -73,15 +73,16 @@
 
             <div class="vpp-card-copy">
               <div class="vpp-card-title-row">
-                <h2 class="vpp-card-title">{{ card.title }}</h2>
+                <div class="vpp-card-title-group">
+                  <h2 class="vpp-card-title">{{ card.title }}</h2>
+                  <p class="vpp-card-desc">{{ card.module_summary || 'plugin card' }}</p>
+                </div>
                 <span class="vpp-status-pill" :class="`is-${card.status_key}`">{{ card.status_label }}</span>
               </div>
 
-              <p class="vpp-card-desc">{{ card.module_summary || 'plugin card' }}</p>
-
               <div class="vpp-card-meta">
-                <span>{{ card.site_name || card.module_name }}</span>
-                <span>{{ card.site_domain || card.site_url || '--' }}</span>
+                <span class="vpp-card-meta-item">{{ card.site_name || card.module_name }}</span>
+                <span class="vpp-card-meta-item">{{ card.site_domain || card.site_url || '--' }}</span>
               </div>
             </div>
           </div>
@@ -102,18 +103,18 @@
             </div>
           </div>
 
-          <div class="vpp-detail-grid">
-            <div class="vpp-detail-item">
-              <span class="vpp-detail-label">计划</span>
-              <strong>{{ scheduleText(card) }}</strong>
+          <div class="vpp-card-info-stack">
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">计划</div>
+              <div class="vpp-info-value">{{ scheduleText(card) }}</div>
             </div>
-            <div class="vpp-detail-item">
-              <span class="vpp-detail-label">上次执行</span>
-              <strong>{{ card.last_run || '暂无' }}</strong>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">上次执行</div>
+              <div class="vpp-info-value">{{ card.last_run || '暂无' }}</div>
             </div>
-            <div class="vpp-detail-item">
-              <span class="vpp-detail-label">日志</span>
-              <strong>{{ card.log_count || 0 }} 条</strong>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">日志</div>
+              <div class="vpp-info-value">{{ card.log_count || 0 }} 条</div>
             </div>
           </div>
 
@@ -141,9 +142,12 @@
     <v-dialog v-model="dialog.config" max-width="860">
       <v-card class="vpp-dialog-card vpp-dialog-config">
         <div class="vpp-dialog-head">
-          <div>
-            <div class="vpp-kicker">配置</div>
-            <h3 class="vpp-dialog-title">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</h3>
+          <div class="vpp-dialog-title-wrap">
+            <v-icon icon="mdi-cog-outline" size="24" class="vpp-dialog-icon is-config" />
+            <div>
+              <div class="vpp-kicker">配置</div>
+              <h3 class="vpp-dialog-title">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</h3>
+            </div>
           </div>
           <span class="vpp-status-pill" :class="`is-${editor.enabled ? 'enabled' : 'disabled'}`">
             {{ editor.enabled ? '启用' : '停用' }}
@@ -151,68 +155,98 @@
         </div>
 
         <div class="vpp-dialog-body">
+          <div class="vpp-target-info">
+            <div class="vpp-target-name">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</div>
+            <div class="vpp-target-meta">
+              {{ editor.site_name || activeDashboardCard?.site_name || '--' }}
+              ·
+              {{ editor.site_url || activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
+            </div>
+          </div>
+
           <div class="vpp-dialog-banner">
             当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。
           </div>
 
-          <div class="vpp-switch-grid">
-            <label class="vpp-switch-card">
-              <span class="vpp-switch-label">启用功能</span>
-              <v-switch v-model="editor.enabled" hide-details color="primary" density="compact" />
-            </label>
-            <label class="vpp-switch-card">
-              <span class="vpp-switch-label">定时执行</span>
-              <v-switch v-model="editor.auto_run" hide-details color="primary" density="compact" />
-            </label>
-            <label class="vpp-switch-card">
-              <span class="vpp-switch-label">发送通知</span>
-              <v-switch v-model="editor.notify" hide-details color="primary" density="compact" />
-            </label>
+          <div class="vpp-info-stack">
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">功能模块</div>
+              <div class="vpp-info-value">{{ activeDashboardCard?.module_name || editor.module_key }}</div>
+            </div>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">站点地址</div>
+              <div class="vpp-info-value">{{ editor.site_url || activeDashboardCard?.site_url || '--' }}</div>
+            </div>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">调度状态</div>
+              <div class="vpp-info-value">{{ scheduleText(editor) }}</div>
+            </div>
           </div>
 
-          <div class="vpp-form-grid">
-            <v-text-field v-model="editor.title" label="功能名称" variant="outlined" density="comfortable" hide-details="auto" />
-            <v-text-field v-model="editor.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
-            <v-text-field v-model="editor.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
+          <div class="vpp-dialog-panel">
+            <div class="vpp-section-title">功能开关</div>
+            <div class="vpp-switch-grid">
+              <label class="vpp-switch-card">
+                <span class="vpp-switch-label">启用功能</span>
+                <v-switch v-model="editor.enabled" hide-details color="primary" density="compact" />
+              </label>
+              <label class="vpp-switch-card">
+                <span class="vpp-switch-label">定时执行</span>
+                <v-switch v-model="editor.auto_run" hide-details color="primary" density="compact" />
+              </label>
+              <label class="vpp-switch-card">
+                <span class="vpp-switch-label">发送通知</span>
+                <v-switch v-model="editor.notify" hide-details color="primary" density="compact" />
+              </label>
+            </div>
+          </div>
+
+          <div class="vpp-dialog-panel">
+            <div class="vpp-section-title">基础设置</div>
+            <div class="vpp-form-grid">
+              <v-text-field v-model="editor.title" label="功能名称" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field v-model="editor.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field v-model="editor.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field
+                v-if="editor.module_key === 'newapi_checkin'"
+                v-model="editor.uid"
+                label="UID"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              />
+              <v-text-field v-model="editor.cron" label="Cron" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-select
+                v-model="editor.tone"
+                :items="toneSelectItems"
+                item-title="label"
+                item-value="value"
+                label="卡片色调"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              />
+            </div>
+
             <v-text-field
-              v-if="editor.module_key === 'newapi_checkin'"
-              v-model="editor.uid"
-              label="UID"
+              v-model="editor.cookie"
+              label="Cookie"
               variant="outlined"
               density="comfortable"
               hide-details="auto"
+              class="vpp-field-block"
             />
-            <v-text-field v-model="editor.cron" label="Cron" variant="outlined" density="comfortable" hide-details="auto" />
-            <v-select
-              v-model="editor.tone"
-              :items="toneSelectItems"
-              item-title="label"
-              item-value="value"
-              label="卡片色调"
+
+            <v-textarea
+              v-model="editor.note"
+              label="功能描述"
               variant="outlined"
-              density="comfortable"
+              rows="3"
+              auto-grow
               hide-details="auto"
+              class="vpp-field-block"
             />
           </div>
-
-          <v-text-field
-            v-model="editor.cookie"
-            label="Cookie"
-            variant="outlined"
-            density="comfortable"
-            hide-details="auto"
-            class="vpp-field-block"
-          />
-
-          <v-textarea
-            v-model="editor.note"
-            label="功能描述"
-            variant="outlined"
-            rows="3"
-            auto-grow
-            hide-details="auto"
-            class="vpp-field-block"
-          />
         </div>
 
         <div class="vpp-dialog-actions">
@@ -225,9 +259,12 @@
     <v-dialog v-model="dialog.logs" max-width="960">
       <v-card class="vpp-dialog-card vpp-dialog-logs">
         <div class="vpp-dialog-head">
-          <div>
-            <div class="vpp-kicker">日志</div>
-            <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '实时日志' }}</h3>
+          <div class="vpp-dialog-title-wrap">
+            <v-icon icon="mdi-text-box-outline" size="24" class="vpp-dialog-icon is-logs" />
+            <div>
+              <div class="vpp-kicker">日志</div>
+              <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '实时日志' }}</h3>
+            </div>
           </div>
           <div class="vpp-log-state">
             <span class="vpp-live-dot" />
@@ -236,27 +273,47 @@
         </div>
 
         <div class="vpp-dialog-body">
-          <div class="vpp-log-toolbar">
-            <span>{{ activeDashboardCard?.site_name || '--' }}</span>
-            <span>{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</span>
-            <span>最近刷新 {{ lastLogRefresh || '刚刚' }}</span>
+          <div class="vpp-target-info">
+            <div class="vpp-target-name">{{ activeDashboardCard?.title || '实时日志' }}</div>
+            <div class="vpp-target-meta">
+              {{ activeDashboardCard?.site_name || '--' }}
+              ·
+              {{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
+            </div>
           </div>
 
-          <div v-if="!selectedLogs.length" class="vpp-empty-state">
-            当前卡片还没有执行日志，先执行一次或等待下次轮询。
+          <div class="vpp-info-stack">
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">站点</div>
+              <div class="vpp-info-value">{{ activeDashboardCard?.site_name || '--' }}</div>
+            </div>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">地址</div>
+              <div class="vpp-info-value">{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</div>
+            </div>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">最近刷新</div>
+              <div class="vpp-info-value">{{ lastLogRefresh || '刚刚' }}</div>
+            </div>
           </div>
 
-          <div v-else class="vpp-log-list mp-scroll">
-            <article v-for="item in selectedLogs" :key="item.id || `${item.time}-${item.summary}`" class="vpp-log-item">
-              <div class="vpp-log-head">
-                <strong>{{ item.status_title || item.title || activeDashboardCard?.title }}</strong>
-                <span>{{ item.time || '--' }}</span>
-              </div>
-              <p class="vpp-log-summary">{{ item.summary || '暂无详情' }}</p>
-              <div v-if="item.lines?.length" class="vpp-log-lines">
-                <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
-              </div>
-            </article>
+          <div class="vpp-dialog-panel vpp-log-panel">
+            <div v-if="!selectedLogs.length" class="vpp-empty-state">
+              当前卡片还没有执行日志，先执行一次或等待下次轮询。
+            </div>
+
+            <div v-else class="vpp-log-list mp-scroll">
+              <article v-for="item in selectedLogs" :key="item.id || `${item.time}-${item.summary}`" class="vpp-log-item">
+                <div class="vpp-log-head">
+                  <strong>{{ item.status_title || item.title || activeDashboardCard?.title }}</strong>
+                  <span>{{ item.time || '--' }}</span>
+                </div>
+                <p class="vpp-log-summary">{{ item.summary || '暂无详情' }}</p>
+                <div v-if="item.lines?.length" class="vpp-log-lines">
+                  <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
+                </div>
+              </article>
+            </div>
           </div>
         </div>
 
@@ -271,41 +328,60 @@
     <v-dialog v-model="dialog.copy" max-width="680">
       <v-card class="vpp-dialog-card vpp-dialog-copy">
         <div class="vpp-dialog-head">
-          <div>
-            <div class="vpp-kicker">复制</div>
-            <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '复制功能卡片' }}</h3>
+          <div class="vpp-dialog-title-wrap">
+            <v-icon icon="mdi-content-copy" size="24" class="vpp-dialog-icon is-copy" />
+            <div>
+              <div class="vpp-kicker">复制</div>
+              <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '复制功能卡片' }}</h3>
+            </div>
           </div>
         </div>
 
         <div class="vpp-dialog-body">
+          <div class="vpp-target-info">
+            <div class="vpp-target-name">{{ activeDashboardCard?.title || '复制功能卡片' }}</div>
+            <div class="vpp-target-meta">
+              {{ activeDashboardCard?.site_name || '--' }}
+              ·
+              {{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
+            </div>
+          </div>
+
           <div class="vpp-dialog-banner">
             复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。
           </div>
 
-          <div class="vpp-copy-origin">
-            <span>复制来源</span>
-            <strong>{{ activeDashboardCard?.site_name || '--' }}</strong>
-            <span>{{ activeDashboardCard?.module_summary || '--' }}</span>
+          <div class="vpp-info-stack">
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">复制来源</div>
+              <div class="vpp-info-value">{{ activeDashboardCard?.site_name || '--' }}</div>
+            </div>
+            <div class="vpp-info-section">
+              <div class="vpp-info-label">功能说明</div>
+              <div class="vpp-info-value">{{ activeDashboardCard?.module_summary || '--' }}</div>
+            </div>
           </div>
 
-          <v-text-field
-            v-model="copyForm.title"
-            label="复制功能名称"
-            variant="outlined"
-            density="comfortable"
-            hide-details="auto"
-            class="vpp-field-block"
-          />
+          <div class="vpp-dialog-panel">
+            <div class="vpp-section-title">复制设置</div>
+            <v-text-field
+              v-model="copyForm.title"
+              label="复制功能名称"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            />
 
-          <v-textarea
-            v-model="copyForm.note"
-            label="功能描述"
-            variant="outlined"
-            rows="3"
-            auto-grow
-            hide-details="auto"
-            class="vpp-field-block"
-          />
+            <v-textarea
+              v-model="copyForm.note"
+              label="功能描述"
+              variant="outlined"
+              rows="3"
+              auto-grow
+              hide-details="auto"
+              class="vpp-field-block"
+            />
+          </div>
         </div>
 
         <div class="vpp-dialog-actions">
@@ -738,17 +814,19 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .vuepanel-page {
-  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 74%, #151923 26%);
-  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 70%, #1b1f2b 30%);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.045);
+  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 76%, #141a25 24%);
+  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 74%, #181e2a 26%);
+  --vpp-surface-muted: rgba(255, 255, 255, 0.05);
   --vpp-line: rgba(255, 255, 255, 0.09);
-  --vpp-line-strong: rgba(99, 188, 255, 0.38);
+  --vpp-line-strong: rgba(99, 188, 255, 0.34);
   --vpp-blue: #1ea0ff;
   --vpp-blue-soft: rgba(30, 160, 255, 0.14);
   --vpp-purple: #9b5cff;
   --vpp-purple-soft: rgba(155, 92, 255, 0.16);
   --vpp-green: #67df1b;
   --vpp-green-soft: rgba(103, 223, 27, 0.18);
+  --vpp-text-soft: rgba(219, 227, 236, 0.72);
+  --vpp-text-faint: rgba(219, 227, 236, 0.56);
   min-height: 100%;
   padding: 8px 0 20px;
   color: var(--mp-text-primary);
@@ -761,7 +839,9 @@ onBeforeUnmount(() => {
 
 .vpp-shell {
   display: grid;
-  gap: 12px;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .vpp-control-panel,
@@ -771,7 +851,6 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--vpp-line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
   backdrop-filter: blur(18px);
 }
 
@@ -781,18 +860,35 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 14px;
   padding: 16px;
-  border-radius: 18px;
-  background: var(--vpp-surface-soft);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vpp-control-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.3), transparent);
+  animation: vpp-scan 3s infinite;
 }
 
 .vpp-panel-left {
   flex: 1;
   min-width: 0;
+  max-width: 400px;
 }
 
 .vpp-search-field :deep(.v-field) {
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.vpp-search-field :deep(.v-field__outline) {
+  --v-field-border-opacity: 0.1;
 }
 
 .vpp-search-field :deep(.v-field__input),
@@ -804,25 +900,27 @@ onBeforeUnmount(() => {
 .vpp-panel-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .vpp-toolbar-btn {
   min-height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
   background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px);
   color: #8d7cff;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
+  transition: all 0.3s ease;
 }
 
 .vpp-toolbar-btn:hover {
-  border-color: rgba(100, 200, 255, 0.34) !important;
-  box-shadow: 0 0 14px rgba(100, 200, 255, 0.16);
-  background: rgba(100, 200, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(100, 200, 255, 0.3) !important;
+  box-shadow: 0 0 15px rgba(100, 200, 255, 0.2);
 }
 
 .vpp-toolbar-btn.is-icon {
@@ -863,28 +961,47 @@ onBeforeUnmount(() => {
 
 .vpp-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 
 .vpp-stat-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 78px;
   padding: 16px;
-  border-radius: 14px;
-  background: var(--vpp-surface-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+}
+
+.vpp-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(100, 200, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(100, 200, 255, 0.1);
 }
 
 .vpp-stat-icon-wrap {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(100, 200, 255, 0.14), rgba(100, 200, 255, 0.04));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
   color: #7ed3ff;
+  position: relative;
+}
+
+.vpp-stat-icon-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9px;
+  background: linear-gradient(45deg, transparent, rgba(100, 200, 255, 0.2), transparent);
+  z-index: -1;
+  animation: vpp-rotate 4s linear infinite;
 }
 
 .vpp-stat-copy {
@@ -895,28 +1012,39 @@ onBeforeUnmount(() => {
 }
 
 .vpp-stat-value {
-  font-size: 18px;
+  font-size: 1.4rem;
   font-weight: 800;
-  color: #69c9ff;
+  line-height: 1;
+  background: linear-gradient(45deg, #64c8ff, #4080ff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .vpp-stat-label {
-  font-size: 12px;
-  color: var(--mp-text-secondary);
+  font-size: 0.7rem;
+  color: var(--vpp-text-faint);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .vpp-stat-glow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
   width: 6px;
   height: 6px;
-  margin-left: auto;
   border-radius: 999px;
   background: #64c8ff;
-  box-shadow: 0 0 12px rgba(100, 200, 255, 0.85);
+  box-shadow: 0 0 12px #64c8ff;
+  transform: translateY(-50%);
+  animation: vpp-pulse-status 2s infinite;
 }
 
 .vpp-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
@@ -924,13 +1052,14 @@ onBeforeUnmount(() => {
   --vpp-tone-rgb: 67, 126, 255;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 210px;
+  gap: 14px;
+  min-height: 268px;
   padding: 18px;
   border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.02), transparent 55%);
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.03), transparent 62%);
+  border-color: rgba(255, 255, 255, 0.15);
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -952,21 +1081,25 @@ onBeforeUnmount(() => {
 
 .vpp-card:hover {
   transform: translateY(-4px) scale(1.02);
-  border-color: var(--vpp-line-strong);
-  box-shadow: 0 12px 35px rgba(100, 200, 255, 0.14);
+  border-color: rgba(100, 200, 255, 0.4);
+  box-shadow: 0 12px 35px rgba(100, 200, 255, 0.15);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.04), transparent 55%);
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.06), transparent 62%);
 }
 
 .vpp-card.is-enabled {
-  border-left: 3px solid var(--vpp-blue);
-  box-shadow: inset 3px 0 0 rgba(33, 150, 243, 0.18);
+  border-left: 3px solid #4caf50;
+  box-shadow: inset 3px 0 0 rgba(76, 175, 80, 0.2);
+  background:
+    linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(255, 255, 255, 0.03)),
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.03), transparent 62%);
 }
 
 .vpp-card-glow {
   position: absolute;
-  inset: auto -16px 18px auto;
+  top: 24px;
+  right: 18px;
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -979,18 +1112,25 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+  margin-bottom: 2px;
 }
 
 .vpp-logo-wrap {
   position: relative;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.vpp-card:hover .vpp-logo-wrap {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(100, 200, 255, 0.2);
 }
 
 .vpp-logo-wrap::after {
@@ -1009,6 +1149,7 @@ onBeforeUnmount(() => {
 .vpp-card.is-enabled .vpp-logo-wrap::after {
   background: #75dc6f;
   box-shadow: 0 0 10px rgba(117, 220, 111, 0.7);
+  animation: vpp-pulse-dot 2s infinite;
 }
 
 .vpp-logo {
@@ -1030,11 +1171,15 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.vpp-card-title-group {
+  min-width: 0;
+}
+
 .vpp-card-title {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 600;
 }
 
 .vpp-status-pill,
@@ -1061,10 +1206,10 @@ onBeforeUnmount(() => {
 
 .vpp-card-desc {
   margin: 4px 0 0;
-  color: rgba(219, 227, 236, 0.7);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  color: var(--vpp-text-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: lowercase;
 }
 
@@ -1072,16 +1217,26 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
-  color: rgba(219, 227, 236, 0.62);
-  font-size: 12px;
+  margin-top: 8px;
+}
+
+.vpp-card-meta-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--vpp-text-soft);
+  font-size: 11px;
+  line-height: 1;
 }
 
 .vpp-runtime-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: -2px;
 }
 
 .vpp-runtime-pill {
@@ -1113,9 +1268,9 @@ onBeforeUnmount(() => {
 }
 
 .vpp-runtime-text {
-  min-height: 40px;
+  min-height: 38px;
   margin: 0;
-  color: rgba(219, 227, 236, 0.7);
+  color: var(--vpp-text-soft);
   font-size: 12px;
   line-height: 1.65;
   display: -webkit-box;
@@ -1124,44 +1279,20 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.vpp-metric-grid,
-.vpp-note-box {
+.vpp-metric-grid {
   display: none;
 }
 
-.vpp-detail-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-}
-
-.vpp-detail-item {
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.vpp-detail-label,
-.vpp-detail-item strong {
-  display: inline;
-  font-size: 11px;
-}
-
-.vpp-detail-label {
-  color: rgba(219, 227, 236, 0.52);
-}
-
-.vpp-detail-item strong {
-  margin-left: 4px;
-  color: rgba(219, 227, 236, 0.82);
-  font-weight: 600;
+.vpp-card-info-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .vpp-tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: -2px;
+  margin-top: -4px;
 }
 
 .vpp-tag {
@@ -1175,24 +1306,26 @@ onBeforeUnmount(() => {
 }
 
 .vpp-action-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
   margin-top: auto;
 }
 
 .vpp-action-btn,
 .vpp-confirm-btn {
-  min-height: 32px;
-  border-radius: 6px;
+  min-height: 34px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.11) !important;
   background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px);
   text-transform: none;
   font-weight: 700;
   letter-spacing: 0;
+  transition: all 0.3s ease;
 }
 
 .vpp-action-btn {
+  flex: 1;
   color: #8d7cff;
 }
 
@@ -1216,6 +1349,7 @@ onBeforeUnmount(() => {
 .vpp-action-btn :deep(.v-btn__content),
 .vpp-confirm-btn :deep(.v-btn__content) {
   gap: 6px;
+  font-size: 12px;
 }
 
 .vpp-confirm-btn {
@@ -1233,7 +1367,7 @@ onBeforeUnmount(() => {
 .vpp-dialog-card {
   border-radius: 18px !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(20, 23, 33, 0.96) !important;
+  background: color-mix(in srgb, var(--mp-bg-card) 84%, #10141d 16%) !important;
   color: var(--mp-text-primary);
   box-shadow: 0 26px 70px rgba(0, 0, 0, 0.45);
 }
@@ -1243,7 +1377,36 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 24px 10px;
+  padding: 22px 24px 8px;
+}
+
+.vpp-dialog-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.vpp-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.vpp-dialog-icon.is-config {
+  color: #d08cff;
+}
+
+.vpp-dialog-icon.is-logs {
+  color: #64c8ff;
+}
+
+.vpp-dialog-icon.is-copy {
+  color: #b98cff;
 }
 
 .vpp-dialog-title {
@@ -1253,11 +1416,27 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-body {
+  display: grid;
+  gap: 16px;
   padding: 8px 24px 0;
 }
 
+.vpp-target-info {
+  margin-bottom: -2px;
+}
+
+.vpp-target-name {
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+.vpp-target-meta {
+  margin-top: 4px;
+  color: var(--vpp-text-faint);
+  font-size: 0.88rem;
+}
+
 .vpp-dialog-banner {
-  margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 10px;
   border: 1px solid rgba(34, 170, 255, 0.12);
@@ -1274,20 +1453,75 @@ onBeforeUnmount(() => {
   padding: 18px 24px 24px;
 }
 
+.vpp-info-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.vpp-info-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vpp-info-label {
+  color: var(--vpp-text-faint);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.vpp-info-value {
+  color: var(--mp-text-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: right;
+  word-break: break-word;
+}
+
+.vpp-card-info-stack .vpp-info-section {
+  padding: 10px 12px;
+}
+
+.vpp-card-info-stack .vpp-info-label,
+.vpp-card-info-stack .vpp-info-value {
+  font-size: 12px;
+}
+
+.vpp-note-box {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.vpp-dialog-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vpp-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--mp-text-primary);
+}
+
 .vpp-switch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
-}
-
-.vpp-switch-card,
-.vpp-copy-origin,
-.vpp-log-toolbar,
-.vpp-log-item {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
 }
 
 .vpp-switch-card {
@@ -1332,21 +1566,17 @@ onBeforeUnmount(() => {
   color: rgba(235, 240, 247, 0.92);
 }
 
-.vpp-log-state,
-.vpp-copy-origin,
-.vpp-log-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  color: rgba(219, 227, 236, 0.7);
-  font-size: 12px;
-  font-weight: 700;
+.vpp-dialog-card :deep(.v-btn__overlay) {
+  background: transparent;
 }
 
-.vpp-copy-origin,
-.vpp-log-toolbar {
-  padding: 12px 14px;
+.vpp-log-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .vpp-live-dot {
@@ -1358,15 +1588,28 @@ onBeforeUnmount(() => {
   animation: pulse 1.8s ease infinite;
 }
 
+.vpp-log-panel {
+  padding: 14px;
+}
+
 .vpp-log-list {
   display: grid;
   gap: 10px;
-  max-height: 52vh;
+  max-height: 50vh;
   padding-right: 4px;
 }
 
 .vpp-log-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
   padding: 14px;
+  transition: all 0.2s ease;
+}
+
+.vpp-log-item:hover {
+  border-color: rgba(100, 200, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .vpp-log-head {
@@ -1404,10 +1647,54 @@ onBeforeUnmount(() => {
   border: 1px dashed rgba(255, 255, 255, 0.12);
   color: rgba(219, 227, 236, 0.66);
   text-align: center;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .vpp-grid-empty {
   grid-column: 1 / -1;
+}
+
+@keyframes vpp-scan {
+  0%,
+  100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes vpp-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vpp-pulse-status {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.2);
+  }
+}
+
+@keyframes vpp-pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
+  }
 }
 
 @keyframes pulse {
@@ -1452,15 +1739,29 @@ onBeforeUnmount(() => {
   }
 
   .vpp-card-title-row,
-  .vpp-log-head {
+  .vpp-log-head,
+  .vpp-info-section {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .vpp-switch-grid,
-  .vpp-form-grid,
   .vpp-action-row {
+    flex-direction: column;
+  }
+
+  .vpp-switch-grid,
+  .vpp-form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .vpp-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vpp-panel-right {
+    justify-content: center;
   }
 }
 </style>
