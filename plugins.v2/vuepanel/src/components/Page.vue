@@ -46,6 +46,7 @@
           v-for="card in cards"
           :key="card.card_id"
           class="vpp-card"
+          :class="[{ 'is-enabled': card.enabled, 'is-disabled': !card.enabled }, `level-${runtimeTone(card.level)}`]"
           :style="toneStyle(card.tone)"
         >
           <div class="vpp-card-glow" />
@@ -117,16 +118,16 @@
           </div>
 
           <div class="vpp-action-row">
-            <v-btn variant="tonal" @click="openConfigDialog(card)">配置</v-btn>
-            <v-btn variant="tonal" @click="openLogsDialog(card)">日志</v-btn>
-            <v-btn color="primary" variant="flat" @click="openCopyDialog(card)">复制</v-btn>
+            <v-btn class="vpp-action-btn is-config" variant="text" prepend-icon="mdi-cog-outline" @click="openConfigDialog(card)">配置</v-btn>
+            <v-btn class="vpp-action-btn is-logs" variant="text" prepend-icon="mdi-text-box-outline" @click="openLogsDialog(card)">日志</v-btn>
+            <v-btn class="vpp-action-btn is-copy" variant="text" prepend-icon="mdi-content-copy" @click="openCopyDialog(card)">复制</v-btn>
           </div>
         </article>
       </section>
     </div>
 
     <v-dialog v-model="dialog.config" max-width="860">
-      <v-card class="vpp-dialog-card">
+      <v-card class="vpp-dialog-card vpp-dialog-config">
         <div class="vpp-dialog-head">
           <div>
             <div class="vpp-kicker">配置</div>
@@ -138,6 +139,10 @@
         </div>
 
         <div class="vpp-dialog-body">
+          <div class="vpp-dialog-banner">
+            当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。
+          </div>
+
           <div class="vpp-switch-grid">
             <label class="vpp-switch-card">
               <span class="vpp-switch-label">启用功能</span>
@@ -200,13 +205,13 @@
 
         <div class="vpp-dialog-actions">
           <v-btn variant="text" @click="dialog.config = false">取消</v-btn>
-          <v-btn color="primary" variant="flat" :loading="saving.config" @click="saveCardConfig">保存配置</v-btn>
+          <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.config" @click="saveCardConfig">保存配置</v-btn>
         </div>
       </v-card>
     </v-dialog>
 
     <v-dialog v-model="dialog.logs" max-width="960">
-      <v-card class="vpp-dialog-card">
+      <v-card class="vpp-dialog-card vpp-dialog-logs">
         <div class="vpp-dialog-head">
           <div>
             <div class="vpp-kicker">日志</div>
@@ -245,14 +250,14 @@
 
         <div class="vpp-dialog-actions">
           <v-btn variant="text" @click="dialog.logs = false">关闭</v-btn>
-          <v-btn variant="tonal" :loading="loading.cardRefresh" @click="refreshFocusedCard">刷新状态</v-btn>
-          <v-btn color="primary" variant="flat" :loading="loading.cardRun" @click="runFocusedCard">立即执行</v-btn>
+          <v-btn class="vpp-action-btn is-logs" variant="text" prepend-icon="mdi-refresh" :loading="loading.cardRefresh" @click="refreshFocusedCard">刷新状态</v-btn>
+          <v-btn class="vpp-confirm-btn" variant="text" prepend-icon="mdi-play-circle-outline" :loading="loading.cardRun" @click="runFocusedCard">立即执行</v-btn>
         </div>
       </v-card>
     </v-dialog>
 
     <v-dialog v-model="dialog.copy" max-width="680">
-      <v-card class="vpp-dialog-card">
+      <v-card class="vpp-dialog-card vpp-dialog-copy">
         <div class="vpp-dialog-head">
           <div>
             <div class="vpp-kicker">复制</div>
@@ -261,6 +266,10 @@
         </div>
 
         <div class="vpp-dialog-body">
+          <div class="vpp-dialog-banner">
+            复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。
+          </div>
+
           <div class="vpp-copy-origin">
             <span>复制来源</span>
             <strong>{{ activeDashboardCard?.site_name || '--' }}</strong>
@@ -289,7 +298,7 @@
 
         <div class="vpp-dialog-actions">
           <v-btn variant="text" @click="dialog.copy = false">取消</v-btn>
-          <v-btn color="primary" variant="flat" :loading="saving.copy" @click="confirmCopyCard">确定复制</v-btn>
+          <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.copy" @click="confirmCopyCard">确定复制</v-btn>
         </div>
       </v-card>
     </v-dialog>
@@ -691,6 +700,17 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .vuepanel-page {
+  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 74%, #151923 26%);
+  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 70%, #1b1f2b 30%);
+  --vpp-surface-muted: rgba(255, 255, 255, 0.045);
+  --vpp-line: rgba(255, 255, 255, 0.09);
+  --vpp-line-strong: rgba(99, 188, 255, 0.38);
+  --vpp-blue: #1ea0ff;
+  --vpp-blue-soft: rgba(30, 160, 255, 0.14);
+  --vpp-purple: #9b5cff;
+  --vpp-purple-soft: rgba(155, 92, 255, 0.16);
+  --vpp-green: #67df1b;
+  --vpp-green-soft: rgba(103, 223, 27, 0.18);
   min-height: 100%;
   padding: 8px 0 20px;
   color: var(--mp-text-primary);
@@ -703,7 +723,7 @@ onBeforeUnmount(() => {
 
 .vpp-shell {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .vpp-hero,
@@ -712,11 +732,8 @@ onBeforeUnmount(() => {
 .vpp-dialog-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--mp-border-color) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.24));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--mp-bg-panel) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.06)), var(--mp-bg-card)),
-    linear-gradient(135deg, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.08), transparent 42%);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--vpp-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
   backdrop-filter: blur(18px);
 }
 
@@ -724,29 +741,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  padding: 24px;
-  border-radius: 28px;
-}
-
-.vpp-hero::before,
-.vpp-card::before,
-.vpp-dialog-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.2) 48%, transparent 100%);
-  opacity: 0;
-  transform: translateX(-30%);
-  transition: opacity 240ms ease, transform 420ms ease;
-  pointer-events: none;
-}
-
-.vpp-hero:hover::before,
-.vpp-card:hover::before,
-.vpp-dialog-card:hover::before {
-  opacity: 1;
-  transform: translateX(0%);
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: var(--vpp-surface-soft);
 }
 
 .vpp-hero-copy,
@@ -763,17 +761,17 @@ onBeforeUnmount(() => {
 }
 
 .vpp-title {
-  margin: 10px 0 8px;
-  font-size: clamp(28px, 4vw, 42px);
-  line-height: 1.05;
+  margin: 8px 0 6px;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.08;
   letter-spacing: -0.04em;
 }
 
 .vpp-subtitle {
-  max-width: 780px;
+  max-width: 760px;
   margin: 0;
   color: var(--mp-text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -781,18 +779,19 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .vpp-chip {
   display: inline-flex;
   align-items: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-soft) 76%, transparent);
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--vpp-line);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--mp-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -804,37 +803,51 @@ onBeforeUnmount(() => {
   min-width: 260px;
 }
 
+.vpp-hero-actions :deep(.v-btn) {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--vpp-line);
+  background: rgba(255, 255, 255, 0.05);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
 .vpp-alert {
-  border: 1px solid var(--mp-border-color);
+  border: 1px solid var(--vpp-line);
 }
 
 .vpp-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
 .vpp-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 74px;
   padding: 16px 18px;
-  border-radius: 22px;
+  border-radius: 14px;
+  background: var(--vpp-surface-soft);
 }
 
 .vpp-stat-label {
-  display: block;
   font-size: 12px;
   color: var(--mp-text-secondary);
 }
 
 .vpp-stat-value {
-  display: block;
-  margin-top: 10px;
-  font-size: 24px;
-  letter-spacing: -0.04em;
+  font-size: 18px;
+  font-weight: 800;
+  color: #69c9ff;
 }
 
 .vpp-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(296px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 16px;
 }
 
@@ -842,33 +855,60 @@ onBeforeUnmount(() => {
   --vpp-tone-rgb: 67, 126, 255;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 340px;
+  gap: 12px;
+  min-height: 210px;
   padding: 18px;
-  border-radius: 24px;
-  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.02), transparent 55%);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vpp-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.4), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.8s ease;
+}
+
+.vpp-card:hover::before {
+  transform: translateX(100%);
 }
 
 .vpp-card:hover {
-  transform: translateY(-8px);
-  border-color: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.5) 80%, var(--mp-border-strong));
-  box-shadow:
-    0 22px 54px rgba(15, 23, 42, 0.16),
-    0 6px 24px rgba(var(--vpp-tone-rgb), 0.16);
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--vpp-line-strong);
+  box-shadow: 0 12px 35px rgba(100, 200, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.04), transparent 55%);
+}
+
+.vpp-card.is-enabled {
+  border-left: 3px solid var(--vpp-blue);
+  box-shadow: inset 3px 0 0 rgba(33, 150, 243, 0.18);
 }
 
 .vpp-card-glow {
   position: absolute;
-  inset: 0 auto auto 0;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(var(--vpp-tone-rgb), 0.14), transparent 68%);
-  pointer-events: none;
+  inset: auto -16px 18px auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #64c8ff;
+  box-shadow: 0 0 12px rgba(100, 200, 255, 0.85);
+  opacity: 0.9;
 }
 
 .vpp-card-head {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: flex-start;
 }
 
@@ -876,24 +916,41 @@ onBeforeUnmount(() => {
   position: relative;
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.4) 60%, var(--mp-border-color));
-  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.12) 80%, var(--mp-bg-card));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.vpp-logo-wrap::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: #7a7a7a;
+  box-shadow: 0 0 5px rgba(122, 122, 122, 0.4);
+}
+
+.vpp-card.is-enabled .vpp-logo-wrap::after {
+  background: #75dc6f;
+  box-shadow: 0 0 10px rgba(117, 220, 111, 0.7);
 }
 
 .vpp-logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  object-fit: contain;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
 }
 
 .vpp-logo-fallback {
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1;
 }
 
@@ -906,9 +963,9 @@ onBeforeUnmount(() => {
 
 .vpp-card-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 700;
 }
 
 .vpp-status-pill,
@@ -916,183 +973,252 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 11px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .vpp-status-pill.is-enabled {
-  color: #0f8a5a;
-  background: rgba(34, 197, 94, 0.14);
+  color: #ffffff;
+  background: var(--vpp-green);
 }
 
 .vpp-status-pill.is-disabled {
-  color: var(--mp-text-secondary);
-  background: color-mix(in srgb, var(--mp-text-secondary) 12%, transparent);
-}
-
-.vpp-runtime-pill.is-success {
-  color: #0f8a5a;
-  background: rgba(34, 197, 94, 0.14);
-}
-
-.vpp-runtime-pill.is-warning {
-  color: #aa6f00;
-  background: rgba(245, 158, 11, 0.16);
-}
-
-.vpp-runtime-pill.is-danger {
-  color: #bc334d;
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.vpp-runtime-pill.is-info {
-  color: #2557d9;
-  background: rgba(59, 130, 246, 0.15);
+  color: #ffffff;
+  background: rgba(136, 136, 148, 0.88);
 }
 
 .vpp-card-desc {
-  margin: 6px 0 0;
-  color: var(--mp-text-secondary);
-  font-size: 12px;
+  margin: 4px 0 0;
+  color: rgba(219, 227, 236, 0.7);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: lowercase;
 }
 
 .vpp-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
-  margin-top: 8px;
-  color: var(--mp-text-secondary);
+  gap: 6px;
+  margin-top: 6px;
+  color: rgba(219, 227, 236, 0.62);
   font-size: 12px;
 }
 
 .vpp-runtime-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.vpp-runtime-pill {
+  border: 1px solid rgba(30, 160, 255, 0.9);
+  background: rgba(30, 160, 255, 0.08);
+  color: #39b0ff;
+}
+
+.vpp-runtime-pill.is-success {
+  color: #39b0ff;
+}
+
+.vpp-runtime-pill.is-warning {
+  border-color: rgba(255, 190, 70, 0.7);
+  color: #ffbf4b;
+  background: rgba(255, 190, 70, 0.08);
+}
+
+.vpp-runtime-pill.is-danger {
+  border-color: rgba(255, 91, 91, 0.7);
+  color: #ff6969;
+  background: rgba(255, 91, 91, 0.08);
 }
 
 .vpp-runtime-title {
-  font-size: 14px;
-  font-weight: 700;
+  color: var(--mp-text-primary);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .vpp-runtime-text {
-  min-height: 42px;
+  min-height: 40px;
   margin: 0;
-  color: var(--mp-text-secondary);
-  font-size: 13px;
+  color: rgba(219, 227, 236, 0.7);
+  font-size: 12px;
   line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.vpp-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.vpp-metric,
-.vpp-detail-item {
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-card) 92%, rgba(var(--vpp-tone-rgb), 0.05));
-}
-
-.vpp-metric-label,
-.vpp-detail-label {
-  display: block;
-  font-size: 11px;
-  color: var(--mp-text-secondary);
-}
-
-.vpp-metric-value,
-.vpp-detail-item strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 1.45;
+.vpp-metric-grid,
+.vpp-note-box {
+  display: none;
 }
 
 .vpp-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
 }
 
-.vpp-note-box {
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px dashed color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.36) 70%, var(--mp-border-color));
-  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.08) 72%, transparent);
-  color: var(--mp-text-secondary);
-  font-size: 12px;
-  line-height: 1.7;
+.vpp-detail-item {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.vpp-detail-label,
+.vpp-detail-item strong {
+  display: inline;
+  font-size: 11px;
+}
+
+.vpp-detail-label {
+  color: rgba(219, 227, 236, 0.52);
+}
+
+.vpp-detail-item strong {
+  margin-left: 4px;
+  color: rgba(219, 227, 236, 0.82);
+  font-weight: 600;
 }
 
 .vpp-tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  margin-top: -2px;
 }
 
 .vpp-tag {
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-soft) 68%, transparent);
-  color: var(--mp-text-secondary);
-  font-size: 11px;
+  border: 1px solid rgba(30, 160, 255, 0.75);
+  background: rgba(30, 160, 255, 0.08);
+  color: #39b0ff;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .vpp-action-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin-top: auto;
 }
 
+.vpp-action-btn,
+.vpp-confirm-btn {
+  min-height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.vpp-action-btn {
+  color: #8d7cff;
+}
+
+.vpp-action-btn.is-copy {
+  color: #9d7cff;
+}
+
+.vpp-action-btn.is-logs:hover {
+  border-color: rgba(33, 150, 243, 0.5);
+  box-shadow: 0 0 12px rgba(33, 150, 243, 0.22);
+  background: rgba(33, 150, 243, 0.06);
+}
+
+.vpp-action-btn.is-config:hover,
+.vpp-action-btn.is-copy:hover {
+  border-color: rgba(156, 39, 176, 0.5);
+  box-shadow: 0 0 12px rgba(156, 39, 176, 0.22);
+  background: rgba(156, 39, 176, 0.06);
+}
+
+.vpp-action-btn :deep(.v-btn__content),
+.vpp-confirm-btn :deep(.v-btn__content) {
+  gap: 6px;
+}
+
+.vpp-confirm-btn {
+  flex: 0 0 auto;
+  color: #d08cff;
+  border-color: rgba(181, 89, 255, 0.72);
+  background: rgba(155, 92, 255, 0.06);
+}
+
+.vpp-confirm-btn:hover {
+  box-shadow: 0 0 14px rgba(155, 92, 255, 0.24);
+  background: rgba(155, 92, 255, 0.1);
+}
+
 .vpp-dialog-card {
-  border-radius: 28px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 23, 33, 0.96) !important;
   color: var(--mp-text-primary);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.45);
 }
 
 .vpp-dialog-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 24px 12px;
+  padding: 22px 24px 10px;
 }
 
 .vpp-dialog-title {
   margin: 8px 0 0;
-  font-size: 26px;
-  line-height: 1.1;
-  letter-spacing: -0.04em;
+  font-size: 20px;
+  line-height: 1.15;
 }
 
 .vpp-dialog-body {
-  padding: 12px 24px 0;
+  padding: 8px 24px 0;
+}
+
+.vpp-dialog-banner {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 170, 255, 0.12);
+  background: rgba(20, 105, 171, 0.2);
+  color: #7bd0ff;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .vpp-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   padding: 18px 24px 24px;
 }
 
 .vpp-switch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.vpp-switch-card,
+.vpp-copy-origin,
+.vpp-log-toolbar,
+.vpp-log-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
 }
 
 .vpp-switch-card {
@@ -1101,9 +1227,6 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-card) 90%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.05));
 }
 
 .vpp-switch-label {
@@ -1114,12 +1237,30 @@ onBeforeUnmount(() => {
 .vpp-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 16px;
+  gap: 12px;
 }
 
 .vpp-field-block {
-  margin-top: 14px;
+  margin-top: 12px;
+}
+
+.vpp-dialog-card :deep(.v-field) {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vpp-dialog-card :deep(.v-field__overlay) {
+  background: transparent;
+}
+
+.vpp-dialog-card :deep(.v-field__outline) {
+  --v-field-border-opacity: 0.14;
+}
+
+.vpp-dialog-card :deep(.v-label),
+.vpp-dialog-card :deep(.v-field__input),
+.vpp-dialog-card :deep(textarea) {
+  color: rgba(235, 240, 247, 0.92);
 }
 
 .vpp-log-state,
@@ -1129,40 +1270,34 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  color: var(--mp-text-secondary);
+  color: rgba(219, 227, 236, 0.7);
   font-size: 12px;
   font-weight: 700;
+}
+
+.vpp-copy-origin,
+.vpp-log-toolbar {
+  padding: 12px 14px;
 }
 
 .vpp-live-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.18);
+  background: #75dc6f;
+  box-shadow: 0 0 0 6px rgba(117, 220, 111, 0.18);
   animation: pulse 1.8s ease infinite;
-}
-
-.vpp-log-toolbar {
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-soft) 66%, transparent);
 }
 
 .vpp-log-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   max-height: 52vh;
-  padding-right: 6px;
+  padding-right: 4px;
 }
 
 .vpp-log-item {
   padding: 14px;
-  border-radius: 18px;
-  border: 1px solid var(--mp-border-color);
-  background: color-mix(in srgb, var(--mp-bg-card) 92%, rgba(var(--vpp-tone-rgb, 67, 126, 255), 0.04));
 }
 
 .vpp-log-head {
@@ -1174,8 +1309,8 @@ onBeforeUnmount(() => {
 
 .vpp-log-summary {
   margin: 10px 0 0;
-  color: var(--mp-text-secondary);
-  font-size: 13px;
+  color: rgba(219, 227, 236, 0.74);
+  font-size: 12px;
   line-height: 1.7;
 }
 
@@ -1189,16 +1324,16 @@ onBeforeUnmount(() => {
 .vpp-log-line {
   padding: 6px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--mp-text-secondary) 10%, transparent);
-  color: var(--mp-text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(219, 227, 236, 0.72);
   font-size: 11px;
 }
 
 .vpp-empty-state {
   padding: 22px 18px;
-  border-radius: 18px;
-  border: 1px dashed var(--mp-border-color);
-  color: var(--mp-text-secondary);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: rgba(219, 227, 236, 0.66);
   text-align: center;
 }
 
@@ -1224,8 +1359,6 @@ onBeforeUnmount(() => {
     min-width: 0;
   }
 
-  .vpp-metric-grid,
-  .vpp-detail-grid,
   .vpp-switch-grid,
   .vpp-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1251,8 +1384,6 @@ onBeforeUnmount(() => {
     align-items: flex-start;
   }
 
-  .vpp-metric-grid,
-  .vpp-detail-grid,
   .vpp-switch-grid,
   .vpp-form-grid,
   .vpp-action-row {

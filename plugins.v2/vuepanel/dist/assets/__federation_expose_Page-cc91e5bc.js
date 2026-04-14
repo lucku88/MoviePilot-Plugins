@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_20b34ea7_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_31a127f8_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-20b34ea7"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-31a127f8"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuepanel-page" };
 const _hoisted_2 = { class: "vpp-shell" };
 const _hoisted_3 = { class: "vpp-hero" };
@@ -64,46 +64,48 @@ const _hoisted_45 = { class: "vpp-dialog-head" };
 const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "配置", -1));
 const _hoisted_47 = { class: "vpp-dialog-title" };
 const _hoisted_48 = { class: "vpp-dialog-body" };
-const _hoisted_49 = { class: "vpp-switch-grid" };
-const _hoisted_50 = { class: "vpp-switch-card" };
-const _hoisted_51 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
-const _hoisted_52 = { class: "vpp-switch-card" };
-const _hoisted_53 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
-const _hoisted_54 = { class: "vpp-switch-card" };
-const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
-const _hoisted_56 = { class: "vpp-form-grid" };
-const _hoisted_57 = { class: "vpp-dialog-actions" };
-const _hoisted_58 = { class: "vpp-dialog-head" };
-const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
-const _hoisted_60 = { class: "vpp-dialog-title" };
-const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
+const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。 ", -1));
+const _hoisted_50 = { class: "vpp-switch-grid" };
+const _hoisted_51 = { class: "vpp-switch-card" };
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
+const _hoisted_53 = { class: "vpp-switch-card" };
+const _hoisted_54 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
+const _hoisted_55 = { class: "vpp-switch-card" };
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
+const _hoisted_57 = { class: "vpp-form-grid" };
+const _hoisted_58 = { class: "vpp-dialog-actions" };
+const _hoisted_59 = { class: "vpp-dialog-head" };
+const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
+const _hoisted_61 = { class: "vpp-dialog-title" };
+const _hoisted_62 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
   /*#__PURE__*/_createElementVNode("span", { class: "vpp-live-dot" }),
   /*#__PURE__*/_createElementVNode("span", null, "实时轮询中")
 ], -1));
-const _hoisted_62 = { class: "vpp-dialog-body" };
-const _hoisted_63 = { class: "vpp-log-toolbar" };
-const _hoisted_64 = {
+const _hoisted_63 = { class: "vpp-dialog-body" };
+const _hoisted_64 = { class: "vpp-log-toolbar" };
+const _hoisted_65 = {
   key: 0,
   class: "vpp-empty-state"
 };
-const _hoisted_65 = {
+const _hoisted_66 = {
   key: 1,
   class: "vpp-log-list mp-scroll"
 };
-const _hoisted_66 = { class: "vpp-log-head" };
-const _hoisted_67 = { class: "vpp-log-summary" };
-const _hoisted_68 = {
+const _hoisted_67 = { class: "vpp-log-head" };
+const _hoisted_68 = { class: "vpp-log-summary" };
+const _hoisted_69 = {
   key: 0,
   class: "vpp-log-lines"
 };
-const _hoisted_69 = { class: "vpp-dialog-actions" };
-const _hoisted_70 = { class: "vpp-dialog-head" };
-const _hoisted_71 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
-const _hoisted_72 = { class: "vpp-dialog-title" };
-const _hoisted_73 = { class: "vpp-dialog-body" };
-const _hoisted_74 = { class: "vpp-copy-origin" };
-const _hoisted_75 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "复制来源", -1));
-const _hoisted_76 = { class: "vpp-dialog-actions" };
+const _hoisted_70 = { class: "vpp-dialog-actions" };
+const _hoisted_71 = { class: "vpp-dialog-head" };
+const _hoisted_72 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
+const _hoisted_73 = { class: "vpp-dialog-title" };
+const _hoisted_74 = { class: "vpp-dialog-body" };
+const _hoisted_75 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-banner" }, " 复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。 ", -1));
+const _hoisted_76 = { class: "vpp-copy-origin" };
+const _hoisted_77 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "复制来源", -1));
+const _hoisted_78 = { class: "vpp-dialog-actions" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -603,7 +605,7 @@ return (_ctx, _cache) => {
         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cards.value, (card) => {
           return (_openBlock(), _createElementBlock("article", {
             key: card.card_id,
-            class: "vpp-card",
+            class: _normalizeClass(["vpp-card", [{ 'is-enabled': card.enabled, 'is-disabled': !card.enabled }, `level-${runtimeTone(card.level)}`]]),
             style: _normalizeStyle(toneStyle(card.tone))
           }, [
             _hoisted_19,
@@ -680,7 +682,9 @@ return (_ctx, _cache) => {
             ]),
             _createElementVNode("div", _hoisted_44, [
               _createVNode(_component_v_btn, {
-                variant: "tonal",
+                class: "vpp-action-btn is-config",
+                variant: "text",
+                "prepend-icon": "mdi-cog-outline",
                 onClick: $event => (openConfigDialog(card))
               }, {
                 default: _withCtx(() => [
@@ -689,7 +693,9 @@ return (_ctx, _cache) => {
                 _: 2
               }, 1032, ["onClick"]),
               _createVNode(_component_v_btn, {
-                variant: "tonal",
+                class: "vpp-action-btn is-logs",
+                variant: "text",
+                "prepend-icon": "mdi-text-box-outline",
                 onClick: $event => (openLogsDialog(card))
               }, {
                 default: _withCtx(() => [
@@ -698,8 +704,9 @@ return (_ctx, _cache) => {
                 _: 2
               }, 1032, ["onClick"]),
               _createVNode(_component_v_btn, {
-                color: "primary",
-                variant: "flat",
+                class: "vpp-action-btn is-copy",
+                variant: "text",
+                "prepend-icon": "mdi-content-copy",
                 onClick: $event => (openCopyDialog(card))
               }, {
                 default: _withCtx(() => [
@@ -708,7 +715,7 @@ return (_ctx, _cache) => {
                 _: 2
               }, 1032, ["onClick"])
             ])
-          ], 4))
+          ], 6))
         }), 128))
       ])
     ]),
@@ -718,7 +725,7 @@ return (_ctx, _cache) => {
       "max-width": "860"
     }, {
       default: _withCtx(() => [
-        _createVNode(_component_v_card, { class: "vpp-dialog-card" }, {
+        _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-config" }, {
           default: _withCtx(() => [
             _createElementVNode("div", _hoisted_45, [
               _createElementVNode("div", null, [
@@ -730,9 +737,10 @@ return (_ctx, _cache) => {
               }, _toDisplayString(editor.enabled ? '启用' : '停用'), 3)
             ]),
             _createElementVNode("div", _hoisted_48, [
-              _createElementVNode("div", _hoisted_49, [
-                _createElementVNode("label", _hoisted_50, [
-                  _hoisted_51,
+              _hoisted_49,
+              _createElementVNode("div", _hoisted_50, [
+                _createElementVNode("label", _hoisted_51, [
+                  _hoisted_52,
                   _createVNode(_component_v_switch, {
                     modelValue: editor.enabled,
                     "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((editor.enabled) = $event)),
@@ -741,8 +749,8 @@ return (_ctx, _cache) => {
                     density: "compact"
                   }, null, 8, ["modelValue"])
                 ]),
-                _createElementVNode("label", _hoisted_52, [
-                  _hoisted_53,
+                _createElementVNode("label", _hoisted_53, [
+                  _hoisted_54,
                   _createVNode(_component_v_switch, {
                     modelValue: editor.auto_run,
                     "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((editor.auto_run) = $event)),
@@ -751,8 +759,8 @@ return (_ctx, _cache) => {
                     density: "compact"
                   }, null, 8, ["modelValue"])
                 ]),
-                _createElementVNode("label", _hoisted_54, [
-                  _hoisted_55,
+                _createElementVNode("label", _hoisted_55, [
+                  _hoisted_56,
                   _createVNode(_component_v_switch, {
                     modelValue: editor.notify,
                     "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((editor.notify) = $event)),
@@ -762,7 +770,7 @@ return (_ctx, _cache) => {
                   }, null, 8, ["modelValue"])
                 ])
               ]),
-              _createElementVNode("div", _hoisted_56, [
+              _createElementVNode("div", _hoisted_57, [
                 _createVNode(_component_v_text_field, {
                   modelValue: editor.title,
                   "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((editor.title) = $event)),
@@ -838,7 +846,7 @@ return (_ctx, _cache) => {
                 class: "vpp-field-block"
               }, null, 8, ["modelValue"])
             ]),
-            _createElementVNode("div", _hoisted_57, [
+            _createElementVNode("div", _hoisted_58, [
               _createVNode(_component_v_btn, {
                 variant: "text",
                 onClick: _cache[12] || (_cache[12] = $event => (dialog.config = false))
@@ -849,8 +857,8 @@ return (_ctx, _cache) => {
                 _: 1
               }),
               _createVNode(_component_v_btn, {
-                color: "primary",
-                variant: "flat",
+                class: "vpp-confirm-btn",
+                variant: "text",
                 loading: saving.config,
                 onClick: saveCardConfig
               }, {
@@ -872,36 +880,36 @@ return (_ctx, _cache) => {
       "max-width": "960"
     }, {
       default: _withCtx(() => [
-        _createVNode(_component_v_card, { class: "vpp-dialog-card" }, {
+        _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-logs" }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_58, [
+            _createElementVNode("div", _hoisted_59, [
               _createElementVNode("div", null, [
-                _hoisted_59,
-                _createElementVNode("h3", _hoisted_60, _toDisplayString(activeDashboardCard.value?.title || '实时日志'), 1)
+                _hoisted_60,
+                _createElementVNode("h3", _hoisted_61, _toDisplayString(activeDashboardCard.value?.title || '实时日志'), 1)
               ]),
-              _hoisted_61
+              _hoisted_62
             ]),
-            _createElementVNode("div", _hoisted_62, [
-              _createElementVNode("div", _hoisted_63, [
+            _createElementVNode("div", _hoisted_63, [
+              _createElementVNode("div", _hoisted_64, [
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1),
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.site_domain || activeDashboardCard.value?.site_url || '--'), 1),
                 _createElementVNode("span", null, "最近刷新 " + _toDisplayString(lastLogRefresh.value || '刚刚'), 1)
               ]),
               (!selectedLogs.value.length)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_64, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
-                : (_openBlock(), _createElementBlock("div", _hoisted_65, [
+                ? (_openBlock(), _createElementBlock("div", _hoisted_65, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
+                : (_openBlock(), _createElementBlock("div", _hoisted_66, [
                     (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(selectedLogs.value, (item) => {
                       return (_openBlock(), _createElementBlock("article", {
                         key: item.id || `${item.time}-${item.summary}`,
                         class: "vpp-log-item"
                       }, [
-                        _createElementVNode("div", _hoisted_66, [
+                        _createElementVNode("div", _hoisted_67, [
                           _createElementVNode("strong", null, _toDisplayString(item.status_title || item.title || activeDashboardCard.value?.title), 1),
                           _createElementVNode("span", null, _toDisplayString(item.time || '--'), 1)
                         ]),
-                        _createElementVNode("p", _hoisted_67, _toDisplayString(item.summary || '暂无详情'), 1),
+                        _createElementVNode("p", _hoisted_68, _toDisplayString(item.summary || '暂无详情'), 1),
                         (item.lines?.length)
-                          ? (_openBlock(), _createElementBlock("div", _hoisted_68, [
+                          ? (_openBlock(), _createElementBlock("div", _hoisted_69, [
                               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.lines, (line) => {
                                 return (_openBlock(), _createElementBlock("span", {
                                   key: `${item.id}-${line}`,
@@ -914,7 +922,7 @@ return (_ctx, _cache) => {
                     }), 128))
                   ]))
             ]),
-            _createElementVNode("div", _hoisted_69, [
+            _createElementVNode("div", _hoisted_70, [
               _createVNode(_component_v_btn, {
                 variant: "text",
                 onClick: _cache[14] || (_cache[14] = $event => (dialog.logs = false))
@@ -925,7 +933,9 @@ return (_ctx, _cache) => {
                 _: 1
               }),
               _createVNode(_component_v_btn, {
-                variant: "tonal",
+                class: "vpp-action-btn is-logs",
+                variant: "text",
+                "prepend-icon": "mdi-refresh",
                 loading: loading.cardRefresh,
                 onClick: refreshFocusedCard
               }, {
@@ -935,8 +945,9 @@ return (_ctx, _cache) => {
                 _: 1
               }, 8, ["loading"]),
               _createVNode(_component_v_btn, {
-                color: "primary",
-                variant: "flat",
+                class: "vpp-confirm-btn",
+                variant: "text",
+                "prepend-icon": "mdi-play-circle-outline",
                 loading: loading.cardRun,
                 onClick: runFocusedCard
               }, {
@@ -958,17 +969,18 @@ return (_ctx, _cache) => {
       "max-width": "680"
     }, {
       default: _withCtx(() => [
-        _createVNode(_component_v_card, { class: "vpp-dialog-card" }, {
+        _createVNode(_component_v_card, { class: "vpp-dialog-card vpp-dialog-copy" }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_70, [
+            _createElementVNode("div", _hoisted_71, [
               _createElementVNode("div", null, [
-                _hoisted_71,
-                _createElementVNode("h3", _hoisted_72, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
+                _hoisted_72,
+                _createElementVNode("h3", _hoisted_73, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
               ])
             ]),
-            _createElementVNode("div", _hoisted_73, [
-              _createElementVNode("div", _hoisted_74, [
-                _hoisted_75,
+            _createElementVNode("div", _hoisted_74, [
+              _hoisted_75,
+              _createElementVNode("div", _hoisted_76, [
+                _hoisted_77,
                 _createElementVNode("strong", null, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1),
                 _createElementVNode("span", null, _toDisplayString(activeDashboardCard.value?.module_summary || '--'), 1)
               ]),
@@ -992,7 +1004,7 @@ return (_ctx, _cache) => {
                 class: "vpp-field-block"
               }, null, 8, ["modelValue"])
             ]),
-            _createElementVNode("div", _hoisted_76, [
+            _createElementVNode("div", _hoisted_78, [
               _createVNode(_component_v_btn, {
                 variant: "text",
                 onClick: _cache[18] || (_cache[18] = $event => (dialog.copy = false))
@@ -1003,8 +1015,8 @@ return (_ctx, _cache) => {
                 _: 1
               }),
               _createVNode(_component_v_btn, {
-                color: "primary",
-                variant: "flat",
+                class: "vpp-confirm-btn",
+                variant: "text",
                 loading: saving.copy,
                 onClick: confirmCopyCard
               }, {
@@ -1025,6 +1037,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-20b34ea7"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-31a127f8"]]);
 
 export { PageView as default };
