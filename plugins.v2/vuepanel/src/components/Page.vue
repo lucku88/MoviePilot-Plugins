@@ -1044,189 +1044,102 @@ onBeforeUnmount(() => {
 <style scoped>
 .vuepanel-page,
 .vpp-dialog-card {
-  --vpp-theme-rgb: 149, 107, 255;
-  --vpp-accent-rgb: 149, 107, 255;
-  --vpp-surface: rgba(var(--v-theme-surface), 0.92);
-  --vpp-surface-soft: rgba(var(--v-theme-surface), 0.88);
+  --vpp-theme-rgb: var(--v-theme-primary);
+  --vpp-accent-rgb: var(--v-theme-primary);
+  --vpp-surface: rgba(var(--v-theme-surface), 0.96);
+  --vpp-surface-soft: rgba(var(--v-theme-surface), 0.93);
   --vpp-surface-muted: rgba(var(--v-theme-surface-variant), 0.08);
-  --vpp-surface-strong: rgba(var(--v-theme-surface), 0.96);
-  --vpp-line: rgba(var(--v-theme-on-surface), 0.12);
-  --vpp-line-strong: rgba(var(--vpp-theme-rgb), 0.32);
-  --vpp-page-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94)),
-    repeating-linear-gradient(45deg, rgba(var(--vpp-theme-rgb), 0.03), rgba(var(--vpp-theme-rgb), 0.03) 12px, transparent 12px, transparent 24px);
-  --vpp-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.97), rgba(var(--v-theme-surface), 0.94));
-  --vpp-panel-section-bg: linear-gradient(90deg, rgba(var(--vpp-theme-rgb), 0.1), rgba(var(--vpp-theme-rgb), 0.04) 42%, transparent),
-    rgba(var(--v-theme-surface), 0.84);
-  --vpp-stat-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94));
-  --vpp-card-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.05), transparent 72%), rgba(var(--v-theme-surface), 0.96);
-  --vpp-card-hover-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.11), transparent 68%), rgba(var(--v-theme-surface), 0.99);
-  --vpp-note-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), rgba(var(--v-theme-surface-variant), 0.08));
-  --vpp-chip-bg: rgba(var(--v-theme-surface-variant), 0.12);
-  --vpp-field-bg: rgba(var(--v-theme-surface), 0.9);
-  --vpp-toolbar-bg: rgba(var(--v-theme-surface), 0.82);
-  --vpp-button-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.9), rgba(var(--v-theme-surface-variant), 0.08));
-  --vpp-footer-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.05), transparent 84%);
-  --vpp-dialog-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95));
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.95), rgba(var(--v-theme-surface), 0.92));
-  --vpp-card-shadow: 0 16px 34px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
-  --vpp-card-hover-shadow: 0 22px 40px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
-  --vpp-dialog-shadow: 0 26px 70px color-mix(in srgb, var(--mp-shadow-color) 94%, transparent);
-  --vpp-shine-band: rgba(255, 255, 255, 0.14);
-  --vpp-shine-accent: rgba(var(--vpp-theme-rgb), 0.74);
-  --vpp-shine-sweep: rgba(255, 255, 255, 0.08);
+  --vpp-surface-strong: rgba(var(--v-theme-surface), 0.99);
+  --vpp-line: rgba(var(--v-border-color), 0.18);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.24);
+  --vpp-page-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-panel-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-panel-section-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.97), rgba(var(--v-theme-surface), 0.94)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.025), rgba(var(--v-theme-primary), 0.025) 10px, transparent 10px, transparent 20px);
+  --vpp-stat-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.985), rgba(var(--v-theme-surface), 0.955)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-card-bg:
+    linear-gradient(135deg, rgba(var(--v-theme-primary), 0.07), rgba(var(--v-theme-surface), 0.98) 42%, rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.022), rgba(var(--v-theme-primary), 0.022) 10px, transparent 10px, transparent 20px);
+  --vpp-card-hover-bg:
+    linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12), rgba(var(--v-theme-surface), 0.99) 42%, rgba(var(--v-theme-surface), 0.96)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-note-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.035), rgba(var(--v-theme-primary), 0.035) 10px, transparent 10px, transparent 20px);
+  --vpp-chip-bg: rgba(var(--v-theme-primary), 0.08);
+  --vpp-field-bg: rgba(var(--v-theme-surface), 0.92);
+  --vpp-toolbar-bg: rgba(var(--v-theme-surface), 0.9);
+  --vpp-button-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.96), rgba(var(--v-theme-surface), 0.93)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.022), rgba(var(--v-theme-primary), 0.022) 10px, transparent 10px, transparent 20px);
+  --vpp-footer-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.02), rgba(var(--v-theme-primary), 0.02) 10px, transparent 10px, transparent 20px);
+  --vpp-dialog-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-dialog-panel-bg:
+    linear-gradient(to right, rgba(var(--v-theme-surface), 0.97), rgba(var(--v-theme-surface), 0.94)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.025), rgba(var(--v-theme-primary), 0.025) 10px, transparent 10px, transparent 20px);
+  --vpp-card-shadow: 0 1px 2px rgba(var(--v-border-color), 0.05);
+  --vpp-card-hover-shadow: 0 3px 6px rgba(var(--v-border-color), 0.1);
+  --vpp-dialog-shadow: 0 10px 28px rgba(var(--v-border-color), 0.16);
+  --vpp-shine-band: rgba(255, 255, 255, 0.18);
+  --vpp-shine-accent: rgba(var(--v-theme-primary), 0.72);
+  --vpp-shine-sweep: rgba(var(--v-theme-primary), 0.12);
   --vpp-blue: #4ca8ff;
   --vpp-green: #2db870;
   --vpp-yellow: #e9a23b;
   --vpp-red: #e36060;
   --vpp-text: rgb(var(--v-theme-on-surface));
-  --vpp-text-soft: rgba(var(--v-theme-on-surface), 0.82);
-  --vpp-text-faint: rgba(var(--v-theme-on-surface), 0.62);
+  --vpp-text-soft: rgba(var(--v-theme-on-surface), 0.76);
+  --vpp-text-faint: rgba(var(--v-theme-on-surface), 0.58);
   min-height: 100%;
   padding: 8px 0 20px;
   color: var(--vpp-text);
 }
 
-.vuepanel-page.vpp-theme--light,
-.vpp-dialog-card.vpp-theme--light {
-  --vpp-theme-rgb: 150, 108, 255;
-  --vpp-accent-rgb: 150, 108, 255;
-  --vpp-line: rgba(127, 115, 155, 0.18);
-  --vpp-line-strong: rgba(150, 108, 255, 0.36);
-  --vpp-page-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 255, 0.96)),
-    repeating-linear-gradient(45deg, rgba(150, 108, 255, 0.035), rgba(150, 108, 255, 0.035) 12px, transparent 12px, transparent 24px);
-  --vpp-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(251, 248, 255, 0.97));
-  --vpp-panel-section-bg: linear-gradient(90deg, rgba(150, 108, 255, 0.1), rgba(150, 108, 255, 0.05) 42%, rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.86);
-  --vpp-stat-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 243, 255, 0.95));
-  --vpp-card-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.055), transparent 72%), rgba(255, 255, 255, 0.98);
-  --vpp-card-hover-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.12), transparent 68%), rgba(255, 255, 255, 1);
-  --vpp-note-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.08), rgba(244, 239, 255, 0.86));
-  --vpp-chip-bg: rgba(242, 237, 255, 0.88);
-  --vpp-field-bg: rgba(255, 255, 255, 0.94);
-  --vpp-toolbar-bg: rgba(249, 245, 255, 0.94);
-  --vpp-button-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 237, 255, 0.9));
-  --vpp-footer-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.045), rgba(255, 255, 255, 0));
-  --vpp-dialog-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 247, 255, 0.97));
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 242, 255, 0.95));
-  --vpp-card-shadow: 0 16px 34px rgba(82, 64, 128, 0.09);
-  --vpp-card-hover-shadow: 0 22px 40px rgba(82, 64, 128, 0.14);
-  --vpp-dialog-shadow: 0 28px 68px rgba(82, 64, 128, 0.16);
-  --vpp-text: #2e2440;
-  --vpp-text-soft: rgba(46, 36, 64, 0.8);
-  --vpp-text-faint: rgba(100, 86, 126, 0.68);
-  --vpp-shine-band: rgba(255, 255, 255, 0.28);
-  --vpp-shine-sweep: rgba(150, 108, 255, 0.08);
-}
-
 .vuepanel-page.vpp-theme--dark,
 .vpp-dialog-card.vpp-theme--dark {
-  --vpp-theme-rgb: 132, 118, 255;
-  --vpp-accent-rgb: 132, 118, 255;
-  --vpp-surface: rgba(24, 26, 38, 0.96);
-  --vpp-surface-soft: rgba(28, 31, 45, 0.94);
-  --vpp-surface-muted: rgba(104, 95, 150, 0.16);
-  --vpp-surface-strong: rgba(20, 22, 34, 0.98);
-  --vpp-line: rgba(146, 143, 177, 0.2);
-  --vpp-line-strong: rgba(132, 118, 255, 0.36);
-  --vpp-page-bg: linear-gradient(180deg, rgba(24, 26, 38, 0.98), rgba(19, 21, 31, 0.98)),
-    repeating-linear-gradient(45deg, rgba(132, 118, 255, 0.045), rgba(132, 118, 255, 0.045) 12px, transparent 12px, transparent 24px);
-  --vpp-panel-bg: linear-gradient(180deg, rgba(28, 30, 44, 0.98), rgba(22, 24, 36, 0.98));
-  --vpp-panel-section-bg: linear-gradient(90deg, rgba(132, 118, 255, 0.18), rgba(132, 118, 255, 0.08) 44%, transparent),
-    rgba(40, 36, 61, 0.72);
-  --vpp-stat-bg: linear-gradient(180deg, rgba(31, 33, 48, 0.98), rgba(25, 27, 40, 0.98));
-  --vpp-card-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.06), transparent 74%), rgba(28, 30, 44, 0.98);
-  --vpp-card-hover-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.13), transparent 68%), rgba(33, 35, 52, 0.99);
-  --vpp-note-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.1), rgba(31, 33, 49, 0.9));
-  --vpp-chip-bg: rgba(94, 87, 136, 0.28);
-  --vpp-field-bg: rgba(22, 24, 36, 0.92);
-  --vpp-toolbar-bg: rgba(29, 31, 45, 0.92);
-  --vpp-button-bg: linear-gradient(180deg, rgba(34, 36, 52, 0.94), rgba(24, 26, 39, 0.96));
-  --vpp-footer-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.07), rgba(22, 24, 36, 0));
-  --vpp-dialog-bg: linear-gradient(180deg, rgba(29, 31, 45, 0.99), rgba(22, 24, 36, 0.99));
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(29, 31, 45, 0.98), rgba(24, 26, 38, 0.98));
-  --vpp-card-shadow: 0 18px 38px rgba(3, 4, 12, 0.42);
-  --vpp-card-hover-shadow: 0 24px 46px rgba(3, 4, 12, 0.5);
-  --vpp-dialog-shadow: 0 28px 72px rgba(3, 4, 12, 0.58);
-  --vpp-text: #f1efff;
-  --vpp-text-soft: rgba(226, 222, 245, 0.82);
-  --vpp-text-faint: rgba(177, 171, 206, 0.7);
+  --vpp-line: rgba(var(--v-border-color), 0.24);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.28);
+  --vpp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --vpp-card-hover-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+  --vpp-dialog-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
   --vpp-shine-band: rgba(255, 255, 255, 0.1);
-  --vpp-shine-accent: rgba(132, 118, 255, 0.78);
-  --vpp-shine-sweep: rgba(132, 118, 255, 0.1);
+  --vpp-shine-accent: rgba(var(--v-theme-primary), 0.68);
+  --vpp-shine-sweep: rgba(var(--v-theme-primary), 0.08);
 }
 
 .vuepanel-page.vpp-theme--purple,
 .vpp-dialog-card.vpp-theme--purple {
-  --vpp-theme-rgb: 163, 122, 255;
-  --vpp-accent-rgb: 163, 122, 255;
-  --vpp-surface: rgba(60, 47, 101, 0.97);
-  --vpp-surface-soft: rgba(66, 52, 110, 0.95);
-  --vpp-surface-muted: rgba(196, 180, 255, 0.14);
-  --vpp-surface-strong: rgba(55, 43, 93, 0.99);
-  --vpp-line: rgba(209, 196, 240, 0.2);
-  --vpp-line-strong: rgba(163, 122, 255, 0.38);
-  --vpp-page-bg: linear-gradient(180deg, rgba(70, 54, 118, 0.98), rgba(58, 45, 98, 0.98)),
-    repeating-linear-gradient(45deg, rgba(163, 122, 255, 0.05), rgba(163, 122, 255, 0.05) 12px, transparent 12px, transparent 24px);
-  --vpp-panel-bg: linear-gradient(180deg, rgba(69, 54, 116, 0.98), rgba(58, 45, 98, 0.98));
-  --vpp-panel-section-bg: linear-gradient(90deg, rgba(163, 122, 255, 0.2), rgba(163, 122, 255, 0.08) 44%, transparent),
-    rgba(84, 63, 138, 0.5);
-  --vpp-stat-bg: linear-gradient(180deg, rgba(75, 58, 125, 0.98), rgba(61, 48, 104, 0.98));
-  --vpp-card-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.08), transparent 74%), rgba(68, 53, 116, 0.98);
-  --vpp-card-hover-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.16), transparent 68%), rgba(73, 58, 125, 0.99);
-  --vpp-note-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.12), rgba(76, 58, 126, 0.88));
-  --vpp-chip-bg: rgba(126, 96, 193, 0.28);
-  --vpp-field-bg: rgba(67, 52, 112, 0.92);
-  --vpp-toolbar-bg: rgba(76, 58, 124, 0.86);
-  --vpp-button-bg: linear-gradient(180deg, rgba(79, 60, 130, 0.9), rgba(63, 48, 108, 0.96));
-  --vpp-footer-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.08), rgba(60, 47, 101, 0));
-  --vpp-dialog-bg: linear-gradient(180deg, rgba(73, 58, 125, 0.99), rgba(60, 47, 101, 0.99));
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(72, 56, 121, 0.98), rgba(61, 48, 104, 0.98));
-  --vpp-card-shadow: 0 18px 38px rgba(32, 19, 62, 0.36);
-  --vpp-card-hover-shadow: 0 24px 46px rgba(32, 19, 62, 0.42);
-  --vpp-dialog-shadow: 0 30px 78px rgba(32, 19, 62, 0.5);
-  --vpp-text: #f6eeff;
-  --vpp-text-soft: rgba(239, 229, 255, 0.84);
-  --vpp-text-faint: rgba(214, 197, 238, 0.72);
-  --vpp-shine-band: rgba(255, 255, 255, 0.1);
-  --vpp-shine-accent: rgba(163, 122, 255, 0.84);
-  --vpp-shine-sweep: rgba(163, 122, 255, 0.12);
+  --vpp-line: rgba(var(--v-border-color), 0.22);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.3);
+  --vpp-card-shadow: 0 1px 2px rgba(16, 8, 28, 0.16);
+  --vpp-card-hover-shadow: 0 4px 10px rgba(16, 8, 28, 0.22);
+  --vpp-dialog-shadow: 0 14px 34px rgba(16, 8, 28, 0.26);
+  --vpp-shine-band: rgba(255, 255, 255, 0.11);
+  --vpp-shine-accent: rgba(var(--v-theme-primary), 0.74);
+  --vpp-shine-sweep: rgba(var(--v-theme-primary), 0.1);
 }
 
 .vuepanel-page.vpp-theme--transparent,
 .vpp-dialog-card.vpp-theme--transparent {
-  --vpp-theme-rgb: 172, 126, 255;
-  --vpp-accent-rgb: 172, 126, 255;
-  --vpp-surface: rgba(34, 31, 43, 0.84);
-  --vpp-surface-soft: rgba(31, 28, 40, 0.8);
-  --vpp-surface-muted: rgba(174, 140, 255, 0.12);
-  --vpp-surface-strong: rgba(28, 25, 36, 0.9);
-  --vpp-line: rgba(194, 186, 212, 0.18);
-  --vpp-line-strong: rgba(172, 126, 255, 0.34);
-  --vpp-page-bg: linear-gradient(180deg, rgba(36, 33, 44, 0.84), rgba(23, 21, 29, 0.88)),
-    repeating-linear-gradient(45deg, rgba(172, 126, 255, 0.045), rgba(172, 126, 255, 0.045) 12px, transparent 12px, transparent 24px);
-  --vpp-panel-bg: linear-gradient(180deg, rgba(40, 36, 50, 0.84), rgba(27, 24, 34, 0.9));
-  --vpp-panel-section-bg: linear-gradient(90deg, rgba(172, 126, 255, 0.18), rgba(172, 126, 255, 0.08) 44%, transparent),
-    rgba(55, 47, 72, 0.34);
-  --vpp-stat-bg: linear-gradient(180deg, rgba(45, 40, 58, 0.84), rgba(31, 28, 39, 0.9));
-  --vpp-card-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.08), transparent 74%), rgba(40, 36, 50, 0.84);
-  --vpp-card-hover-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.14), transparent 68%), rgba(46, 40, 58, 0.9);
-  --vpp-note-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.11), rgba(40, 36, 50, 0.86));
-  --vpp-chip-bg: rgba(90, 74, 121, 0.32);
-  --vpp-field-bg: rgba(33, 30, 42, 0.88);
-  --vpp-toolbar-bg: rgba(41, 36, 50, 0.84);
-  --vpp-button-bg: linear-gradient(180deg, rgba(48, 42, 60, 0.88), rgba(33, 30, 42, 0.94));
-  --vpp-footer-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.08), rgba(28, 25, 36, 0));
-  --vpp-dialog-bg: linear-gradient(180deg, rgba(42, 37, 53, 0.9), rgba(29, 26, 37, 0.94));
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(41, 36, 50, 0.88), rgba(31, 28, 39, 0.92));
-  --vpp-card-shadow: 0 18px 38px rgba(10, 8, 16, 0.34);
-  --vpp-card-hover-shadow: 0 24px 46px rgba(10, 8, 16, 0.42);
-  --vpp-dialog-shadow: 0 30px 76px rgba(10, 8, 16, 0.48);
-  --vpp-text: #f4eef9;
-  --vpp-text-soft: rgba(230, 221, 240, 0.84);
-  --vpp-text-faint: rgba(187, 177, 198, 0.7);
+  --vpp-line: rgba(var(--v-border-color), 0.22);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.28);
+  --vpp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  --vpp-card-hover-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  --vpp-dialog-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
   --vpp-shine-band: rgba(255, 255, 255, 0.09);
-  --vpp-shine-accent: rgba(172, 126, 255, 0.78);
-  --vpp-shine-sweep: rgba(172, 126, 255, 0.12);
+  --vpp-shine-accent: rgba(var(--v-theme-primary), 0.7);
+  --vpp-shine-sweep: rgba(var(--v-theme-primary), 0.08);
 }
 
 .vuepanel-page,
