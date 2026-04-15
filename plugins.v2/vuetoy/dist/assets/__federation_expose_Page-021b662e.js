@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_d1c73e1e_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_b6c6fb1d_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,vModelText:_vModelText,withDirectives:_withDirectives,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-d1c73e1e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-b6c6fb1d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "toy-shell" };
 const _hoisted_2 = { class: "toy-hero" };
 const _hoisted_3 = { class: "toy-copy" };
@@ -226,11 +226,9 @@ const _hoisted_125 = {
   key: 1,
   class: "toy-history-list"
 };
-const _hoisted_126 = { class: "toy-history-top" };
-const _hoisted_127 = {
-  key: 0,
-  class: "toy-history-lines"
-};
+const _hoisted_126 = { class: "toy-history-row" };
+const _hoisted_127 = { class: "toy-history-text" };
+const _hoisted_128 = { class: "toy-history-time" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -378,12 +376,19 @@ function parseDateTime(value) {
   )
 }
 
-function historyTitle(item = {}) {
-  return String(item.title || '').trim() || '任务结果'
-}
-
-function historyDetailLines(item = {}) {
-  return Array.isArray(item.lines) ? item.lines.filter(Boolean) : []
+function historySummary(item = {}) {
+  const parts = [];
+  const title = String(item.title || '').trim();
+  if (title && title !== '任务结果') {
+    parts.push(title);
+  }
+  const lines = Array.isArray(item.lines)
+    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
+    : [];
+  if (lines.length) {
+    parts.push(lines.join(' / '));
+  }
+  return parts.join(' / ')
 }
 
 function cabinetSortScore(item = {}) {
@@ -1446,12 +1451,9 @@ return (_ctx, _cache) => {
                   class: "toy-history-item"
                 }, [
                   _createElementVNode("div", _hoisted_126, [
-                    _createElementVNode("strong", null, _toDisplayString(historyTitle(item)), 1),
-                    _createElementVNode("span", null, _toDisplayString(item.time), 1)
-                  ]),
-                  (historyDetailLines(item).length)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_127, _toDisplayString(historyDetailLines(item).join(' / ')), 1))
-                    : _createCommentVNode("", true)
+                    _createElementVNode("div", _hoisted_127, _toDisplayString(historySummary(item)), 1),
+                    _createElementVNode("span", _hoisted_128, _toDisplayString(item.time), 1)
+                  ])
                 ]))
               }), 128))
             ]))
@@ -1462,6 +1464,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-d1c73e1e"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b6c6fb1d"]]);
 
 export { PageView as default };

@@ -1044,20 +1044,30 @@ class VueToy(_PluginBase):
         lines: List[str] = []
         if collect_names:
             lines.append(f"✅ 收回：{self._count_names(collect_names)}")
-        if place_names:
-            lines.append(f"🎯 展出：{self._count_names(place_names)}")
         if gain_exposure > 0 or gain_magic > 0:
             lines.append(f"💰 收益：曝光+{gain_exposure} 魔力+{gain_magic}")
+        if place_names:
+            lines.append(f"🎯 展出：{self._count_names(place_names)}")
         return lines
 
     def _normalize_summary_line(self, line: str) -> str:
         text = str(line or "").strip()
         replacements = [
+            ("✅ 手动收回：", "✅收回："),
+            ("✅手动收回：", "✅收回："),
             ("✅ 收回：", "✅收回："),
+            ("🎯 手动展出：", "🎯展出："),
+            ("🎯手动展出：", "🎯展出："),
             ("🎯 展出：", "🎯展出："),
+            ("📦 手动购买盲盒：", "📦购买盲盒："),
+            ("📦手动购买盲盒：", "📦购买盲盒："),
             ("💰 收益：", "💰收益："),
             ("📦 购买盲盒：", "📦购买盲盒："),
+            ("🎁 手动开盒：", "🎁开盒："),
+            ("🎁手动开盒：", "🎁开盒："),
             ("🎁 开盒：", "🎁开盒："),
+            ("🪆 手动获得：", "🪆获得："),
+            ("🪆手动获得：", "🪆获得："),
             ("🪆 获得：", "🪆获得："),
             ("⚠️ 本轮中途超时/网络波动，剩余动作稍后自动重试", "⚠️网络波动，剩余动作稍后自动重试"),
         ]
@@ -1074,21 +1084,7 @@ class VueToy(_PluginBase):
         if not normalized_lines:
             return "", []
 
-        title = normalized_lines[0]
-        if manual:
-            replacements = [
-                ("✅收回：", "✅手动收回："),
-                ("🎯展出：", "🎯手动展出："),
-                ("📦购买盲盒：", "📦手动购买盲盒："),
-                ("🎁开盒：", "🎁手动开盒："),
-                ("🪆获得：", "🪆手动获得："),
-            ]
-            for source, target in replacements:
-                if title.startswith(source):
-                    title = title.replace(source, target, 1)
-                    break
-
-        return title, normalized_lines[1:]
+        return normalized_lines[0], normalized_lines[1:]
 
     def _send_report(self, lines: List[str], next_run: Optional[int]):
         normalized_lines = self._normalize_summary_lines(lines)
@@ -1270,11 +1266,19 @@ class VueToy(_PluginBase):
             if not isinstance(item, dict):
                 changed = True
                 continue
-            title = str(item.get("title") or "").strip()
-            lines = [str(line or "").strip() for line in (item.get("lines") or []) if str(line or "").strip()]
+            raw_title = str(item.get("title") or "").strip()
+            raw_lines = [str(line or "").strip() for line in (item.get("lines") or []) if str(line or "").strip()]
+            title = self._normalize_summary_line(raw_title) if raw_title else ""
+            lines = self._normalize_summary_lines(raw_lines)
+            if title != raw_title or lines != raw_lines:
+                changed = True
             if not title and not lines:
                 changed = True
                 continue
+            if (not title or title == "任务结果") and lines:
+                title = lines[0]
+                lines = lines[1:]
+                changed = True
             if title == "任务结果" and not lines:
                 changed = True
                 continue

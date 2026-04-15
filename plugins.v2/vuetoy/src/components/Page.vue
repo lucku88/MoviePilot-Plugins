@@ -333,11 +333,10 @@
         <div v-if="!historyItems.length" class="toy-empty">暂无执行历史</div>
         <div v-else class="toy-history-list">
           <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="toy-history-item">
-            <div class="toy-history-top">
-              <strong>{{ historyTitle(item) }}</strong>
-              <span>{{ item.time }}</span>
+            <div class="toy-history-row">
+              <div class="toy-history-text">{{ historySummary(item) }}</div>
+              <span class="toy-history-time">{{ item.time }}</span>
             </div>
-            <div v-if="historyDetailLines(item).length" class="toy-history-lines">{{ historyDetailLines(item).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -482,12 +481,19 @@ function parseDateTime(value) {
   )
 }
 
-function historyTitle(item = {}) {
-  return String(item.title || '').trim() || '任务结果'
-}
-
-function historyDetailLines(item = {}) {
-  return Array.isArray(item.lines) ? item.lines.filter(Boolean) : []
+function historySummary(item = {}) {
+  const parts = []
+  const title = String(item.title || '').trim()
+  if (title && title !== '任务结果') {
+    parts.push(title)
+  }
+  const lines = Array.isArray(item.lines)
+    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
+    : []
+  if (lines.length) {
+    parts.push(lines.join(' / '))
+  }
+  return parts.join(' / ')
 }
 
 function cabinetSortScore(item = {}) {
@@ -1789,35 +1795,27 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, rgba(124, 92, 255, 0.54) 0%, rgba(99, 102, 241, 0.18) 100%);
 }
 
-.toy-history-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.toy-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: start;
 }
 
-.toy-history-top strong {
-  flex: 1;
+.toy-history-text {
   min-width: 0;
   font-size: 14px;
   line-height: 1.45;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--toy-text);
+  overflow-wrap: anywhere;
 }
 
-.toy-history-top span {
-  flex-shrink: 0;
+.toy-history-time {
   white-space: nowrap;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--toy-text-soft);
-}
-
-.toy-history-lines {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.7;
-  color: var(--toy-text-soft);
+  text-align: right;
 }
 
 @media (max-width: 1100px) {
@@ -1875,11 +1873,6 @@ onBeforeUnmount(() => {
     justify-content: flex-start;
   }
 
-  .toy-history-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
 }
 
 .toy-cabinet-grid > *,
