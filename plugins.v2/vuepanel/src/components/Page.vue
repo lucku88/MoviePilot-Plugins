@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="vuepanel-page" :class="themeClass">
+  <div ref="rootEl" class="vuepanel-page" :class="themeClass">
     <div class="vpp-shell">
       <header class="vpp-control-panel">
         <div class="vpp-panel-left">
@@ -338,6 +338,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import BaseCronField from './ui/BaseCronField.vue'
+import { usePanelTheme } from '../composables/usePanelTheme'
 
 const DEFAULT_CRON = '5 8 * * *'
 
@@ -371,12 +372,19 @@ const lastLogRefresh = ref('')
 const searchQuery = ref('')
 const deletingCardId = ref('')
 const logCardSeed = ref(null)
+const rootEl = ref(null)
 
 let logTimer = null
 
+const { themeName: detectedThemeName } = usePanelTheme(rootEl)
 const themeValue = computed(() => String(props.themeName || 'light').toLowerCase())
-const resolvedThemeName = computed(() => (themeValue.value === 'custom' ? 'light' : themeValue.value))
-const themeClass = computed(() => `v-theme--${resolvedThemeName.value}`)
+const fallbackThemeName = computed(() => (themeValue.value === 'custom' ? 'light' : themeValue.value))
+const resolvedThemeName = computed(() => {
+  const detected = String(detectedThemeName.value || '').toLowerCase()
+  if (['light', 'dark', 'purple', 'transparent'].includes(detected)) return detected
+  return fallbackThemeName.value
+})
+const themeClass = computed(() => `vpp-theme--${resolvedThemeName.value}`)
 
 const dashboard = computed(() => status.dashboard || {})
 const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
@@ -1078,8 +1086,8 @@ onBeforeUnmount(() => {
   color: var(--vpp-text);
 }
 
-.vuepanel-page.v-theme--light,
-.vpp-dialog-card.v-theme--light {
+.vuepanel-page.vpp-theme--light,
+.vpp-dialog-card.vpp-theme--light {
   --vpp-theme-rgb: 150, 108, 255;
   --vpp-accent-rgb: 150, 108, 255;
   --vpp-line: rgba(127, 115, 155, 0.18);
@@ -1110,8 +1118,8 @@ onBeforeUnmount(() => {
   --vpp-shine-sweep: rgba(150, 108, 255, 0.08);
 }
 
-.vuepanel-page.v-theme--dark,
-.vpp-dialog-card.v-theme--dark {
+.vuepanel-page.vpp-theme--dark,
+.vpp-dialog-card.vpp-theme--dark {
   --vpp-theme-rgb: 132, 118, 255;
   --vpp-accent-rgb: 132, 118, 255;
   --vpp-surface: rgba(24, 26, 38, 0.96);
@@ -1147,8 +1155,8 @@ onBeforeUnmount(() => {
   --vpp-shine-sweep: rgba(132, 118, 255, 0.1);
 }
 
-.vuepanel-page.v-theme--purple,
-.vpp-dialog-card.v-theme--purple {
+.vuepanel-page.vpp-theme--purple,
+.vpp-dialog-card.vpp-theme--purple {
   --vpp-theme-rgb: 163, 122, 255;
   --vpp-accent-rgb: 163, 122, 255;
   --vpp-surface: rgba(60, 47, 101, 0.97);
@@ -1184,8 +1192,8 @@ onBeforeUnmount(() => {
   --vpp-shine-sweep: rgba(163, 122, 255, 0.12);
 }
 
-.vuepanel-page.v-theme--transparent,
-.vpp-dialog-card.v-theme--transparent {
+.vuepanel-page.vpp-theme--transparent,
+.vpp-dialog-card.vpp-theme--transparent {
   --vpp-theme-rgb: 172, 126, 255;
   --vpp-accent-rgb: 172, 126, 255;
   --vpp-surface: rgba(34, 31, 43, 0.84);

@@ -43,12 +43,128 @@ return (_ctx, _cache) => {
 });
 const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-1ed25d38"]]);
 
-const Page_vue_vue_type_style_index_0_scoped_05f022f7_lang = '';
+const {computed: computed$1,onBeforeUnmount: onBeforeUnmount$1,onMounted: onMounted$1,reactive: reactive$1,ref: ref$1} = await importShared('vue');
+
+
+const THEME_MAP = [
+  { match: /transparent|glass|blur|透明/i, value: 'transparent', label: '透明' },
+  { match: /purple|violet|fantasy|幻紫/i, value: 'purple', label: '幻紫' },
+  { match: /dark|night|深色/i, value: 'dark', label: '深色' },
+  { match: /light|浅色/i, value: 'light', label: '浅色' },
+];
+
+function parseColorToken(value, fallback) {
+  const text = String(value || '').trim();
+  if (!text) return fallback
+  if (/^\d+\s*,\s*\d+\s*,\s*\d+/.test(text)) return `rgb(${text})`
+  return text
+}
+
+function luminanceFromColor(color) {
+  const match = String(color || '').match(/rgba?\(([^)]+)\)/i);
+  if (!match) return 255
+  const [r, g, b] = match[1].split(',').slice(0, 3).map((item) => Number.parseFloat(item.trim()) || 0);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+function usePanelTheme(rootEl) {
+  const themeName = ref$1('light');
+  const themeLabel = ref$1('浅色');
+  const themeStyle = reactive$1({});
+
+  let themeObserver = null;
+  let mediaQuery = null;
+
+  function resolveThemeNode() {
+    let current = rootEl?.value;
+    while (current) {
+      if (current.getAttribute?.('data-theme')) return current
+      const cls = String(current.className || '').toLowerCase();
+      if (cls.includes('theme') || cls.includes('v-theme--') || cls.includes('dark') || cls.includes('light') || cls.includes('purple') || cls.includes('transparent')) {
+        return current
+      }
+      current = current.parentElement;
+    }
+    return document.body || document.documentElement
+  }
+
+  function resolveThemeValue(node) {
+    const raw = `${node?.getAttribute?.('data-theme') || ''} ${node?.className || ''}`.trim();
+    for (const item of THEME_MAP) {
+      if (item.match.test(raw)) return item
+    }
+    return null
+  }
+
+  function readHostColor(node, names, fallback) {
+    const style = window.getComputedStyle(node);
+    for (const name of names) {
+      const value = style.getPropertyValue(name);
+      if (value) return parseColorToken(value, fallback)
+    }
+    return fallback
+  }
+
+  function updateTheme() {
+    const node = resolveThemeNode();
+    const detected = resolveThemeValue(node);
+    const style = window.getComputedStyle(node);
+    const pageBg = parseColorToken(style.backgroundColor, '#eef3fb');
+    const text = parseColorToken(style.color, '#182132');
+    const prefersDark = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+    if (detected) {
+      themeName.value = detected.value;
+      themeLabel.value = detected.label;
+    } else {
+      const bgLuminance = luminanceFromColor(pageBg);
+      themeName.value = bgLuminance < 140 || prefersDark ? 'dark' : 'custom';
+      themeLabel.value = themeName.value === 'dark' ? '深色' : '自定义';
+    }
+
+    themeStyle['--mp-host-primary'] = readHostColor(node, ['--v-theme-primary', '--theme-primary'], '#4f86ff');
+    themeStyle['--mp-host-secondary'] = readHostColor(node, ['--v-theme-secondary', '--theme-secondary'], '#8b5cf6');
+    themeStyle['--mp-host-surface'] = readHostColor(node, ['--v-theme-surface', '--theme-surface'], '#ffffff');
+    themeStyle['--mp-host-background'] = readHostColor(node, ['--v-theme-background', '--theme-background'], pageBg);
+    themeStyle['--mp-host-on-surface'] = readHostColor(node, ['--v-theme-on-surface', '--theme-on-surface'], text);
+    themeStyle['--mp-host-muted'] = readHostColor(node, ['--v-theme-on-surface-variant', '--theme-muted'], '#64748b');
+    themeStyle['--mp-host-outline'] = readHostColor(node, ['--v-border-color', '--theme-border'], 'rgba(15, 23, 42, 0.14)');
+  }
+
+  function bindThemeObserver() {
+    updateTheme();
+    if (window.MutationObserver) {
+      themeObserver = new MutationObserver(updateTheme)
+      ;[resolveThemeNode(), document.documentElement, document.body].filter(Boolean).forEach((node) => {
+        themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+      });
+    }
+    if (window.matchMedia) {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener?.('change', updateTheme);
+    }
+  }
+
+  onMounted$1(bindThemeObserver);
+  onBeforeUnmount$1(() => {
+    themeObserver?.disconnect?.();
+    mediaQuery?.removeEventListener?.('change', updateTheme);
+  });
+
+  return {
+    themeName,
+    themeLabel,
+    themeStyle,
+    themeClass: computed$1(() => `mp-theme-${themeName.value}`),
+  }
+}
+
+const Page_vue_vue_type_style_index_0_scoped_757c56d0_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-05f022f7"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-757c56d0"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -209,12 +325,19 @@ const lastLogRefresh = ref('');
 const searchQuery = ref('');
 const deletingCardId = ref('');
 const logCardSeed = ref(null);
+const rootEl = ref(null);
 
 let logTimer = null;
 
+const { themeName: detectedThemeName } = usePanelTheme(rootEl);
 const themeValue = computed(() => String(props.themeName || 'light').toLowerCase());
-const resolvedThemeName = computed(() => (themeValue.value === 'custom' ? 'light' : themeValue.value));
-const themeClass = computed(() => `v-theme--${resolvedThemeName.value}`);
+const fallbackThemeName = computed(() => (themeValue.value === 'custom' ? 'light' : themeValue.value));
+const resolvedThemeName = computed(() => {
+  const detected = String(detectedThemeName.value || '').toLowerCase();
+  if (['light', 'dark', 'purple', 'transparent'].includes(detected)) return detected
+  return fallbackThemeName.value
+});
+const themeClass = computed(() => `vpp-theme--${resolvedThemeName.value}`);
 
 const dashboard = computed(() => status.dashboard || {});
 const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : []);
@@ -881,6 +1004,8 @@ return (_ctx, _cache) => {
   const _component_v_dialog = _resolveComponent("v-dialog");
 
   return (_openBlock(), _createElementBlock("div", {
+    ref_key: "rootEl",
+    ref: rootEl,
     class: _normalizeClass(["vuepanel-page", themeClass.value])
   }, [
     _createElementVNode("div", _hoisted_1, [
@@ -1434,6 +1559,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-05f022f7"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-757c56d0"]]);
 
-export { _export_sfc as _, PageView as default };
+export { _export_sfc as _, PageView as default, usePanelTheme as u };
