@@ -171,9 +171,6 @@
                 hide-details="auto"
               />
               <template v-if="editor.module_key === 'siqi_dineout'">
-                <div class="vpp-form-hint vpp-field-span-2">
-                  按早餐 / 中餐 / 晚餐顺序前往填写的用户名，留空会自动跳过。
-                </div>
                 <v-text-field
                   v-model="editor.breakfast_target"
                   label="早餐用户名"
@@ -556,9 +553,9 @@ function getCardId(card) {
   return String(card?.id || card?.card_id || '')
 }
 
-function normalizeCard(source = {}, options = {}) {
-  const meta = moduleMeta(String(source.module_key || source.module || 'siqi_sign'))
-  const toneValues = new Set((panelConfig.value.tone_options || []).map((item) => item.key))
+function normalizeCardWithMeta(source = {}, metaSource = null, toneOptions = null, options = {}) {
+  const meta = metaSource || moduleMeta(String(source.module_key || source.module || 'siqi_sign'))
+  const toneValues = new Set((toneOptions || panelConfig.value.tone_options || []).map((item) => item.key))
   const tone = toneValues.has(source.tone) ? source.tone : (meta.tone || 'azure')
   return {
     id: String(options.newId ? nextCardId(meta.key) : (source.id || source.card_id || nextCardId(meta.key))),
@@ -580,6 +577,10 @@ function normalizeCard(source = {}, options = {}) {
   }
 }
 
+function normalizeCard(source = {}, options = {}) {
+  return normalizeCardWithMeta(source, null, null, options)
+}
+
 function normalizeConfig(source = {}) {
   const next = createEmptyConfig()
   next.enabled = source.enabled !== false
@@ -593,7 +594,27 @@ function normalizeConfig(source = {}) {
   next.random_delay_max_seconds = Number(source.random_delay_max_seconds || 5)
   next.module_options = Array.isArray(source.module_options) ? deepClone(source.module_options) : []
   next.tone_options = Array.isArray(source.tone_options) ? deepClone(source.tone_options) : []
-  next.cards = Array.isArray(source.cards) ? source.cards.map((item) => normalizeCard(item)) : []
+  next.cards = Array.isArray(source.cards)
+    ? source.cards.map((item) => {
+      const meta = next.module_options.find((module) => module.key === String(item.module_key || item.module || 'siqi_sign')) || null
+      return normalizeCardWithMeta(item, meta, next.tone_options)
+    })
+    : []
+  for (const meta of next.module_options) {
+    if (next.cards.some((item) => item.module_key === meta.key)) continue
+    next.cards.push(normalizeCardWithMeta({
+      module_key: meta.key,
+      title: meta.label,
+      site_name: meta.default_site_name || meta.label,
+      site_url: meta.default_site_url || '',
+      enabled: false,
+      auto_run: true,
+      notify: true,
+      cron: DEFAULT_CRON,
+      tone: meta.tone || 'azure',
+      note: '',
+    }, meta, next.tone_options))
+  }
   return next
 }
 
@@ -1910,21 +1931,6 @@ onBeforeUnmount(() => {
 
 .vpp-field-span-2 {
   grid-column: span 2;
-}
-
-.vpp-form-hint {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.24) 64%, var(--vpp-line));
-  background:
-    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), transparent 90%),
-    color-mix(in srgb, var(--vpp-field-bg) 94%, transparent);
-  color: var(--vpp-text-soft);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .vpp-dialog-card :deep(.v-field) {

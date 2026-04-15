@@ -496,13 +496,20 @@ class VuePanel(_PluginBase):
         self._ensure_cards()
 
     def _ensure_cards(self, persist: bool = False) -> bool:
-        if self._cards:
-            return False
-        self._cards = self._default_cards()
-        logger.info("%s 未读取到功能卡片配置，已自动恢复默认卡片。", self.plugin_name)
-        if persist:
-            self._update_config()
-        return True
+        normalized_cards = self._normalize_cards(self._cards)
+        if not self._cards:
+            self._cards = normalized_cards
+            logger.info("%s 未读取到功能卡片配置，已自动恢复默认卡片。", self.plugin_name)
+            if persist:
+                self._update_config()
+            return True
+        if normalized_cards != self._cards:
+            self._cards = normalized_cards
+            logger.info("%s 已自动补齐缺失的功能卡片配置。", self.plugin_name)
+            if persist:
+                self._update_config()
+            return True
+        return False
 
     def _update_config(self):
         self.update_config(
