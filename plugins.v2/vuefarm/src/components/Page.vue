@@ -155,11 +155,10 @@
         <div v-if="!historyItems.length" class="vf-empty">暂无执行记录</div>
         <div v-else class="vf-list">
           <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="vf-history">
-            <div class="vf-history-top">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.time }}</span>
+            <div class="vf-history-row">
+              <div class="vf-history-text" :title="historySummary(item)">{{ historySummary(item) }}</div>
+              <span class="vf-history-time">{{ item.time }}</span>
             </div>
-            <div v-if="item.lines?.length" class="vf-history-lines">{{ (item.lines || []).join(' / ') }}</div>
           </article>
         </div>
       </section>
@@ -496,6 +495,16 @@ function slotText(slot) {
   return slot.remaining_label || slot.reward_text || ''
 }
 
+function historySummary(item) {
+  const lines = [String(item?.title || '').trim()]
+  for (const line of (item?.lines || [])) {
+    const text = String(line || '').trim()
+    if (!text || text.startsWith('⏰下次可收：')) continue
+    lines.push(text)
+  }
+  return lines.filter(Boolean).join(' / ')
+}
+
 function findThemeNode() {
   let current = rootEl.value
   while (current) {
@@ -584,7 +593,7 @@ onBeforeUnmount(() => {
 .vf-badge,.vf-chip,.vf-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
 .vf-badge{padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
 .vf-title{margin:10px 0 2px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
-.vf-note,.vf-seed-note,.vf-history-lines,.vf-history-top span,.vf-slot-badge,.vf-slot-time,.vf-bag-meta,.vf-seed-meta,.vf-stat-label{color:var(--muted)}
+.vf-note,.vf-seed-note,.vf-history-time,.vf-slot-badge,.vf-slot-time,.vf-bag-meta,.vf-seed-meta,.vf-stat-label{color:var(--muted)}
 .vf-chip-row{margin-top:10px}
 .vf-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600;justify-content:flex-start}
 .vf-action-grid,.vf-stat-grid,.vf-bag-grid,.vf-seed-grid,.vf-list,.vf-group-stack{display:grid;gap:12px}
@@ -672,13 +681,12 @@ onBeforeUnmount(() => {
 .vf-slot-name{font-size:12px}
 .vf-slot-time{margin-top:auto;padding:4px 8px;border-radius:999px;background:rgba(var(--vf-slot-rgb,124,92,255),.12);font-size:10px;font-weight:800;line-height:1.2}
 .vf-slot-time:empty{display:none}
-.vf-history-top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:nowrap;margin-bottom:0}
-.vf-history-top strong{flex:1;min-width:0;font-size:14px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vf-history-top span{font-size:12px;white-space:nowrap}
-.vf-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
+.vf-history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
+.vf-history-text{min-width:0;font-size:14px;line-height:1.65;color:var(--text);word-break:break-word}
+.vf-history-time{font-size:12px;white-space:nowrap;text-align:right}
 @media (max-width:1280px){.vf-slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1024px){.vf-grid-2{grid-template-columns:1fr}}
-@media (max-width:920px){.vf-hero,.vf-head,.vf-group-head,.vf-history-top{flex-direction:column;align-items:flex-start}.vf-action-grid{min-width:100%;flex-wrap:wrap;justify-content:flex-start}.vf-group-main{width:100%}.vf-group-pill-row{justify-content:flex-start}.vf-history-top strong{white-space:normal}}
+@media (max-width:920px){.vf-hero,.vf-head,.vf-group-head{flex-direction:column;align-items:flex-start}.vf-action-grid{min-width:100%;flex-wrap:wrap;justify-content:flex-start}.vf-group-main{width:100%}.vf-group-pill-row{justify-content:flex-start}.vf-history-row{grid-template-columns:1fr}.vf-history-time{text-align:left}}
 @media (max-width:760px){.vuefarm-shell{padding:0 10px}.vf-card,.vf-bag-card,.vf-group,.vf-history,.vf-list-item{border-radius:18px}.vf-card{padding:14px}.vf-slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.vf-stat-grid,.vf-bag-grid,.vf-seed-grid{grid-template-columns:1fr}.vf-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
 @media (max-width:560px){.vf-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vf-bag-top{align-items:flex-start}.vf-inline{flex-wrap:wrap;justify-content:flex-start}.vf-number{width:100%;max-width:92px}.vf-toolbar{justify-content:stretch}.vf-toolbar :deep(.v-btn){flex:1 1 calc(50% - 8px)}}
 </style>

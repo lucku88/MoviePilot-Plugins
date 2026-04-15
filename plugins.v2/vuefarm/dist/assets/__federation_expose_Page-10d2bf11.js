@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_0bc6bd62_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_4bd42f91_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-0bc6bd62"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-4bd42f91"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -122,11 +122,9 @@ const _hoisted_78 = {
   key: 1,
   class: "vf-list"
 };
-const _hoisted_79 = { class: "vf-history-top" };
-const _hoisted_80 = {
-  key: 0,
-  class: "vf-history-lines"
-};
+const _hoisted_79 = { class: "vf-history-row" };
+const _hoisted_80 = ["title"];
+const _hoisted_81 = { class: "vf-history-time" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -464,6 +462,16 @@ function slotText(slot) {
     if (slot.state === 'ready') return '现在可收'
   }
   return slot.remaining_label || slot.reward_text || ''
+}
+
+function historySummary(item) {
+  const lines = [String(item?.title || '').trim()];
+  for (const line of (item?.lines || [])) {
+    const text = String(line || '').trim();
+    if (!text || text.startsWith('⏰下次可收：')) continue
+    lines.push(text);
+  }
+  return lines.filter(Boolean).join(' / ')
 }
 
 function findThemeNode() {
@@ -833,12 +841,12 @@ return (_ctx, _cache) => {
                   class: "vf-history"
                 }, [
                   _createElementVNode("div", _hoisted_79, [
-                    _createElementVNode("strong", null, _toDisplayString(item.title), 1),
-                    _createElementVNode("span", null, _toDisplayString(item.time), 1)
-                  ]),
-                  (item.lines?.length)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_80, _toDisplayString((item.lines || []).join(' / ')), 1))
-                    : _createCommentVNode("", true)
+                    _createElementVNode("div", {
+                      class: "vf-history-text",
+                      title: historySummary(item)
+                    }, _toDisplayString(historySummary(item)), 9, _hoisted_80),
+                    _createElementVNode("span", _hoisted_81, _toDisplayString(item.time), 1)
+                  ])
                 ]))
               }), 128))
             ]))
@@ -849,6 +857,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0bc6bd62"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4bd42f91"]]);
 
 export { PageView as default };
