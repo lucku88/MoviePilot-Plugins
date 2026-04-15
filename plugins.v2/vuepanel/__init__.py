@@ -4,6 +4,7 @@ import socket
 import time
 import traceback
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
@@ -26,7 +27,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.27"
+    plugin_version = "0.1.28"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -180,8 +181,7 @@ class VuePanel(_PluginBase):
                     "id": f"VuePanel_{self._safe_card_id(card['id'])}",
                     "name": f"{self.plugin_name}-{card.get('title') or card.get('site_name') or card['id']}",
                     "trigger": trigger,
-                    "func": self._scheduled_card_worker,
-                    "kwargs": {"card_id": card["id"]},
+                    "func": partial(self._scheduled_card_worker, card["id"]),
                 }
             )
         return services
