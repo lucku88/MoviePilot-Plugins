@@ -185,12 +185,12 @@ function usePanelTheme(rootEl) {
   }
 }
 
-const Page_vue_vue_type_style_index_0_scoped_a8be7cbc_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_87bebc3c_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a8be7cbc"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-87bebc3c"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -376,7 +376,7 @@ const enabledCount = computed(() => cards.value.filter((card) => card.enabled).l
 const autoCount = computed(() => cards.value.filter((card) => card.auto_run).length);
 const copyCount = computed(() => cards.value.filter((card) => canDeleteCard(card)).length);
 const displayCards = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase();
+  const keyword = String(searchQuery.value ?? '').trim().toLowerCase();
   if (!keyword) return cards.value
   return cards.value.filter((card) =>
     [
@@ -394,6 +394,11 @@ const displayCards = computed(() => {
       .some((value) => String(value).toLowerCase().includes(keyword)),
   )
 });
+
+function clearSearch() {
+  searchQuery.value = '';
+}
+
 const controlStats = computed(() => [
   { label: '功能卡片', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
   { label: '启用中', value: String(enabledCount.value), icon: 'mdi-toggle-switch-outline' },
@@ -1046,7 +1051,8 @@ return (_ctx, _cache) => {
             "hide-details": "",
             clearable: "",
             placeholder: "搜索功能模块...",
-            "prepend-inner-icon": "mdi-magnify"
+            "prepend-inner-icon": "mdi-magnify",
+            "onClick:clear": clearSearch
           }, null, 8, ["modelValue"])
         ]),
         _createElementVNode("div", _hoisted_4, [
@@ -1585,6 +1591,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a8be7cbc"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-87bebc3c"]]);
 
 export { _export_sfc as _, PageView as default, usePanelTheme as u };

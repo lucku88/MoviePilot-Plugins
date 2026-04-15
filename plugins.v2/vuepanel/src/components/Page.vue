@@ -12,6 +12,7 @@
             clearable
             placeholder="搜索功能模块..."
             prepend-inner-icon="mdi-magnify"
+            @click:clear="clearSearch"
           />
         </div>
 
@@ -397,7 +398,7 @@ const enabledCount = computed(() => cards.value.filter((card) => card.enabled).l
 const autoCount = computed(() => cards.value.filter((card) => card.auto_run).length)
 const copyCount = computed(() => cards.value.filter((card) => canDeleteCard(card)).length)
 const displayCards = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase()
+  const keyword = String(searchQuery.value ?? '').trim().toLowerCase()
   if (!keyword) return cards.value
   return cards.value.filter((card) =>
     [
@@ -415,6 +416,11 @@ const displayCards = computed(() => {
       .some((value) => String(value).toLowerCase().includes(keyword)),
   )
 })
+
+function clearSearch() {
+  searchQuery.value = ''
+}
+
 const controlStats = computed(() => [
   { label: '功能卡片', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
   { label: '启用中', value: String(enabledCount.value), icon: 'mdi-toggle-switch-outline' },
