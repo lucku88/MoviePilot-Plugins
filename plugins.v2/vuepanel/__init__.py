@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.24"
+    plugin_version = "0.1.25"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -149,7 +149,7 @@ class VuePanel(_PluginBase):
         ]
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
-        return None, self._get_config()
+        return None, {}
 
     def get_render_mode(self) -> Tuple[str, Optional[str]]:
         return "vue", "dist/assets/assets"

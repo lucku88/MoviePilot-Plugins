@@ -1,14 +1,7 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
+import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
 const BaseCronField_vue_vue_type_style_index_0_scoped_1ed25d38_lang = '';
-
-const _export_sfc = (sfc, props) => {
-  const target = sfc.__vccOpts || sfc;
-  for (const [key, val] of props) {
-    target[key] = val;
-  }
-  return target;
-};
 
 const {resolveComponent:_resolveComponent$1,mergeProps:_mergeProps,openBlock:_openBlock$1,createBlock:_createBlock$1} = await importShared('vue');
 
@@ -1595,4 +1588,4 @@ return (_ctx, _cache) => {
 };
 const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-55167fc2"]]);
 
-export { _export_sfc as _, PageView as default, usePanelTheme as u };
+export { PageView as default, usePanelTheme as u };
