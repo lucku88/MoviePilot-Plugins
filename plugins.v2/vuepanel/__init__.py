@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.14"
+    plugin_version = "0.1.15"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -211,6 +211,13 @@ class VuePanel(_PluginBase):
         card_id = str((payload or {}).get("card_id") or "").strip()
         try:
             dashboard = self._refresh_state(reason="manual-refresh", card_id=card_id)
+            if card_id:
+                states = self._load_card_states()
+                state = states.get(card_id)
+                if isinstance(state, dict):
+                    self._append_history(state)
+                    dashboard = self._build_dashboard(states)
+                    self.save_data("dashboard_status", dashboard)
             message = "卡片状态已刷新" if card_id else "全部卡片状态已刷新"
             return {"success": True, "message": message, "dashboard": dashboard, "status": self._build_status(auto_refresh=False)}
         except Exception as err:
