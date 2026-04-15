@@ -85,11 +85,12 @@
     "name": "Vue-面板",
     "description": "个人用模块化面板。",
     "labels": "站点,面板,签到,领取,Vue",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.13": "继续修复 Vue-面板 状态页空白问题：后端会在 dashboard.cards 缺失时强制重建状态数据，前端也会在 dashboard 为空时直接回退显示配置里的功能卡片，避免整页看不到卡片。",
       "v0.1.12": "修复 Vue-面板 前端状态页偶发不显示功能卡片的问题：当宿主读取到空 cards 配置或旧状态缓存时，后端会自动恢复默认功能卡片并刷新状态数据。",
       "v0.1.11": "补齐 Vue-面板 里的思齐签到与 HNR领取功能卡片逻辑：对齐独立脚本的验证码识别、奖励领取结果与失败原因展示，并更新默认卡片说明文案。",
       "v0.1.10": "放弃独立配置页入口，统一改成前端单页卡片交互：宿主的 Page / Config 两个入口都落到同一套功能卡片面板，只保留卡片内的配置、日志、复制弹窗操作。",

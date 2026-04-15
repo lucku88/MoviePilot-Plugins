@@ -429,7 +429,8 @@ const searchQuery = ref('')
 let logTimer = null
 
 const dashboard = computed(() => status.dashboard || {})
-const cards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
+const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
+const cards = computed(() => (dashboardCards.value.length ? dashboardCards.value : buildFallbackCards()))
 const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length)
 const successCount = computed(() => cards.value.filter((card) => card.level === 'success').length)
 const errorCount = computed(() => cards.value.filter((card) => card.level === 'error').length)
@@ -569,6 +570,105 @@ function normalizeConfig(source = {}) {
   next.tone_options = Array.isArray(source.tone_options) ? deepClone(source.tone_options) : []
   next.cards = Array.isArray(source.cards) ? source.cards.map((item) => normalizeCard(item)) : []
   return next
+}
+
+function siteDomain(siteUrl) {
+  try {
+    return new URL(siteUrl).host || ''
+  } catch {
+    return String(siteUrl || '').replace(/^https?:\/\//i, '').split('/')[0] || ''
+  }
+}
+
+function siteLogo(siteUrl) {
+  try {
+    const parsed = new URL(siteUrl)
+    if (!parsed.protocol || !parsed.host) return ''
+    return `${parsed.protocol}//${parsed.host}/favicon.ico`
+  } catch {
+    return ''
+  }
+}
+
+function fallbackStatus(card, meta) {
+  if (!card.enabled) {
+    return {
+      level: 'info',
+      status_title: '已停用',
+      status_text: '当前功能卡片已停用，启用后即可手动执行或参与定时调度。',
+    }
+  }
+  if (!card.cookie) {
+    return {
+      level: 'warning',
+      status_title: '待配置 Cookie',
+      status_text: '请先在配置弹窗中填写 Cookie，保存后再刷新或执行。',
+    }
+  }
+  if (meta.key === 'newapi_checkin' && !card.uid) {
+    return {
+      level: 'warning',
+      status_title: '待配置 UID',
+      status_text: 'New API 签到卡片还需要填写 UID 才能正常执行。',
+    }
+  }
+  if (!card.auto_run) {
+    return {
+      level: 'info',
+      status_title: '仅手动执行',
+      status_text: '当前已启用，但只会在你手动点击执行时运行。',
+    }
+  }
+  return {
+    level: 'info',
+    status_title: '等待刷新',
+    status_text: '卡片配置已经加载，可以点击刷新或执行启用查看实时状态。',
+  }
+}
+
+function fallbackTags(card) {
+  const tags = []
+  tags.push(card.enabled ? '启用' : '停用')
+  tags.push(card.auto_run ? '自动执行' : '手动执行')
+  if (card.cookie) tags.push('Cookie 已配置')
+  if (card.uid) tags.push(`UID ${card.uid}`)
+  return tags
+}
+
+function buildFallbackCards() {
+  return (panelConfig.value.cards || []).map((source) => {
+    const card = normalizeCard(source)
+    const meta = moduleMeta(card.module_key)
+    const logItems = (status.history || [])
+      .filter((item) => item?.card_id === card.id)
+      .sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
+      .slice(0, 12)
+    const fallback = fallbackStatus(card, meta)
+
+    return {
+      ...card,
+      card_id: card.id,
+      site_domain: siteDomain(card.site_url),
+      site_logo: siteLogo(card.site_url),
+      module_name: meta.label,
+      module_icon: meta.icon || '•',
+      module_summary: String(meta.summary || meta.key || '').toLowerCase(),
+      module_description: String(meta.description || ''),
+      status_label: card.enabled ? '启用' : '停用',
+      status_key: card.enabled ? 'enabled' : 'disabled',
+      next_run_time: '',
+      last_run: logItems[0]?.time || '',
+      log_items: logItems,
+      log_count: logItems.length,
+      cookie_configured: !!card.cookie,
+      copy_title: card.title,
+      copy_description: card.note || String(meta.description || ''),
+      tags: fallbackTags(card),
+      metrics: [],
+      detail_lines: [],
+      ...fallback,
+    }
+  })
 }
 
 function serializeConfig(cardsOverride = null) {

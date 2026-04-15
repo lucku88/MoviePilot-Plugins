@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.12"
+    plugin_version = "0.1.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -299,10 +299,13 @@ class VuePanel(_PluginBase):
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         self._ensure_cards(persist=True)
         dashboard = self.get_data("dashboard_status") or {}
+        dashboard_cards = dashboard.get("cards") if isinstance(dashboard, dict) else None
         if auto_refresh and (
             not dashboard
             or dashboard.get("schema_version") != self.plugin_version
             or dashboard.get("cards_version") != self._cards_fingerprint()
+            or not isinstance(dashboard_cards, list)
+            or (not dashboard_cards and bool(self._cards))
         ):
             try:
                 dashboard = self._refresh_state(reason="status-init")
