@@ -60,7 +60,7 @@ const exportSet = new Set(['Module', '__esModule', 'default', '_export_sfc']);
       let moduleMap = {
 "./Page":()=>{
       dynamicLoadingCss(["style.css"]);
-      return __federation_import('./../__federation_expose_Page-4f905ba7.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
+      return __federation_import('./../__federation_expose_Page-2a5cac52.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
 "./Config":()=>{
       dynamicLoadingCss(["style.css"]);
       return __federation_import('./../__federation_expose_Config-d51ae043.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};

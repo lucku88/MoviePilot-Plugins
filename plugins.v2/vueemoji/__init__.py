@@ -226,6 +226,7 @@ class VueEmoji(_PluginBase):
             final_state = final_bundle.get("state") or state
             if self._build_stage_runtime(state).get("has_active") and not self._build_stage_runtime(final_state).get("has_active"):
                 final_state = state
+            summary_lines = self._normalize_summary_lines(summary_lines)
             next_run = self._compute_next_run(final_state)
             emoji_status = self._refresh_and_store_status(final_state, next_run, summary_lines)
 
@@ -253,7 +254,7 @@ class VueEmoji(_PluginBase):
                 except Exception as refresh_err:
                     logger.warning("%s 异常后刷新状态失败：%s", self.plugin_name, self._get_error_detail(refresh_err))
 
-            partial_lines = list(summary_lines)
+            partial_lines = self._normalize_summary_lines(list(summary_lines))
             if self._enabled and self._has_auto_jobs_enabled() and (partial_lines or reason in {"schedule", "bootstrap", "onlyonce"}):
                 retry_at = int(time.time()) + fallback_delay
             if state:
@@ -791,7 +792,7 @@ class VueEmoji(_PluginBase):
                 recall = result.get("result") or {}
                 gain_points = self._safe_int(recall.get("point_gain"), 0)
                 gain_magic = self._safe_int(recall.get("magic_gain"), 0)
-                lines.append(f"🎁 收演：声誉+{gain_points}，魔力+{gain_magic}")
+                lines.append(f"🎁 召回：声誉+{gain_points}，魔力+{gain_magic}")
                 state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
             else:
                 return state, lines
@@ -814,7 +815,7 @@ class VueEmoji(_PluginBase):
         if not result.get("success"):
             raise ValueError(result.get("message") or "启动演出失败")
         state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
-        lines.append(f"🎭 开演：{plan.get('effect_name') or '舞台效果'} / 演员{len(placements)}位")
+        lines.append(f"🎭 演出：{plan.get('effect_name') or '舞台效果'} / 演员{len(placements)}位")
         return state, lines
 
     def _manual_spin(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -957,7 +958,7 @@ class VueEmoji(_PluginBase):
             raise ValueError(result.get("message") or "确认演出失败")
         after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         effect = self._find_effect(after_state, effect_key) or {}
-        lines = [f"🎭 开演：{effect.get('name') or effect_key} / 演员{len(placements)}位"]
+        lines = [f"🎭 演出：{effect.get('name') or effect_key} / 演员{len(placements)}位"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "演出已开始", "emoji_status": emoji_status}
 
@@ -968,11 +969,44 @@ class VueEmoji(_PluginBase):
             raise ValueError(result.get("message") or "收回演出失败")
         recall = result.get("result") or {}
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
-        lines = [f"🎁 收演：声誉+{self._safe_int(recall.get('point_gain'), 0)}，魔力+{self._safe_int(recall.get('magic_gain'), 0)}"]
+        lines = [f"🎁 召回：声誉+{self._safe_int(recall.get('point_gain'), 0)}，魔力+{self._safe_int(recall.get('magic_gain'), 0)}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已收回演出", "emoji_status": emoji_status}
 
+    def _normalize_summary_lines(self, lines: List[str]) -> List[str]:
+        normalized: List[str] = []
+        slot_line: Optional[str] = None
+        slot_index: Optional[int] = None
+        bag_opened = False
+
+        for raw in lines:
+            line = str(raw or "").strip()
+            if not line:
+                continue
+            if line.startswith("📦 开包：") or line.startswith("📥 收下："):
+                bag_opened = True
+                normalized.append(line)
+                continue
+            if line.startswith("🎰 老虎机："):
+                slot_line = line
+                slot_index = len(normalized)
+                continue
+            normalized.append(line)
+
+        if slot_line:
+            if bag_opened:
+                slot_line = f"{slot_line} / 已开包"
+                normalized = [
+                    line for line in normalized
+                    if not str(line).startswith("📦 开包：")
+                    and not str(line).startswith("📥 收下：")
+                ]
+            normalized.insert(slot_index if slot_index is not None else len(normalized), slot_line)
+
+        return normalized
+
     def _send_report(self, lines: List[str], next_run: Optional[int]):
+        lines = self._normalize_summary_lines(lines)
         action_lines = [
             line for line in lines
             if str(line or "").strip()
@@ -1002,6 +1036,7 @@ class VueEmoji(_PluginBase):
         summary_lines: List[str],
         record_run: bool = True,
     ) -> Dict[str, Any]:
+        summary_lines = self._normalize_summary_lines(summary_lines)
         self._schedule_next_run(next_run, reason="refresh-state")
         emoji_status = self._build_ui_state(state, next_run, summary_lines)
         self.save_data("emoji_status", emoji_status)

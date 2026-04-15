@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ba63377d_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_940849bd_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ba63377d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-940849bd"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "emoji-shell" };
 const _hoisted_2 = { class: "emoji-card emoji-hero" };
 const _hoisted_3 = { class: "emoji-copy" };
@@ -124,12 +124,9 @@ const _hoisted_76 = {
   key: 1,
   class: "emoji-history-list"
 };
-const _hoisted_77 = { class: "emoji-history-top" };
-const _hoisted_78 = { class: "emoji-history-lines" };
-const _hoisted_79 = {
-  key: 0,
-  class: "emoji-history-next"
-};
+const _hoisted_77 = { class: "emoji-history-row" };
+const _hoisted_78 = { class: "emoji-history-text" };
+const _hoisted_79 = { class: "emoji-history-time" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -341,6 +338,21 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor((safe % 3600) / 60);
   const seconds = safe % 60;
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function historySummary(item) {
+  const parts = [];
+  const title = String(item?.title || '').trim();
+  if (title && title !== '任务结果') {
+    parts.push(title);
+  }
+  const lines = Array.isArray(item?.lines)
+    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
+    : [];
+  if (lines.length) {
+    parts.push(lines.join(' / '));
+  }
+  return parts.join(' / ') || '任务结果'
 }
 
 function bagCardStyle(bag) {
@@ -1303,13 +1315,9 @@ return (_ctx, _cache) => {
                   class: "emoji-history-item"
                 }, [
                   _createElementVNode("div", _hoisted_77, [
-                    _createElementVNode("strong", null, _toDisplayString(item.title || '任务结果'), 1),
-                    _createElementVNode("span", null, _toDisplayString(item.time), 1)
-                  ]),
-                  _createElementVNode("div", _hoisted_78, _toDisplayString((item.lines || []).join(' / ')), 1),
-                  (item.next_run)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_79, "下次运行 " + _toDisplayString(item.next_run), 1))
-                    : _createCommentVNode("", true)
+                    _createElementVNode("div", _hoisted_78, _toDisplayString(historySummary(item)), 1),
+                    _createElementVNode("span", _hoisted_79, _toDisplayString(item.time), 1)
+                  ])
                 ]))
               }), 128))
             ]))
@@ -1320,6 +1328,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ba63377d"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-940849bd"]]);
 
 export { PageView as default };

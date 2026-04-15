@@ -317,12 +317,10 @@
         <div v-if="!historyItems.length" class="emoji-empty">暂无执行历史</div>
         <div v-else class="emoji-history-list">
           <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="emoji-history-item">
-            <div class="emoji-history-top">
-              <strong>{{ item.title || '任务结果' }}</strong>
-              <span>{{ item.time }}</span>
+            <div class="emoji-history-row">
+              <div class="emoji-history-text">{{ historySummary(item) }}</div>
+              <span class="emoji-history-time">{{ item.time }}</span>
             </div>
-            <div class="emoji-history-lines">{{ (item.lines || []).join(' / ') }}</div>
-            <div v-if="item.next_run" class="emoji-history-next">下次运行 {{ item.next_run }}</div>
           </article>
         </div>
       </section>
@@ -531,6 +529,21 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor((safe % 3600) / 60)
   const seconds = safe % 60
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function historySummary(item) {
+  const parts = []
+  const title = String(item?.title || '').trim()
+  if (title && title !== '任务结果') {
+    parts.push(title)
+  }
+  const lines = Array.isArray(item?.lines)
+    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
+    : []
+  if (lines.length) {
+    parts.push(lines.join(' / '))
+  }
+  return parts.join(' / ') || '任务结果'
 }
 
 function bagCardStyle(bag) {
@@ -1114,8 +1127,7 @@ onBeforeUnmount(() => {
 .emoji-stage-toolbar,
 .emoji-stage-toolbar-left,
 .emoji-stage-toolbar-right,
-.emoji-pending-meta,
-.emoji-history-top {
+.emoji-pending-meta {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -1219,8 +1231,7 @@ onBeforeUnmount(() => {
 
 .emoji-stat-label,
 .emoji-panel-note,
-.emoji-history-lines,
-.emoji-history-next,
+.emoji-history-time,
 .emoji-bag-count,
 .emoji-effect-subline,
 .emoji-effect-unlock,
@@ -1637,33 +1648,26 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, rgba(124, 92, 255, 0.54) 0%, rgba(99, 102, 241, 0.18) 100%);
 }
 
-.emoji-history-top {
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: nowrap;
-  margin-bottom: 0;
-  font-size: 12px;
+.emoji-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
 }
 
-.emoji-history-top strong {
-  flex: 1;
+.emoji-history-text {
   min-width: 0;
   font-size: 14px;
   line-height: 1.45;
+  color: var(--emoji-text);
+}
+
+.emoji-history-time {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--emoji-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.emoji-history-lines {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.emoji-history-next {
-  margin-top: 6px;
-  font-size: 12px;
+  text-align: right;
 }
 
 @media (max-width: 1120px) {
@@ -1682,8 +1686,7 @@ onBeforeUnmount(() => {
   .emoji-hero,
   .emoji-section-head,
   .emoji-stage-toolbar,
-  .emoji-row-head,
-  .emoji-history-top {
+  .emoji-row-head {
     flex-direction: column;
     align-items: flex-start;
   }
