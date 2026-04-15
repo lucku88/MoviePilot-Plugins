@@ -457,7 +457,7 @@ const selectedLogs = computed(() => {
 
 function createEmptyConfig() {
   return {
-    enabled: false,
+    enabled: true,
     notify: true,
     onlyonce: false,
     use_proxy: false,
@@ -544,7 +544,7 @@ function normalizeCard(source = {}, options = {}) {
 
 function normalizeConfig(source = {}) {
   const next = createEmptyConfig()
-  next.enabled = !!source.enabled
+  next.enabled = source.enabled !== false
   next.notify = source.notify !== false
   next.onlyonce = !!source.onlyonce
   next.use_proxy = !!source.use_proxy
@@ -661,8 +661,10 @@ function buildFallbackCards() {
 
 function serializeConfig(cardsOverride = null) {
   const cards = Array.isArray(cardsOverride) ? cardsOverride : panelConfig.value.cards
+  const normalizedCards = cards.map((item) => normalizeCard(item))
   return {
-    enabled: !!panelConfig.value.enabled,
+    // Keep the plugin itself active; real control lives on each card's enabled/cron state.
+    enabled: true,
     notify: !!panelConfig.value.notify,
     onlyonce: !!panelConfig.value.onlyonce,
     use_proxy: !!panelConfig.value.use_proxy,
@@ -671,7 +673,7 @@ function serializeConfig(cardsOverride = null) {
     http_timeout: Number(panelConfig.value.http_timeout || 15),
     http_retry_times: Number(panelConfig.value.http_retry_times || 3),
     random_delay_max_seconds: Number(panelConfig.value.random_delay_max_seconds || 5),
-    cards: cards.map((item) => normalizeCard(item)),
+    cards: normalizedCards,
   }
 }
 

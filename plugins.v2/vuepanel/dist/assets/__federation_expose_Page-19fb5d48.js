@@ -185,12 +185,12 @@ function usePanelTheme(rootEl) {
   }
 }
 
-const Page_vue_vue_type_style_index_0_scoped_87bebc3c_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_55167fc2_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-87bebc3c"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-55167fc2"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -435,7 +435,7 @@ const selectedLogs = computed(() => {
 
 function createEmptyConfig() {
   return {
-    enabled: false,
+    enabled: true,
     notify: true,
     onlyonce: false,
     use_proxy: false,
@@ -522,7 +522,7 @@ function normalizeCard(source = {}, options = {}) {
 
 function normalizeConfig(source = {}) {
   const next = createEmptyConfig();
-  next.enabled = !!source.enabled;
+  next.enabled = source.enabled !== false;
   next.notify = source.notify !== false;
   next.onlyonce = !!source.onlyonce;
   next.use_proxy = !!source.use_proxy;
@@ -639,8 +639,10 @@ function buildFallbackCards() {
 
 function serializeConfig(cardsOverride = null) {
   const cards = Array.isArray(cardsOverride) ? cardsOverride : panelConfig.value.cards;
+  const normalizedCards = cards.map((item) => normalizeCard(item));
   return {
-    enabled: !!panelConfig.value.enabled,
+    // Keep the plugin itself active; real control lives on each card's enabled/cron state.
+    enabled: true,
     notify: !!panelConfig.value.notify,
     onlyonce: !!panelConfig.value.onlyonce,
     use_proxy: !!panelConfig.value.use_proxy,
@@ -649,7 +651,7 @@ function serializeConfig(cardsOverride = null) {
     http_timeout: Number(panelConfig.value.http_timeout || 15),
     http_retry_times: Number(panelConfig.value.http_retry_times || 3),
     random_delay_max_seconds: Number(panelConfig.value.random_delay_max_seconds || 5),
-    cards: cards.map((item) => normalizeCard(item)),
+    cards: normalizedCards,
   }
 }
 
@@ -1591,6 +1593,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-87bebc3c"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-55167fc2"]]);
 
 export { _export_sfc as _, PageView as default, usePanelTheme as u };

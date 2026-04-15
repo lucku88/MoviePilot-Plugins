@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.23"
+    plugin_version = "0.1.24"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -131,7 +131,7 @@ class VuePanel(_PluginBase):
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
 
     def get_state(self) -> bool:
-        return bool(self._enabled)
+        return True
 
     @staticmethod
     def get_command() -> List[Dict[str, Any]]:
@@ -159,8 +159,6 @@ class VuePanel(_PluginBase):
 
     def get_service(self) -> List[Dict[str, Any]]:
         self._ensure_cards()
-        if not self._enabled:
-            return []
         services: List[Dict[str, Any]] = []
         for card in self._cards:
             trigger = self._get_card_trigger(card)
@@ -277,7 +275,9 @@ class VuePanel(_PluginBase):
                     error_count += 1
                 self._append_history(state)
                 if self._notify and card.get("notify"):
-                    notify_lines.append(f"{state['module_icon']} {state['title']}：{state['status_text']}")
+                    notify_text = self._resolve_notify_text(state)
+                    if notify_text:
+                        notify_lines.append(self._format_notify_line(state, notify_text))
 
             self._save_card_states(states)
             dashboard = self._build_dashboard(states)
@@ -286,10 +286,9 @@ class VuePanel(_PluginBase):
             self._save_schedule_meta()
 
             if self._notify and notify_lines:
-                title = "【📊面板报告】" if error_count == 0 else "【⚠️面板报告】"
                 self.post_message(
                     mtype=NotificationType.Plugin,
-                    title=title,
+                    title="【📊面板报告】",
                     text="\n".join(notify_lines[:12]),
                 )
 
@@ -379,7 +378,7 @@ class VuePanel(_PluginBase):
 
     def _default_config(self) -> Dict[str, Any]:
         return {
-            "enabled": False,
+            "enabled": True,
             "notify": True,
             "onlyonce": False,
             "use_proxy": False,
@@ -466,7 +465,6 @@ class VuePanel(_PluginBase):
         )
 
     def _apply_config(self, config: Dict[str, Any]):
-        self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
@@ -476,6 +474,7 @@ class VuePanel(_PluginBase):
         self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), self.DEFAULT_RETRY_TIMES))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), self.DEFAULT_RANDOM_DELAY))
         self._cards = self._normalize_cards(config.get("cards"))
+        self._enabled = True
         self._ensure_cards()
 
     def _ensure_cards(self, persist: bool = False) -> bool:
@@ -663,6 +662,7 @@ class VuePanel(_PluginBase):
                     {"label": "排名", "value": str(info.get("rank") or "未知")},
                     {"label": "奖励数", "value": "0"},
                 ],
+                notify_text="今日奖励已领取",
             )
 
         claims = info.get("claims") or []
@@ -674,6 +674,7 @@ class VuePanel(_PluginBase):
                     {"label": "排名", "value": str(info.get("rank") or "未知")},
                     {"label": "奖励数", "value": "0"},
                 ],
+                notify_text="",
             )
 
         claim_url = urljoin(card["site_url"], "/hnr_claim_reward.php")
@@ -736,6 +737,7 @@ class VuePanel(_PluginBase):
                 {"label": "总额", "value": str(total_amount)},
             ],
             detail_lines=detail_lines,
+            notify_text=self._hnr_notify_text(level=level, claimed_total=total_amount, claimed_count=len(claimed)),
         )
 
     def _inspect_newapi_checkin(self, card: Dict[str, Any]) -> Dict[str, Any]:
@@ -770,6 +772,7 @@ class VuePanel(_PluginBase):
                 status_text=f"今日已签到 | {self._format_newapi_stats(stats)}",
                 metrics=self._newapi_metrics(stats),
                 detail_lines=[f"站点：{card['site_url']}", f"UID：{card['uid']}"],
+                notify_text="今日已签到",
             )
 
         sign_result: Dict[str, Any] = {}
@@ -786,7 +789,9 @@ class VuePanel(_PluginBase):
 
         refresh = self._request_newapi_status(session, card)
         refresh_stats = refresh.get("stats") or stats
-        reward_text = self._format_newapi_money((sign_result.get("data") or {}).get("quota_awarded"))
+        reward_raw = (sign_result.get("data") or {}).get("quota_awarded")
+        reward_amount = float(reward_raw or 0)
+        reward_text = self._format_newapi_money(reward_raw)
         return self._build_result(
             success=True,
             level="success",
@@ -794,6 +799,7 @@ class VuePanel(_PluginBase):
             status_text=f"签到成功 {reward_text} | {self._format_newapi_stats(refresh_stats)}",
             metrics=self._newapi_metrics(refresh_stats),
             detail_lines=[f"站点：{card['site_url']}", f"UID：{card['uid']}", f"奖励：{reward_text}"],
+            notify_text=f"签到成功 {reward_text}" if reward_amount > 0 else "签到成功",
         )
 
     def _request_newapi_status(self, session: requests.Session, card: Dict[str, Any]) -> Dict[str, Any]:
@@ -844,6 +850,7 @@ class VuePanel(_PluginBase):
             "签到完成" if changed else "今日已签到",
             status,
             metrics=self._siqi_metrics(info),
+            notify_text=self._siqi_notify_text(info, changed=changed),
         )
 
     def _siqi_metrics(self, info: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -961,8 +968,8 @@ class VuePanel(_PluginBase):
             "cards_version": self._cards_fingerprint(),
             "title": "Vue-面板",
             "subtitle": "每个功能卡片都可独立配置、查看日志和复制，自动适配当前主题。",
-            "next_run_time": self._format_time(self._load_next_run_time()) if self._enabled else "",
-            "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._enabled else "",
+            "next_run_time": self._format_time(self._load_next_run_time()) if self._load_next_run_time() else "",
+            "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._load_next_trigger_time() else "",
             "next_trigger_mode": self._load_next_trigger_mode(),
             "overview": overview,
             "groups": [],
@@ -1056,6 +1063,7 @@ class VuePanel(_PluginBase):
                     "time": event_time,
                     "title": str(state.get("title") or card.get("title") or card.get("site_name") or module_meta["label"]),
                     "summary": str(state.get("status_text") or ""),
+                    "notify_text": str(state.get("notify_text") or ""),
                     "status_title": str(state.get("status_title") or ""),
                     "level": str(state.get("level") or "info"),
                     "lines": [line for line in (state.get("detail_lines") or []) if line],
@@ -1109,6 +1117,7 @@ class VuePanel(_PluginBase):
             "level": level,
             "status_title": title,
             "status_text": text,
+            "notify_text": None,
             "detail_lines": [card.get("note") or ""] if card.get("note") else [],
             "metrics": [],
             "tags": self._build_card_tags(card),
@@ -1149,6 +1158,7 @@ class VuePanel(_PluginBase):
             "level": result.get("level") or "info",
             "status_title": result.get("status_title") or "状态未知",
             "status_text": result.get("status_text") or "未返回状态描述",
+            "notify_text": result.get("notify_text"),
             "detail_lines": [line for line in (result.get("detail_lines") or []) if line],
             "metrics": result.get("metrics") or [],
             "tags": self._build_card_tags(card),
@@ -1172,6 +1182,7 @@ class VuePanel(_PluginBase):
                 "time": entry_time,
                 "title": state.get("title") or state.get("site_name") or "",
                 "summary": state.get("status_text") or "",
+                "notify_text": state.get("notify_text"),
                 "status_title": state.get("status_title") or "",
                 "level": state.get("level") or "info",
                 "lines": [line for line in lines if line],
@@ -1208,15 +1219,13 @@ class VuePanel(_PluginBase):
                 return []
             if force:
                 return [match]
-            if not self._enabled or not match.get("enabled"):
+            if not match.get("enabled"):
                 return []
             if reason == "scheduled-card" and not self._card_schedule_enabled(match):
                 return []
             return [match]
 
         cards = [card for card in self._cards if card.get("enabled")]
-        if not force and not self._enabled:
-            return []
         if reason in {"scheduled", "scheduled-card"}:
             cards = [card for card in cards if card.get("auto_run")]
         return cards
@@ -1341,8 +1350,6 @@ class VuePanel(_PluginBase):
         return str(self.get_data("next_trigger_mode") or "")
 
     def _get_next_run_time(self) -> Optional[datetime]:
-        if not self._enabled:
-            return None
         next_runs = [self._get_card_next_run(card) for card in self._cards if self._card_schedule_enabled(card)]
         next_runs = [item for item in next_runs if item]
         return min(next_runs) if next_runs else None
@@ -1533,7 +1540,7 @@ class VuePanel(_PluginBase):
         return bool(self._parse_card_cron(self._get_card_cron(card)))
 
     def _card_schedule_enabled(self, card: Dict[str, Any]) -> bool:
-        return bool(self._enabled and card.get("enabled") and card.get("auto_run") and self._get_card_cron(card))
+        return bool(card.get("enabled") and card.get("auto_run") and self._get_card_cron(card))
 
     def _get_card_next_run(self, card: Dict[str, Any]) -> Optional[datetime]:
         trigger = self._parse_card_cron(self._get_card_cron(card))
@@ -1624,8 +1631,9 @@ class VuePanel(_PluginBase):
         status_text: str,
         metrics: Optional[List[Dict[str, str]]] = None,
         detail_lines: Optional[List[str]] = None,
+        notify_text: Optional[str] = None,
     ) -> Dict[str, Any]:
-        return self._build_result(True, "success", status_title, status_text, metrics, detail_lines)
+        return self._build_result(True, "success", status_title, status_text, metrics, detail_lines, notify_text)
 
     def _warning_result(
         self,
@@ -1633,8 +1641,9 @@ class VuePanel(_PluginBase):
         status_text: str,
         metrics: Optional[List[Dict[str, str]]] = None,
         detail_lines: Optional[List[str]] = None,
+        notify_text: Optional[str] = None,
     ) -> Dict[str, Any]:
-        return self._build_result(False, "warning", status_title, status_text, metrics, detail_lines)
+        return self._build_result(False, "warning", status_title, status_text, metrics, detail_lines, notify_text)
 
     def _info_result(
         self,
@@ -1642,8 +1651,9 @@ class VuePanel(_PluginBase):
         status_text: str,
         metrics: Optional[List[Dict[str, str]]] = None,
         detail_lines: Optional[List[str]] = None,
+        notify_text: Optional[str] = None,
     ) -> Dict[str, Any]:
-        return self._build_result(True, "info", status_title, status_text, metrics, detail_lines)
+        return self._build_result(True, "info", status_title, status_text, metrics, detail_lines, notify_text)
 
     def _error_result(
         self,
@@ -1651,8 +1661,9 @@ class VuePanel(_PluginBase):
         status_text: str,
         metrics: Optional[List[Dict[str, str]]] = None,
         detail_lines: Optional[List[str]] = None,
+        notify_text: Optional[str] = None,
     ) -> Dict[str, Any]:
-        return self._build_result(False, "error", status_title, status_text, metrics, detail_lines)
+        return self._build_result(False, "error", status_title, status_text, metrics, detail_lines, notify_text)
 
     def _card_exception_result(self, card: Dict[str, Any], err: Exception, action: str = "refresh") -> Dict[str, Any]:
         detail = self._get_error_detail(err)
@@ -1687,6 +1698,7 @@ class VuePanel(_PluginBase):
         status_text: str,
         metrics: Optional[List[Dict[str, str]]] = None,
         detail_lines: Optional[List[str]] = None,
+        notify_text: Optional[str] = None,
     ) -> Dict[str, Any]:
         return {
             "success": success,
@@ -1695,7 +1707,39 @@ class VuePanel(_PluginBase):
             "status_text": status_text,
             "metrics": metrics or [],
             "detail_lines": [line for line in (detail_lines or []) if line],
+            "notify_text": notify_text,
         }
+
+    @staticmethod
+    def _notify_icon(level: str, success: bool) -> str:
+        return "✅️" if success and level != "error" else "❌️"
+
+    def _resolve_notify_text(self, state: Dict[str, Any]) -> str:
+        notify_text = state.get("notify_text")
+        if notify_text is None:
+            notify_text = state.get("status_title") or state.get("status_text") or ""
+        return str(notify_text or "").strip()
+
+    def _format_notify_line(self, state: Dict[str, Any], notify_text: str) -> str:
+        return (
+            f"{self._notify_icon(str(state.get('level') or 'info'), bool(state.get('last_success')))} "
+            f"{state.get('title') or state.get('module_name') or '任务'}：{notify_text}"
+        )
+
+    @staticmethod
+    def _siqi_notify_text(info: Dict[str, Any], changed: bool) -> str:
+        reward = str(info.get("reward_amount") or "").strip()
+        if not changed:
+            return "今日已签到"
+        return f"签到成功 {reward} 魔力" if reward.isdigit() and int(reward) > 0 else "签到成功"
+
+    @staticmethod
+    def _hnr_notify_text(level: str, claimed_total: int, claimed_count: int) -> str:
+        if claimed_total > 0:
+            return f"领取成功 {claimed_total} 魔力"
+        if claimed_count > 0:
+            return "领取成功"
+        return "领取失败" if level == "error" else ""
 
     @staticmethod
     def _to_bool(val: Any) -> bool:
