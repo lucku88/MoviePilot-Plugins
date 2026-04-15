@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_4bd42f91_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_a986c628_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock,createCommentVNode:_createCommentVNode,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createBlock:_createBlock,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,normalizeStyle:_normalizeStyle,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-4bd42f91"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a986c628"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vuefarm-shell" };
 const _hoisted_2 = { class: "vf-card vf-hero" };
 const _hoisted_3 = { class: "vf-hero-copy" };
@@ -465,7 +465,12 @@ function slotText(slot) {
 }
 
 function historySummary(item) {
-  const lines = [String(item?.title || '').trim()];
+  const lines = [];
+  const title = String(item?.title || '').trim();
+  const compactTitle = title.replace(/\s+/g, '');
+  if (title && !['🌱Vue-农场运行', '⚠️Vue-农场异常', '❌Vue-农场异常', '【🌱Vue-农场】任务报告', '【🌱农场报告】', '【⚠️农场异常】'].includes(compactTitle)) {
+    lines.push(title);
+  }
   for (const line of (item?.lines || [])) {
     const text = String(line || '').trim();
     if (!text || text.startsWith('⏰下次可收：')) continue
@@ -857,6 +862,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4bd42f91"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a986c628"]]);
 
 export { PageView as default };

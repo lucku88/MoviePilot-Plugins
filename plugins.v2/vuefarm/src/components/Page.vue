@@ -496,7 +496,12 @@ function slotText(slot) {
 }
 
 function historySummary(item) {
-  const lines = [String(item?.title || '').trim()]
+  const lines = []
+  const title = String(item?.title || '').trim()
+  const compactTitle = title.replace(/\s+/g, '')
+  if (title && !['🌱Vue-农场运行', '⚠️Vue-农场异常', '❌Vue-农场异常', '【🌱Vue-农场】任务报告', '【🌱农场报告】', '【⚠️农场异常】'].includes(compactTitle)) {
+    lines.push(title)
+  }
   for (const line of (item?.lines || [])) {
     const text = String(line || '').trim()
     if (!text || text.startsWith('⏰下次可收：')) continue

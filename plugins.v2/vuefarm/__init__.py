@@ -532,7 +532,7 @@ class VueFarm(_PluginBase):
             "next_trigger_mode": self._load_saved_next_trigger_mode(),
             "last_run": self.get_data("last_run") or "",
             "farm_status": farm_status,
-            "history": (self.get_data("history") or [])[:10],
+            "history": self._get_clean_history(persist=True)[:10],
             "config": self._get_config(),
         }
 
@@ -1660,7 +1660,7 @@ class VueFarm(_PluginBase):
             "inventory": self._build_inventory_cards(data.get("inventory") or []),
             "seed_shop": self._build_seed_shop(data),
             "land_groups": self._build_land_groups(data),
-            "history": (self.get_data("history") or [])[:10],
+            "history": self._get_clean_history(persist=True)[:10],
         }
 
     def _build_inventory_cards(self, inventory: List[dict]) -> Dict[str, Any]:
@@ -1946,62 +1946,89 @@ class VueFarm(_PluginBase):
             chunks.append("━━━━━━━━━━━━━━")
         return "\n".join(chunks)
 
-    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
-        history_title = title
-        history_lines = [line for line in (lines or []) if line]
-        if not history_lines:
-            return history_title, history_lines
-
-        first_line = history_lines[0]
-        auto_replacements = [
+    def _normalize_history_line(self, line: str) -> str:
+        text = str(line or "").strip()
+        replacements = [
+            ("✅ 手动收菜：", "✅收菜："),
+            ("✅ 一键收获：", "✅收菜："),
             ("✅ 收菜：", "✅收菜："),
             ("✅收菜：", "✅收菜："),
+            ("🧺 手动售出：", "🧺售出："),
             ("🧺 售出：", "🧺售出："),
             ("🧺售出：", "🧺售出："),
+            ("🌱 手动种植：", "🌱种植："),
+            ("🌱 一键种植：", "🌱种植："),
             ("🌱 种植：", "🌱种植："),
             ("🌱种植：", "🌱种植："),
+            ("💰 手动收益：", "💰收益："),
+            ("💰 获得：", "💰收益："),
             ("💰 收益：", "💰收益："),
             ("💰收益：", "💰收益："),
+            ("⚠️ 手动收菜失败：", "⚠️收菜失败："),
             ("⚠️ 收菜失败：", "⚠️收菜失败："),
             ("⚠️收菜失败：", "⚠️收菜失败："),
-            ("ℹ️ 本次没有可执行动作", "ℹ️本次没有可执行动作"),
-            ("ℹ️本次没有可执行动作", "ℹ️本次没有可执行动作"),
+            ("ℹ️ 手动无动作", "ℹ️本次无动作"),
+            ("ℹ️ 本次没有可执行动作", "ℹ️本次无动作"),
+            ("ℹ️本次没有可执行动作", "ℹ️本次无动作"),
         ]
-        manual_replacements = [
-            ("✅ 收菜：", "✅手动收菜："),
-            ("✅收菜：", "✅手动收菜："),
-            ("🧺 售出：", "🧺手动售出："),
-            ("🧺售出：", "🧺手动售出："),
-            ("🌱 种植：", "🌱手动种植："),
-            ("🌱种植：", "🌱手动种植："),
-            ("💰 收益：", "💰手动收益："),
-            ("💰收益：", "💰手动收益："),
-            ("⚠️ 收菜失败：", "⚠️手动收菜失败："),
-            ("⚠️收菜失败：", "⚠️手动收菜失败："),
-            ("ℹ️ 本次没有可执行动作", "ℹ️手动无动作"),
-            ("ℹ️本次没有可执行动作", "ℹ️手动无动作"),
-        ]
+        for src, dest in replacements:
+            if text.startswith(src):
+                return text.replace(src, dest, 1)
+        return text
 
-        if title == "🌱 Vue-农场运行":
-            history_title = first_line
-            for src, dest in auto_replacements:
-                if history_title.startswith(src):
-                    history_title = history_title.replace(src, dest, 1)
-                    break
-            return history_title, history_lines[1:]
+    @staticmethod
+    def _is_report_history_title(title: str) -> bool:
+        compact = re.sub(r"\s+", "", str(title or ""))
+        return compact in {
+            "🌱Vue-农场运行",
+            "⚠️Vue-农场异常",
+            "❌Vue-农场异常",
+            "【🌱Vue-农场】任务报告",
+            "【🌱农场报告】",
+            "【⚠️农场异常】",
+        }
 
-        if title in {"🖱️ 手动收菜", "🖱️ 手动种植", "🧺 一键收获", "🌱 一键种植", "🧺 手动售出"}:
-            history_title = first_line
-            for src, dest in manual_replacements:
-                if history_title.startswith(src):
-                    history_title = history_title.replace(src, dest, 1)
-                    break
-            return history_title, history_lines[1:]
+    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
+        history_title = self._normalize_history_line(title)
+        history_lines = [normalized for normalized in (self._normalize_history_line(line) for line in (lines or [])) if normalized]
+
+        if self._is_report_history_title(history_title):
+            if not history_lines:
+                return "", []
+            return history_lines[0], history_lines[1:]
 
         return history_title, history_lines
 
+    def _get_clean_history(self, persist: bool = False) -> List[Dict[str, Any]]:
+        raw_history = list(self.get_data("history") or [])
+        cleaned_history: List[Dict[str, Any]] = []
+        changed = False
+        for item in raw_history:
+            if not isinstance(item, dict):
+                changed = True
+                continue
+
+            raw_title = str(item.get("title") or "").strip()
+            raw_lines = [str(line or "").strip() for line in (item.get("lines") or []) if str(line or "").strip()]
+            title, lines = self._normalize_history_entry(raw_title, raw_lines)
+            if title != raw_title or lines != raw_lines:
+                changed = True
+            if not title and not lines:
+                changed = True
+                continue
+
+            normalized_item = dict(item)
+            normalized_item["title"] = title
+            normalized_item["lines"] = lines
+            cleaned_history.append(normalized_item)
+
+        cleaned_history = cleaned_history[:20]
+        if persist and (changed or len(cleaned_history) != len(raw_history[:20])):
+            self.save_data("history", cleaned_history)
+        return cleaned_history
+
     def _append_history(self, title: str, lines: List[str]):
-        history = self.get_data("history") or []
+        history = self._get_clean_history()
         history_title, history_lines = self._normalize_history_entry(title, lines)
         history.insert(0, {"time": self._format_time(self._aware_now()), "title": history_title, "lines": history_lines})
         self.save_data("history", history[:20])
