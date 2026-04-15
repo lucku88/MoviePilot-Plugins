@@ -43,12 +43,12 @@ return (_ctx, _cache) => {
 });
 const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-1ed25d38"]]);
 
-const Page_vue_vue_type_style_index_0_scoped_a91db31d_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_59fb00be_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a91db31d"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-59fb00be"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -76,92 +76,94 @@ const _hoisted_21 = { class: "vpp-card-desc" };
 const _hoisted_22 = { class: "vpp-card-meta" };
 const _hoisted_23 = { class: "vpp-card-meta-item" };
 const _hoisted_24 = { class: "vpp-card-meta-item" };
-const _hoisted_25 = { class: "vpp-card-body" };
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-card-note-label" }, "最近状态", -1));
-const _hoisted_27 = { class: "vpp-card-note" };
-const _hoisted_28 = { class: "vpp-action-row" };
-const _hoisted_29 = {
+const _hoisted_25 = {
+  key: 0,
+  class: "vpp-card-body"
+};
+const _hoisted_26 = { class: "vpp-card-note" };
+const _hoisted_27 = { class: "vpp-action-row" };
+const _hoisted_28 = {
   key: 0,
   class: "vpp-empty-state vpp-grid-empty"
 };
-const _hoisted_30 = { class: "vpp-dialog-head" };
-const _hoisted_31 = { class: "vpp-dialog-title-wrap" };
-const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "配置", -1));
-const _hoisted_33 = { class: "vpp-dialog-title" };
-const _hoisted_34 = { class: "vpp-dialog-body" };
-const _hoisted_35 = { class: "vpp-dialog-meta" };
+const _hoisted_29 = { class: "vpp-dialog-head" };
+const _hoisted_30 = { class: "vpp-dialog-title-wrap" };
+const _hoisted_31 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "配置", -1));
+const _hoisted_32 = { class: "vpp-dialog-title" };
+const _hoisted_33 = { class: "vpp-dialog-body" };
+const _hoisted_34 = { class: "vpp-dialog-meta" };
+const _hoisted_35 = { class: "vpp-meta-chip" };
 const _hoisted_36 = { class: "vpp-meta-chip" };
-const _hoisted_37 = { class: "vpp-meta-chip" };
-const _hoisted_38 = { class: "vpp-dialog-panel" };
-const _hoisted_39 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "开关", -1));
-const _hoisted_40 = { class: "vpp-switch-grid" };
-const _hoisted_41 = { class: "vpp-switch-card" };
-const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
-const _hoisted_43 = { class: "vpp-switch-card" };
-const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
-const _hoisted_45 = { class: "vpp-switch-card" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
-const _hoisted_47 = { class: "vpp-switch-card is-emphasis" };
-const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "立即运行一次", -1));
-const _hoisted_49 = { class: "vpp-dialog-panel" };
-const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "基础设置", -1));
-const _hoisted_51 = { class: "vpp-form-grid" };
-const _hoisted_52 = { class: "vpp-dialog-actions" };
-const _hoisted_53 = { class: "vpp-dialog-actions-left" };
-const _hoisted_54 = { class: "vpp-dialog-actions-right" };
-const _hoisted_55 = { class: "vpp-dialog-head" };
-const _hoisted_56 = { class: "vpp-dialog-title-wrap" };
-const _hoisted_57 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
-const _hoisted_58 = { class: "vpp-dialog-title" };
-const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
+const _hoisted_37 = { class: "vpp-dialog-panel" };
+const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "开关", -1));
+const _hoisted_39 = { class: "vpp-switch-grid" };
+const _hoisted_40 = { class: "vpp-switch-card" };
+const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "启用功能", -1));
+const _hoisted_42 = { class: "vpp-switch-card" };
+const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "定时执行", -1));
+const _hoisted_44 = { class: "vpp-switch-card" };
+const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "发送通知", -1));
+const _hoisted_46 = { class: "vpp-switch-card is-emphasis" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "vpp-switch-label" }, "立即运行一次", -1));
+const _hoisted_48 = { class: "vpp-dialog-panel" };
+const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "基础设置", -1));
+const _hoisted_50 = { class: "vpp-form-grid" };
+const _hoisted_51 = { class: "vpp-dialog-actions" };
+const _hoisted_52 = { class: "vpp-dialog-actions-left" };
+const _hoisted_53 = { class: "vpp-dialog-actions-right" };
+const _hoisted_54 = { class: "vpp-dialog-head" };
+const _hoisted_55 = { class: "vpp-dialog-title-wrap" };
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "日志", -1));
+const _hoisted_57 = { class: "vpp-dialog-title" };
+const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-state" }, [
   /*#__PURE__*/_createElementVNode("span", { class: "vpp-live-dot" }),
   /*#__PURE__*/_createElementVNode("span", null, "实时轮询中")
 ], -1));
-const _hoisted_60 = { class: "vpp-dialog-body" };
-const _hoisted_61 = { class: "vpp-dialog-meta" };
+const _hoisted_59 = { class: "vpp-dialog-body" };
+const _hoisted_60 = { class: "vpp-dialog-meta" };
+const _hoisted_61 = { class: "vpp-meta-chip" };
 const _hoisted_62 = { class: "vpp-meta-chip" };
 const _hoisted_63 = { class: "vpp-meta-chip" };
-const _hoisted_64 = { class: "vpp-meta-chip" };
-const _hoisted_65 = { class: "vpp-dialog-panel vpp-log-panel" };
-const _hoisted_66 = {
+const _hoisted_64 = { class: "vpp-dialog-panel vpp-log-panel" };
+const _hoisted_65 = {
   key: 0,
   class: "vpp-empty-state"
 };
-const _hoisted_67 = {
+const _hoisted_66 = {
   key: 1,
   class: "vpp-log-table"
 };
-const _hoisted_68 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-table-head" }, [
+const _hoisted_67 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-log-table-head" }, [
   /*#__PURE__*/_createElementVNode("span", null, "时间"),
   /*#__PURE__*/_createElementVNode("span", null, "状态"),
   /*#__PURE__*/_createElementVNode("span", null, "详情")
 ], -1));
-const _hoisted_69 = { class: "vpp-log-table-body mp-scroll" };
-const _hoisted_70 = { class: "vpp-log-time" };
-const _hoisted_71 = { class: "vpp-log-status" };
-const _hoisted_72 = { class: "vpp-log-detail" };
-const _hoisted_73 = { class: "vpp-log-summary" };
-const _hoisted_74 = {
+const _hoisted_68 = { class: "vpp-log-table-body mp-scroll" };
+const _hoisted_69 = { class: "vpp-log-time" };
+const _hoisted_70 = { class: "vpp-log-status" };
+const _hoisted_71 = { class: "vpp-log-detail" };
+const _hoisted_72 = { class: "vpp-log-summary" };
+const _hoisted_73 = {
   key: 0,
   class: "vpp-log-lines"
 };
-const _hoisted_75 = { class: "vpp-dialog-actions" };
-const _hoisted_76 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-actions-left" }, null, -1));
-const _hoisted_77 = { class: "vpp-dialog-actions-right" };
-const _hoisted_78 = { class: "vpp-dialog-head" };
-const _hoisted_79 = { class: "vpp-dialog-title-wrap" };
-const _hoisted_80 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
-const _hoisted_81 = { class: "vpp-dialog-title" };
-const _hoisted_82 = { class: "vpp-dialog-body" };
-const _hoisted_83 = { class: "vpp-dialog-meta" };
-const _hoisted_84 = { class: "vpp-meta-chip" };
-const _hoisted_85 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-hint" }, " 复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。 ", -1));
-const _hoisted_86 = { class: "vpp-dialog-panel" };
-const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "复制设置", -1));
-const _hoisted_88 = { class: "vpp-form-grid is-single" };
-const _hoisted_89 = { class: "vpp-dialog-actions" };
-const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-actions-left" }, null, -1));
-const _hoisted_91 = { class: "vpp-dialog-actions-right" };
+const _hoisted_74 = { class: "vpp-dialog-actions" };
+const _hoisted_75 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-actions-left" }, null, -1));
+const _hoisted_76 = { class: "vpp-dialog-actions-right" };
+const _hoisted_77 = { class: "vpp-dialog-head" };
+const _hoisted_78 = { class: "vpp-dialog-title-wrap" };
+const _hoisted_79 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-kicker" }, "复制", -1));
+const _hoisted_80 = { class: "vpp-dialog-title" };
+const _hoisted_81 = { class: "vpp-dialog-body" };
+const _hoisted_82 = { class: "vpp-dialog-meta" };
+const _hoisted_83 = { class: "vpp-meta-chip" };
+const _hoisted_84 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-hint" }, " 复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。 ", -1));
+const _hoisted_85 = { class: "vpp-dialog-panel" };
+const _hoisted_86 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-section-title" }, "复制设置", -1));
+const _hoisted_87 = { class: "vpp-form-grid is-single" };
+const _hoisted_88 = { class: "vpp-dialog-actions" };
+const _hoisted_89 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-actions-left" }, null, -1));
+const _hoisted_90 = { class: "vpp-dialog-actions-right" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -205,6 +207,7 @@ const selectedCardId = ref('');
 const lastLogRefresh = ref('');
 const searchQuery = ref('');
 const deletingCardId = ref('');
+const logCardSeed = ref(null);
 
 let logTimer = null;
 
@@ -251,33 +254,31 @@ const toneSelectItems = computed(() =>
   (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
 );
 const activeDashboardCard = computed(() => cards.value.find((item) => item.card_id === selectedCardId.value) || null);
+const currentLogCard = computed(() => activeDashboardCard.value || logCardSeed.value || null);
 const latestStateLog = computed(() => {
-  const card = activeDashboardCard.value;
+  const card = currentLogCard.value;
   if (!card) return null
-  const time = String(card.last_run || card.last_checked || '').trim();
-  if (!time) return null
+  const entry = cardToLogEntry(card);
+  if (!entry) return null
   return {
-    id: `latest-${card.card_id}-${time}`,
-    time,
-    title: card.title,
-    summary: card.status_text || cardDescription(card),
-    status_title: card.status_title || '最近状态',
-    level: card.level || 'info',
-    lines: Array.isArray(card.detail_lines) ? card.detail_lines.filter(Boolean) : [],
-    card_id: card.card_id,
+    ...entry,
+    id: `latest-${entry.card_id || card.card_id || card.id || 'item'}-${entry.time || 'state'}`,
   }
 });
 const selectedLogs = computed(() => {
-  const card = activeDashboardCard.value;
+  const card = currentLogCard.value;
   if (!card) return []
   const fallbackLogs = card.log_items || [];
   const merged = new Map();
   for (const item of [latestStateLog.value, ...fallbackLogs, ...historyItems.value]) {
     if (!logMatchesCard(item, card)) continue
-    const key = item.id || `${item.time || ''}-${item.summary || ''}`;
+    const key = logEntryKey(item);
     if (!merged.has(key)) merged.set(key, item);
   }
-  return [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
+  const items = [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')));
+  if (items.length) return items
+  const fallbackItem = cardToLogEntry(card);
+  return fallbackItem ? [fallbackItem] : []
 });
 
 function createEmptyConfig() {
@@ -551,6 +552,39 @@ function logDetail(item) {
   return '暂无详情'
 }
 
+function logEntryKey(item) {
+  if (!item) return ''
+  return [
+    String(item.card_id || '').trim(),
+    String(item.time || '').trim(),
+    String(item.status_title || item.title || '').trim(),
+    String(item.summary || '').trim(),
+    Array.isArray(item.lines) ? item.lines.filter(Boolean).join('|') : '',
+  ].join('::')
+}
+
+function cardToLogEntry(card) {
+  if (!card) return null
+  const time = String(card.last_run || card.last_checked || '').trim();
+  const summary = String(card.status_text || '').trim();
+  const lines = Array.isArray(card.detail_lines) ? card.detail_lines.filter(Boolean) : [];
+  const title = String(card.title || '').trim();
+  if (!time && !summary && !lines.length && !title) return null
+  return {
+    id: `card-fallback-${card.card_id || card.id || 'item'}-${time || 'now'}`,
+    time: time || '--',
+    title: title || '最近状态',
+    summary,
+    status_title: String(card.status_title || '最近状态').trim(),
+    level: String(card.level || 'info').trim(),
+    lines,
+    card_id: String(card.card_id || card.id || '').trim(),
+    module_key: String(card.module_key || '').trim(),
+    site_name: String(card.site_name || '').trim(),
+    site_url: String(card.site_url || '').trim(),
+  }
+}
+
 function logMatchesCard(item, card) {
   if (!item || !card) return false
   const cardId = String(card.card_id || card.id || '').trim();
@@ -589,7 +623,10 @@ function cardDescription(card) {
 }
 
 function cardStatusSummary(card) {
-  return String(card?.status_text || scheduleText(card) || '暂无状态').trim()
+  const summary = String(card?.status_text || scheduleText(card) || '').trim();
+  if (!summary) return ''
+  if (summary === '卡片配置已经加载，可以点击刷新或执行启用查看实时状态。') return ''
+  return summary
 }
 
 function logoSrc(card) {
@@ -619,6 +656,7 @@ function openConfigDialog(card) {
 
 function openLogsDialog(card) {
   selectedCardId.value = card.card_id;
+  logCardSeed.value = deepClone(card);
   dialog.logs = true;
 }
 
@@ -830,7 +868,10 @@ watch(
   () => dialog.logs,
   (opened) => {
     if (opened) startLogPolling();
-    else stopLogPolling();
+    else {
+      stopLogPolling();
+      logCardSeed.value = null;
+    }
   },
 );
 
@@ -975,11 +1016,12 @@ return (_ctx, _cache) => {
                 ])
               ])
             ]),
-            _createElementVNode("div", _hoisted_25, [
-              _hoisted_26,
-              _createElementVNode("p", _hoisted_27, _toDisplayString(cardStatusSummary(card)), 1)
-            ]),
-            _createElementVNode("div", _hoisted_28, [
+            (cardStatusSummary(card))
+              ? (_openBlock(), _createElementBlock("div", _hoisted_25, [
+                  _createElementVNode("p", _hoisted_26, _toDisplayString(cardStatusSummary(card)), 1)
+                ]))
+              : _createCommentVNode("", true),
+            _createElementVNode("div", _hoisted_27, [
               _createVNode(_component_v_btn, {
                 class: "vpp-action-btn is-config",
                 variant: "text",
@@ -1017,7 +1059,7 @@ return (_ctx, _cache) => {
           ], 6))
         }), 128)),
         (!displayCards.value.length)
-          ? (_openBlock(), _createElementBlock("div", _hoisted_29, _toDisplayString(searchQuery.value ? '没有找到匹配的功能模块。' : '当前还没有可展示的功能卡片。'), 1))
+          ? (_openBlock(), _createElementBlock("div", _hoisted_28, _toDisplayString(searchQuery.value ? '没有找到匹配的功能模块。' : '当前还没有可展示的功能卡片。'), 1))
           : _createCommentVNode("", true)
       ])
     ]),
@@ -1031,32 +1073,32 @@ return (_ctx, _cache) => {
           class: _normalizeClass(["vpp-dialog-card is-config", themeClass.value])
         }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_30, [
-              _createElementVNode("div", _hoisted_31, [
+            _createElementVNode("div", _hoisted_29, [
+              _createElementVNode("div", _hoisted_30, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-cog-outline",
                   size: "22",
                   class: "vpp-dialog-icon is-config"
                 }),
                 _createElementVNode("div", null, [
-                  _hoisted_32,
-                  _createElementVNode("h3", _hoisted_33, _toDisplayString(editor.title || activeDashboardCard.value?.title || '功能配置'), 1)
+                  _hoisted_31,
+                  _createElementVNode("h3", _hoisted_32, _toDisplayString(editor.title || activeDashboardCard.value?.title || '功能配置'), 1)
                 ])
               ]),
               _createElementVNode("span", {
                 class: _normalizeClass(["vpp-status-pill", `is-${editor.enabled ? 'enabled' : 'disabled'}`])
               }, _toDisplayString(editor.enabled ? '启用' : '停用'), 3)
             ]),
-            _createElementVNode("div", _hoisted_34, [
-              _createElementVNode("div", _hoisted_35, [
-                _createElementVNode("span", _hoisted_36, _toDisplayString(editor.site_name || '--'), 1),
-                _createElementVNode("span", _hoisted_37, _toDisplayString(editor.cron || DEFAULT_CRON), 1)
+            _createElementVNode("div", _hoisted_33, [
+              _createElementVNode("div", _hoisted_34, [
+                _createElementVNode("span", _hoisted_35, _toDisplayString(editor.site_name || '--'), 1),
+                _createElementVNode("span", _hoisted_36, _toDisplayString(editor.cron || DEFAULT_CRON), 1)
               ]),
-              _createElementVNode("div", _hoisted_38, [
-                _hoisted_39,
-                _createElementVNode("div", _hoisted_40, [
-                  _createElementVNode("label", _hoisted_41, [
-                    _hoisted_42,
+              _createElementVNode("div", _hoisted_37, [
+                _hoisted_38,
+                _createElementVNode("div", _hoisted_39, [
+                  _createElementVNode("label", _hoisted_40, [
+                    _hoisted_41,
                     _createVNode(_component_v_switch, {
                       modelValue: editor.enabled,
                       "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((editor.enabled) = $event)),
@@ -1065,8 +1107,8 @@ return (_ctx, _cache) => {
                       density: "compact"
                     }, null, 8, ["modelValue"])
                   ]),
-                  _createElementVNode("label", _hoisted_43, [
-                    _hoisted_44,
+                  _createElementVNode("label", _hoisted_42, [
+                    _hoisted_43,
                     _createVNode(_component_v_switch, {
                       modelValue: editor.auto_run,
                       "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((editor.auto_run) = $event)),
@@ -1075,8 +1117,8 @@ return (_ctx, _cache) => {
                       density: "compact"
                     }, null, 8, ["modelValue"])
                   ]),
-                  _createElementVNode("label", _hoisted_45, [
-                    _hoisted_46,
+                  _createElementVNode("label", _hoisted_44, [
+                    _hoisted_45,
                     _createVNode(_component_v_switch, {
                       modelValue: editor.notify,
                       "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((editor.notify) = $event)),
@@ -1085,8 +1127,8 @@ return (_ctx, _cache) => {
                       density: "compact"
                     }, null, 8, ["modelValue"])
                   ]),
-                  _createElementVNode("label", _hoisted_47, [
-                    _hoisted_48,
+                  _createElementVNode("label", _hoisted_46, [
+                    _hoisted_47,
                     _createVNode(_component_v_switch, {
                       modelValue: editor.run_once,
                       "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((editor.run_once) = $event)),
@@ -1097,9 +1139,9 @@ return (_ctx, _cache) => {
                   ])
                 ])
               ]),
-              _createElementVNode("div", _hoisted_49, [
-                _hoisted_50,
-                _createElementVNode("div", _hoisted_51, [
+              _createElementVNode("div", _hoisted_48, [
+                _hoisted_49,
+                _createElementVNode("div", _hoisted_50, [
                   _createVNode(_component_v_text_field, {
                     modelValue: editor.title,
                     "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((editor.title) = $event)),
@@ -1175,8 +1217,8 @@ return (_ctx, _cache) => {
                 ])
               ])
             ]),
-            _createElementVNode("div", _hoisted_52, [
-              _createElementVNode("div", _hoisted_53, [
+            _createElementVNode("div", _hoisted_51, [
+              _createElementVNode("div", _hoisted_52, [
                 _createVNode(_component_v_btn, {
                   class: _normalizeClass(["vpp-action-btn is-delete", { 'is-disabled-control': !canDeleteCard(activeDashboardCard.value || editor) }]),
                   variant: "text",
@@ -1191,7 +1233,7 @@ return (_ctx, _cache) => {
                   _: 1
                 }, 8, ["class", "disabled", "loading"])
               ]),
-              _createElementVNode("div", _hoisted_54, [
+              _createElementVNode("div", _hoisted_53, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
                   onClick: _cache[13] || (_cache[13] = $event => (dialog.config = false))
@@ -1230,47 +1272,47 @@ return (_ctx, _cache) => {
           class: _normalizeClass(["vpp-dialog-card is-logs", themeClass.value])
         }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_55, [
-              _createElementVNode("div", _hoisted_56, [
+            _createElementVNode("div", _hoisted_54, [
+              _createElementVNode("div", _hoisted_55, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-text-box-outline",
                   size: "22",
                   class: "vpp-dialog-icon is-logs"
                 }),
                 _createElementVNode("div", null, [
-                  _hoisted_57,
-                  _createElementVNode("h3", _hoisted_58, _toDisplayString(activeDashboardCard.value?.title || '实时日志'), 1)
+                  _hoisted_56,
+                  _createElementVNode("h3", _hoisted_57, _toDisplayString(currentLogCard.value?.title || '实时日志'), 1)
                 ])
               ]),
-              _hoisted_59
+              _hoisted_58
             ]),
-            _createElementVNode("div", _hoisted_60, [
-              _createElementVNode("div", _hoisted_61, [
-                _createElementVNode("span", _hoisted_62, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1),
-                _createElementVNode("span", _hoisted_63, _toDisplayString(activeDashboardCard.value?.site_domain || activeDashboardCard.value?.site_url || '--'), 1),
-                _createElementVNode("span", _hoisted_64, "最近刷新 " + _toDisplayString(lastLogRefresh.value || '--'), 1)
+            _createElementVNode("div", _hoisted_59, [
+              _createElementVNode("div", _hoisted_60, [
+                _createElementVNode("span", _hoisted_61, _toDisplayString(currentLogCard.value?.site_name || '--'), 1),
+                _createElementVNode("span", _hoisted_62, _toDisplayString(currentLogCard.value?.site_domain || currentLogCard.value?.site_url || '--'), 1),
+                _createElementVNode("span", _hoisted_63, "最近刷新 " + _toDisplayString(lastLogRefresh.value || '--'), 1)
               ]),
-              _createElementVNode("div", _hoisted_65, [
+              _createElementVNode("div", _hoisted_64, [
                 (!selectedLogs.value.length)
-                  ? (_openBlock(), _createElementBlock("div", _hoisted_66, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
-                  : (_openBlock(), _createElementBlock("div", _hoisted_67, [
-                      _hoisted_68,
-                      _createElementVNode("div", _hoisted_69, [
+                  ? (_openBlock(), _createElementBlock("div", _hoisted_65, " 当前卡片还没有执行日志，先执行一次或等待下次轮询。 "))
+                  : (_openBlock(), _createElementBlock("div", _hoisted_66, [
+                      _hoisted_67,
+                      _createElementVNode("div", _hoisted_68, [
                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(selectedLogs.value, (item) => {
                           return (_openBlock(), _createElementBlock("article", {
                             key: item.id || `${item.time}-${item.summary}`,
                             class: "vpp-log-row"
                           }, [
-                            _createElementVNode("div", _hoisted_70, _toDisplayString(item.time || '--'), 1),
-                            _createElementVNode("div", _hoisted_71, [
+                            _createElementVNode("div", _hoisted_69, _toDisplayString(item.time || '--'), 1),
+                            _createElementVNode("div", _hoisted_70, [
                               _createElementVNode("span", {
                                 class: _normalizeClass(["vpp-runtime-pill", `is-${logTone(item)}`])
                               }, _toDisplayString(logStatusLabel(item)), 3)
                             ]),
-                            _createElementVNode("div", _hoisted_72, [
-                              _createElementVNode("div", _hoisted_73, _toDisplayString(logDetail(item)), 1),
+                            _createElementVNode("div", _hoisted_71, [
+                              _createElementVNode("div", _hoisted_72, _toDisplayString(logDetail(item)), 1),
                               (item.lines?.length)
-                                ? (_openBlock(), _createElementBlock("div", _hoisted_74, [
+                                ? (_openBlock(), _createElementBlock("div", _hoisted_73, [
                                     (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.lines, (line) => {
                                       return (_openBlock(), _createElementBlock("span", {
                                         key: `${item.id}-${line}`,
@@ -1286,9 +1328,9 @@ return (_ctx, _cache) => {
                     ]))
               ])
             ]),
-            _createElementVNode("div", _hoisted_75, [
-              _hoisted_76,
-              _createElementVNode("div", _hoisted_77, [
+            _createElementVNode("div", _hoisted_74, [
+              _hoisted_75,
+              _createElementVNode("div", _hoisted_76, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
                   onClick: _cache[15] || (_cache[15] = $event => (dialog.logs = false))
@@ -1340,27 +1382,27 @@ return (_ctx, _cache) => {
           class: _normalizeClass(["vpp-dialog-card is-copy", themeClass.value])
         }, {
           default: _withCtx(() => [
-            _createElementVNode("div", _hoisted_78, [
-              _createElementVNode("div", _hoisted_79, [
+            _createElementVNode("div", _hoisted_77, [
+              _createElementVNode("div", _hoisted_78, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-content-copy",
                   size: "22",
                   class: "vpp-dialog-icon is-copy"
                 }),
                 _createElementVNode("div", null, [
-                  _hoisted_80,
-                  _createElementVNode("h3", _hoisted_81, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
+                  _hoisted_79,
+                  _createElementVNode("h3", _hoisted_80, _toDisplayString(activeDashboardCard.value?.title || '复制功能卡片'), 1)
                 ])
               ])
             ]),
-            _createElementVNode("div", _hoisted_82, [
-              _createElementVNode("div", _hoisted_83, [
-                _createElementVNode("span", _hoisted_84, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1)
+            _createElementVNode("div", _hoisted_81, [
+              _createElementVNode("div", _hoisted_82, [
+                _createElementVNode("span", _hoisted_83, _toDisplayString(activeDashboardCard.value?.site_name || '--'), 1)
               ]),
-              _hoisted_85,
-              _createElementVNode("div", _hoisted_86, [
-                _hoisted_87,
-                _createElementVNode("div", _hoisted_88, [
+              _hoisted_84,
+              _createElementVNode("div", _hoisted_85, [
+                _hoisted_86,
+                _createElementVNode("div", _hoisted_87, [
                   _createVNode(_component_v_text_field, {
                     modelValue: copyForm.title,
                     "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((copyForm.title) = $event)),
@@ -1382,9 +1424,9 @@ return (_ctx, _cache) => {
                 ])
               ])
             ]),
-            _createElementVNode("div", _hoisted_89, [
-              _hoisted_90,
-              _createElementVNode("div", _hoisted_91, [
+            _createElementVNode("div", _hoisted_88, [
+              _hoisted_89,
+              _createElementVNode("div", _hoisted_90, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
                   onClick: _cache[19] || (_cache[19] = $event => (dialog.copy = false))
@@ -1418,6 +1460,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a91db31d"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-59fb00be"]]);
 
 export { _export_sfc as _, PageView as default };

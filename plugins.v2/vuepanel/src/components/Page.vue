@@ -85,8 +85,7 @@
             </div>
           </div>
 
-          <div class="vpp-card-body">
-            <div class="vpp-card-note-label">最近状态</div>
+          <div v-if="cardStatusSummary(card)" class="vpp-card-body">
             <p class="vpp-card-note">{{ cardStatusSummary(card) }}</p>
           </div>
 
@@ -232,7 +231,7 @@
             <v-icon icon="mdi-text-box-outline" size="22" class="vpp-dialog-icon is-logs" />
             <div>
               <div class="vpp-kicker">日志</div>
-              <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '实时日志' }}</h3>
+              <h3 class="vpp-dialog-title">{{ currentLogCard?.title || '实时日志' }}</h3>
             </div>
           </div>
           <div class="vpp-log-state">
@@ -243,8 +242,8 @@
 
         <div class="vpp-dialog-body">
           <div class="vpp-dialog-meta">
-            <span class="vpp-meta-chip">{{ activeDashboardCard?.site_name || '--' }}</span>
-            <span class="vpp-meta-chip">{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</span>
+            <span class="vpp-meta-chip">{{ currentLogCard?.site_name || '--' }}</span>
+            <span class="vpp-meta-chip">{{ currentLogCard?.site_domain || currentLogCard?.site_url || '--' }}</span>
             <span class="vpp-meta-chip">最近刷新 {{ lastLogRefresh || '--' }}</span>
           </div>
 
@@ -381,6 +380,7 @@ const selectedCardId = ref('')
 const lastLogRefresh = ref('')
 const searchQuery = ref('')
 const deletingCardId = ref('')
+const logCardSeed = ref(null)
 
 let logTimer = null
 
@@ -427,33 +427,31 @@ const toneSelectItems = computed(() =>
   (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
 )
 const activeDashboardCard = computed(() => cards.value.find((item) => item.card_id === selectedCardId.value) || null)
+const currentLogCard = computed(() => activeDashboardCard.value || logCardSeed.value || null)
 const latestStateLog = computed(() => {
-  const card = activeDashboardCard.value
+  const card = currentLogCard.value
   if (!card) return null
-  const time = String(card.last_run || card.last_checked || '').trim()
-  if (!time) return null
+  const entry = cardToLogEntry(card)
+  if (!entry) return null
   return {
-    id: `latest-${card.card_id}-${time}`,
-    time,
-    title: card.title,
-    summary: card.status_text || cardDescription(card),
-    status_title: card.status_title || '最近状态',
-    level: card.level || 'info',
-    lines: Array.isArray(card.detail_lines) ? card.detail_lines.filter(Boolean) : [],
-    card_id: card.card_id,
+    ...entry,
+    id: `latest-${entry.card_id || card.card_id || card.id || 'item'}-${entry.time || 'state'}`,
   }
 })
 const selectedLogs = computed(() => {
-  const card = activeDashboardCard.value
+  const card = currentLogCard.value
   if (!card) return []
   const fallbackLogs = card.log_items || []
   const merged = new Map()
   for (const item of [latestStateLog.value, ...fallbackLogs, ...historyItems.value]) {
     if (!logMatchesCard(item, card)) continue
-    const key = item.id || `${item.time || ''}-${item.summary || ''}`
+    const key = logEntryKey(item)
     if (!merged.has(key)) merged.set(key, item)
   }
-  return [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
+  const items = [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
+  if (items.length) return items
+  const fallbackItem = cardToLogEntry(card)
+  return fallbackItem ? [fallbackItem] : []
 })
 
 function createEmptyConfig() {
@@ -727,6 +725,39 @@ function logDetail(item) {
   return '暂无详情'
 }
 
+function logEntryKey(item) {
+  if (!item) return ''
+  return [
+    String(item.card_id || '').trim(),
+    String(item.time || '').trim(),
+    String(item.status_title || item.title || '').trim(),
+    String(item.summary || '').trim(),
+    Array.isArray(item.lines) ? item.lines.filter(Boolean).join('|') : '',
+  ].join('::')
+}
+
+function cardToLogEntry(card) {
+  if (!card) return null
+  const time = String(card.last_run || card.last_checked || '').trim()
+  const summary = String(card.status_text || '').trim()
+  const lines = Array.isArray(card.detail_lines) ? card.detail_lines.filter(Boolean) : []
+  const title = String(card.title || '').trim()
+  if (!time && !summary && !lines.length && !title) return null
+  return {
+    id: `card-fallback-${card.card_id || card.id || 'item'}-${time || 'now'}`,
+    time: time || '--',
+    title: title || '最近状态',
+    summary,
+    status_title: String(card.status_title || '最近状态').trim(),
+    level: String(card.level || 'info').trim(),
+    lines,
+    card_id: String(card.card_id || card.id || '').trim(),
+    module_key: String(card.module_key || '').trim(),
+    site_name: String(card.site_name || '').trim(),
+    site_url: String(card.site_url || '').trim(),
+  }
+}
+
 function logMatchesCard(item, card) {
   if (!item || !card) return false
   const cardId = String(card.card_id || card.id || '').trim()
@@ -765,7 +796,10 @@ function cardDescription(card) {
 }
 
 function cardStatusSummary(card) {
-  return String(card?.status_text || scheduleText(card) || '暂无状态').trim()
+  const summary = String(card?.status_text || scheduleText(card) || '').trim()
+  if (!summary) return ''
+  if (summary === '卡片配置已经加载，可以点击刷新或执行启用查看实时状态。') return ''
+  return summary
 }
 
 function logoSrc(card) {
@@ -795,6 +829,7 @@ function openConfigDialog(card) {
 
 function openLogsDialog(card) {
   selectedCardId.value = card.card_id
+  logCardSeed.value = deepClone(card)
   dialog.logs = true
 }
 
@@ -1006,7 +1041,10 @@ watch(
   () => dialog.logs,
   (opened) => {
     if (opened) startLogPolling()
-    else stopLogPolling()
+    else {
+      stopLogPolling()
+      logCardSeed.value = null
+    }
   },
 )
 
@@ -1029,6 +1067,23 @@ onBeforeUnmount(() => {
   --vpp-surface-strong: rgba(var(--v-theme-surface), 0.92);
   --vpp-line: rgba(var(--v-theme-on-surface), 0.12);
   --vpp-line-strong: rgba(var(--v-theme-primary), 0.28);
+  --vpp-panel-bg: linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
+  --vpp-stat-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 0.95), rgba(var(--v-theme-surface), 0.88));
+  --vpp-card-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-primary), 0.05));
+  --vpp-card-hover-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 1), rgba(var(--v-theme-primary), 0.1));
+  --vpp-note-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), rgba(var(--v-theme-surface-variant), 0.08));
+  --vpp-chip-bg: rgba(var(--v-theme-surface-variant), 0.1);
+  --vpp-field-bg: rgba(var(--v-theme-surface-variant), 0.08);
+  --vpp-dialog-bg: linear-gradient(160deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.92));
+  --vpp-dialog-panel-bg: color-mix(in srgb, var(--vpp-surface-muted) 88%, transparent);
+  --vpp-toolbar-bg: rgba(var(--v-theme-surface-variant), 0.08);
+  --vpp-card-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
+  --vpp-card-hover-shadow: 0 22px 44px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
+  --vpp-dialog-shadow: 0 26px 70px color-mix(in srgb, var(--mp-shadow-color) 94%, transparent);
+  --vpp-shine-band: rgba(255, 255, 255, 0.16);
+  --vpp-shine-accent: rgba(76, 168, 255, 0.72);
+  --vpp-shine-sweep: rgba(255, 255, 255, 0.08);
   --vpp-accent-rgb: 76, 168, 255;
   --vpp-blue: #4ca8ff;
   --vpp-green: #2db870;
@@ -1040,6 +1095,133 @@ onBeforeUnmount(() => {
   min-height: 100%;
   padding: 8px 0 20px;
   color: var(--vpp-text);
+}
+
+.vuepanel-page.v-theme--light,
+.vpp-dialog-card.v-theme--light {
+  --vpp-line: rgba(102, 116, 139, 0.16);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.34);
+  --vpp-panel-bg: linear-gradient(to right, rgba(var(--v-theme-surface), 0.99), rgba(var(--v-theme-surface), 0.95)),
+    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.035), rgba(var(--v-theme-primary), 0.035) 10px, transparent 10px, transparent 20px);
+  --vpp-stat-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(var(--v-theme-primary), 0.06));
+  --vpp-card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(var(--v-theme-primary), 0.05)),
+    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.08), transparent 38%);
+  --vpp-card-hover-bg: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(var(--v-theme-primary), 0.1)),
+    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.14), transparent 40%);
+  --vpp-note-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.05), rgba(148, 163, 184, 0.08));
+  --vpp-chip-bg: rgba(236, 242, 248, 0.92);
+  --vpp-field-bg: rgba(243, 247, 252, 0.94);
+  --vpp-dialog-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.99), rgba(246, 250, 255, 0.96)),
+    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.08), transparent 42%);
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), rgba(241, 245, 252, 0.92));
+  --vpp-toolbar-bg: rgba(240, 245, 251, 0.92);
+  --vpp-card-shadow: 0 18px 38px rgba(30, 41, 59, 0.1);
+  --vpp-card-hover-shadow: 0 24px 46px rgba(30, 41, 59, 0.15);
+  --vpp-dialog-shadow: 0 28px 68px rgba(30, 41, 59, 0.18);
+  --vpp-text: #162133;
+  --vpp-text-soft: rgba(22, 33, 51, 0.82);
+  --vpp-text-faint: rgba(67, 81, 102, 0.68);
+  --vpp-shine-band: rgba(255, 255, 255, 0.28);
+  --vpp-shine-sweep: rgba(148, 163, 184, 0.1);
+}
+
+.vuepanel-page.v-theme--dark,
+.vpp-dialog-card.v-theme--dark {
+  --vpp-surface: rgba(16, 21, 32, 0.92);
+  --vpp-surface-soft: rgba(18, 24, 37, 0.9);
+  --vpp-surface-muted: rgba(148, 163, 184, 0.09);
+  --vpp-surface-strong: rgba(12, 17, 27, 0.96);
+  --vpp-line: rgba(203, 213, 225, 0.14);
+  --vpp-line-strong: rgba(96, 165, 250, 0.3);
+  --vpp-panel-bg: linear-gradient(145deg, rgba(18, 24, 37, 0.96), rgba(8, 12, 20, 0.96)),
+    repeating-linear-gradient(135deg, rgba(96, 165, 250, 0.05), rgba(96, 165, 250, 0.05) 12px, transparent 12px, transparent 24px);
+  --vpp-stat-bg: linear-gradient(145deg, rgba(23, 30, 46, 0.96), rgba(12, 18, 31, 0.96));
+  --vpp-card-bg: linear-gradient(145deg, rgba(22, 28, 43, 0.96), rgba(10, 15, 24, 0.96)),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 38%);
+  --vpp-card-hover-bg: linear-gradient(145deg, rgba(28, 35, 53, 0.98), rgba(12, 18, 28, 0.98)),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 42%);
+  --vpp-note-bg: linear-gradient(180deg, rgba(96, 165, 250, 0.08), rgba(15, 23, 42, 0.22));
+  --vpp-chip-bg: rgba(148, 163, 184, 0.1);
+  --vpp-field-bg: rgba(148, 163, 184, 0.08);
+  --vpp-dialog-bg: linear-gradient(160deg, rgba(18, 24, 37, 0.98), rgba(7, 12, 20, 0.98)),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 44%);
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(96, 165, 250, 0.08), rgba(18, 24, 37, 0.86));
+  --vpp-toolbar-bg: rgba(24, 31, 47, 0.86);
+  --vpp-card-shadow: 0 20px 44px rgba(1, 7, 18, 0.48);
+  --vpp-card-hover-shadow: 0 26px 54px rgba(1, 7, 18, 0.56);
+  --vpp-dialog-shadow: 0 28px 74px rgba(1, 7, 18, 0.62);
+  --vpp-text: #eef4ff;
+  --vpp-text-soft: rgba(225, 234, 248, 0.82);
+  --vpp-text-faint: rgba(181, 194, 216, 0.68);
+  --vpp-shine-band: rgba(255, 255, 255, 0.08);
+  --vpp-shine-accent: rgba(96, 165, 250, 0.78);
+  --vpp-shine-sweep: rgba(191, 219, 254, 0.08);
+}
+
+.vuepanel-page.v-theme--purple,
+.vpp-dialog-card.v-theme--purple {
+  --vpp-surface: rgba(50, 41, 82, 0.92);
+  --vpp-surface-soft: rgba(58, 45, 95, 0.88);
+  --vpp-surface-muted: rgba(255, 255, 255, 0.09);
+  --vpp-surface-strong: rgba(45, 36, 74, 0.96);
+  --vpp-line: rgba(224, 201, 255, 0.18);
+  --vpp-line-strong: rgba(192, 132, 252, 0.36);
+  --vpp-panel-bg: linear-gradient(145deg, rgba(63, 45, 104, 0.96), rgba(37, 28, 64, 0.96)),
+    repeating-linear-gradient(135deg, rgba(216, 180, 254, 0.06), rgba(216, 180, 254, 0.06) 12px, transparent 12px, transparent 24px);
+  --vpp-stat-bg: linear-gradient(145deg, rgba(92, 60, 145, 0.28), rgba(54, 41, 87, 0.95));
+  --vpp-card-bg: linear-gradient(145deg, rgba(88, 58, 140, 0.28), rgba(45, 34, 74, 0.96)),
+    radial-gradient(circle at top right, rgba(196, 181, 253, 0.18), transparent 40%);
+  --vpp-card-hover-bg: linear-gradient(145deg, rgba(104, 67, 166, 0.3), rgba(52, 39, 86, 0.98)),
+    radial-gradient(circle at top right, rgba(216, 180, 254, 0.24), transparent 42%);
+  --vpp-note-bg: linear-gradient(180deg, rgba(192, 132, 252, 0.12), rgba(99, 64, 146, 0.18));
+  --vpp-chip-bg: rgba(221, 214, 254, 0.12);
+  --vpp-field-bg: rgba(221, 214, 254, 0.1);
+  --vpp-dialog-bg: linear-gradient(160deg, rgba(68, 47, 112, 0.98), rgba(40, 29, 69, 0.98)),
+    radial-gradient(circle at top right, rgba(216, 180, 254, 0.16), transparent 42%);
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(216, 180, 254, 0.1), rgba(64, 46, 105, 0.86));
+  --vpp-toolbar-bg: rgba(82, 58, 131, 0.3);
+  --vpp-card-shadow: 0 20px 44px rgba(25, 12, 47, 0.4);
+  --vpp-card-hover-shadow: 0 26px 54px rgba(25, 12, 47, 0.48);
+  --vpp-dialog-shadow: 0 30px 78px rgba(25, 12, 47, 0.54);
+  --vpp-text: #f5ecff;
+  --vpp-text-soft: rgba(240, 228, 255, 0.84);
+  --vpp-text-faint: rgba(216, 198, 239, 0.7);
+  --vpp-shine-band: rgba(255, 255, 255, 0.1);
+  --vpp-shine-accent: rgba(216, 180, 254, 0.82);
+  --vpp-shine-sweep: rgba(221, 214, 254, 0.1);
+}
+
+.vuepanel-page.v-theme--transparent,
+.vpp-dialog-card.v-theme--transparent {
+  --vpp-surface: rgba(18, 28, 43, 0.72);
+  --vpp-surface-soft: rgba(16, 24, 38, 0.64);
+  --vpp-surface-muted: rgba(255, 255, 255, 0.08);
+  --vpp-surface-strong: rgba(12, 20, 32, 0.82);
+  --vpp-line: rgba(255, 255, 255, 0.18);
+  --vpp-line-strong: rgba(148, 197, 255, 0.34);
+  --vpp-panel-bg: linear-gradient(145deg, rgba(18, 28, 43, 0.72), rgba(10, 16, 26, 0.78)),
+    repeating-linear-gradient(135deg, rgba(191, 219, 254, 0.06), rgba(191, 219, 254, 0.06) 12px, transparent 12px, transparent 24px);
+  --vpp-stat-bg: linear-gradient(145deg, rgba(27, 39, 59, 0.74), rgba(14, 22, 34, 0.76));
+  --vpp-card-bg: linear-gradient(145deg, rgba(27, 39, 59, 0.74), rgba(12, 19, 30, 0.78)),
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.14), transparent 40%);
+  --vpp-card-hover-bg: linear-gradient(145deg, rgba(33, 47, 70, 0.78), rgba(14, 22, 35, 0.84)),
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.18), transparent 42%);
+  --vpp-note-bg: linear-gradient(180deg, rgba(191, 219, 254, 0.1), rgba(15, 23, 42, 0.18));
+  --vpp-chip-bg: rgba(255, 255, 255, 0.08);
+  --vpp-field-bg: rgba(255, 255, 255, 0.08);
+  --vpp-dialog-bg: linear-gradient(160deg, rgba(24, 36, 54, 0.8), rgba(10, 16, 26, 0.84)),
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.14), transparent 44%);
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(191, 219, 254, 0.08), rgba(18, 28, 43, 0.42));
+  --vpp-toolbar-bg: rgba(255, 255, 255, 0.06);
+  --vpp-card-shadow: 0 20px 44px rgba(4, 10, 22, 0.34);
+  --vpp-card-hover-shadow: 0 26px 54px rgba(4, 10, 22, 0.42);
+  --vpp-dialog-shadow: 0 30px 76px rgba(4, 10, 22, 0.48);
+  --vpp-text: #eff7ff;
+  --vpp-text-soft: rgba(233, 241, 252, 0.84);
+  --vpp-text-faint: rgba(203, 216, 235, 0.72);
+  --vpp-shine-band: rgba(255, 255, 255, 0.1);
+  --vpp-shine-accent: rgba(191, 219, 254, 0.8);
+  --vpp-shine-sweep: rgba(191, 219, 254, 0.08);
 }
 
 .vuepanel-page,
@@ -1071,8 +1253,8 @@ onBeforeUnmount(() => {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: var(--vpp-surface-soft);
-  box-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
+  background: var(--vpp-panel-bg);
+  box-shadow: var(--vpp-card-shadow);
 }
 
 .vpp-panel-left {
@@ -1083,7 +1265,7 @@ onBeforeUnmount(() => {
 
 .vpp-search-field :deep(.v-field) {
   border-radius: 12px;
-  background: var(--vpp-surface-muted);
+  background: var(--vpp-field-bg);
 }
 
 .vpp-search-field :deep(.v-field__outline) {
@@ -1107,7 +1289,7 @@ onBeforeUnmount(() => {
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
-  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
+  background: var(--vpp-toolbar-bg) !important;
   color: var(--vpp-text);
   text-transform: none;
   letter-spacing: 0;
@@ -1171,7 +1353,7 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 14px;
   border-radius: 14px;
-  background: var(--vpp-surface-soft);
+  background: var(--vpp-stat-bg);
   transition: all 0.3s ease;
 }
 
@@ -1227,10 +1409,10 @@ onBeforeUnmount(() => {
   padding: 18px;
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.08), rgba(var(--v-theme-surface), 0.03)),
-    var(--vpp-surface);
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.08), rgba(var(--vpp-tone-rgb), 0.02)),
+    var(--vpp-card-bg);
   backdrop-filter: blur(20px);
-  box-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
+  box-shadow: var(--vpp-card-shadow);
   transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
 }
 
@@ -1240,24 +1422,43 @@ onBeforeUnmount(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), rgba(var(--vpp-tone-rgb), 0.72), transparent);
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--vpp-shine-band), var(--vpp-shine-accent), transparent);
   transform: translateX(-100%);
   transition: transform 0.8s ease;
   z-index: 1;
+}
+
+.vpp-card::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: -62%;
+  width: 42%;
+  height: 190%;
+  background: linear-gradient(115deg, transparent, var(--vpp-shine-sweep), rgba(255, 255, 255, 0.18), transparent);
+  transform: translateX(0) rotate(18deg);
+  opacity: 0;
+  transition: transform 0.76s ease, opacity 0.28s ease;
+  pointer-events: none;
 }
 
 .vpp-card:hover::before {
   transform: translateX(100%);
 }
 
+.vpp-card:hover::after {
+  transform: translateX(340%) rotate(18deg);
+  opacity: 1;
+}
+
 .vpp-card:hover {
   transform: translateY(-6px);
   border-color: color-mix(in srgb, rgb(var(--vpp-tone-rgb)) 24%, var(--vpp-line));
-  box-shadow: 0 22px 44px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
+  box-shadow: var(--vpp-card-hover-shadow);
   background:
-    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.14), rgba(var(--v-theme-surface), 0.08)),
-    var(--vpp-surface-strong);
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.14), rgba(var(--vpp-tone-rgb), 0.05)),
+    var(--vpp-card-hover-bg);
 }
 
 .vpp-card.is-enabled {
@@ -1375,7 +1576,7 @@ onBeforeUnmount(() => {
   padding: 0 9px;
   border-radius: 999px;
   border: 1px solid var(--vpp-line);
-  background: var(--vpp-surface-muted);
+  background: var(--vpp-chip-bg);
   color: var(--vpp-text-soft);
   font-size: 11px;
   line-height: 1;
@@ -1413,14 +1614,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--vpp-line);
   background:
     linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 54%),
-    var(--vpp-surface-muted);
-}
-
-.vpp-card-note-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--vpp-text-faint);
-  margin-bottom: 8px;
+    var(--vpp-note-bg);
 }
 
 .vpp-card-note {
@@ -1428,7 +1622,7 @@ onBeforeUnmount(() => {
   color: var(--vpp-text-soft);
   font-size: 12px;
   line-height: 1.65;
-  min-height: 38px;
+  min-height: 40px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1462,7 +1656,7 @@ onBeforeUnmount(() => {
   min-height: 34px;
   border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
-  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
+  background: var(--vpp-field-bg) !important;
   text-transform: none;
   font-weight: 700;
   letter-spacing: 0;
@@ -1527,10 +1721,10 @@ onBeforeUnmount(() => {
 .vpp-dialog-card {
   border-radius: 18px !important;
   border: 1px solid var(--vpp-line);
-  background: rgba(var(--v-theme-surface), 0.9) !important;
+  background: var(--vpp-dialog-bg) !important;
   color: var(--vpp-text);
   backdrop-filter: blur(20px);
-  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--vpp-dialog-shadow);
   overflow: hidden;
 }
 
@@ -1613,7 +1807,7 @@ onBeforeUnmount(() => {
 
 .vpp-meta-chip {
   border: 1px solid var(--vpp-line);
-  background: var(--vpp-surface-muted);
+  background: var(--vpp-chip-bg);
   color: var(--vpp-text-soft);
   font-size: 11px;
   font-weight: 600;
@@ -1652,7 +1846,7 @@ onBeforeUnmount(() => {
   border: 1px solid color-mix(in srgb, rgba(var(--vpp-accent-rgb), 0.26) 60%, var(--vpp-line));
   background:
     linear-gradient(180deg, rgba(var(--vpp-accent-rgb), 0.08), transparent 44%),
-    var(--vpp-surface-muted);
+    var(--vpp-dialog-panel-bg);
 }
 
 .vpp-section-title {
@@ -1676,7 +1870,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--vpp-line);
-  background: color-mix(in srgb, var(--vpp-surface-muted) 76%, transparent);
+  background: color-mix(in srgb, var(--vpp-field-bg) 90%, transparent);
 }
 
 .vpp-switch-label {
@@ -1710,7 +1904,7 @@ onBeforeUnmount(() => {
 
 .vpp-dialog-card :deep(.v-field) {
   border-radius: 12px;
-  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
+  background: var(--vpp-field-bg) !important;
   color: var(--vpp-text) !important;
 }
 
@@ -1719,7 +1913,7 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-card :deep(.v-field__outline) {
-  --v-field-border-opacity: 0.14;
+  --v-field-border-opacity: 0.2;
 }
 
 .vpp-dialog-card :deep(.v-label),
@@ -1746,6 +1940,12 @@ onBeforeUnmount(() => {
 .vpp-dialog-card :deep(.v-field-label--floating),
 .vpp-dialog-card :deep(.v-label.v-field-label) {
   color: var(--vpp-text-soft) !important;
+}
+
+.vpp-dialog-card :deep(input::placeholder),
+.vpp-dialog-card :deep(textarea::placeholder) {
+  color: var(--vpp-text-faint) !important;
+  opacity: 1 !important;
 }
 
 .vpp-dialog-card :deep(.v-btn__overlay) {
@@ -1807,7 +2007,7 @@ onBeforeUnmount(() => {
   padding: 10px;
   border-radius: 12px;
   border: 1px solid var(--vpp-line);
-  background: color-mix(in srgb, var(--vpp-surface-muted) 72%, transparent);
+  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
 }
 
 .vpp-log-time {
@@ -1846,7 +2046,7 @@ onBeforeUnmount(() => {
   min-height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--vpp-surface-muted);
+  background: var(--vpp-chip-bg);
   color: var(--vpp-text-soft);
   font-size: 11px;
 }
@@ -1857,7 +2057,7 @@ onBeforeUnmount(() => {
   border: 1px dashed var(--vpp-line);
   color: var(--vpp-text-soft);
   text-align: center;
-  background: var(--vpp-surface-muted);
+  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
 }
 
 .vpp-grid-empty {
