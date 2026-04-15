@@ -1317,7 +1317,7 @@ class VuePill(_PluginBase):
         exchange = page.get("exchange") or {}
         max_count = self._safe_int(exchange.get("max_count"), 0)
         magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
-        inventory_map = self._inventory_to_map(page.get("inventory", {}).get("items") or [])
+        inventory_map = self._inventory_to_map(self._get_inventory_items(page.get("inventory")))
         inventory_magic_pills = self._safe_int(inventory_map.get("魔丸"), magic_pills)
         exchange_pool = max(0, inventory_magic_pills - self._reserve_magic_pill_count)
         exchangeable = max(0, min(max_count, exchange_pool))
@@ -1432,6 +1432,16 @@ class VuePill(_PluginBase):
                 count = max(0, count - max(0, reserve_magic_pill_count))
             data[name] = count
         return data
+
+    @staticmethod
+    def _get_inventory_items(inventory_data: Any) -> List[Dict[str, Any]]:
+        if isinstance(inventory_data, list):
+            return [item for item in inventory_data if isinstance(item, dict)]
+        if isinstance(inventory_data, dict):
+            items = inventory_data.get("items")
+            if isinstance(items, list):
+                return [item for item in items if isinstance(item, dict)]
+        return []
 
     def _normalize_collected_items(self, result: Dict[str, Any]) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
