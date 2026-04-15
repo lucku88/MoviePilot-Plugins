@@ -53,7 +53,6 @@
           :key="card.card_id"
           class="vpp-card"
           :class="[{ 'is-enabled': card.enabled, 'is-disabled': !card.enabled }, `level-${runtimeTone(card.level)}`]"
-          :style="toneStyle(card.tone)"
         >
           <div class="vpp-card-glow" />
 
@@ -170,16 +169,6 @@
                 density="compact"
                 hide-details="auto"
               />
-              <v-select
-                v-model="editor.tone"
-                :items="toneSelectItems"
-                item-title="label"
-                item-value="value"
-                label="卡片色调"
-                variant="outlined"
-                density="compact"
-                hide-details="auto"
-              />
               <v-text-field
                 v-model="editor.cookie"
                 label="Cookie"
@@ -248,6 +237,7 @@
           </div>
 
           <div class="vpp-dialog-panel vpp-log-panel">
+            <div class="vpp-section-title">日志列表</div>
             <div v-if="!selectedLogs.length" class="vpp-empty-state">
               当前卡片还没有执行日志，先执行一次或等待下次轮询。
             </div>
@@ -423,9 +413,6 @@ const controlStats = computed(() => [
   { label: '定时执行', value: String(autoCount.value), icon: 'mdi-clock-outline' },
   { label: '可删除复制卡', value: String(copyCount.value), icon: 'mdi-content-copy' },
 ])
-const toneSelectItems = computed(() =>
-  (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
-)
 const activeDashboardCard = computed(() => cards.value.find((item) => item.card_id === selectedCardId.value) || null)
 const currentLogCard = computed(() => activeDashboardCard.value || logCardSeed.value || null)
 const latestStateLog = computed(() => {
@@ -672,18 +659,6 @@ function serializeConfig(cardsOverride = null) {
     random_delay_max_seconds: Number(panelConfig.value.random_delay_max_seconds || 5),
     cards: cards.map((item) => normalizeCard(item)),
   }
-}
-
-function toneStyle(tone) {
-  const map = {
-    emerald: { '--vpp-tone-rgb': '38, 183, 120' },
-    azure: { '--vpp-tone-rgb': '67, 126, 255' },
-    amber: { '--vpp-tone-rgb': '255, 171, 67' },
-    rose: { '--vpp-tone-rgb': '231, 92, 128' },
-    violet: { '--vpp-tone-rgb': '150, 117, 255' },
-    slate: { '--vpp-tone-rgb': '128, 140, 158' },
-  }
-  return map[tone] || map.azure
 }
 
 function runtimeTone(level) {
@@ -1061,30 +1036,36 @@ onBeforeUnmount(() => {
 <style scoped>
 .vuepanel-page,
 .vpp-dialog-card {
-  --vpp-surface: rgba(var(--v-theme-surface), 0.84);
-  --vpp-surface-soft: rgba(var(--v-theme-surface), 0.78);
-  --vpp-surface-muted: rgba(var(--v-theme-surface-variant), 0.1);
-  --vpp-surface-strong: rgba(var(--v-theme-surface), 0.92);
+  --vpp-theme-rgb: 149, 107, 255;
+  --vpp-accent-rgb: 149, 107, 255;
+  --vpp-surface: rgba(var(--v-theme-surface), 0.92);
+  --vpp-surface-soft: rgba(var(--v-theme-surface), 0.88);
+  --vpp-surface-muted: rgba(var(--v-theme-surface-variant), 0.08);
+  --vpp-surface-strong: rgba(var(--v-theme-surface), 0.96);
   --vpp-line: rgba(var(--v-theme-on-surface), 0.12);
-  --vpp-line-strong: rgba(var(--v-theme-primary), 0.28);
-  --vpp-panel-bg: linear-gradient(to right, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94)),
-    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.03), rgba(var(--v-theme-primary), 0.03) 10px, transparent 10px, transparent 20px);
-  --vpp-stat-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 0.95), rgba(var(--v-theme-surface), 0.88));
-  --vpp-card-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-primary), 0.05));
-  --vpp-card-hover-bg: linear-gradient(145deg, rgba(var(--v-theme-surface), 1), rgba(var(--v-theme-primary), 0.1));
-  --vpp-note-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), rgba(var(--v-theme-surface-variant), 0.08));
-  --vpp-chip-bg: rgba(var(--v-theme-surface-variant), 0.1);
-  --vpp-field-bg: rgba(var(--v-theme-surface-variant), 0.08);
-  --vpp-dialog-bg: linear-gradient(160deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.92));
-  --vpp-dialog-panel-bg: color-mix(in srgb, var(--vpp-surface-muted) 88%, transparent);
-  --vpp-toolbar-bg: rgba(var(--v-theme-surface-variant), 0.08);
-  --vpp-card-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
-  --vpp-card-hover-shadow: 0 22px 44px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
+  --vpp-line-strong: rgba(var(--vpp-theme-rgb), 0.32);
+  --vpp-page-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94)),
+    repeating-linear-gradient(45deg, rgba(var(--vpp-theme-rgb), 0.03), rgba(var(--vpp-theme-rgb), 0.03) 12px, transparent 12px, transparent 24px);
+  --vpp-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.97), rgba(var(--v-theme-surface), 0.94));
+  --vpp-panel-section-bg: linear-gradient(90deg, rgba(var(--vpp-theme-rgb), 0.1), rgba(var(--vpp-theme-rgb), 0.04) 42%, transparent),
+    rgba(var(--v-theme-surface), 0.84);
+  --vpp-stat-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.94));
+  --vpp-card-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.05), transparent 72%), rgba(var(--v-theme-surface), 0.96);
+  --vpp-card-hover-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.11), transparent 68%), rgba(var(--v-theme-surface), 0.99);
+  --vpp-note-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), rgba(var(--v-theme-surface-variant), 0.08));
+  --vpp-chip-bg: rgba(var(--v-theme-surface-variant), 0.12);
+  --vpp-field-bg: rgba(var(--v-theme-surface), 0.9);
+  --vpp-toolbar-bg: rgba(var(--v-theme-surface), 0.82);
+  --vpp-button-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.9), rgba(var(--v-theme-surface-variant), 0.08));
+  --vpp-footer-bg: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.05), transparent 84%);
+  --vpp-dialog-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.98), rgba(var(--v-theme-surface), 0.95));
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.95), rgba(var(--v-theme-surface), 0.92));
+  --vpp-card-shadow: 0 16px 34px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
+  --vpp-card-hover-shadow: 0 22px 40px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
   --vpp-dialog-shadow: 0 26px 70px color-mix(in srgb, var(--mp-shadow-color) 94%, transparent);
-  --vpp-shine-band: rgba(255, 255, 255, 0.16);
-  --vpp-shine-accent: rgba(76, 168, 255, 0.72);
+  --vpp-shine-band: rgba(255, 255, 255, 0.14);
+  --vpp-shine-accent: rgba(var(--vpp-theme-rgb), 0.74);
   --vpp-shine-sweep: rgba(255, 255, 255, 0.08);
-  --vpp-accent-rgb: 76, 168, 255;
   --vpp-blue: #4ca8ff;
   --vpp-green: #2db870;
   --vpp-yellow: #e9a23b;
@@ -1099,129 +1080,145 @@ onBeforeUnmount(() => {
 
 .vuepanel-page.v-theme--light,
 .vpp-dialog-card.v-theme--light {
-  --vpp-line: rgba(102, 116, 139, 0.16);
-  --vpp-line-strong: rgba(var(--v-theme-primary), 0.34);
-  --vpp-panel-bg: linear-gradient(to right, rgba(var(--v-theme-surface), 0.99), rgba(var(--v-theme-surface), 0.95)),
-    repeating-linear-gradient(45deg, rgba(var(--v-theme-primary), 0.035), rgba(var(--v-theme-primary), 0.035) 10px, transparent 10px, transparent 20px);
-  --vpp-stat-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(var(--v-theme-primary), 0.06));
-  --vpp-card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(var(--v-theme-primary), 0.05)),
-    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.08), transparent 38%);
-  --vpp-card-hover-bg: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(var(--v-theme-primary), 0.1)),
-    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.14), transparent 40%);
-  --vpp-note-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.05), rgba(148, 163, 184, 0.08));
-  --vpp-chip-bg: rgba(236, 242, 248, 0.92);
-  --vpp-field-bg: rgba(243, 247, 252, 0.94);
-  --vpp-dialog-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.99), rgba(246, 250, 255, 0.96)),
-    radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.08), transparent 42%);
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), rgba(241, 245, 252, 0.92));
-  --vpp-toolbar-bg: rgba(240, 245, 251, 0.92);
-  --vpp-card-shadow: 0 18px 38px rgba(30, 41, 59, 0.1);
-  --vpp-card-hover-shadow: 0 24px 46px rgba(30, 41, 59, 0.15);
-  --vpp-dialog-shadow: 0 28px 68px rgba(30, 41, 59, 0.18);
-  --vpp-text: #162133;
-  --vpp-text-soft: rgba(22, 33, 51, 0.82);
-  --vpp-text-faint: rgba(67, 81, 102, 0.68);
+  --vpp-theme-rgb: 150, 108, 255;
+  --vpp-accent-rgb: 150, 108, 255;
+  --vpp-line: rgba(127, 115, 155, 0.18);
+  --vpp-line-strong: rgba(150, 108, 255, 0.36);
+  --vpp-page-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 255, 0.96)),
+    repeating-linear-gradient(45deg, rgba(150, 108, 255, 0.035), rgba(150, 108, 255, 0.035) 12px, transparent 12px, transparent 24px);
+  --vpp-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(251, 248, 255, 0.97));
+  --vpp-panel-section-bg: linear-gradient(90deg, rgba(150, 108, 255, 0.1), rgba(150, 108, 255, 0.05) 42%, rgba(255, 255, 255, 0)),
+    rgba(255, 255, 255, 0.86);
+  --vpp-stat-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 243, 255, 0.95));
+  --vpp-card-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.055), transparent 72%), rgba(255, 255, 255, 0.98);
+  --vpp-card-hover-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.12), transparent 68%), rgba(255, 255, 255, 1);
+  --vpp-note-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.08), rgba(244, 239, 255, 0.86));
+  --vpp-chip-bg: rgba(242, 237, 255, 0.88);
+  --vpp-field-bg: rgba(255, 255, 255, 0.94);
+  --vpp-toolbar-bg: rgba(249, 245, 255, 0.94);
+  --vpp-button-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 237, 255, 0.9));
+  --vpp-footer-bg: linear-gradient(180deg, rgba(150, 108, 255, 0.045), rgba(255, 255, 255, 0));
+  --vpp-dialog-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 247, 255, 0.97));
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 242, 255, 0.95));
+  --vpp-card-shadow: 0 16px 34px rgba(82, 64, 128, 0.09);
+  --vpp-card-hover-shadow: 0 22px 40px rgba(82, 64, 128, 0.14);
+  --vpp-dialog-shadow: 0 28px 68px rgba(82, 64, 128, 0.16);
+  --vpp-text: #2e2440;
+  --vpp-text-soft: rgba(46, 36, 64, 0.8);
+  --vpp-text-faint: rgba(100, 86, 126, 0.68);
   --vpp-shine-band: rgba(255, 255, 255, 0.28);
-  --vpp-shine-sweep: rgba(148, 163, 184, 0.1);
+  --vpp-shine-sweep: rgba(150, 108, 255, 0.08);
 }
 
 .vuepanel-page.v-theme--dark,
 .vpp-dialog-card.v-theme--dark {
-  --vpp-surface: rgba(16, 21, 32, 0.92);
-  --vpp-surface-soft: rgba(18, 24, 37, 0.9);
-  --vpp-surface-muted: rgba(148, 163, 184, 0.09);
-  --vpp-surface-strong: rgba(12, 17, 27, 0.96);
-  --vpp-line: rgba(203, 213, 225, 0.14);
-  --vpp-line-strong: rgba(96, 165, 250, 0.3);
-  --vpp-panel-bg: linear-gradient(145deg, rgba(18, 24, 37, 0.96), rgba(8, 12, 20, 0.96)),
-    repeating-linear-gradient(135deg, rgba(96, 165, 250, 0.05), rgba(96, 165, 250, 0.05) 12px, transparent 12px, transparent 24px);
-  --vpp-stat-bg: linear-gradient(145deg, rgba(23, 30, 46, 0.96), rgba(12, 18, 31, 0.96));
-  --vpp-card-bg: linear-gradient(145deg, rgba(22, 28, 43, 0.96), rgba(10, 15, 24, 0.96)),
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 38%);
-  --vpp-card-hover-bg: linear-gradient(145deg, rgba(28, 35, 53, 0.98), rgba(12, 18, 28, 0.98)),
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 42%);
-  --vpp-note-bg: linear-gradient(180deg, rgba(96, 165, 250, 0.08), rgba(15, 23, 42, 0.22));
-  --vpp-chip-bg: rgba(148, 163, 184, 0.1);
-  --vpp-field-bg: rgba(148, 163, 184, 0.08);
-  --vpp-dialog-bg: linear-gradient(160deg, rgba(18, 24, 37, 0.98), rgba(7, 12, 20, 0.98)),
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 44%);
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(96, 165, 250, 0.08), rgba(18, 24, 37, 0.86));
-  --vpp-toolbar-bg: rgba(24, 31, 47, 0.86);
-  --vpp-card-shadow: 0 20px 44px rgba(1, 7, 18, 0.48);
-  --vpp-card-hover-shadow: 0 26px 54px rgba(1, 7, 18, 0.56);
-  --vpp-dialog-shadow: 0 28px 74px rgba(1, 7, 18, 0.62);
-  --vpp-text: #eef4ff;
-  --vpp-text-soft: rgba(225, 234, 248, 0.82);
-  --vpp-text-faint: rgba(181, 194, 216, 0.68);
-  --vpp-shine-band: rgba(255, 255, 255, 0.08);
-  --vpp-shine-accent: rgba(96, 165, 250, 0.78);
-  --vpp-shine-sweep: rgba(191, 219, 254, 0.08);
+  --vpp-theme-rgb: 132, 118, 255;
+  --vpp-accent-rgb: 132, 118, 255;
+  --vpp-surface: rgba(24, 26, 38, 0.96);
+  --vpp-surface-soft: rgba(28, 31, 45, 0.94);
+  --vpp-surface-muted: rgba(104, 95, 150, 0.16);
+  --vpp-surface-strong: rgba(20, 22, 34, 0.98);
+  --vpp-line: rgba(146, 143, 177, 0.2);
+  --vpp-line-strong: rgba(132, 118, 255, 0.36);
+  --vpp-page-bg: linear-gradient(180deg, rgba(24, 26, 38, 0.98), rgba(19, 21, 31, 0.98)),
+    repeating-linear-gradient(45deg, rgba(132, 118, 255, 0.045), rgba(132, 118, 255, 0.045) 12px, transparent 12px, transparent 24px);
+  --vpp-panel-bg: linear-gradient(180deg, rgba(28, 30, 44, 0.98), rgba(22, 24, 36, 0.98));
+  --vpp-panel-section-bg: linear-gradient(90deg, rgba(132, 118, 255, 0.18), rgba(132, 118, 255, 0.08) 44%, transparent),
+    rgba(40, 36, 61, 0.72);
+  --vpp-stat-bg: linear-gradient(180deg, rgba(31, 33, 48, 0.98), rgba(25, 27, 40, 0.98));
+  --vpp-card-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.06), transparent 74%), rgba(28, 30, 44, 0.98);
+  --vpp-card-hover-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.13), transparent 68%), rgba(33, 35, 52, 0.99);
+  --vpp-note-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.1), rgba(31, 33, 49, 0.9));
+  --vpp-chip-bg: rgba(94, 87, 136, 0.28);
+  --vpp-field-bg: rgba(22, 24, 36, 0.92);
+  --vpp-toolbar-bg: rgba(29, 31, 45, 0.92);
+  --vpp-button-bg: linear-gradient(180deg, rgba(34, 36, 52, 0.94), rgba(24, 26, 39, 0.96));
+  --vpp-footer-bg: linear-gradient(180deg, rgba(132, 118, 255, 0.07), rgba(22, 24, 36, 0));
+  --vpp-dialog-bg: linear-gradient(180deg, rgba(29, 31, 45, 0.99), rgba(22, 24, 36, 0.99));
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(29, 31, 45, 0.98), rgba(24, 26, 38, 0.98));
+  --vpp-card-shadow: 0 18px 38px rgba(3, 4, 12, 0.42);
+  --vpp-card-hover-shadow: 0 24px 46px rgba(3, 4, 12, 0.5);
+  --vpp-dialog-shadow: 0 28px 72px rgba(3, 4, 12, 0.58);
+  --vpp-text: #f1efff;
+  --vpp-text-soft: rgba(226, 222, 245, 0.82);
+  --vpp-text-faint: rgba(177, 171, 206, 0.7);
+  --vpp-shine-band: rgba(255, 255, 255, 0.1);
+  --vpp-shine-accent: rgba(132, 118, 255, 0.78);
+  --vpp-shine-sweep: rgba(132, 118, 255, 0.1);
 }
 
 .vuepanel-page.v-theme--purple,
 .vpp-dialog-card.v-theme--purple {
-  --vpp-surface: rgba(50, 41, 82, 0.92);
-  --vpp-surface-soft: rgba(58, 45, 95, 0.88);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.09);
-  --vpp-surface-strong: rgba(45, 36, 74, 0.96);
-  --vpp-line: rgba(224, 201, 255, 0.18);
-  --vpp-line-strong: rgba(192, 132, 252, 0.36);
-  --vpp-panel-bg: linear-gradient(145deg, rgba(63, 45, 104, 0.96), rgba(37, 28, 64, 0.96)),
-    repeating-linear-gradient(135deg, rgba(216, 180, 254, 0.06), rgba(216, 180, 254, 0.06) 12px, transparent 12px, transparent 24px);
-  --vpp-stat-bg: linear-gradient(145deg, rgba(92, 60, 145, 0.28), rgba(54, 41, 87, 0.95));
-  --vpp-card-bg: linear-gradient(145deg, rgba(88, 58, 140, 0.28), rgba(45, 34, 74, 0.96)),
-    radial-gradient(circle at top right, rgba(196, 181, 253, 0.18), transparent 40%);
-  --vpp-card-hover-bg: linear-gradient(145deg, rgba(104, 67, 166, 0.3), rgba(52, 39, 86, 0.98)),
-    radial-gradient(circle at top right, rgba(216, 180, 254, 0.24), transparent 42%);
-  --vpp-note-bg: linear-gradient(180deg, rgba(192, 132, 252, 0.12), rgba(99, 64, 146, 0.18));
-  --vpp-chip-bg: rgba(221, 214, 254, 0.12);
-  --vpp-field-bg: rgba(221, 214, 254, 0.1);
-  --vpp-dialog-bg: linear-gradient(160deg, rgba(68, 47, 112, 0.98), rgba(40, 29, 69, 0.98)),
-    radial-gradient(circle at top right, rgba(216, 180, 254, 0.16), transparent 42%);
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(216, 180, 254, 0.1), rgba(64, 46, 105, 0.86));
-  --vpp-toolbar-bg: rgba(82, 58, 131, 0.3);
-  --vpp-card-shadow: 0 20px 44px rgba(25, 12, 47, 0.4);
-  --vpp-card-hover-shadow: 0 26px 54px rgba(25, 12, 47, 0.48);
-  --vpp-dialog-shadow: 0 30px 78px rgba(25, 12, 47, 0.54);
-  --vpp-text: #f5ecff;
-  --vpp-text-soft: rgba(240, 228, 255, 0.84);
-  --vpp-text-faint: rgba(216, 198, 239, 0.7);
+  --vpp-theme-rgb: 163, 122, 255;
+  --vpp-accent-rgb: 163, 122, 255;
+  --vpp-surface: rgba(60, 47, 101, 0.97);
+  --vpp-surface-soft: rgba(66, 52, 110, 0.95);
+  --vpp-surface-muted: rgba(196, 180, 255, 0.14);
+  --vpp-surface-strong: rgba(55, 43, 93, 0.99);
+  --vpp-line: rgba(209, 196, 240, 0.2);
+  --vpp-line-strong: rgba(163, 122, 255, 0.38);
+  --vpp-page-bg: linear-gradient(180deg, rgba(70, 54, 118, 0.98), rgba(58, 45, 98, 0.98)),
+    repeating-linear-gradient(45deg, rgba(163, 122, 255, 0.05), rgba(163, 122, 255, 0.05) 12px, transparent 12px, transparent 24px);
+  --vpp-panel-bg: linear-gradient(180deg, rgba(69, 54, 116, 0.98), rgba(58, 45, 98, 0.98));
+  --vpp-panel-section-bg: linear-gradient(90deg, rgba(163, 122, 255, 0.2), rgba(163, 122, 255, 0.08) 44%, transparent),
+    rgba(84, 63, 138, 0.5);
+  --vpp-stat-bg: linear-gradient(180deg, rgba(75, 58, 125, 0.98), rgba(61, 48, 104, 0.98));
+  --vpp-card-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.08), transparent 74%), rgba(68, 53, 116, 0.98);
+  --vpp-card-hover-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.16), transparent 68%), rgba(73, 58, 125, 0.99);
+  --vpp-note-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.12), rgba(76, 58, 126, 0.88));
+  --vpp-chip-bg: rgba(126, 96, 193, 0.28);
+  --vpp-field-bg: rgba(67, 52, 112, 0.92);
+  --vpp-toolbar-bg: rgba(76, 58, 124, 0.86);
+  --vpp-button-bg: linear-gradient(180deg, rgba(79, 60, 130, 0.9), rgba(63, 48, 108, 0.96));
+  --vpp-footer-bg: linear-gradient(180deg, rgba(163, 122, 255, 0.08), rgba(60, 47, 101, 0));
+  --vpp-dialog-bg: linear-gradient(180deg, rgba(73, 58, 125, 0.99), rgba(60, 47, 101, 0.99));
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(72, 56, 121, 0.98), rgba(61, 48, 104, 0.98));
+  --vpp-card-shadow: 0 18px 38px rgba(32, 19, 62, 0.36);
+  --vpp-card-hover-shadow: 0 24px 46px rgba(32, 19, 62, 0.42);
+  --vpp-dialog-shadow: 0 30px 78px rgba(32, 19, 62, 0.5);
+  --vpp-text: #f6eeff;
+  --vpp-text-soft: rgba(239, 229, 255, 0.84);
+  --vpp-text-faint: rgba(214, 197, 238, 0.72);
   --vpp-shine-band: rgba(255, 255, 255, 0.1);
-  --vpp-shine-accent: rgba(216, 180, 254, 0.82);
-  --vpp-shine-sweep: rgba(221, 214, 254, 0.1);
+  --vpp-shine-accent: rgba(163, 122, 255, 0.84);
+  --vpp-shine-sweep: rgba(163, 122, 255, 0.12);
 }
 
 .vuepanel-page.v-theme--transparent,
 .vpp-dialog-card.v-theme--transparent {
-  --vpp-surface: rgba(18, 28, 43, 0.72);
-  --vpp-surface-soft: rgba(16, 24, 38, 0.64);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.08);
-  --vpp-surface-strong: rgba(12, 20, 32, 0.82);
-  --vpp-line: rgba(255, 255, 255, 0.18);
-  --vpp-line-strong: rgba(148, 197, 255, 0.34);
-  --vpp-panel-bg: linear-gradient(145deg, rgba(18, 28, 43, 0.72), rgba(10, 16, 26, 0.78)),
-    repeating-linear-gradient(135deg, rgba(191, 219, 254, 0.06), rgba(191, 219, 254, 0.06) 12px, transparent 12px, transparent 24px);
-  --vpp-stat-bg: linear-gradient(145deg, rgba(27, 39, 59, 0.74), rgba(14, 22, 34, 0.76));
-  --vpp-card-bg: linear-gradient(145deg, rgba(27, 39, 59, 0.74), rgba(12, 19, 30, 0.78)),
-    radial-gradient(circle at top right, rgba(191, 219, 254, 0.14), transparent 40%);
-  --vpp-card-hover-bg: linear-gradient(145deg, rgba(33, 47, 70, 0.78), rgba(14, 22, 35, 0.84)),
-    radial-gradient(circle at top right, rgba(191, 219, 254, 0.18), transparent 42%);
-  --vpp-note-bg: linear-gradient(180deg, rgba(191, 219, 254, 0.1), rgba(15, 23, 42, 0.18));
-  --vpp-chip-bg: rgba(255, 255, 255, 0.08);
-  --vpp-field-bg: rgba(255, 255, 255, 0.08);
-  --vpp-dialog-bg: linear-gradient(160deg, rgba(24, 36, 54, 0.8), rgba(10, 16, 26, 0.84)),
-    radial-gradient(circle at top right, rgba(191, 219, 254, 0.14), transparent 44%);
-  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(191, 219, 254, 0.08), rgba(18, 28, 43, 0.42));
-  --vpp-toolbar-bg: rgba(255, 255, 255, 0.06);
-  --vpp-card-shadow: 0 20px 44px rgba(4, 10, 22, 0.34);
-  --vpp-card-hover-shadow: 0 26px 54px rgba(4, 10, 22, 0.42);
-  --vpp-dialog-shadow: 0 30px 76px rgba(4, 10, 22, 0.48);
-  --vpp-text: #eff7ff;
-  --vpp-text-soft: rgba(233, 241, 252, 0.84);
-  --vpp-text-faint: rgba(203, 216, 235, 0.72);
-  --vpp-shine-band: rgba(255, 255, 255, 0.1);
-  --vpp-shine-accent: rgba(191, 219, 254, 0.8);
-  --vpp-shine-sweep: rgba(191, 219, 254, 0.08);
+  --vpp-theme-rgb: 172, 126, 255;
+  --vpp-accent-rgb: 172, 126, 255;
+  --vpp-surface: rgba(34, 31, 43, 0.84);
+  --vpp-surface-soft: rgba(31, 28, 40, 0.8);
+  --vpp-surface-muted: rgba(174, 140, 255, 0.12);
+  --vpp-surface-strong: rgba(28, 25, 36, 0.9);
+  --vpp-line: rgba(194, 186, 212, 0.18);
+  --vpp-line-strong: rgba(172, 126, 255, 0.34);
+  --vpp-page-bg: linear-gradient(180deg, rgba(36, 33, 44, 0.84), rgba(23, 21, 29, 0.88)),
+    repeating-linear-gradient(45deg, rgba(172, 126, 255, 0.045), rgba(172, 126, 255, 0.045) 12px, transparent 12px, transparent 24px);
+  --vpp-panel-bg: linear-gradient(180deg, rgba(40, 36, 50, 0.84), rgba(27, 24, 34, 0.9));
+  --vpp-panel-section-bg: linear-gradient(90deg, rgba(172, 126, 255, 0.18), rgba(172, 126, 255, 0.08) 44%, transparent),
+    rgba(55, 47, 72, 0.34);
+  --vpp-stat-bg: linear-gradient(180deg, rgba(45, 40, 58, 0.84), rgba(31, 28, 39, 0.9));
+  --vpp-card-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.08), transparent 74%), rgba(40, 36, 50, 0.84);
+  --vpp-card-hover-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.14), transparent 68%), rgba(46, 40, 58, 0.9);
+  --vpp-note-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.11), rgba(40, 36, 50, 0.86));
+  --vpp-chip-bg: rgba(90, 74, 121, 0.32);
+  --vpp-field-bg: rgba(33, 30, 42, 0.88);
+  --vpp-toolbar-bg: rgba(41, 36, 50, 0.84);
+  --vpp-button-bg: linear-gradient(180deg, rgba(48, 42, 60, 0.88), rgba(33, 30, 42, 0.94));
+  --vpp-footer-bg: linear-gradient(180deg, rgba(172, 126, 255, 0.08), rgba(28, 25, 36, 0));
+  --vpp-dialog-bg: linear-gradient(180deg, rgba(42, 37, 53, 0.9), rgba(29, 26, 37, 0.94));
+  --vpp-dialog-panel-bg: linear-gradient(180deg, rgba(41, 36, 50, 0.88), rgba(31, 28, 39, 0.92));
+  --vpp-card-shadow: 0 18px 38px rgba(10, 8, 16, 0.34);
+  --vpp-card-hover-shadow: 0 24px 46px rgba(10, 8, 16, 0.42);
+  --vpp-dialog-shadow: 0 30px 76px rgba(10, 8, 16, 0.48);
+  --vpp-text: #f4eef9;
+  --vpp-text-soft: rgba(230, 221, 240, 0.84);
+  --vpp-text-faint: rgba(187, 177, 198, 0.7);
+  --vpp-shine-band: rgba(255, 255, 255, 0.09);
+  --vpp-shine-accent: rgba(172, 126, 255, 0.78);
+  --vpp-shine-sweep: rgba(172, 126, 255, 0.12);
 }
 
 .vuepanel-page,
@@ -1234,6 +1231,13 @@ onBeforeUnmount(() => {
   gap: 16px;
   max-width: 1400px;
   margin: 0 auto;
+  padding: 2px;
+}
+
+.vuepanel-page {
+  position: relative;
+  background: var(--vpp-page-bg);
+  border-radius: 22px;
 }
 
 .vpp-control-panel,
@@ -1244,6 +1248,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 1px solid var(--vpp-line);
   backdrop-filter: blur(18px);
+  box-shadow: var(--vpp-card-shadow);
 }
 
 .vpp-control-panel {
@@ -1252,9 +1257,20 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 14px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--vpp-panel-bg);
-  box-shadow: var(--vpp-card-shadow);
+}
+
+.vpp-control-panel::before,
+.vpp-stat-card::before,
+.vpp-dialog-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(var(--vpp-theme-rgb), 0.84), transparent);
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .vpp-panel-left {
@@ -1265,17 +1281,19 @@ onBeforeUnmount(() => {
 
 .vpp-search-field :deep(.v-field) {
   border-radius: 12px;
-  background: var(--vpp-field-bg);
+  background: var(--vpp-field-bg) !important;
 }
 
 .vpp-search-field :deep(.v-field__outline) {
-  --v-field-border-opacity: 0.12;
+  --v-field-border-opacity: 0.18;
 }
 
 .vpp-search-field :deep(.v-field__input),
 .vpp-search-field :deep(.v-label),
-.vpp-search-field :deep(.v-icon) {
+.vpp-search-field :deep(.v-icon),
+.vpp-search-field :deep(input) {
   color: var(--vpp-text);
+  -webkit-text-fill-color: var(--vpp-text);
 }
 
 .vpp-panel-right {
@@ -1287,7 +1305,7 @@ onBeforeUnmount(() => {
 .vpp-toolbar-btn {
   min-height: 34px;
   padding: 0 14px;
-  border-radius: 10px;
+  border-radius: 11px;
   border: 1px solid var(--vpp-line) !important;
   background: var(--vpp-toolbar-bg) !important;
   color: var(--vpp-text);
@@ -1298,10 +1316,10 @@ onBeforeUnmount(() => {
 }
 
 .vpp-toolbar-btn:hover {
-  transform: translateY(-1px);
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12), rgba(var(--v-theme-surface-variant), 0.08)) !important;
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(var(--vpp-theme-rgb), 0.16), rgba(var(--vpp-theme-rgb), 0.05) 56%, transparent) !important;
   border-color: var(--vpp-line-strong) !important;
-  box-shadow: 0 10px 20px color-mix(in srgb, var(--mp-shadow-color) 82%, transparent);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--mp-shadow-color) 82%, transparent);
 }
 
 .vpp-toolbar-btn.is-icon {
@@ -1338,6 +1356,7 @@ onBeforeUnmount(() => {
 
 .vpp-alert {
   border: 1px solid var(--vpp-line);
+  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
 }
 
 .vpp-stat-grid {
@@ -1352,15 +1371,15 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 12px;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--vpp-stat-bg);
-  transition: all 0.3s ease;
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
 }
 
 .vpp-stat-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(100, 200, 255, 0.3);
-  box-shadow: 0 6px 20px rgba(100, 200, 255, 0.1);
+  transform: translateY(-3px);
+  border-color: var(--vpp-line-strong);
+  box-shadow: var(--vpp-card-hover-shadow);
 }
 
 .vpp-stat-icon-wrap {
@@ -1370,8 +1389,9 @@ onBeforeUnmount(() => {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgba(var(--vpp-theme-rgb), 0.18);
+  background: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.16), rgba(var(--vpp-theme-rgb), 0.06));
+  color: rgb(var(--vpp-theme-rgb));
 }
 
 .vpp-stat-copy {
@@ -1401,15 +1421,16 @@ onBeforeUnmount(() => {
 }
 
 .vpp-card {
-  --vpp-tone-rgb: 67, 126, 255;
+  --vpp-tone-rgb: var(--vpp-theme-rgb);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-height: 220px;
+  min-height: 224px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 20px;
   background:
-    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.08), rgba(var(--vpp-tone-rgb), 0.02)),
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 34%),
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.05), transparent 55%),
     var(--vpp-card-bg);
   backdrop-filter: blur(20px);
   box-shadow: var(--vpp-card-shadow);
@@ -1425,7 +1446,7 @@ onBeforeUnmount(() => {
   height: 3px;
   background: linear-gradient(90deg, transparent, var(--vpp-shine-band), var(--vpp-shine-accent), transparent);
   transform: translateX(-100%);
-  transition: transform 0.8s ease;
+  transition: transform 0.72s ease;
   z-index: 1;
 }
 
@@ -1439,7 +1460,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(115deg, transparent, var(--vpp-shine-sweep), rgba(255, 255, 255, 0.18), transparent);
   transform: translateX(0) rotate(18deg);
   opacity: 0;
-  transition: transform 0.76s ease, opacity 0.28s ease;
+  transition: transform 0.72s ease, opacity 0.28s ease;
   pointer-events: none;
 }
 
@@ -1453,24 +1474,29 @@ onBeforeUnmount(() => {
 }
 
 .vpp-card:hover {
-  transform: translateY(-6px);
-  border-color: color-mix(in srgb, rgb(var(--vpp-tone-rgb)) 24%, var(--vpp-line));
+  transform: translateY(-7px);
+  border-color: color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.3) 65%, var(--vpp-line));
   box-shadow: var(--vpp-card-hover-shadow);
   background:
-    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.14), rgba(var(--vpp-tone-rgb), 0.05)),
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.14), transparent 32%),
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 56%),
     var(--vpp-card-hover-bg);
 }
 
 .vpp-card.is-enabled {
-  border-color: color-mix(in srgb, var(--vpp-green) 20%, var(--vpp-line));
+  border-color: color-mix(in srgb, rgba(45, 184, 112, 0.28) 60%, var(--vpp-line));
+}
+
+.vpp-card.is-disabled {
+  opacity: 0.94;
 }
 
 .vpp-card-glow {
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(var(--vpp-tone-rgb), 0.88), transparent);
-  opacity: 0.72;
+  background: linear-gradient(90deg, transparent, rgba(var(--vpp-theme-rgb), 0.88), transparent);
+  opacity: 0.84;
 }
 
 .vpp-card-head {
@@ -1486,8 +1512,10 @@ onBeforeUnmount(() => {
   height: 46px;
   flex: 0 0 46px;
   border-radius: 14px;
-  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.16) 50%, var(--vpp-surface-muted));
-  border: 1px solid color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.22) 60%, var(--vpp-line));
+  background: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.2), rgba(var(--vpp-theme-rgb), 0.07)),
+    color-mix(in srgb, var(--vpp-surface-muted) 86%, transparent);
+  border: 1px solid color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.26) 65%, var(--vpp-line));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .vpp-logo {
@@ -1507,6 +1535,7 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .vpp-card-title-group {
@@ -1538,16 +1567,20 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 800;
   margin-left: auto;
+  border: 1px solid var(--vpp-line);
+  background: color-mix(in srgb, var(--vpp-chip-bg) 88%, transparent);
 }
 
 .vpp-status-pill.is-enabled {
-  color: #ffffff;
-  background: var(--vpp-green);
+  color: var(--vpp-green);
+  border-color: rgba(45, 184, 112, 0.28);
+  background: rgba(45, 184, 112, 0.14);
 }
 
 .vpp-status-pill.is-disabled {
-  color: #ffffff;
-  background: rgba(136, 136, 148, 0.88);
+  color: var(--vpp-text-faint);
+  border-color: rgba(140, 138, 158, 0.28);
+  background: rgba(140, 138, 158, 0.14);
 }
 
 .vpp-card-desc {
@@ -1613,7 +1646,7 @@ onBeforeUnmount(() => {
   border-radius: 14px;
   border: 1px solid var(--vpp-line);
   background:
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 54%),
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), transparent 54%),
     var(--vpp-note-bg);
 }
 
@@ -1654,7 +1687,7 @@ onBeforeUnmount(() => {
 .vpp-action-btn,
 .vpp-confirm-btn {
   min-height: 34px;
-  border-radius: 10px;
+  border-radius: 11px;
   border: 1px solid var(--vpp-line) !important;
   background: var(--vpp-field-bg) !important;
   text-transform: none;
@@ -1670,20 +1703,10 @@ onBeforeUnmount(() => {
 
 .vpp-action-btn:hover,
 .vpp-confirm-btn:hover {
-  transform: translateY(-1px);
-}
-
-.vpp-action-btn.is-logs:hover {
-  border-color: rgba(76, 168, 255, 0.44);
-  box-shadow: 0 12px 26px rgba(76, 168, 255, 0.16);
-  background: rgba(76, 168, 255, 0.08);
-}
-
-.vpp-action-btn.is-config:hover,
-.vpp-action-btn.is-copy:hover {
-  border-color: rgba(155, 92, 255, 0.44);
-  box-shadow: 0 12px 26px rgba(155, 92, 255, 0.16);
-  background: rgba(155, 92, 255, 0.08);
+  transform: translateY(-2px);
+  border-color: var(--vpp-line-strong) !important;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--mp-shadow-color) 82%, transparent);
+  background: linear-gradient(135deg, rgba(var(--vpp-theme-rgb), 0.16), rgba(var(--vpp-theme-rgb), 0.06) 58%, transparent) !important;
 }
 
 .vpp-action-btn.is-delete {
@@ -1710,16 +1733,16 @@ onBeforeUnmount(() => {
 }
 
 .vpp-confirm-btn {
-  color: #d08cff;
-}
-
-.vpp-confirm-btn:hover {
-  background: rgba(155, 92, 255, 0.1);
-  box-shadow: 0 12px 26px rgba(155, 92, 255, 0.16);
+  color: rgb(var(--vpp-theme-rgb));
+  border-color: rgba(var(--vpp-theme-rgb), 0.2) !important;
+  background: linear-gradient(135deg, rgba(var(--vpp-theme-rgb), 0.14), rgba(var(--vpp-theme-rgb), 0.06) 58%, transparent) !important;
 }
 
 .vpp-dialog-card {
-  border-radius: 18px !important;
+  --mp-bg-input: var(--vpp-field-bg);
+  --mp-text-primary: var(--vpp-text);
+  --mp-radius-md: 12px;
+  border-radius: 20px !important;
   border: 1px solid var(--vpp-line);
   background: var(--vpp-dialog-bg) !important;
   color: var(--vpp-text);
@@ -1737,15 +1760,15 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-card.is-config {
-  --vpp-accent-rgb: 155, 92, 255;
+  --vpp-accent-rgb: var(--vpp-theme-rgb);
 }
 
 .vpp-dialog-card.is-logs {
-  --vpp-accent-rgb: 76, 168, 255;
+  --vpp-accent-rgb: var(--vpp-theme-rgb);
 }
 
 .vpp-dialog-card.is-copy {
-  --vpp-accent-rgb: 99, 102, 241;
+  --vpp-accent-rgb: var(--vpp-theme-rgb);
 }
 
 .vpp-dialog-head {
@@ -1753,7 +1776,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 18px 20px 8px;
+  padding: 18px 20px 10px;
+  border-bottom: 1px solid color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.12) 68%, var(--vpp-line));
 }
 
 .vpp-dialog-title-wrap {
@@ -1770,20 +1794,21 @@ onBeforeUnmount(() => {
   height: 38px;
   border-radius: 12px;
   border: 1px solid var(--vpp-line);
-  background: linear-gradient(180deg, rgba(var(--vpp-accent-rgb), 0.14), transparent 70%), var(--vpp-surface-muted);
+  background: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.18), transparent 70%), var(--vpp-surface-muted);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: rgb(var(--vpp-theme-rgb));
 }
 
 .vpp-dialog-icon.is-config {
-  color: #d08cff;
+  color: rgb(var(--vpp-theme-rgb));
 }
 
 .vpp-dialog-icon.is-logs {
-  color: var(--vpp-blue);
+  color: rgb(var(--vpp-theme-rgb));
 }
 
 .vpp-dialog-icon.is-copy {
-  color: #8f90ff;
+  color: rgb(var(--vpp-theme-rgb));
 }
 
 .vpp-dialog-title {
@@ -1796,7 +1821,7 @@ onBeforeUnmount(() => {
 .vpp-dialog-body {
   display: grid;
   gap: 12px;
-  padding: 8px 20px 0;
+  padding: 14px 20px 0;
 }
 
 .vpp-dialog-meta {
@@ -1817,7 +1842,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--vpp-line);
-  background: linear-gradient(180deg, rgba(var(--vpp-accent-rgb), 0.12), transparent 80%);
+  background: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.12), transparent 80%);
   color: var(--vpp-text-soft);
   font-size: 12px;
   line-height: 1.6;
@@ -1839,17 +1864,26 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-panel {
+  position: relative;
   display: grid;
   gap: 12px;
   padding: 14px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, rgba(var(--vpp-accent-rgb), 0.26) 60%, var(--vpp-line));
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.24) 60%, var(--vpp-line));
   background:
-    linear-gradient(180deg, rgba(var(--vpp-accent-rgb), 0.08), transparent 44%),
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), transparent 44%),
     var(--vpp-dialog-panel-bg);
 }
 
 .vpp-section-title {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.18) 60%, var(--vpp-line));
+  background: linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.12), transparent 96%), var(--vpp-chip-bg);
   font-size: 13px;
   font-weight: 800;
   color: var(--vpp-text);
@@ -1862,15 +1896,15 @@ onBeforeUnmount(() => {
 }
 
 .vpp-switch-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: flex-start;
   gap: 10px;
   min-height: 56px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--vpp-line);
-  background: color-mix(in srgb, var(--vpp-field-bg) 90%, transparent);
+  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
 }
 
 .vpp-switch-label {
@@ -1884,8 +1918,8 @@ onBeforeUnmount(() => {
 }
 
 .vpp-switch-card.is-emphasis {
-  border-color: rgba(var(--v-theme-primary), 0.24);
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1), rgba(var(--v-theme-surface-variant), 0.08));
+  border-color: rgba(var(--vpp-theme-rgb), 0.24);
+  background: linear-gradient(135deg, rgba(var(--vpp-theme-rgb), 0.12), rgba(var(--vpp-theme-rgb), 0.04) 54%, transparent);
 }
 
 .vpp-form-grid {
@@ -1906,6 +1940,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   background: var(--vpp-field-bg) !important;
   color: var(--vpp-text) !important;
+  box-shadow: none !important;
 }
 
 .vpp-dialog-card :deep(.v-field__overlay) {
@@ -1913,7 +1948,21 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-card :deep(.v-field__outline) {
-  --v-field-border-opacity: 0.2;
+  --v-field-border-opacity: 0.22;
+}
+
+.vpp-dialog-card :deep(.v-field--variant-outlined .v-field__outline__start),
+.vpp-dialog-card :deep(.v-field--variant-outlined .v-field__outline__notch::before),
+.vpp-dialog-card :deep(.v-field--variant-outlined .v-field__outline__notch::after),
+.vpp-dialog-card :deep(.v-field--variant-outlined .v-field__outline__end) {
+  border-color: var(--vpp-line) !important;
+}
+
+.vpp-dialog-card :deep(.v-field.v-field--focused .v-field__outline__start),
+.vpp-dialog-card :deep(.v-field.v-field--focused .v-field__outline__notch::before),
+.vpp-dialog-card :deep(.v-field.v-field--focused .v-field__outline__notch::after),
+.vpp-dialog-card :deep(.v-field.v-field--focused .v-field__outline__end) {
+  border-color: rgba(var(--vpp-theme-rgb), 0.44) !important;
 }
 
 .vpp-dialog-card :deep(.v-label),
@@ -1927,6 +1976,7 @@ onBeforeUnmount(() => {
 .vpp-dialog-card :deep(textarea) {
   color: var(--vpp-text) !important;
   opacity: 1 !important;
+  -webkit-text-fill-color: var(--vpp-text) !important;
 }
 
 .vpp-dialog-card :deep(.v-selection-control__wrapper),
@@ -2005,9 +2055,11 @@ onBeforeUnmount(() => {
 
 .vpp-log-row {
   padding: 10px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--vpp-line);
-  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
+  background:
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.06), transparent 56%),
+    color-mix(in srgb, var(--vpp-field-bg) 94%, transparent);
 }
 
 .vpp-log-time {
@@ -2057,54 +2109,13 @@ onBeforeUnmount(() => {
   border: 1px dashed var(--vpp-line);
   color: var(--vpp-text-soft);
   text-align: center;
-  background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
+  background:
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.05), transparent 62%),
+    color-mix(in srgb, var(--vpp-field-bg) 94%, transparent);
 }
 
 .vpp-grid-empty {
   grid-column: 1 / -1;
-}
-
-@keyframes vpp-scan {
-  0%,
-  100% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes vpp-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes vpp-pulse-status {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: translateY(-50%) scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(-50%) scale(1.2);
-  }
-}
-
-@keyframes vpp-pulse-dot {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
-  }
 }
 
 @keyframes pulse {
@@ -2135,6 +2146,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 760px) {
+  .vuepanel-page {
+    border-radius: 18px;
+  }
+
   .vpp-dialog-head,
   .vpp-dialog-body,
   .vpp-dialog-actions {
@@ -2150,6 +2165,10 @@ onBeforeUnmount(() => {
   .vpp-card-title-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .vpp-status-pill {
+    margin-left: 0;
   }
 
   .vpp-field-span-2 {
@@ -2189,6 +2208,7 @@ onBeforeUnmount(() => {
   }
 
   .vpp-action-btn,
+  .vpp-confirm-btn,
   .vpp-action-btn.is-delete {
     flex: 1 1 auto;
   }
