@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.17"
+    plugin_version = "0.1.18"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -262,7 +262,12 @@ class VuePanel(_PluginBase):
             error_count = 0
 
             for card in targets:
-                result = self._execute_card(card)
+                try:
+                    result = self._execute_card(card)
+                except Exception as err:
+                    detail = self._get_error_detail(err)
+                    logger.warning("%s 执行卡片失败[%s]：%s", self.plugin_name, card.get("title") or card.get("id"), detail)
+                    result = self._card_exception_result(card, err, action="run")
                 state = self._result_to_state(card, result, previous=states.get(card["id"]), record_run=True)
                 states[card["id"]] = state
                 summary_lines.append(f"{state['module_icon']} {state['title']}：{state['status_text']}")
@@ -505,7 +510,12 @@ class VuePanel(_PluginBase):
         states = self._load_card_states()
         targets = self._select_cards_for_refresh(card_id=card_id)
         for card in targets:
-            result = self._inspect_card(card)
+            try:
+                result = self._inspect_card(card)
+            except Exception as err:
+                detail = self._get_error_detail(err)
+                logger.warning("%s 刷新卡片状态失败[%s]：%s", self.plugin_name, card.get("title") or card.get("id"), detail)
+                result = self._card_exception_result(card, err, action="refresh")
             states[card["id"]] = self._result_to_state(card, result, previous=states.get(card["id"]), record_run=False)
 
         self._save_card_states(states)
@@ -1643,6 +1653,31 @@ class VuePanel(_PluginBase):
         detail_lines: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         return self._build_result(False, "error", status_title, status_text, metrics, detail_lines)
+
+    def _card_exception_result(self, card: Dict[str, Any], err: Exception, action: str = "refresh") -> Dict[str, Any]:
+        detail = self._get_error_detail(err)
+        action_text = "状态刷新" if action == "refresh" else "执行"
+        detail_lines = [f"站点：{card.get('site_url') or '--'}", f"详情：{detail}"]
+        detail_text = str(detail or "").lower()
+        if isinstance(err, requests.exceptions.SSLError) or "certificate verify failed" in detail_text:
+            return self._error_result(
+                "证书校验失败",
+                f"{action_text}失败：当前站点 HTTPS 证书校验未通过。",
+                detail_lines=detail_lines,
+            )
+        if isinstance(err, requests.exceptions.Timeout):
+            return self._error_result(
+                f"{action_text}超时",
+                f"{action_text}失败：请求超时，请稍后重试。",
+                detail_lines=detail_lines,
+            )
+        if isinstance(err, requests.exceptions.RequestException):
+            return self._error_result(
+                f"{action_text}失败",
+                f"{action_text}失败：网络请求异常。",
+                detail_lines=detail_lines,
+            )
+        return self._error_result(f"{action_text}失败", detail, detail_lines=detail_lines)
 
     @staticmethod
     def _build_result(
