@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.26"
+    plugin_version = "0.1.27"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -771,12 +771,9 @@ class VuePanel(_PluginBase):
 
     def _inspect_siqi_dineout(self, card: Dict[str, Any]) -> Dict[str, Any]:
         session = self._build_session(card)
-        page_url = urljoin(card["site_url"], "/siqi_restaurant.php")
-        response = session.get(page_url, timeout=(self._http_timeout, self._http_timeout))
-        response.raise_for_status()
-        info = self._parse_siqi_restaurant_page(response.text)
-        if info.get("invalid_cookie"):
-            return self._error_result("Cookie 失效", "当前站点返回未登录状态，请更新 Cookie。")
+        info = self._request_siqi_restaurant_fetch(session, card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "接口未返回 success。")
 
         targets = self._siqi_dineout_targets(card)
         visited_lookup = {item.lower() for item in info.get("visited_records") or []}
@@ -793,15 +790,13 @@ class VuePanel(_PluginBase):
                 detail_lines=detail_lines,
             )
 
-        if remaining <= 0:
-            visited_text = self._format_name_list(info.get("visited_records") or [])
-            status_text = f"今日已完成下馆子：{visited_text}" if visited_text else "今日已完成下馆子。"
-            return self._success_result("今日已下馆子", status_text, metrics=metrics, detail_lines=detail_lines)
+        if info.get("reached_limit") or remaining <= 0:
+            return self._success_result("今日已下馆子", str(info.get("button_label") or "今日已下馆子"), metrics=metrics, detail_lines=detail_lines)
 
         if not pending_targets:
             return self._success_result(
-                "今日已下馆子",
-                f"配置目标已全部完成：{self._format_name_list(targets)}",
+                "已完成已配置餐位",
+                str(info.get("button_label") or "下馆子"),
                 metrics=metrics,
                 detail_lines=detail_lines,
             )
@@ -821,20 +816,17 @@ class VuePanel(_PluginBase):
 
         session = self._build_session(card)
         page_url = urljoin(card["site_url"], "/siqi_restaurant.php")
-        response = session.get(page_url, timeout=(self._http_timeout, self._http_timeout))
-        response.raise_for_status()
-        info = self._parse_siqi_restaurant_page(response.text)
-        if info.get("invalid_cookie"):
-            return self._error_result("Cookie 失效", "当前站点返回未登录状态，请更新 Cookie。")
+        info = self._request_siqi_restaurant_fetch(session, card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "接口未返回 success。")
 
         visited_lookup = {item.lower() for item in info.get("visited_records") or []}
         pending_targets = [item for item in targets if item.lower() not in visited_lookup]
         remaining = max(self._safe_int(info.get("remaining"), 0), 0)
-        if remaining <= 0:
-            visited_text = self._format_name_list(info.get("visited_records") or []) or "无需额外执行"
+        if info.get("reached_limit") or remaining <= 0:
             return self._info_result(
                 "今日已下馆子",
-                f"今日已前往：{visited_text}",
+                str(info.get("button_label") or "今日已下馆子"),
                 metrics=self._siqi_dineout_metrics(info),
                 detail_lines=self._siqi_dineout_detail_lines(info),
                 notify_text="",
@@ -842,66 +834,48 @@ class VuePanel(_PluginBase):
 
         if not pending_targets:
             return self._info_result(
-                "今日已下馆子",
-                f"配置目标已全部完成：{self._format_name_list(targets)}",
+                "已完成已配置餐位",
+                str(info.get("button_label") or "下馆子"),
                 metrics=self._siqi_dineout_metrics(info),
                 detail_lines=self._siqi_dineout_detail_lines(info),
                 notify_text="",
             )
 
-        latest_info = dict(info)
         success_targets: List[str] = []
         failed_lines: List[str] = []
-        skipped_targets: List[str] = []
-        run_lines: List[str] = []
         available_slots = remaining
 
         for target in pending_targets:
             if available_slots <= 0:
-                skipped_targets.append(target)
                 continue
 
             result = self._request_siqi_dineout(session, card, target, page_url)
             actual_target = str(result.get("target_username") or target).strip() or target
             if result.get("success"):
                 success_targets.append(actual_target)
-                run_lines.append(self._clean_siqi_dineout_message(result.get("message")) or f"成功前往 {actual_target} 的餐馆")
-                merged_records = result.get("visited_records") or [*(latest_info.get("visited_records") or []), actual_target]
-                latest_info["visited_records"] = self._normalize_name_list(merged_records)
-                latest_info["visited_count"] = len(latest_info["visited_records"])
-                if result.get("daily_limit") is not None:
-                    latest_info["daily_limit"] = self._safe_int(result.get("daily_limit"), latest_info.get("daily_limit") or 3)
-                if result.get("remaining") is not None:
-                    latest_info["remaining"] = max(self._safe_int(result.get("remaining"), 0), 0)
-                else:
-                    latest_info["remaining"] = max(available_slots - 1, 0)
-                if result.get("net_earnings_today") is not None:
-                    latest_info["net_earnings_today"] = str(result.get("net_earnings_today") or latest_info.get("net_earnings_today") or "0")
-                available_slots = max(self._safe_int(latest_info.get("remaining"), 0), 0)
+                available_slots = max(self._safe_int(result.get("remaining"), available_slots - 1), 0)
                 continue
 
             message = self._clean_siqi_dineout_message(result.get("message")) or "执行失败"
             failed_lines.append(f"{actual_target}：{message}")
-            if result.get("daily_limit") is not None:
-                latest_info["daily_limit"] = self._safe_int(result.get("daily_limit"), latest_info.get("daily_limit") or 3)
-            if result.get("remaining") is not None:
-                latest_info["remaining"] = max(self._safe_int(result.get("remaining"), 0), 0)
-                available_slots = latest_info["remaining"]
+            available_slots = max(self._safe_int(result.get("remaining"), available_slots), 0)
 
-        if skipped_targets:
-            run_lines.append(f"今日剩余次数不足，未执行：{self._format_name_list(skipped_targets)}")
+        latest_info = self._request_siqi_restaurant_fetch(session, card)
+        if not latest_info.get("success"):
+            latest_info = dict(info)
+            latest_info["message"] = info.get("message") or ""
+            latest_info["button_label"] = info.get("button_label") or "下馆子"
+            latest_info["visited_note"] = info.get("visited_note") or "今日已前往：暂无。"
 
-        detail_lines: List[str] = []
-        for line in [*run_lines, *failed_lines, *self._siqi_dineout_detail_lines(latest_info)]:
-            text = str(line or "").strip()
-            if text and text not in detail_lines:
-                detail_lines.append(text)
+        detail_lines = self._siqi_dineout_detail_lines(latest_info)
+        if failed_lines:
+            detail_lines = [*detail_lines, *failed_lines]
 
         metrics = self._siqi_dineout_metrics(latest_info)
         if success_targets and not failed_lines:
             return self._success_result(
-                "下馆子完成",
-                f"成功前往：{self._format_name_list(success_targets)}",
+                "今日已下馆子" if latest_info.get("reached_limit") else "下馆子完成",
+                str(latest_info.get("button_label") or "下馆子"),
                 metrics=metrics,
                 detail_lines=detail_lines,
                 notify_text=self._siqi_dineout_notify_text(success_targets),
@@ -911,7 +885,7 @@ class VuePanel(_PluginBase):
                 True,
                 "warning",
                 "部分完成",
-                f"成功前往 {len(success_targets)} 家，失败 {len(failed_lines)} 家。",
+                str(latest_info.get("button_label") or "下馆子"),
                 metrics=metrics,
                 detail_lines=detail_lines,
                 notify_text=self._siqi_dineout_notify_text(success_targets),
@@ -923,6 +897,48 @@ class VuePanel(_PluginBase):
             detail_lines=detail_lines,
             notify_text=self._siqi_dineout_notify_text([], failed_lines),
         )
+
+    def _request_siqi_restaurant_fetch(self, session: requests.Session, card: Dict[str, Any]) -> Dict[str, Any]:
+        url = urljoin(card["site_url"], "/siqi_restaurant.php?action=fetch")
+        response = session.get(
+            url,
+            headers={"Accept": "application/json, text/plain, */*", "Referer": urljoin(card["site_url"], "/siqi_restaurant.php")},
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        payload = self._safe_json(response)
+        if not isinstance(payload, dict):
+            response.raise_for_status()
+            html = response.text or ""
+            fallback = self._parse_siqi_restaurant_page(html)
+            if fallback.get("invalid_cookie"):
+                return {"success": False, "message": "当前站点返回未登录状态，请更新 Cookie。", "invalid_cookie": True}
+            return {"success": False, "message": "餐馆接口未返回有效 JSON。"}
+        if not payload.get("success"):
+            return {"success": False, "message": str(payload.get("message") or f"HTTP {response.status_code}")}
+
+        state = payload.get("state") if isinstance(payload.get("state"), dict) else {}
+        visits = payload.get("visits") if isinstance(payload.get("visits"), dict) else {}
+        visited_records = self._siqi_visit_usernames(visits.get("records") or [])
+        visit_limit = max(self._safe_int(visits.get("limit"), 0), 0)
+        visit_count = max(self._safe_int(visits.get("count"), len(visited_records)), len(visited_records))
+        remaining = max(self._safe_int(visits.get("remaining"), max(visit_limit - visit_count, 0)), 0)
+        reached_limit = bool(visits.get("reached_limit")) or bool(visit_limit and visit_count >= visit_limit)
+        button_label = "今日已下馆子" if reached_limit else (f"下馆子（剩余{remaining}次）" if visit_limit else "下馆子")
+        visited_note = f"今日已前往：{self._format_name_list(visited_records)}。" if visited_records else "今日已前往：暂无。"
+        return {
+            "success": True,
+            "state": state,
+            "visits": visits,
+            "status_label": str(state.get("session_status") or ""),
+            "visited_records": visited_records,
+            "visited_count": visit_count,
+            "daily_limit": visit_limit,
+            "remaining": remaining,
+            "reached_limit": reached_limit,
+            "button_label": button_label,
+            "visited_note": visited_note,
+            "net_earnings_today": state.get("net_earnings_today"),
+        }
 
     def _request_siqi_dineout(
         self,
@@ -954,7 +970,7 @@ class VuePanel(_PluginBase):
             "success": bool(payload.get("success")),
             "message": str(payload.get("message") or "").strip(),
             "target_username": str(visit.get("target_username") or target_username).strip(),
-            "visited_records": self._normalize_name_list(visits.get("records") or []),
+            "visited_records": self._siqi_visit_usernames(visits.get("records") or []),
             "remaining": visits.get("remaining"),
             "daily_limit": visits.get("limit"),
             "net_earnings_today": state.get("net_earnings_today"),
@@ -1120,6 +1136,9 @@ class VuePanel(_PluginBase):
             "visited_count": len(visited_records),
             "daily_limit": daily_limit,
             "remaining": remaining,
+            "reached_limit": bool(daily_limit and remaining <= 0),
+            "button_label": "今日已下馆子" if daily_limit and remaining <= 0 else (f"下馆子（剩余{remaining}次）" if daily_limit else "下馆子"),
+            "visited_note": f"今日已前往：{self._format_name_list(visited_records)}。" if visited_records else "今日已前往：暂无。",
             "net_earnings_today": str(net_earnings_today),
         }
 
@@ -1143,16 +1162,33 @@ class VuePanel(_PluginBase):
 
     def _siqi_dineout_detail_lines(self, info: Dict[str, Any]) -> List[str]:
         lines: List[str] = []
-        visited_records = self._normalize_name_list(info.get("visited_records") or [])
-        if visited_records:
-            lines.append(f"今日已前往：{self._format_name_list(visited_records)}")
-        else:
-            lines.append("今日暂未前往其他餐馆")
-        if info.get("status_label"):
-            lines.append(f"当前状态：{info.get('status_label')}")
-        if str(info.get("net_earnings_today") or "").strip():
-            lines.append(f"今日净收益：{info.get('net_earnings_today')} 魔力")
+        button_label = str(info.get("button_label") or "").strip()
+        visited_note = str(info.get("visited_note") or "").strip()
+        if button_label:
+            lines.append(button_label)
+        if visited_note:
+            lines.append(visited_note)
         return lines
+
+    @staticmethod
+    def _siqi_visit_usernames(records: Any) -> List[str]:
+        names: List[str] = []
+        if not isinstance(records, list):
+            return names
+        seen: set = set()
+        for item in records:
+            if isinstance(item, dict):
+                text = str(item.get("target_username") or item.get("username") or "").strip()
+            else:
+                text = str(item or "").strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            names.append(text)
+        return names
 
     @staticmethod
     def _clean_siqi_dineout_message(message: Any) -> str:
