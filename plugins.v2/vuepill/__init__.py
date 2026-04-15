@@ -98,7 +98,6 @@ class VuePill(_PluginBase):
     _move_delay_min_ms: int = 30
     _move_delay_max_ms: int = 80
     _ready_retry_seconds: int = 60
-    _reserve_material_count: int = 0
     _reserve_magic_pill_count: int = 0
 
     _next_run_time: Optional[datetime] = None
@@ -507,7 +506,6 @@ class VuePill(_PluginBase):
             "move_delay_min_ms": self._move_delay_min_ms,
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
-            "reserve_material_count": self._reserve_material_count,
             "reserve_magic_pill_count": self._reserve_magic_pill_count,
             "capture_tips": [] if include_options else None,
         }
@@ -554,7 +552,6 @@ class VuePill(_PluginBase):
             "move_delay_min_ms": 30,
             "move_delay_max_ms": 80,
             "ready_retry_seconds": 60,
-            "reserve_material_count": 0,
             "reserve_magic_pill_count": 0,
         }
 
@@ -579,7 +576,6 @@ class VuePill(_PluginBase):
         self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
         self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
         self._ready_retry_seconds = max(10, self._safe_int(config.get("ready_retry_seconds"), 60))
-        self._reserve_material_count = max(0, self._safe_int(config.get("reserve_material_count"), 0))
         self._reserve_magic_pill_count = max(0, self._safe_int(config.get("reserve_magic_pill_count"), 0))
 
     def _update_config(self):
@@ -1290,10 +1286,7 @@ class VuePill(_PluginBase):
         return result, current_page
 
     def _auto_craft_magic_pill(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
-        plan_info = self._compute_magic_pill_plan(
-            page.get("inventory") or [],
-            reserve_material_count=self._reserve_material_count,
-        )
+        plan_info = self._compute_magic_pill_plan(page.get("inventory") or [])
         max_count = self._safe_int(plan_info.get("max_count"), 0)
         if max_count <= 0:
             return {}
@@ -1324,7 +1317,18 @@ class VuePill(_PluginBase):
         exchange = page.get("exchange") or {}
         max_count = self._safe_int(exchange.get("max_count"), 0)
         magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
-        exchangeable = max(0, min(max_count, magic_pills - self._reserve_magic_pill_count))
+        inventory_map = self._inventory_to_map(page.get("inventory", {}).get("items") or [])
+        inventory_magic_pills = self._safe_int(inventory_map.get("魔丸"), magic_pills)
+        exchange_pool = max(0, inventory_magic_pills - self._reserve_magic_pill_count)
+        exchangeable = max(0, min(max_count, exchange_pool))
+        logger.info(
+            "%s 自动兑换计算：库存魔丸=%s，兑换页魔丸=%s，保留=%s，可兑换=%s",
+            self.plugin_name,
+            inventory_magic_pills,
+            magic_pills,
+            self._reserve_magic_pill_count,
+            exchangeable,
+        )
         if exchangeable <= 0 or not exchange.get("enabled"):
             return {}
 
@@ -1339,6 +1343,8 @@ class VuePill(_PluginBase):
 
         gained = self._safe_int((result or {}).get("points_gained"), 0)
         lines = [f"💰 兑换：⚗️魔丸×{exchangeable}"]
+        if self._reserve_magic_pill_count > 0:
+            lines.append(f"🧮 保留：⚗️魔丸≥{self._reserve_magic_pill_count}（当前 {inventory_magic_pills}）")
         if gained > 0:
             lines.append(f"✨ 获得：{gained} 魔力")
         return {"exchanged": exchangeable, "points": gained, "lines": lines}
@@ -1347,12 +1353,8 @@ class VuePill(_PluginBase):
         self,
         inventory_items: List[Dict[str, Any]],
         target: Optional[int] = None,
-        reserve_material_count: int = 0,
     ) -> Dict[str, Any]:
-        inventory_map = self._inventory_to_map(
-            inventory_items,
-            reserve_material_count=reserve_material_count,
-        )
+        inventory_map = self._inventory_to_map(inventory_items)
         upper = max(0, sum(max(0, self._safe_int(val, 0)) for val in inventory_map.values()))
         upper = max(upper, inventory_map.get("砖块", 0) // 10, inventory_map.get("魔丸胚胎", 0) // 2)
 
@@ -1418,7 +1420,6 @@ class VuePill(_PluginBase):
     def _inventory_to_map(
         self,
         inventory_items: List[Dict[str, Any]],
-        reserve_material_count: int = 0,
         reserve_magic_pill_count: int = 0,
     ) -> Dict[str, int]:
         data: Dict[str, int] = {}
@@ -1429,8 +1430,6 @@ class VuePill(_PluginBase):
             count = max(0, self._safe_int(item.get("count"), 0))
             if name == "魔丸":
                 count = max(0, count - max(0, reserve_magic_pill_count))
-            elif reserve_material_count > 0:
-                count = max(0, count - max(0, reserve_material_count))
             data[name] = count
         return data
 

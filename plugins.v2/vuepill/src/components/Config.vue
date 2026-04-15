@@ -62,7 +62,7 @@
         </div>
 
         <div class="vp-field-grid">
-          <div class="vp-field-card vp-field-span-2">
+          <div class="vp-field-card">
             <div class="vp-field-label">站点 Cookie</div>
             <v-text-field
               v-model="cookieFieldValue"
@@ -84,18 +84,6 @@
               label="搬砖执行周期(cron)"
               density="comfortable"
               class="vp-cron-field"
-            />
-          </div>
-
-          <div class="vp-field-card">
-            <div class="vp-field-label">保留材料数量</div>
-            <v-text-field
-              v-model="config.reserve_material_count"
-              label="每种材料保留数量"
-              type="number"
-              variant="outlined"
-              density="comfortable"
-              hide-details="auto"
             />
           </div>
 
@@ -152,7 +140,6 @@ const config = reactive({
   move_delay_min_ms: 30,
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
-  reserve_material_count: 0,
   reserve_magic_pill_count: 0,
 })
 
@@ -328,7 +315,6 @@ onBeforeUnmount(() => {
 .vp-switch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .vp-switch-card,.vp-field-card{padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel-strong)}
 .vp-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.vp-field-span-2{grid-column:span 2}
 .vp-field-label{margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
 .vp-note{font-size:12px;line-height:1.65}
 .vp-cron-field{padding:0;background:transparent}
@@ -345,6 +331,6 @@ onBeforeUnmount(() => {
 :deep(.vp-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
 :deep(.vp-config .v-field__outline){--v-field-border-opacity:1}
 :deep(.vp-config .v-selection-control__input > .v-icon),:deep(.vp-config .v-switch__track){color:var(--accent)}
-@media (max-width:1080px){.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-field-span-2{grid-column:span 2}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-hero,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr;display:grid}.vp-field-span-2{grid-column:auto}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
+@media (max-width:1080px){.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
+@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-hero,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr;display:grid}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
 </style>

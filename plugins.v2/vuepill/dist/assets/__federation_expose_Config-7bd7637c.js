@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_38e37c50_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_83985c3b_lang = '';
 
 const {createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-38e37c50"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-83985c3b"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vp-shell" };
 const _hoisted_2 = { class: "vp-card vp-hero" };
 const _hoisted_3 = { class: "vp-copy" };
@@ -32,15 +32,13 @@ const _hoisted_22 = { class: "vp-switch-card" };
 const _hoisted_23 = { class: "vp-switch-card" };
 const _hoisted_24 = { class: "vp-switch-card" };
 const _hoisted_25 = { class: "vp-field-grid" };
-const _hoisted_26 = { class: "vp-field-card vp-field-span-2" };
+const _hoisted_26 = { class: "vp-field-card" };
 const _hoisted_27 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "站点 Cookie", -1));
 const _hoisted_28 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-note" }, "启用【使用站点 Cookie】后自动读取站点配置，关闭后才可手动修改。", -1));
 const _hoisted_29 = { class: "vp-field-card" };
 const _hoisted_30 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "执行周期", -1));
 const _hoisted_31 = { class: "vp-field-card" };
-const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留材料数量", -1));
-const _hoisted_33 = { class: "vp-field-card" };
-const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留魔丸数量", -1));
+const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vp-field-label" }, "保留魔丸数量", -1));
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
@@ -87,7 +85,6 @@ const config = reactive({
   move_delay_min_ms: 30,
   move_delay_max_ms: 80,
   ready_retry_seconds: 60,
-  reserve_material_count: 0,
   reserve_magic_pill_count: 0,
 });
 
@@ -473,20 +470,8 @@ return (_ctx, _cache) => {
           _createElementVNode("div", _hoisted_31, [
             _hoisted_32,
             _createVNode(_component_v_text_field, {
-              modelValue: config.reserve_material_count,
-              "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.reserve_material_count) = $event)),
-              label: "每种材料保留数量",
-              type: "number",
-              variant: "outlined",
-              density: "comfortable",
-              "hide-details": "auto"
-            }, null, 8, ["modelValue"])
-          ]),
-          _createElementVNode("div", _hoisted_33, [
-            _hoisted_34,
-            _createVNode(_component_v_text_field, {
               modelValue: config.reserve_magic_pill_count,
-              "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.reserve_magic_pill_count) = $event)),
+              "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.reserve_magic_pill_count) = $event)),
               label: "魔丸保留数量",
               type: "number",
               variant: "outlined",
@@ -502,6 +487,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-38e37c50"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-83985c3b"]]);
 
 export { ConfigView as default };
