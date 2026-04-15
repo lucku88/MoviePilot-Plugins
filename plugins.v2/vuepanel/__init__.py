@@ -27,7 +27,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.28"
+    plugin_version = "0.1.29"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -378,6 +378,7 @@ class VuePanel(_PluginBase):
         self.init_plugin(merged)
         self._update_config()
         self._reregister_plugin("save_config")
+        self._log_schedule_snapshot("save_config")
 
         try:
             dashboard = self._refresh_state(reason="save-config")
@@ -1725,6 +1726,17 @@ class VuePanel(_PluginBase):
                 logger.info("%s 已刷新调度：%s", self.plugin_name, reason)
         except Exception as err:
             logger.warning("%s 刷新调度失败：%s", self.plugin_name, err)
+
+    def _log_schedule_snapshot(self, reason: str = ""):
+        items: List[str] = []
+        for card in self._cards:
+            if not self._card_schedule_enabled(card):
+                continue
+            next_run = self._format_time(self._get_card_next_run(card)) or "未解析"
+            items.append(f"{card.get('title') or card.get('id')}={self._get_card_cron(card)} -> {next_run}")
+        if items:
+            suffix = f"（{reason}）" if reason else ""
+            logger.info("%s 当前卡片调度%s：%s", self.plugin_name, suffix, " | ".join(items))
 
     def _module_meta(self, module_key: str) -> Dict[str, str]:
         for item in self.MODULES:

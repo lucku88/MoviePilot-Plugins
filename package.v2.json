@@ -85,11 +85,12 @@
     "name": "Vue-面板",
     "description": "个人用模块化面板。",
     "labels": "站点,面板,签到,领取,Vue",
-    "version": "0.1.28",
+    "version": "0.1.29",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.29": "把 Vue-面板 的 Cron 配置改为更直接稳定的文本输入，并在保存后校验后端实际生效的 Cron 与下次运行时间；同时追加当前卡片调度快照日志，便于排查“界面已改 Cron 但注册任务仍是旧时间”的问题。",
       "v0.1.28": "修复 Vue-面板 卡片级 Cron 定时任务注册时未正确绑定 card_id，导致“思齐下馆子”等独立卡片按计划执行时报 missing 1 required positional argument: card_id 的问题。",
       "v0.1.27": "把 Vue-面板 的“定时下馆子”状态源改为直接读取 siqi_restaurant.php?action=fetch 的实时 JSON，并将日志收口为页面上的“下馆子按钮状态 + 今日已前往名单”两条关键信息。",
       "v0.1.26": "为 Vue-面板 新增“定时下馆子”卡片：前端配置弹窗支持早餐 / 中餐 / 晚餐三段目标用户名，后端接入 /siqi_restaurant.php 的状态读取、定时执行、日志记录与精简通知。",

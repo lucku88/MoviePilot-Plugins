@@ -1,10 +1,13 @@
 <template>
-  <VCronField
+  <v-text-field
     v-bind="$attrs"
     :model-value="modelValue"
     class="mp-cron"
+    variant="outlined"
     density="compact"
-    @update:model-value="emit('update:modelValue', $event)"
+    prepend-inner-icon="mdi-clock-time-four-outline"
+    placeholder="例如：24 0 * * *"
+    @update:model-value="emit('update:modelValue', normalizeCron($event))"
   />
 </template>
 
@@ -16,6 +19,10 @@ defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+
+function normalizeCron(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
 </script>
 
 <style scoped>

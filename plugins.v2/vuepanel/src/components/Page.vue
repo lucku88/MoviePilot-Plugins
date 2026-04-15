@@ -532,6 +532,22 @@ function deepClone(value) {
   return JSON.parse(JSON.stringify(value ?? null))
 }
 
+function normalizeCronExpression(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
+
+function findCardFromPayload(payload, cardId) {
+  const source = payload?.status?.config || payload?.config || payload?.status?.dashboard || payload?.dashboard || {}
+  const cards = Array.isArray(source?.cards) ? source.cards : []
+  return cards.find((item) => String(item?.id || item?.card_id || '') === String(cardId || '')) || null
+}
+
+function findDashboardCardFromPayload(payload, cardId) {
+  const source = payload?.status?.dashboard || payload?.dashboard || {}
+  const cards = Array.isArray(source?.cards) ? source.cards : []
+  return cards.find((item) => String(item?.card_id || item?.id || '') === String(cardId || '')) || null
+}
+
 function moduleMeta(moduleKey) {
   return (panelConfig.value.module_options || []).find((item) => item.key === moduleKey) || {
     key: moduleKey,
@@ -967,6 +983,7 @@ async function saveCardConfig() {
   saving.config = true
   try {
     const runAfterSave = !!editor.run_once
+    const requestedCron = normalizeCronExpression(editor.cron)
     let matched = false
     const nextCards = (panelConfig.value.cards || []).map((item) => {
       if (item.id === editor.id) {
@@ -976,11 +993,25 @@ async function saveCardConfig() {
       return normalizeCard(item)
     })
     if (!matched) nextCards.push(normalizeCard(editor))
-    await persistCards(nextCards, runAfterSave ? '卡片配置已保存，准备立即执行' : '卡片配置已保存')
+    const response = await persistCards(nextCards, runAfterSave ? '卡片配置已保存，准备立即执行' : '卡片配置已保存')
+    const savedCard = findCardFromPayload(response, editor.id)
+    const dashboardCard = findDashboardCardFromPayload(response, editor.id)
+    const effectiveCron = normalizeCronExpression(savedCard?.cron || '')
+    if (effectiveCron && requestedCron && effectiveCron !== requestedCron) {
+      flash(`Cron 实际生效为 ${effectiveCron}，与当前输入 ${requestedCron} 不一致，请重新保存一次。`, 'warning')
+      return
+    }
+    if (savedCard?.enabled && savedCard?.auto_run && effectiveCron && !dashboardCard?.next_run_time) {
+      flash(`Cron 已保存为 ${effectiveCron}，但暂未计算出下次运行时间，请检查表达式。`, 'warning')
+      return
+    }
+    if (!runAfterSave && dashboardCard?.enabled && dashboardCard?.auto_run && dashboardCard?.next_run_time) {
+      flash(`卡片配置已保存，下次运行：${dashboardCard.next_run_time}`)
+    }
     if (runAfterSave) {
-      const response = await props.api.post('/plugin/VuePanel/card/run', { card_id: editor.id })
-      applyStatusPayload(response)
-      flash(response.message || '卡片已保存并立即执行一次')
+      const runResponse = await props.api.post('/plugin/VuePanel/card/run', { card_id: editor.id })
+      applyStatusPayload(runResponse)
+      flash(runResponse.message || '卡片已保存并立即执行一次')
     }
     editor.run_once = false
     dialog.config = false
