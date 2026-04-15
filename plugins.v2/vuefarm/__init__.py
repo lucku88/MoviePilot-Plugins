@@ -623,7 +623,33 @@ class VueFarm(_PluginBase):
         self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
 
     def _normalize_seed_name(self, value: Any) -> str:
-        return re.sub(r"\s+", "", str(value or "").strip())
+        text = re.sub(r"\s+", "", str(value or "").strip())
+        if not text:
+            return ""
+
+        text = re.sub(r"[^\w\u4e00-\u9fff]", "", text)
+        lowered = text.lower()
+        alias_map = {
+            "tomato": "西红柿",
+            "corn": "玉米",
+            "radish": "萝卜",
+            "eggplant": "茄子",
+            "mushroom": "蘑菇",
+            "cherry": "樱桃",
+        }
+        if lowered in alias_map:
+            return alias_map[lowered]
+
+        for suffix in ("种子", "作物", "果实", "种植", "农作物"):
+            if text.endswith(suffix) and len(text) > len(suffix):
+                text = text[: -len(suffix)]
+                break
+
+        for crop_name in sorted(self._crop_icon.keys(), key=len, reverse=True):
+            crop_key = re.sub(r"\s+", "", str(crop_name or "").strip())
+            if crop_key and (crop_key in text or text in crop_key):
+                return crop_key
+        return text
 
     def _seed_matches_preference(self, seed_name: Any, preference: Any) -> bool:
         seed_key = self._normalize_seed_name(seed_name)
@@ -1244,10 +1270,19 @@ class VueFarm(_PluginBase):
         unlocked = self._get_unlocked_seeds(data)
         if not unlocked:
             return None
+        preference = str(self._prefer_seed or "").strip()
         for seed in unlocked:
-            if self._seed_matches_preference(seed.get("name"), self._prefer_seed):
+            if self._seed_matches_preference(seed.get("name"), preference):
                 self._prefer_seed = str(seed.get("name") or self._prefer_seed).strip() or self._prefer_seed
+                logger.info("%s 自动种植命中优先种子：%s", self.plugin_name, self._prefer_seed)
                 return seed
+        if preference:
+            logger.warning(
+                "%s 优先种子未匹配成功：%s，可用种子：%s",
+                self.plugin_name,
+                preference,
+                ", ".join(str(seed.get("name") or "") for seed in unlocked) or "无",
+            )
         unlocked.sort(key=lambda item: ((float(item.get("base_reward") or 0) - float(item.get("cost") or 0)) / max(float(item.get("grow_time") or 1), 1)), reverse=True)
         return unlocked[0]
 
