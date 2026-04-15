@@ -1,12 +1,9 @@
 <template>
-  <v-text-field
+  <VCronField
     v-bind="$attrs"
     :model-value="modelValue"
     class="mp-cron"
-    variant="outlined"
     density="compact"
-    prepend-inner-icon="mdi-clock-time-four-outline"
-    placeholder="例如：24 0 * * *"
     @update:model-value="emit('update:modelValue', normalizeCron($event))"
   />
 </template>

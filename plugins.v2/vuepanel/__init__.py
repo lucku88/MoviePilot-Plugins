@@ -27,7 +27,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.29"
+    plugin_version = "0.1.30"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -374,6 +374,10 @@ class VuePanel(_PluginBase):
         merged.update(config_payload or {})
         if "cards" not in (config_payload or {}):
             merged["cards"] = self._cards
+        else:
+            request_cron_snapshot = self._summarize_card_crons(config_payload.get("cards"))
+            if request_cron_snapshot:
+                logger.info("%s 保存请求卡片 Cron：%s", self.plugin_name, request_cron_snapshot)
 
         self.init_plugin(merged)
         self._update_config()
@@ -1737,6 +1741,24 @@ class VuePanel(_PluginBase):
         if items:
             suffix = f"（{reason}）" if reason else ""
             logger.info("%s 当前卡片调度%s：%s", self.plugin_name, suffix, " | ".join(items))
+
+    def _summarize_card_crons(self, cards: Any) -> str:
+        if not isinstance(cards, list):
+            return ""
+        items: List[str] = []
+        for card in cards:
+            if not isinstance(card, dict):
+                continue
+            if not self._to_bool(card.get("enabled", False)):
+                continue
+            if not self._to_bool(card.get("auto_run", True)):
+                continue
+            cron = str(card.get("cron") or card.get("schedule_cron") or "").strip()
+            if not cron:
+                continue
+            title = str(card.get("title") or card.get("site_name") or card.get("module_key") or card.get("id") or "card").strip()
+            items.append(f"{title}={cron}")
+        return " | ".join(items)
 
     def _module_meta(self, module_key: str) -> Dict[str, str]:
         for item in self.MODULES:

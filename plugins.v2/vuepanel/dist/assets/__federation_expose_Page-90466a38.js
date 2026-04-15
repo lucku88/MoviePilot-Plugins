@@ -1,7 +1,7 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const BaseCronField_vue_vue_type_style_index_0_scoped_ccbd0c8d_lang = '';
+const BaseCronField_vue_vue_type_style_index_0_scoped_2949bec5_lang = '';
 
 const {resolveComponent:_resolveComponent$1,mergeProps:_mergeProps,openBlock:_openBlock$1,createBlock:_createBlock$1} = await importShared('vue');
 
@@ -26,22 +26,19 @@ function normalizeCron(value) {
 }
 
 return (_ctx, _cache) => {
-  const _component_v_text_field = _resolveComponent$1("v-text-field");
+  const _component_VCronField = _resolveComponent$1("VCronField");
 
-  return (_openBlock$1(), _createBlock$1(_component_v_text_field, _mergeProps(_ctx.$attrs, {
+  return (_openBlock$1(), _createBlock$1(_component_VCronField, _mergeProps(_ctx.$attrs, {
     "model-value": __props.modelValue,
     class: "mp-cron",
-    variant: "outlined",
     density: "compact",
-    "prepend-inner-icon": "mdi-clock-time-four-outline",
-    placeholder: "例如：24 0 * * *",
     "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => (emit('update:modelValue', normalizeCron($event))))
   }), null, 16, ["model-value"]))
 }
 }
 
 });
-const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-ccbd0c8d"]]);
+const BaseCronField = /*#__PURE__*/_export_sfc(_sfc_main$1, [['__scopeId',"data-v-2949bec5"]]);
 
 const {computed: computed$1,onBeforeUnmount: onBeforeUnmount$1,onMounted: onMounted$1,reactive: reactive$1,ref: ref$1} = await importShared('vue');
 
@@ -185,12 +182,12 @@ function usePanelTheme(rootEl) {
   }
 }
 
-const Page_vue_vue_type_style_index_0_scoped_3c3b4473_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_ad35f4bd_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-3c3b4473"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-ad35f4bd"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -308,7 +305,7 @@ const _hoisted_89 = { class: "vpp-dialog-actions" };
 const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "vpp-dialog-actions-left" }, null, -1));
 const _hoisted_91 = { class: "vpp-dialog-actions-right" };
 
-const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
+const {computed,nextTick,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
 const DEFAULT_CRON = '5 8 * * *';
 
@@ -934,6 +931,12 @@ async function runAll() {
 async function saveCardConfig() {
   saving.config = true;
   try {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    await nextTick();
+    editor.cron = normalizeCronExpression(editor.cron) || DEFAULT_CRON;
+
     const runAfterSave = !!editor.run_once;
     const requestedCron = normalizeCronExpression(editor.cron);
     let matched = false;
@@ -1697,6 +1700,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3c3b4473"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ad35f4bd"]]);
 
 export { PageView as default, usePanelTheme as u };

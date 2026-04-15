@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import BaseCronField from './ui/BaseCronField.vue'
 import { usePanelTheme } from '../composables/usePanelTheme'
 
@@ -982,6 +982,12 @@ async function runAll() {
 async function saveCardConfig() {
   saving.config = true
   try {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    await nextTick()
+    editor.cron = normalizeCronExpression(editor.cron) || DEFAULT_CRON
+
     const runAfterSave = !!editor.run_once
     const requestedCron = normalizeCronExpression(editor.cron)
     let matched = false
