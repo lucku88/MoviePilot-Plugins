@@ -27,7 +27,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.30"
+    plugin_version = "0.1.31"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -49,9 +49,9 @@ class VuePanel(_PluginBase):
             "key": "siqi_sign",
             "label": "思齐签到",
             "icon": "🪐",
-            "description": "访问 /attendance.php 自动识别验证码并完成签到。",
+            "description": "思齐专用签到",
             "summary": "siqi attendance",
-            "default_site_name": "思齐主站",
+            "default_site_name": "思齐",
             "default_site_url": "https://si-qi.xyz",
             "singleton": False,
             "tone": "emerald",
@@ -60,9 +60,9 @@ class VuePanel(_PluginBase):
             "key": "hnr_claim",
             "label": "HNR领取",
             "icon": "🧿",
-            "description": "访问 /hnrview.php 批量领取当前可领的 HNR 奖励。",
+            "description": "思齐HNR领取奖励",
             "summary": "hnr reward claim",
-            "default_site_name": "思齐主站",
+            "default_site_name": "思齐",
             "default_site_url": "https://si-qi.xyz",
             "singleton": False,
             "tone": "amber",
@@ -71,9 +71,9 @@ class VuePanel(_PluginBase):
             "key": "siqi_dineout",
             "label": "定时下馆子",
             "icon": "🍽️",
-            "description": "访问 /siqi_restaurant.php，按早餐 / 中餐 / 晚餐顺序前往其他餐馆用餐。",
+            "description": "依次前往填写的用户名",
             "summary": "siqi dine out",
-            "default_site_name": "鎬濋綈涓荤珯",
+            "default_site_name": "思齐",
             "default_site_url": "https://si-qi.xyz",
             "singleton": False,
             "tone": "rose",
@@ -82,10 +82,10 @@ class VuePanel(_PluginBase):
             "key": "newapi_checkin",
             "label": "New API签到",
             "icon": "🛰️",
-            "description": "调用 /api/user/checkin 执行签到，支持复制独立卡片。",
+            "description": "配置站点和UID",
             "summary": "new api checkin",
             "default_site_name": "New API 站点",
-            "default_site_url": "https://open.xingyungept.cn",
+            "default_site_url": "",
             "singleton": False,
             "tone": "azure",
         },
@@ -415,10 +415,10 @@ class VuePanel(_PluginBase):
     @staticmethod
     def _default_module_note(module_key: str) -> str:
         mapping = {
-            "siqi_sign": "填写 Cookie 后即可启用，执行时会自动识别验证码并提交签到。",
-            "hnr_claim": "可与思齐签到共用同站 Cookie，执行时会按当前排名批量领取可用奖励。",
-            "newapi_checkin": "需要单独填写 UID，复制后可管理多站点。",
-            "siqi_dineout": "按早餐 / 中餐 / 晚餐顺序前往填写的用户名，留空则跳过，每日最多 3 次。",
+            "siqi_sign": "思齐专用签到",
+            "hnr_claim": "思齐HNR领取奖励",
+            "newapi_checkin": "配置站点和UID",
+            "siqi_dineout": "依次前往填写的用户名",
         }
         return mapping.get(module_key, "")
 
@@ -450,9 +450,9 @@ class VuePanel(_PluginBase):
     def _newapi_card_template(self) -> Dict[str, Any]:
         return self._collection_card_template(
             "newapi_checkin",
-            site_name="Open 站点",
-            uid="225",
-            note="需要单独填写 UID，复制后可管理多站点。",
+            site_name="New API 站点",
+            uid="",
+            note="配置站点和UID",
         )
 
     def _collection_card_template(
@@ -557,6 +557,8 @@ class VuePanel(_PluginBase):
     def _inspect_card(self, card: Dict[str, Any]) -> Dict[str, Any]:
         if not card.get("cookie"):
             return self._warning_result("待配置 Cookie", "尚未填写 Cookie，当前卡片仅保留配置。")
+        if card.get("module_key") == "newapi_checkin" and not card.get("site_url"):
+            return self._warning_result("待配置网站地址", "New API 签到需要先填写站点地址。")
         if card.get("module_key") == "newapi_checkin" and not card.get("uid"):
             return self._warning_result("待配置 UID", "New API 签到需要填写 UID。")
 
@@ -574,6 +576,8 @@ class VuePanel(_PluginBase):
     def _execute_card(self, card: Dict[str, Any]) -> Dict[str, Any]:
         if not card.get("cookie"):
             return self._error_result("缺少 Cookie", "请先填写 Cookie 后再执行。")
+        if card.get("module_key") == "newapi_checkin" and not card.get("site_url"):
+            return self._error_result("缺少网站地址", "New API 签到卡片需要先填写站点地址。")
         if card.get("module_key") == "newapi_checkin" and not card.get("uid"):
             return self._error_result("缺少 UID", "New API 签到卡片需要单独填写 UID。")
 
@@ -1532,8 +1536,18 @@ class VuePanel(_PluginBase):
 
     def _append_history(self, state: Dict[str, Any]):
         history = self.get_data("history") or []
-        lines = [state.get("status_text") or ""]
-        lines.extend(state.get("detail_lines") or [])
+        summary = str(state.get("status_text") or "").strip()
+        lines: List[str] = []
+        seen: set = set()
+        for raw_line in state.get("detail_lines") or []:
+            text = str(raw_line or "").strip()
+            if not text or text == summary:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            lines.append(text)
         entry_time = self._format_time(self._aware_now())
         history.insert(
             0,
@@ -1545,7 +1559,7 @@ class VuePanel(_PluginBase):
                 "notify_text": state.get("notify_text"),
                 "status_title": state.get("status_title") or "",
                 "level": state.get("level") or "info",
-                "lines": [line for line in lines if line],
+                "lines": lines,
                 "card_id": state.get("card_id") or "",
                 "module_key": state.get("module_key") or "",
                 "module_name": state.get("module_name") or "",
@@ -1629,9 +1643,12 @@ class VuePanel(_PluginBase):
         module_key = str(item.get("module_key") or item.get("module") or "siqi_sign").strip() or "siqi_sign"
         module_meta = self._module_meta(module_key)
         is_singleton = self._module_is_singleton(module_key)
+        card_id = self._safe_card_id(module_key if is_singleton else (item.get("id") or fallback_id))
+        is_default_card = card_id == f"{self._safe_card_id(module_key)}-default"
         site_url = self._normalize_site_url(item.get("site_url") or module_meta["default_site_url"])
         site_name = str(item.get("site_name") or module_meta["default_site_name"]).strip() or module_meta["default_site_name"]
         title = str(item.get("title") or module_meta["label"]).strip() or module_meta["label"]
+        note = str(item.get("note") or "").strip()
         tone = str(item.get("tone") or module_meta.get("tone") or "azure").strip().lower()
         if tone not in {item["key"] for item in self.TONES}:
             tone = str(module_meta.get("tone") or "azure")
@@ -1639,8 +1656,12 @@ class VuePanel(_PluginBase):
             site_url = self._normalize_site_url(module_meta["default_site_url"])
             site_name = str(module_meta["default_site_name"]).strip()
             title = module_meta["label"]
+        else:
+            site_name = self._normalize_default_site_name(module_key, site_name, is_default_card)
+            site_url = self._normalize_default_site_url(module_key, site_url, item, is_default_card)
+            note = self._normalize_default_note(module_key, note, is_default_card)
         return {
-            "id": self._safe_card_id(module_key if is_singleton else (item.get("id") or fallback_id)),
+            "id": card_id,
             "title": title,
             "module_key": module_key,
             "site_name": site_name,
@@ -1662,8 +1683,46 @@ class VuePanel(_PluginBase):
             "dinner_target": str(item.get("dinner_target") or item.get("dinner_username") or "").strip()
             if module_key == "siqi_dineout"
             else "",
-            "note": str(item.get("note") or "").strip(),
+            "note": note,
         }
+
+    def _normalize_default_note(self, module_key: str, note: str, is_default_card: bool) -> str:
+        if not is_default_card:
+            return note
+        target = self._default_module_note(module_key)
+        legacy_notes = {
+            "siqi_sign": "填写 Cookie 后即可启用，执行时会自动识别验证码并提交签到。",
+            "hnr_claim": "可与思齐签到共用同站 Cookie，执行时会按当前排名批量领取可用奖励。",
+            "newapi_checkin": "需要单独填写 UID，复制后可管理多站点。",
+            "siqi_dineout": "按早餐 / 中餐 / 晚餐顺序前往填写的用户名，留空则跳过，每日最多 3 次。",
+        }
+        return target if not note or note == legacy_notes.get(module_key) else note
+
+    def _normalize_default_site_name(self, module_key: str, site_name: str, is_default_card: bool) -> str:
+        if not is_default_card:
+            return site_name
+        target = str(self._module_meta(module_key).get("default_site_name") or "").strip()
+        legacy_names = {
+            "siqi_sign": {"思齐主站"},
+            "hnr_claim": {"思齐主站"},
+            "siqi_dineout": {"思齐主站", "鎬濋綈涓荤珯"},
+        }
+        if not site_name or site_name == target or site_name in legacy_names.get(module_key, set()):
+            return target
+        return site_name
+
+    def _normalize_default_site_url(self, module_key: str, site_url: str, item: Dict[str, Any], is_default_card: bool) -> str:
+        if not is_default_card:
+            return site_url
+        if module_key == "newapi_checkin":
+            legacy_urls = {"https://open.xingyungept.cn"}
+            uid = str(item.get("uid") or "").strip()
+            cookie = str(item.get("cookie") or "").strip()
+            if not site_url or (site_url in legacy_urls and not uid and not cookie):
+                return ""
+            return site_url
+        target = self._normalize_site_url(self._module_meta(module_key).get("default_site_url") or "")
+        return target if target and not site_url else site_url
 
     def _build_session(self, card: Dict[str, Any]) -> requests.Session:
         session = requests.Session()

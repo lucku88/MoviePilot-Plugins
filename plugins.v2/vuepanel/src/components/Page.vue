@@ -174,7 +174,6 @@
                 <v-text-field
                   v-model="editor.breakfast_target"
                   label="早餐用户名"
-                  placeholder="例如：xiaosa"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -182,7 +181,6 @@
                 <v-text-field
                   v-model="editor.lunch_target"
                   label="中餐用户名"
-                  placeholder="例如：shigandang"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -190,7 +188,6 @@
                 <v-text-field
                   v-model="editor.dinner_target"
                   label="晚餐用户名"
-                  placeholder="例如：yulliam"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -284,8 +281,8 @@
                   </div>
                   <div class="vpp-log-detail">
                     <div class="vpp-log-summary">{{ logDetail(item) }}</div>
-                    <div v-if="item.lines?.length" class="vpp-log-lines">
-                      <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
+                    <div v-if="visibleLogLines(item).length" class="vpp-log-lines">
+                      <span v-for="line in visibleLogLines(item)" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
                     </div>
                   </div>
                 </article>
@@ -667,6 +664,13 @@ function fallbackStatus(card, meta) {
       status_text: '请先在配置弹窗中填写 Cookie，保存后再刷新或执行。',
     }
   }
+  if (meta.key === 'newapi_checkin' && !card.site_url) {
+    return {
+      level: 'warning',
+      status_title: '待配置网站地址',
+      status_text: 'New API 签到卡片还需要填写站点地址才能正常执行。',
+    }
+  }
   if (meta.key === 'newapi_checkin' && !card.uid) {
     return {
       level: 'warning',
@@ -793,9 +797,26 @@ function logStatusLabel(item) {
   return item?.status_title || item?.title || runtimeLabel(item?.level)
 }
 
+function visibleLogLines(item) {
+  const summary = String(item?.summary || '').trim()
+  const statusTitle = String(item?.status_title || item?.title || '').trim()
+  const lines = Array.isArray(item?.lines) ? item.lines : []
+  const unique = []
+  const seen = new Set()
+  for (const line of lines) {
+    const text = String(line || '').trim()
+    if (!text || text === summary || text === statusTitle) continue
+    const key = text.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(text)
+  }
+  return unique
+}
+
 function logDetail(item) {
   if (item?.summary) return item.summary
-  const lines = Array.isArray(item?.lines) ? item.lines.filter(Boolean) : []
+  const lines = visibleLogLines(item)
   if (lines.length) return lines[0]
   return '暂无详情'
 }
@@ -807,7 +828,7 @@ function logEntryKey(item) {
     String(item.time || '').trim(),
     String(item.status_title || item.title || '').trim(),
     String(item.summary || '').trim(),
-    Array.isArray(item.lines) ? item.lines.filter(Boolean).join('|') : '',
+    visibleLogLines(item).join('|'),
   ].join('::')
 }
 

@@ -182,12 +182,12 @@ function usePanelTheme(rootEl) {
   }
 }
 
-const Page_vue_vue_type_style_index_0_scoped_ad35f4bd_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_acf9c957_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ad35f4bd"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-acf9c957"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -616,6 +616,13 @@ function fallbackStatus(card, meta) {
       status_text: '请先在配置弹窗中填写 Cookie，保存后再刷新或执行。',
     }
   }
+  if (meta.key === 'newapi_checkin' && !card.site_url) {
+    return {
+      level: 'warning',
+      status_title: '待配置网站地址',
+      status_text: 'New API 签到卡片还需要填写站点地址才能正常执行。',
+    }
+  }
   if (meta.key === 'newapi_checkin' && !card.uid) {
     return {
       level: 'warning',
@@ -742,9 +749,26 @@ function logStatusLabel(item) {
   return item?.status_title || item?.title || runtimeLabel(item?.level)
 }
 
+function visibleLogLines(item) {
+  const summary = String(item?.summary || '').trim();
+  const statusTitle = String(item?.status_title || item?.title || '').trim();
+  const lines = Array.isArray(item?.lines) ? item.lines : [];
+  const unique = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const text = String(line || '').trim();
+    if (!text || text === summary || text === statusTitle) continue
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue
+    seen.add(key);
+    unique.push(text);
+  }
+  return unique
+}
+
 function logDetail(item) {
   if (item?.summary) return item.summary
-  const lines = Array.isArray(item?.lines) ? item.lines.filter(Boolean) : [];
+  const lines = visibleLogLines(item);
   if (lines.length) return lines[0]
   return '暂无详情'
 }
@@ -756,7 +780,7 @@ function logEntryKey(item) {
     String(item.time || '').trim(),
     String(item.status_title || item.title || '').trim(),
     String(item.summary || '').trim(),
-    Array.isArray(item.lines) ? item.lines.filter(Boolean).join('|') : '',
+    visibleLogLines(item).join('|'),
   ].join('::')
 }
 
@@ -1408,7 +1432,6 @@ return (_ctx, _cache) => {
                           modelValue: editor.breakfast_target,
                           "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editor.breakfast_target) = $event)),
                           label: "早餐用户名",
-                          placeholder: "例如：xiaosa",
                           variant: "outlined",
                           density: "compact",
                           "hide-details": "auto"
@@ -1417,7 +1440,6 @@ return (_ctx, _cache) => {
                           modelValue: editor.lunch_target,
                           "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editor.lunch_target) = $event)),
                           label: "中餐用户名",
-                          placeholder: "例如：shigandang",
                           variant: "outlined",
                           density: "compact",
                           "hide-details": "auto"
@@ -1426,7 +1448,6 @@ return (_ctx, _cache) => {
                           modelValue: editor.dinner_target,
                           "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((editor.dinner_target) = $event)),
                           label: "晚餐用户名",
-                          placeholder: "例如：yulliam",
                           variant: "outlined",
                           density: "compact",
                           "hide-details": "auto"
@@ -1551,9 +1572,9 @@ return (_ctx, _cache) => {
                             ]),
                             _createElementVNode("div", _hoisted_72, [
                               _createElementVNode("div", _hoisted_73, _toDisplayString(logDetail(item)), 1),
-                              (item.lines?.length)
+                              (visibleLogLines(item).length)
                                 ? (_openBlock(), _createElementBlock("div", _hoisted_74, [
-                                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.lines, (line) => {
+                                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(visibleLogLines(item), (line) => {
                                       return (_openBlock(), _createElementBlock("span", {
                                         key: `${item.id}-${line}`,
                                         class: "vpp-log-line"
@@ -1700,6 +1721,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ad35f4bd"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-acf9c957"]]);
 
 export { PageView as default, usePanelTheme as u };
