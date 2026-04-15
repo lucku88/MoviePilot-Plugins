@@ -67,6 +67,23 @@ function luminanceFromColor(color) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
+function hasThemeHint(className = '') {
+  return className.includes('theme')
+    || className.includes('v-theme--')
+    || className.includes('dark')
+    || className.includes('light')
+    || className.includes('purple')
+    || className.includes('transparent')
+}
+
+function isInternalThemeNode(node) {
+  const className = String(node?.className || '').toLowerCase();
+  return className.includes('mp-theme-')
+    || className.includes('vpp-theme-')
+    || className.includes('mp-panel')
+    || className.includes('vuepanel-page')
+}
+
 function usePanelTheme(rootEl) {
   const themeName = ref$1('light');
   const themeLabel = ref$1('浅色');
@@ -76,16 +93,25 @@ function usePanelTheme(rootEl) {
   let mediaQuery = null;
 
   function resolveThemeNode() {
-    let current = rootEl?.value;
+    let current = rootEl?.value?.parentElement || rootEl?.value;
     while (current) {
-      if (current.getAttribute?.('data-theme')) return current
-      const cls = String(current.className || '').toLowerCase();
-      if (cls.includes('theme') || cls.includes('v-theme--') || cls.includes('dark') || cls.includes('light') || cls.includes('purple') || cls.includes('transparent')) {
-        return current
-      }
+      if (!isInternalThemeNode(current) && current.getAttribute?.('data-theme')) return current
+      const className = String(current.className || '').toLowerCase();
+      if (!isInternalThemeNode(current) && hasThemeHint(className)) return current
       current = current.parentElement;
     }
-    return document.body || document.documentElement
+
+    const body = document.body;
+    const root = document.documentElement;
+    if (body && !isInternalThemeNode(body)) {
+      const bodyClass = String(body.className || '').toLowerCase();
+      if (body.getAttribute?.('data-theme') || hasThemeHint(bodyClass)) return body
+    }
+    if (root && !isInternalThemeNode(root)) {
+      const rootClass = String(root.className || '').toLowerCase();
+      if (root.getAttribute?.('data-theme') || hasThemeHint(rootClass)) return root
+    }
+    return body || root
   }
 
   function resolveThemeValue(node) {
