@@ -443,7 +443,7 @@ class VueToy(_PluginBase):
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
             "last_run": self.get_data("last_run") or "",
             "toy_status": toy_status,
-            "history": (self.get_data("history") or [])[:20],
+            "history": self._get_clean_history(persist=True),
             "config": self._get_config(),
         }
 
@@ -1072,7 +1072,7 @@ class VueToy(_PluginBase):
     def _normalize_history_entry(self, lines: List[str], manual: bool = False) -> Tuple[str, List[str]]:
         normalized_lines = self._normalize_summary_lines(lines)
         if not normalized_lines:
-            return "任务结果", []
+            return "", []
 
         title = normalized_lines[0]
         if manual:
@@ -1115,8 +1115,9 @@ class VueToy(_PluginBase):
         stored_status["target_panel"] = {}
         self.save_data("toy_status", stored_status)
         self.save_data("state", self._build_state_record(state, next_run, normalized_summary_lines))
-        self.save_data("last_run", self._format_time(self._aware_now()))
-        self._append_history(normalized_summary_lines, next_run, manual=history_manual)
+        if normalized_summary_lines:
+            self.save_data("last_run", self._format_time(self._aware_now()))
+            self._append_history(normalized_summary_lines, next_run, manual=history_manual)
         return toy_status
 
     def _build_state_record(self, state: Dict[str, Any], next_run: Optional[int], summary_lines: List[str]) -> Dict[str, Any]:
@@ -1261,11 +1262,36 @@ class VueToy(_PluginBase):
         self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
         return self._next_trigger_mode
 
+    def _get_clean_history(self, persist: bool = False) -> List[Dict[str, Any]]:
+        raw_history = list(self.get_data("history") or [])
+        cleaned_history: List[Dict[str, Any]] = []
+        changed = False
+        for item in raw_history:
+            if not isinstance(item, dict):
+                changed = True
+                continue
+            title = str(item.get("title") or "").strip()
+            lines = [str(line or "").strip() for line in (item.get("lines") or []) if str(line or "").strip()]
+            if not title and not lines:
+                changed = True
+                continue
+            if title == "任务结果" and not lines:
+                changed = True
+                continue
+            normalized_item = dict(item)
+            normalized_item["title"] = title
+            normalized_item["lines"] = lines
+            cleaned_history.append(normalized_item)
+        cleaned_history = cleaned_history[:20]
+        if persist and (changed or len(cleaned_history) != len(raw_history[:20])):
+            self.save_data("history", cleaned_history)
+        return cleaned_history
+
     def _append_history(self, lines: List[str], next_run: Optional[int], manual: bool = False):
         title, detail_lines = self._normalize_history_entry(lines, manual=manual)
         if not title and not detail_lines:
             return
-        history = list(self.get_data("history") or [])
+        history = self._get_clean_history()
         history.insert(0, {
             "title": title,
             "time": self._format_time(self._aware_now()),
@@ -1302,7 +1328,7 @@ class VueToy(_PluginBase):
             "personal_slots": self._build_personal_slots(state, doll_map),
             "target_panel": target_panel or {},
             "remote_records": self._build_remote_records(state, doll_map),
-            "history": (self.get_data("history") or [])[:20],
+            "history": self._get_clean_history(persist=True),
             "history_logs": self._build_activity_logs(state),
         }
 
