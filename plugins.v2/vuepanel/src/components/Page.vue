@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="vuepanel-page" :class="themeClasses">
+  <div class="vuepanel-page" :class="themeClass">
     <div class="vpp-shell">
       <header class="vpp-control-panel">
         <div class="vpp-panel-left">
@@ -73,7 +73,7 @@
               <div class="vpp-card-title-row">
                 <div class="vpp-card-title-group">
                   <h2 class="vpp-card-title">{{ card.title }}</h2>
-                  <p class="vpp-card-desc">{{ card.module_summary || 'plugin card' }}</p>
+                  <p class="vpp-card-desc">{{ cardSubtitle(card) }}</p>
                 </div>
                 <span class="vpp-status-pill" :class="`is-${card.status_key}`">{{ card.status_label }}</span>
               </div>
@@ -86,8 +86,8 @@
           </div>
 
           <div class="vpp-card-body">
-            <div class="vpp-card-note-label">说明</div>
-            <p class="vpp-card-note">{{ cardDescription(card) }}</p>
+            <div class="vpp-card-note-label">最近状态</div>
+            <p class="vpp-card-note">{{ cardStatusSummary(card) }}</p>
           </div>
 
           <div class="vpp-action-row">
@@ -104,7 +104,7 @@
     </div>
 
     <v-dialog v-model="dialog.config" max-width="760">
-      <v-card class="vpp-dialog-card is-config" :class="themeClasses">
+      <v-card class="vpp-dialog-card is-config" :class="themeClass">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-cog-outline" size="22" class="vpp-dialog-icon is-config" />
@@ -138,6 +138,10 @@
               <label class="vpp-switch-card">
                 <span class="vpp-switch-label">发送通知</span>
                 <v-switch v-model="editor.notify" hide-details color="primary" density="compact" />
+              </label>
+              <label class="vpp-switch-card is-emphasis">
+                <span class="vpp-switch-label">立即运行一次</span>
+                <v-switch v-model="editor.run_once" hide-details color="primary" density="compact" />
               </label>
             </div>
           </div>
@@ -222,7 +226,7 @@
     </v-dialog>
 
     <v-dialog v-model="dialog.logs" max-width="900">
-      <v-card class="vpp-dialog-card is-logs" :class="themeClasses">
+      <v-card class="vpp-dialog-card is-logs" :class="themeClass">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-text-box-outline" size="22" class="vpp-dialog-icon is-logs" />
@@ -286,7 +290,7 @@
     </v-dialog>
 
     <v-dialog v-model="dialog.copy" max-width="560">
-      <v-card class="vpp-dialog-card is-copy" :class="themeClasses">
+      <v-card class="vpp-dialog-card is-copy" :class="themeClass">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-content-copy" size="22" class="vpp-dialog-icon is-copy" />
@@ -381,15 +385,15 @@ const deletingCardId = ref('')
 let logTimer = null
 
 const themeValue = computed(() => String(props.themeName || 'light').toLowerCase())
-const themeClasses = computed(() => ({
-  'is-light-theme': themeValue.value === 'light' || themeValue.value === 'custom',
-  'is-dark-theme': themeValue.value === 'dark',
-  'is-purple-theme': themeValue.value === 'purple',
-  'is-transparent-theme': themeValue.value === 'transparent',
-}))
+const resolvedThemeName = computed(() => (themeValue.value === 'custom' ? 'light' : themeValue.value))
+const themeClass = computed(() => `v-theme--${resolvedThemeName.value}`)
 
 const dashboard = computed(() => status.dashboard || {})
 const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
+const historyItems = computed(() => {
+  if (Array.isArray(status.history) && status.history.length) return status.history
+  return Array.isArray(dashboard.value.history) ? dashboard.value.history : []
+})
 const cards = computed(() => (dashboardCards.value.length ? dashboardCards.value : buildFallbackCards()))
 const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length)
 const autoCount = computed(() => cards.value.filter((card) => card.auto_run).length)
@@ -440,11 +444,12 @@ const latestStateLog = computed(() => {
   }
 })
 const selectedLogs = computed(() => {
-  const cardId = selectedCardId.value
-  const fallbackLogs = activeDashboardCard.value?.log_items || []
+  const card = activeDashboardCard.value
+  if (!card) return []
+  const fallbackLogs = card.log_items || []
   const merged = new Map()
-  for (const item of [latestStateLog.value, ...fallbackLogs, ...(status.history || [])]) {
-    if (!item || item.card_id !== cardId) continue
+  for (const item of [latestStateLog.value, ...fallbackLogs, ...historyItems.value]) {
+    if (!logMatchesCard(item, card)) continue
     const key = item.id || `${item.time || ''}-${item.summary || ''}`
     if (!merged.has(key)) merged.set(key, item)
   }
@@ -483,6 +488,7 @@ function createCardDraft(source = {}) {
     cookie: String(source.cookie || ''),
     uid: String(source.uid || ''),
     note: String(source.note || ''),
+    run_once: false,
   }
 }
 
@@ -621,8 +627,9 @@ function buildFallbackCards() {
   return (panelConfig.value.cards || []).map((source) => {
     const card = normalizeCard(source)
     const meta = moduleMeta(card.module_key)
-    const logItems = (status.history || [])
-      .filter((item) => item?.card_id === card.id)
+    const fallbackCard = { ...card, card_id: card.id }
+    const logItems = historyItems.value
+      .filter((item) => logMatchesCard(item, fallbackCard))
       .sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
       .slice(0, 12)
     const fallback = fallbackStatus(card, meta)
@@ -720,14 +727,45 @@ function logDetail(item) {
   return '暂无详情'
 }
 
+function logMatchesCard(item, card) {
+  if (!item || !card) return false
+  const cardId = String(card.card_id || card.id || '').trim()
+  const itemCardId = String(item.card_id || '').trim()
+  if (cardId && itemCardId && cardId === itemCardId) return true
+
+  const cardModule = String(card.module_key || '').trim()
+  const itemModule = String(item.module_key || '').trim()
+  if (!cardModule || !itemModule || cardModule !== itemModule) return false
+
+  const cardSiteUrl = String(card.site_url || '').trim().toLowerCase()
+  const itemSiteUrl = String(item.site_url || '').trim().toLowerCase()
+  if (cardSiteUrl && itemSiteUrl && cardSiteUrl === itemSiteUrl) return true
+
+  const cardSiteName = String(card.site_name || '').trim().toLowerCase()
+  const itemSiteName = String(item.site_name || '').trim().toLowerCase()
+  if (cardSiteName && itemSiteName && cardSiteName === itemSiteName) return true
+
+  const cardTitle = String(card.title || '').trim().toLowerCase()
+  const itemTitle = String(item.title || '').trim().toLowerCase()
+  return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
+}
+
 function scheduleText(card) {
   if (!card?.enabled) return '已停用'
   if (!card?.auto_run) return '仅手动执行'
   return card?.next_run_time || card?.cron || '等待调度'
 }
 
+function cardSubtitle(card) {
+  return String(cardDescription(card) || card?.module_summary || 'plugin card').trim()
+}
+
 function cardDescription(card) {
   return String(card?.note || card?.module_description || card?.status_text || '暂无说明').trim()
+}
+
+function cardStatusSummary(card) {
+  return String(card?.status_text || scheduleText(card) || '暂无状态').trim()
 }
 
 function logoSrc(card) {
@@ -750,6 +788,7 @@ function canDeleteCard(card) {
 function openConfigDialog(card) {
   const source = rawCardById(card.card_id) || card
   Object.assign(editor, normalizeCard(source))
+  editor.run_once = false
   selectedCardId.value = card.card_id
   dialog.config = true
 }
@@ -766,16 +805,26 @@ function openCopyDialog(card) {
   dialog.copy = true
 }
 
+function applyStatusPayload(payload = {}) {
+  const source = payload?.status && typeof payload.status === 'object' ? payload.status : payload
+  if (!source || typeof source !== 'object') return false
+
+  if ('enabled' in source) status.enabled = !!source.enabled
+  status.next_run_time = source.next_run_time || ''
+  status.last_run = source.last_run || ''
+  status.history = Array.isArray(source.history)
+    ? source.history
+    : (Array.isArray(source.dashboard?.history) ? source.dashboard.history : [])
+  status.dashboard = source.dashboard || payload.dashboard || {}
+  if (source.config || payload.config) panelConfig.value = normalizeConfig(source.config || payload.config || {})
+  lastLogRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  return true
+}
+
 async function loadStatus(showError = true) {
   try {
     const payload = await props.api.get('/plugin/VuePanel/status')
-    status.enabled = !!payload.enabled
-    status.next_run_time = payload.next_run_time || ''
-    status.last_run = payload.last_run || ''
-    status.history = Array.isArray(payload.history) ? payload.history : []
-    status.dashboard = payload.dashboard || {}
-    panelConfig.value = normalizeConfig(payload.config || {})
-    lastLogRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+    applyStatusPayload(payload)
     return true
   } catch (error) {
     if (showError) flash(error?.message || '加载状态失败', 'error')
@@ -786,8 +835,9 @@ async function loadStatus(showError = true) {
 async function persistCards(nextCards, successText) {
   const payload = serializeConfig(nextCards)
   const response = await props.api.post('/plugin/VuePanel/config', payload)
+  applyStatusPayload(response)
   flash(response.message || successText || '配置已保存')
-  await loadStatus(false)
+  if (!response?.status) await loadStatus(false)
   return response
 }
 
@@ -795,8 +845,9 @@ async function refreshStatus() {
   loading.refreshAll = true
   try {
     const response = await props.api.post('/plugin/VuePanel/refresh', {})
+    applyStatusPayload(response)
     flash(response.message || '状态已刷新')
-    await loadStatus(false)
+    if (!response?.status) await loadStatus(false)
   } catch (error) {
     flash(error?.message || '刷新状态失败', 'error')
   } finally {
@@ -808,8 +859,9 @@ async function runAll() {
   loading.runAll = true
   try {
     const response = await props.api.post('/plugin/VuePanel/run', {})
+    applyStatusPayload(response)
     flash(response.message || '已执行启用任务')
-    await loadStatus(false)
+    if (!response?.status) await loadStatus(false)
   } catch (error) {
     flash(error?.message || '执行任务失败', 'error')
   } finally {
@@ -820,6 +872,7 @@ async function runAll() {
 async function saveCardConfig() {
   saving.config = true
   try {
+    const runAfterSave = !!editor.run_once
     let matched = false
     const nextCards = (panelConfig.value.cards || []).map((item) => {
       if (item.id === editor.id) {
@@ -829,7 +882,13 @@ async function saveCardConfig() {
       return normalizeCard(item)
     })
     if (!matched) nextCards.push(normalizeCard(editor))
-    await persistCards(nextCards, '卡片配置已保存')
+    await persistCards(nextCards, runAfterSave ? '卡片配置已保存，准备立即执行' : '卡片配置已保存')
+    if (runAfterSave) {
+      const response = await props.api.post('/plugin/VuePanel/card/run', { card_id: editor.id })
+      applyStatusPayload(response)
+      flash(response.message || '卡片已保存并立即执行一次')
+    }
+    editor.run_once = false
     dialog.config = false
   } catch (error) {
     flash(error?.message || '保存卡片配置失败', 'error')
@@ -899,8 +958,9 @@ async function runFocusedCard() {
   loading.cardRun = true
   try {
     const response = await props.api.post('/plugin/VuePanel/card/run', { card_id: selectedCardId.value })
+    applyStatusPayload(response)
     flash(response.message || '卡片执行完成')
-    await loadStatus(false)
+    if (!response?.status) await loadStatus(false)
   } catch (error) {
     flash(error?.message || '卡片执行失败', 'error')
   } finally {
@@ -913,8 +973,9 @@ async function refreshFocusedCard() {
   loading.cardRefresh = true
   try {
     const response = await props.api.post('/plugin/VuePanel/card/refresh', { card_id: selectedCardId.value })
+    applyStatusPayload(response)
     flash(response.message || '卡片状态已刷新')
-    await loadStatus(false)
+    if (!response?.status) await loadStatus(false)
   } catch (error) {
     flash(error?.message || '卡片刷新失败', 'error')
   } finally {
@@ -962,76 +1023,23 @@ onBeforeUnmount(() => {
 <style scoped>
 .vuepanel-page,
 .vpp-dialog-card {
-  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 92%, transparent);
-  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 90%, transparent);
-  --vpp-surface-muted: color-mix(in srgb, var(--mp-text-primary) 4%, transparent);
-  --vpp-surface-strong: color-mix(in srgb, var(--mp-bg-card) 86%, #0f172a 14%);
-  --vpp-line: color-mix(in srgb, var(--mp-text-primary) 10%, transparent);
-  --vpp-line-strong: color-mix(in srgb, var(--mp-color-primary) 24%, transparent);
+  --vpp-surface: rgba(var(--v-theme-surface), 0.84);
+  --vpp-surface-soft: rgba(var(--v-theme-surface), 0.78);
+  --vpp-surface-muted: rgba(var(--v-theme-surface-variant), 0.1);
+  --vpp-surface-strong: rgba(var(--v-theme-surface), 0.92);
+  --vpp-line: rgba(var(--v-theme-on-surface), 0.12);
+  --vpp-line-strong: rgba(var(--v-theme-primary), 0.28);
   --vpp-accent-rgb: 76, 168, 255;
   --vpp-blue: #4ca8ff;
   --vpp-green: #2db870;
   --vpp-yellow: #e9a23b;
   --vpp-red: #e36060;
-  --vpp-text-soft: color-mix(in srgb, var(--mp-text-primary) 76%, transparent);
-  --vpp-text-faint: color-mix(in srgb, var(--mp-text-primary) 58%, transparent);
+  --vpp-text: rgb(var(--v-theme-on-surface));
+  --vpp-text-soft: rgba(var(--v-theme-on-surface), 0.82);
+  --vpp-text-faint: rgba(var(--v-theme-on-surface), 0.62);
   min-height: 100%;
   padding: 8px 0 20px;
-  color: var(--mp-text-primary);
-}
-
-.vuepanel-page.is-light-theme,
-.vpp-dialog-card.is-light-theme {
-  --vpp-surface: color-mix(in srgb, white 96%, var(--mp-bg-card));
-  --vpp-surface-soft: color-mix(in srgb, white 92%, var(--mp-bg-panel));
-  --vpp-surface-muted: color-mix(in srgb, #0f172a 4%, white);
-  --vpp-surface-strong: color-mix(in srgb, white 98%, var(--mp-bg-card));
-  --vpp-line: rgba(15, 23, 42, 0.11);
-  --vpp-line-strong: rgba(59, 130, 246, 0.22);
-  --vpp-text-soft: rgba(30, 41, 59, 0.8);
-  --vpp-text-faint: rgba(51, 65, 85, 0.66);
-}
-
-.vuepanel-page.is-dark-theme,
-.vpp-dialog-card.is-dark-theme {
-  --vpp-surface: rgba(12, 18, 31, 0.96);
-  --vpp-surface-soft: rgba(14, 21, 36, 0.92);
-  --vpp-surface-muted: rgba(148, 163, 184, 0.08);
-  --vpp-surface-strong: rgba(10, 15, 28, 0.98);
-  --vpp-line: rgba(148, 163, 184, 0.14);
-  --vpp-line-strong: rgba(96, 165, 250, 0.24);
-  --vpp-text-soft: rgba(226, 232, 240, 0.82);
-  --vpp-text-faint: rgba(203, 213, 225, 0.64);
-}
-
-.vuepanel-page.is-purple-theme,
-.vpp-dialog-card.is-purple-theme {
-  --vpp-surface: rgba(53, 45, 84, 0.95);
-  --vpp-surface-soft: rgba(58, 49, 92, 0.92);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.08);
-  --vpp-surface-strong: rgba(47, 40, 78, 0.98);
-  --vpp-line: rgba(196, 181, 253, 0.18);
-  --vpp-line-strong: rgba(167, 139, 250, 0.34);
-  --vpp-accent-rgb: 167, 139, 250;
-  --vpp-blue: #a78bfa;
-  --vpp-green: #34d399;
-  --vpp-yellow: #f6c453;
-  --vpp-red: #fb7185;
-  --vpp-text-soft: rgba(241, 237, 255, 0.88);
-  --vpp-text-faint: rgba(216, 204, 255, 0.72);
-}
-
-.vuepanel-page.is-transparent-theme,
-.vpp-dialog-card.is-transparent-theme {
-  --vpp-surface: rgba(16, 24, 38, 0.74);
-  --vpp-surface-soft: rgba(18, 28, 43, 0.66);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.08);
-  --vpp-surface-strong: rgba(14, 22, 34, 0.86);
-  --vpp-line: rgba(255, 255, 255, 0.18);
-  --vpp-line-strong: rgba(148, 197, 255, 0.3);
-  --vpp-accent-rgb: 148, 197, 255;
-  --vpp-text-soft: rgba(241, 245, 249, 0.9);
-  --vpp-text-faint: rgba(226, 232, 240, 0.74);
+  color: var(--vpp-text);
 }
 
 .vuepanel-page,
@@ -1085,7 +1093,7 @@ onBeforeUnmount(() => {
 .vpp-search-field :deep(.v-field__input),
 .vpp-search-field :deep(.v-label),
 .vpp-search-field :deep(.v-icon) {
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
 }
 
 .vpp-panel-right {
@@ -1099,8 +1107,8 @@ onBeforeUnmount(() => {
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
-  background: var(--vpp-surface-muted) !important;
-  color: var(--mp-text-primary);
+  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
+  color: var(--vpp-text);
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
@@ -1109,7 +1117,7 @@ onBeforeUnmount(() => {
 
 .vpp-toolbar-btn:hover {
   transform: translateY(-1px);
-  background: color-mix(in srgb, var(--vpp-surface-muted) 80%, var(--mp-color-primary) 20%) !important;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12), rgba(var(--v-theme-surface-variant), 0.08)) !important;
   border-color: var(--vpp-line-strong) !important;
   box-shadow: 0 10px 20px color-mix(in srgb, var(--mp-shadow-color) 82%, transparent);
 }
@@ -1180,8 +1188,8 @@ onBeforeUnmount(() => {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
-  color: var(--mp-color-primary);
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
 }
 
 .vpp-stat-copy {
@@ -1195,7 +1203,7 @@ onBeforeUnmount(() => {
   font-size: 18px;
   font-weight: 800;
   line-height: 1;
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
 }
 
 .vpp-stat-label {
@@ -1219,8 +1227,9 @@ onBeforeUnmount(() => {
   padding: 18px;
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 48%),
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.08), rgba(var(--v-theme-surface), 0.03)),
     var(--vpp-surface);
+  backdrop-filter: blur(20px);
   box-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
   transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
 }
@@ -1229,16 +1238,17 @@ onBeforeUnmount(() => {
   content: '';
   position: absolute;
   top: 0;
-  left: -140%;
-  width: 68%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
-  transform: skewX(-18deg);
-  opacity: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), rgba(var(--vpp-tone-rgb), 0.72), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.8s ease;
+  z-index: 1;
 }
 
 .vpp-card:hover::before {
-  animation: vpp-card-scan 1s ease;
+  transform: translateX(100%);
 }
 
 .vpp-card:hover {
@@ -1246,7 +1256,7 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, rgb(var(--vpp-tone-rgb)) 24%, var(--vpp-line));
   box-shadow: 0 22px 44px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
   background:
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.12), transparent 52%),
+    linear-gradient(135deg, rgba(var(--vpp-tone-rgb), 0.14), rgba(var(--v-theme-surface), 0.08)),
     var(--vpp-surface-strong);
 }
 
@@ -1307,6 +1317,7 @@ onBeforeUnmount(() => {
   font-size: 16px;
   line-height: 1.2;
   font-weight: 700;
+  color: var(--vpp-text);
 }
 
 .vpp-status-pill,
@@ -1340,11 +1351,14 @@ onBeforeUnmount(() => {
 
 .vpp-card-desc {
   margin: 5px 0 0;
-  color: var(--vpp-text-faint);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: lowercase;
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .vpp-card-meta {
@@ -1448,7 +1462,7 @@ onBeforeUnmount(() => {
   min-height: 34px;
   border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
-  background: var(--vpp-surface-muted) !important;
+  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
   text-transform: none;
   font-weight: 700;
   letter-spacing: 0;
@@ -1457,7 +1471,7 @@ onBeforeUnmount(() => {
 
 .vpp-action-btn {
   flex: 1 1 0;
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
 }
 
 .vpp-action-btn:hover,
@@ -1513,8 +1527,9 @@ onBeforeUnmount(() => {
 .vpp-dialog-card {
   border-radius: 18px !important;
   border: 1px solid var(--vpp-line);
-  background: var(--vpp-surface-strong) !important;
-  color: var(--mp-text-primary);
+  background: rgba(var(--v-theme-surface), 0.9) !important;
+  color: var(--vpp-text);
+  backdrop-filter: blur(20px);
   box-shadow: 0 26px 70px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
@@ -1581,6 +1596,7 @@ onBeforeUnmount(() => {
   margin: 4px 0 0;
   font-size: 18px;
   line-height: 1.2;
+  color: var(--vpp-text);
 }
 
 .vpp-dialog-body {
@@ -1642,12 +1658,12 @@ onBeforeUnmount(() => {
 .vpp-section-title {
   font-size: 13px;
   font-weight: 800;
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
 }
 
 .vpp-switch-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1666,11 +1682,16 @@ onBeforeUnmount(() => {
 .vpp-switch-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
 }
 
 .vpp-switch-card :deep(.v-switch) {
   margin-inline-start: 0;
+}
+
+.vpp-switch-card.is-emphasis {
+  border-color: rgba(var(--v-theme-primary), 0.24);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1), rgba(var(--v-theme-surface-variant), 0.08));
 }
 
 .vpp-form-grid {
@@ -1689,7 +1710,8 @@ onBeforeUnmount(() => {
 
 .vpp-dialog-card :deep(.v-field) {
   border-radius: 12px;
-  background: var(--vpp-surface-muted);
+  background: rgba(var(--v-theme-surface-variant), 0.08) !important;
+  color: var(--vpp-text) !important;
 }
 
 .vpp-dialog-card :deep(.v-field__overlay) {
@@ -1701,16 +1723,29 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-card :deep(.v-label),
+.vpp-dialog-card :deep(.v-field-label),
 .vpp-dialog-card :deep(.v-field__input),
+.vpp-dialog-card :deep(.v-field__prepend-inner),
+.vpp-dialog-card :deep(.v-field__append-inner),
+.vpp-dialog-card :deep(.v-select__selection),
+.vpp-dialog-card :deep(.v-select__selection-text),
+.vpp-dialog-card :deep(input),
 .vpp-dialog-card :deep(textarea) {
-  color: var(--mp-text-primary);
-  opacity: 1;
+  color: var(--vpp-text) !important;
+  opacity: 1 !important;
 }
 
 .vpp-dialog-card :deep(.v-selection-control__wrapper),
-.vpp-dialog-card :deep(.v-icon),
-.vpp-dialog-card :deep(.v-select__selection) {
-  color: var(--mp-text-primary);
+.vpp-dialog-card :deep(.v-selection-control .v-label),
+.vpp-dialog-card :deep(.v-field .v-icon),
+.vpp-dialog-card :deep(.v-selection-control__input .v-icon),
+.vpp-dialog-card :deep(.v-messages__message) {
+  color: var(--vpp-text) !important;
+}
+
+.vpp-dialog-card :deep(.v-field-label--floating),
+.vpp-dialog-card :deep(.v-label.v-field-label) {
+  color: var(--vpp-text-soft) !important;
 }
 
 .vpp-dialog-card :deep(.v-btn__overlay) {
@@ -1792,7 +1827,7 @@ onBeforeUnmount(() => {
 
 .vpp-log-summary {
   margin: 0;
-  color: var(--mp-text-primary);
+  color: var(--vpp-text);
   font-size: 12px;
   line-height: 1.6;
   word-break: break-word;
@@ -1896,20 +1931,6 @@ onBeforeUnmount(() => {
 
   .vpp-switch-grid {
     grid-template-columns: 1fr;
-  }
-}
-
-@keyframes vpp-card-scan {
-  0% {
-    left: -140%;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  100% {
-    left: 155%;
-    opacity: 0;
   }
 }
 
