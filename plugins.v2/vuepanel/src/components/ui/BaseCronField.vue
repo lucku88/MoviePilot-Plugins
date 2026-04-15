@@ -3,7 +3,7 @@
     v-bind="$attrs"
     :model-value="modelValue"
     class="mp-cron"
-    density="comfortable"
+    density="compact"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

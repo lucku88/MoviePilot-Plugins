@@ -1,5 +1,5 @@
-<template>
-  <div class="vuepanel-page">
+﻿<template>
+  <div class="vuepanel-page" :class="themeClasses">
     <div class="vpp-shell">
       <header class="vpp-control-panel">
         <div class="vpp-panel-left">
@@ -7,7 +7,7 @@
             v-model="searchQuery"
             class="vpp-search-field"
             variant="outlined"
-            density="comfortable"
+            density="compact"
             hide-details
             clearable
             placeholder="搜索功能模块..."
@@ -44,7 +44,6 @@
             <strong class="vpp-stat-value">{{ item.value }}</strong>
             <span class="vpp-stat-label">{{ item.label }}</span>
           </div>
-          <span class="vpp-stat-glow" />
         </article>
       </section>
 
@@ -86,49 +85,29 @@
             </div>
           </div>
 
-          <div class="vpp-runtime-row">
-            <span class="vpp-runtime-pill" :class="`is-${runtimeTone(card.level)}`">
-              {{ runtimeLabel(card.level) }}
-            </span>
-            <span class="vpp-runtime-title">{{ card.status_title || '等待刷新' }}</span>
-          </div>
-
-          <p class="vpp-runtime-text">{{ card.status_text || '当前还没有可展示的运行状态。' }}</p>
-
-          <div v-if="card.metrics?.length" class="vpp-metric-grid">
-            <div v-for="metric in card.metrics.slice(0, 3)" :key="`${card.card_id}-${metric.label}`" class="vpp-metric">
-              <span class="vpp-metric-label">{{ metric.label }}</span>
-              <strong class="vpp-metric-value">{{ metric.value }}</strong>
+          <div class="vpp-card-body">
+            <div class="vpp-card-state-row">
+              <span class="vpp-card-state-label">状态</span>
+              <span class="vpp-mini-pill" :class="`is-${card.enabled ? 'enabled' : 'disabled'}`">
+                {{ card.enabled ? '启用' : '停用' }}
+              </span>
             </div>
-          </div>
-
-          <div class="vpp-card-info-stack">
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">计划</div>
-              <div class="vpp-info-value">{{ scheduleText(card) }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">上次执行</div>
-              <div class="vpp-info-value">{{ card.last_run || '暂无' }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">日志</div>
-              <div class="vpp-info-value">{{ card.log_count || 0 }} 条</div>
-            </div>
-          </div>
-
-          <div v-if="card.note || card.detail_lines?.length" class="vpp-note-box">
-            {{ card.note || card.detail_lines?.[0] || card.module_description }}
-          </div>
-
-          <div class="vpp-tag-row">
-            <span v-for="tag in previewTags(card.tags)" :key="`${card.card_id}-${tag}`" class="vpp-tag">{{ tag }}</span>
           </div>
 
           <div class="vpp-action-row">
             <v-btn class="vpp-action-btn is-config" variant="text" prepend-icon="mdi-cog-outline" @click="openConfigDialog(card)">配置</v-btn>
             <v-btn class="vpp-action-btn is-logs" variant="text" prepend-icon="mdi-text-box-outline" @click="openLogsDialog(card)">日志</v-btn>
             <v-btn class="vpp-action-btn is-copy" variant="text" prepend-icon="mdi-content-copy" @click="openCopyDialog(card)">复制</v-btn>
+            <v-btn
+              v-if="canDeleteCard(card)"
+              class="vpp-action-btn is-delete"
+              variant="text"
+              prepend-icon="mdi-delete-outline"
+              :loading="saving.delete && deletingCardId === getCardId(card)"
+              @click="deleteCard(card)"
+            >
+              删除
+            </v-btn>
           </div>
         </article>
 
@@ -138,11 +117,11 @@
       </section>
     </div>
 
-    <v-dialog v-model="dialog.config" max-width="860">
-      <v-card class="vpp-dialog-card vpp-dialog-config">
+    <v-dialog v-model="dialog.config" max-width="760">
+      <v-card class="vpp-dialog-card">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
-            <v-icon icon="mdi-cog-outline" size="24" class="vpp-dialog-icon is-config" />
+            <v-icon icon="mdi-cog-outline" size="22" class="vpp-dialog-icon is-config" />
             <div>
               <div class="vpp-kicker">配置</div>
               <h3 class="vpp-dialog-title">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</h3>
@@ -154,36 +133,18 @@
         </div>
 
         <div class="vpp-dialog-body">
-          <div class="vpp-target-info">
-            <div class="vpp-target-name">{{ editor.title || activeDashboardCard?.title || '功能配置' }}</div>
-            <div class="vpp-target-meta">
-              {{ editor.site_name || activeDashboardCard?.site_name || '--' }}
-              ·
-              {{ editor.site_url || activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
-            </div>
+          <div class="vpp-dialog-meta">
+            <span class="vpp-meta-chip">{{ moduleMeta(editor.module_key).label }}</span>
+            <span class="vpp-meta-chip">{{ editor.site_name || '--' }}</span>
+            <span class="vpp-meta-chip">{{ scheduleText(editor) }}</span>
           </div>
 
-          <div class="vpp-dialog-banner">
-            当前设置会直接写入这张功能卡片，后续多站点需求请通过复制卡片来扩展。
-          </div>
-
-          <div class="vpp-info-stack">
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">功能模块</div>
-              <div class="vpp-info-value">{{ activeDashboardCard?.module_name || editor.module_key }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">站点地址</div>
-              <div class="vpp-info-value">{{ editor.site_url || activeDashboardCard?.site_url || '--' }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">调度状态</div>
-              <div class="vpp-info-value">{{ scheduleText(editor) }}</div>
-            </div>
+          <div class="vpp-dialog-hint">
+            保存后会直接更新当前卡片，多站点请通过复制卡片后独立修改。
           </div>
 
           <div class="vpp-dialog-panel">
-            <div class="vpp-section-title">功能开关</div>
+            <div class="vpp-section-title">开关</div>
             <div class="vpp-switch-grid">
               <label class="vpp-switch-card">
                 <span class="vpp-switch-label">启用功能</span>
@@ -203,18 +164,29 @@
           <div class="vpp-dialog-panel">
             <div class="vpp-section-title">基础设置</div>
             <div class="vpp-form-grid">
-              <v-text-field v-model="editor.title" label="功能名称" variant="outlined" density="comfortable" hide-details="auto" />
-              <v-text-field v-model="editor.site_name" label="网站名称" variant="outlined" density="comfortable" hide-details="auto" />
-              <v-text-field v-model="editor.site_url" label="网站地址" variant="outlined" density="comfortable" hide-details="auto" />
+              <v-text-field v-model="editor.title" label="功能名称" variant="outlined" density="compact" hide-details="auto" />
+              <v-text-field v-model="editor.site_name" label="网站名称" variant="outlined" density="compact" hide-details="auto" />
+              <v-text-field
+                v-model="editor.site_url"
+                label="网站地址"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+                class="vpp-field-span-2"
+              />
               <v-text-field
                 v-if="editor.module_key === 'newapi_checkin'"
                 v-model="editor.uid"
                 label="UID"
                 variant="outlined"
-                density="comfortable"
+                density="compact"
                 hide-details="auto"
               />
-              <v-text-field v-model="editor.cron" label="Cron" variant="outlined" density="comfortable" hide-details="auto" />
+              <BaseCronField
+                v-model="editor.cron"
+                label="Cron"
+                class="vpp-field-span-2 vpp-cron-field"
+              />
               <v-select
                 v-model="editor.tone"
                 :items="toneSelectItems"
@@ -222,44 +194,57 @@
                 item-value="value"
                 label="卡片色调"
                 variant="outlined"
-                density="comfortable"
+                density="compact"
                 hide-details="auto"
               />
+              <v-text-field
+                v-model="editor.cookie"
+                label="Cookie"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+                class="vpp-field-span-2"
+              />
+              <v-textarea
+                v-model="editor.note"
+                label="功能描述"
+                variant="outlined"
+                rows="2"
+                auto-grow
+                density="compact"
+                hide-details="auto"
+                class="vpp-field-span-2"
+              />
             </div>
-
-            <v-text-field
-              v-model="editor.cookie"
-              label="Cookie"
-              variant="outlined"
-              density="comfortable"
-              hide-details="auto"
-              class="vpp-field-block"
-            />
-
-            <v-textarea
-              v-model="editor.note"
-              label="功能描述"
-              variant="outlined"
-              rows="3"
-              auto-grow
-              hide-details="auto"
-              class="vpp-field-block"
-            />
           </div>
         </div>
 
         <div class="vpp-dialog-actions">
-          <v-btn variant="text" @click="dialog.config = false">取消</v-btn>
-          <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.config" @click="saveCardConfig">保存配置</v-btn>
+          <div class="vpp-dialog-actions-left">
+            <v-btn
+              v-if="canDeleteCard(activeDashboardCard || editor)"
+              class="vpp-action-btn is-delete"
+              variant="text"
+              prepend-icon="mdi-delete-outline"
+              :loading="saving.delete && deletingCardId === editor.id"
+              @click="deleteCurrentCard"
+            >
+              删除卡片
+            </v-btn>
+          </div>
+          <div class="vpp-dialog-actions-right">
+            <v-btn variant="text" @click="dialog.config = false">取消</v-btn>
+            <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.config" @click="saveCardConfig">保存配置</v-btn>
+          </div>
         </div>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialog.logs" max-width="960">
-      <v-card class="vpp-dialog-card vpp-dialog-logs">
+    <v-dialog v-model="dialog.logs" max-width="900">
+      <v-card class="vpp-dialog-card">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
-            <v-icon icon="mdi-text-box-outline" size="24" class="vpp-dialog-icon is-logs" />
+            <v-icon icon="mdi-text-box-outline" size="22" class="vpp-dialog-icon is-logs" />
             <div>
               <div class="vpp-kicker">日志</div>
               <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '实时日志' }}</h3>
@@ -272,28 +257,10 @@
         </div>
 
         <div class="vpp-dialog-body">
-          <div class="vpp-target-info">
-            <div class="vpp-target-name">{{ activeDashboardCard?.title || '实时日志' }}</div>
-            <div class="vpp-target-meta">
-              {{ activeDashboardCard?.site_name || '--' }}
-              ·
-              {{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
-            </div>
-          </div>
-
-          <div class="vpp-info-stack">
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">站点</div>
-              <div class="vpp-info-value">{{ activeDashboardCard?.site_name || '--' }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">地址</div>
-              <div class="vpp-info-value">{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">最近刷新</div>
-              <div class="vpp-info-value">{{ lastLogRefresh || '刚刚' }}</div>
-            </div>
+          <div class="vpp-dialog-meta">
+            <span class="vpp-meta-chip">{{ activeDashboardCard?.site_name || '--' }}</span>
+            <span class="vpp-meta-chip">{{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}</span>
+            <span class="vpp-meta-chip">最近刷新 {{ lastLogRefresh || '--' }}</span>
           </div>
 
           <div class="vpp-dialog-panel vpp-log-panel">
@@ -301,34 +268,47 @@
               当前卡片还没有执行日志，先执行一次或等待下次轮询。
             </div>
 
-            <div v-else class="vpp-log-list mp-scroll">
-              <article v-for="item in selectedLogs" :key="item.id || `${item.time}-${item.summary}`" class="vpp-log-item">
-                <div class="vpp-log-head">
-                  <strong>{{ item.status_title || item.title || activeDashboardCard?.title }}</strong>
-                  <span>{{ item.time || '--' }}</span>
-                </div>
-                <p class="vpp-log-summary">{{ item.summary || '暂无详情' }}</p>
-                <div v-if="item.lines?.length" class="vpp-log-lines">
-                  <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
-                </div>
-              </article>
+            <div v-else class="vpp-log-table">
+              <div class="vpp-log-table-head">
+                <span>时间</span>
+                <span>状态</span>
+                <span>详情</span>
+              </div>
+
+              <div class="vpp-log-table-body mp-scroll">
+                <article v-for="item in selectedLogs" :key="item.id || `${item.time}-${item.summary}`" class="vpp-log-row">
+                  <div class="vpp-log-time">{{ item.time || '--' }}</div>
+                  <div class="vpp-log-status">
+                    <span class="vpp-runtime-pill" :class="`is-${logTone(item)}`">{{ logStatusLabel(item) }}</span>
+                  </div>
+                  <div class="vpp-log-detail">
+                    <div class="vpp-log-summary">{{ logDetail(item) }}</div>
+                    <div v-if="item.lines?.length" class="vpp-log-lines">
+                      <span v-for="line in item.lines" :key="`${item.id}-${line}`" class="vpp-log-line">{{ line }}</span>
+                    </div>
+                  </div>
+                </article>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="vpp-dialog-actions">
-          <v-btn variant="text" @click="dialog.logs = false">关闭</v-btn>
-          <v-btn class="vpp-action-btn is-logs" variant="text" prepend-icon="mdi-refresh" :loading="loading.cardRefresh" @click="refreshFocusedCard">刷新状态</v-btn>
-          <v-btn class="vpp-confirm-btn" variant="text" prepend-icon="mdi-play-circle-outline" :loading="loading.cardRun" @click="runFocusedCard">立即执行</v-btn>
+          <div class="vpp-dialog-actions-left" />
+          <div class="vpp-dialog-actions-right">
+            <v-btn variant="text" @click="dialog.logs = false">关闭</v-btn>
+            <v-btn class="vpp-action-btn is-logs" variant="text" prepend-icon="mdi-refresh" :loading="loading.cardRefresh" @click="refreshFocusedCard">刷新状态</v-btn>
+            <v-btn class="vpp-confirm-btn" variant="text" prepend-icon="mdi-play-circle-outline" :loading="loading.cardRun" @click="runFocusedCard">立即执行</v-btn>
+          </div>
         </div>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialog.copy" max-width="680">
-      <v-card class="vpp-dialog-card vpp-dialog-copy">
+    <v-dialog v-model="dialog.copy" max-width="560">
+      <v-card class="vpp-dialog-card">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
-            <v-icon icon="mdi-content-copy" size="24" class="vpp-dialog-icon is-copy" />
+            <v-icon icon="mdi-content-copy" size="22" class="vpp-dialog-icon is-copy" />
             <div>
               <div class="vpp-kicker">复制</div>
               <h3 class="vpp-dialog-title">{{ activeDashboardCard?.title || '复制功能卡片' }}</h3>
@@ -337,55 +317,45 @@
         </div>
 
         <div class="vpp-dialog-body">
-          <div class="vpp-target-info">
-            <div class="vpp-target-name">{{ activeDashboardCard?.title || '复制功能卡片' }}</div>
-            <div class="vpp-target-meta">
-              {{ activeDashboardCard?.site_name || '--' }}
-              ·
-              {{ activeDashboardCard?.site_domain || activeDashboardCard?.site_url || '--' }}
-            </div>
+          <div class="vpp-dialog-meta">
+            <span class="vpp-meta-chip">{{ activeDashboardCard?.module_name || '--' }}</span>
+            <span class="vpp-meta-chip">{{ activeDashboardCard?.site_name || '--' }}</span>
           </div>
 
-          <div class="vpp-dialog-banner">
+          <div class="vpp-dialog-hint">
             复制会生成一张全新的功能卡片，你可以再手动改网站地址、Cookie、UID 和描述。
-          </div>
-
-          <div class="vpp-info-stack">
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">复制来源</div>
-              <div class="vpp-info-value">{{ activeDashboardCard?.site_name || '--' }}</div>
-            </div>
-            <div class="vpp-info-section">
-              <div class="vpp-info-label">功能说明</div>
-              <div class="vpp-info-value">{{ activeDashboardCard?.module_summary || '--' }}</div>
-            </div>
           </div>
 
           <div class="vpp-dialog-panel">
             <div class="vpp-section-title">复制设置</div>
-            <v-text-field
-              v-model="copyForm.title"
-              label="复制功能名称"
-              variant="outlined"
-              density="comfortable"
-              hide-details="auto"
-            />
+            <div class="vpp-form-grid is-single">
+              <v-text-field
+                v-model="copyForm.title"
+                label="复制功能名称"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+              />
 
-            <v-textarea
-              v-model="copyForm.note"
-              label="功能描述"
-              variant="outlined"
-              rows="3"
-              auto-grow
-              hide-details="auto"
-              class="vpp-field-block"
-            />
+              <v-textarea
+                v-model="copyForm.note"
+                label="功能描述"
+                variant="outlined"
+                rows="2"
+                auto-grow
+                density="compact"
+                hide-details="auto"
+              />
+            </div>
           </div>
         </div>
 
         <div class="vpp-dialog-actions">
-          <v-btn variant="text" @click="dialog.copy = false">取消</v-btn>
-          <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.copy" @click="confirmCopyCard">确定复制</v-btn>
+          <div class="vpp-dialog-actions-left" />
+          <div class="vpp-dialog-actions-right">
+            <v-btn variant="text" @click="dialog.copy = false">取消</v-btn>
+            <v-btn class="vpp-confirm-btn" variant="text" :loading="saving.copy" @click="confirmCopyCard">确定复制</v-btn>
+          </div>
         </div>
       </v-card>
     </v-dialog>
@@ -394,6 +364,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import BaseCronField from './ui/BaseCronField.vue'
 
 const DEFAULT_CRON = '5 8 * * *'
 
@@ -418,22 +389,31 @@ const panelConfig = ref(createEmptyConfig())
 const message = reactive({ text: '', type: 'success' })
 const dialog = reactive({ config: false, logs: false, copy: false })
 const loading = reactive({ refreshAll: false, runAll: false, cardRefresh: false, cardRun: false })
-const saving = reactive({ config: false, copy: false })
+const saving = reactive({ config: false, copy: false, delete: false })
 const failedLogos = reactive({})
 const editor = reactive(createCardDraft())
 const copyForm = reactive({ title: '', note: '' })
 const selectedCardId = ref('')
 const lastLogRefresh = ref('')
 const searchQuery = ref('')
+const deletingCardId = ref('')
 
 let logTimer = null
+
+const themeValue = computed(() => String(props.themeName || 'light').toLowerCase())
+const themeClasses = computed(() => ({
+  'is-light-theme': themeValue.value === 'light' || themeValue.value === 'custom',
+  'is-dark-theme': themeValue.value === 'dark',
+  'is-purple-theme': themeValue.value === 'purple',
+  'is-transparent-theme': themeValue.value === 'transparent',
+}))
 
 const dashboard = computed(() => status.dashboard || {})
 const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
 const cards = computed(() => (dashboardCards.value.length ? dashboardCards.value : buildFallbackCards()))
 const enabledCount = computed(() => cards.value.filter((card) => card.enabled).length)
-const successCount = computed(() => cards.value.filter((card) => card.level === 'success').length)
-const errorCount = computed(() => cards.value.filter((card) => card.level === 'error').length)
+const autoCount = computed(() => cards.value.filter((card) => card.auto_run).length)
+const copyCount = computed(() => cards.value.filter((card) => canDeleteCard(card)).length)
 const displayCards = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
   if (!keyword) return cards.value
@@ -445,18 +425,17 @@ const displayCards = computed(() => {
       card.site_url,
       card.module_name,
       card.module_summary,
-      card.status_text,
+      card.note,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword)),
   )
 })
 const controlStats = computed(() => [
-  { label: '总数', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
-  { label: '已启', value: String(enabledCount.value), icon: 'mdi-check-decagram-outline' },
-  { label: '正常', value: String(successCount.value), icon: 'mdi-play-circle-outline' },
-  { label: '日志', value: String(status.history.length), icon: 'mdi-file-document-outline' },
-  { label: '异常', value: String(errorCount.value), icon: 'mdi-alert-circle-outline' },
+  { label: '功能卡片', value: String(cards.value.length), icon: 'mdi-view-grid-outline' },
+  { label: '启用中', value: String(enabledCount.value), icon: 'mdi-toggle-switch-outline' },
+  { label: '定时执行', value: String(autoCount.value), icon: 'mdi-clock-outline' },
+  { label: '可删除复制卡', value: String(copyCount.value), icon: 'mdi-content-copy' },
 ])
 const toneSelectItems = computed(() =>
   (panelConfig.value.tone_options || []).map((item) => ({ label: item.label, value: item.key })),
@@ -522,6 +501,7 @@ function moduleMeta(moduleKey) {
   return (panelConfig.value.module_options || []).find((item) => item.key === moduleKey) || {
     key: moduleKey,
     label: moduleKey,
+    icon: '•',
     description: '',
     summary: String(moduleKey || '').replaceAll('_', ' '),
     default_site_name: '',
@@ -532,6 +512,10 @@ function moduleMeta(moduleKey) {
 
 function nextCardId(moduleKey) {
   return `${moduleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function getCardId(card) {
+  return String(card?.id || card?.card_id || '')
 }
 
 function normalizeCard(source = {}, options = {}) {
@@ -715,14 +699,33 @@ function runtimeLabel(level) {
   }[level] || '信息'
 }
 
+function logTone(item) {
+  const level = String(item?.level || '').toLowerCase()
+  if (level === 'success') return 'success'
+  if (level === 'warning') return 'warning'
+  if (level === 'error') return 'danger'
+  const text = `${item?.status_title || ''} ${item?.summary || ''}`.toLowerCase()
+  if (/(error|fail|异常|失败)/.test(text)) return 'danger'
+  if (/(warning|待|cookie|uid)/.test(text)) return 'warning'
+  if (/(success|完成|成功|签到|领取)/.test(text)) return 'success'
+  return 'info'
+}
+
+function logStatusLabel(item) {
+  return item?.status_title || item?.title || runtimeLabel(item?.level)
+}
+
+function logDetail(item) {
+  if (item?.summary) return item.summary
+  const lines = Array.isArray(item?.lines) ? item.lines.filter(Boolean) : []
+  if (lines.length) return lines[0]
+  return '暂无详情'
+}
+
 function scheduleText(card) {
   if (!card?.enabled) return '已停用'
   if (!card?.auto_run) return '仅手动执行'
   return card?.next_run_time || card?.cron || '等待调度'
-}
-
-function previewTags(tags = []) {
-  return Array.isArray(tags) ? tags.slice(0, 4) : []
 }
 
 function logoSrc(card) {
@@ -735,6 +738,11 @@ function markLogoFailed(cardId) {
 
 function rawCardById(cardId) {
   return (panelConfig.value.cards || []).find((item) => item.id === cardId) || null
+}
+
+function canDeleteCard(card) {
+  const cardId = getCardId(card)
+  return Boolean(cardId) && !cardId.endsWith('-default')
 }
 
 function openConfigDialog(card) {
@@ -810,9 +818,15 @@ async function runAll() {
 async function saveCardConfig() {
   saving.config = true
   try {
-    const nextCards = (panelConfig.value.cards || []).map((item) =>
-      item.id === editor.id ? normalizeCard(editor) : normalizeCard(item),
-    )
+    let matched = false
+    const nextCards = (panelConfig.value.cards || []).map((item) => {
+      if (item.id === editor.id) {
+        matched = true
+        return normalizeCard(editor)
+      }
+      return normalizeCard(item)
+    })
+    if (!matched) nextCards.push(normalizeCard(editor))
     await persistCards(nextCards, '卡片配置已保存')
     dialog.config = false
   } catch (error) {
@@ -844,6 +858,38 @@ async function confirmCopyCard() {
   } finally {
     saving.copy = false
   }
+}
+
+async function deleteCard(card) {
+  const cardId = getCardId(card)
+  if (!canDeleteCard(card)) return
+  const target = rawCardById(cardId) || normalizeCard(card)
+  const title = target.title || '当前卡片'
+  if (typeof window !== 'undefined' && !window.confirm(`确认删除“${title}”吗？`)) return
+
+  saving.delete = true
+  deletingCardId.value = cardId
+  try {
+    const nextCards = (panelConfig.value.cards || [])
+      .filter((item) => item.id !== cardId)
+      .map((item) => normalizeCard(item))
+    await persistCards(nextCards, '卡片已删除')
+    if (selectedCardId.value === cardId) {
+      dialog.config = false
+      dialog.logs = false
+      dialog.copy = false
+      selectedCardId.value = ''
+    }
+  } catch (error) {
+    flash(error?.message || '删除卡片失败', 'error')
+  } finally {
+    saving.delete = false
+    deletingCardId.value = ''
+  }
+}
+
+async function deleteCurrentCard() {
+  await deleteCard(activeDashboardCard.value || editor)
 }
 
 async function runFocusedCard() {
@@ -913,22 +959,43 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .vuepanel-page {
-  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 76%, #141a25 24%);
-  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 74%, #181e2a 26%);
-  --vpp-surface-muted: rgba(255, 255, 255, 0.05);
-  --vpp-line: rgba(255, 255, 255, 0.09);
-  --vpp-line-strong: rgba(99, 188, 255, 0.34);
-  --vpp-blue: #1ea0ff;
-  --vpp-blue-soft: rgba(30, 160, 255, 0.14);
-  --vpp-purple: #9b5cff;
-  --vpp-purple-soft: rgba(155, 92, 255, 0.16);
-  --vpp-green: #67df1b;
-  --vpp-green-soft: rgba(103, 223, 27, 0.18);
-  --vpp-text-soft: rgba(219, 227, 236, 0.72);
-  --vpp-text-faint: rgba(219, 227, 236, 0.56);
+  --vpp-surface: color-mix(in srgb, var(--mp-bg-card) 92%, transparent);
+  --vpp-surface-soft: color-mix(in srgb, var(--mp-bg-panel) 90%, transparent);
+  --vpp-surface-muted: color-mix(in srgb, var(--mp-text-primary) 4%, transparent);
+  --vpp-surface-strong: color-mix(in srgb, var(--mp-bg-card) 86%, #0f172a 14%);
+  --vpp-line: color-mix(in srgb, var(--mp-text-primary) 10%, transparent);
+  --vpp-line-strong: color-mix(in srgb, var(--mp-color-primary) 24%, transparent);
+  --vpp-blue: #4ca8ff;
+  --vpp-green: #2db870;
+  --vpp-yellow: #e9a23b;
+  --vpp-red: #e36060;
+  --vpp-text-soft: color-mix(in srgb, var(--mp-text-primary) 76%, transparent);
+  --vpp-text-faint: color-mix(in srgb, var(--mp-text-primary) 58%, transparent);
   min-height: 100%;
   padding: 8px 0 20px;
   color: var(--mp-text-primary);
+}
+
+.vuepanel-page.is-light-theme {
+  --vpp-surface: color-mix(in srgb, white 96%, var(--mp-bg-card));
+  --vpp-surface-soft: color-mix(in srgb, white 92%, var(--mp-bg-panel));
+  --vpp-surface-muted: color-mix(in srgb, #0f172a 4%, white);
+  --vpp-surface-strong: color-mix(in srgb, white 98%, var(--mp-bg-card));
+  --vpp-line: rgba(15, 23, 42, 0.11);
+  --vpp-line-strong: rgba(59, 130, 246, 0.22);
+  --vpp-text-soft: rgba(30, 41, 59, 0.8);
+  --vpp-text-faint: rgba(51, 65, 85, 0.66);
+}
+
+.vuepanel-page.is-dark-theme {
+  --vpp-surface: rgba(12, 18, 31, 0.96);
+  --vpp-surface-soft: rgba(14, 21, 36, 0.92);
+  --vpp-surface-muted: rgba(148, 163, 184, 0.08);
+  --vpp-surface-strong: rgba(10, 15, 28, 0.98);
+  --vpp-line: rgba(148, 163, 184, 0.14);
+  --vpp-line-strong: rgba(96, 165, 250, 0.24);
+  --vpp-text-soft: rgba(226, 232, 240, 0.82);
+  --vpp-text-faint: rgba(203, 213, 225, 0.64);
 }
 
 .vuepanel-page,
@@ -958,72 +1025,61 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.vpp-control-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.3), transparent);
-  animation: vpp-scan 3s infinite;
+  background: var(--vpp-surface-soft);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
 }
 
 .vpp-panel-left {
   flex: 1;
   min-width: 0;
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .vpp-search-field :deep(.v-field) {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
+  background: var(--vpp-surface-muted);
 }
 
 .vpp-search-field :deep(.v-field__outline) {
-  --v-field-border-opacity: 0.1;
+  --v-field-border-opacity: 0.12;
 }
 
 .vpp-search-field :deep(.v-field__input),
 .vpp-search-field :deep(.v-label),
 .vpp-search-field :deep(.v-icon) {
-  color: rgba(235, 240, 247, 0.8);
+  color: var(--mp-text-primary);
 }
 
 .vpp-panel-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .vpp-toolbar-btn {
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: 34px;
+  padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--vpp-line) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(10px);
-  color: #8d7cff;
+  background: var(--vpp-surface-muted) !important;
+  color: var(--mp-text-primary);
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
-  transition: all 0.3s ease;
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
 }
 
 .vpp-toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(100, 200, 255, 0.3) !important;
-  box-shadow: 0 0 15px rgba(100, 200, 255, 0.2);
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--vpp-surface-muted) 80%, var(--mp-color-primary) 20%) !important;
+  border-color: var(--vpp-line-strong) !important;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--mp-shadow-color) 82%, transparent);
 }
 
 .vpp-toolbar-btn.is-icon {
-  min-width: 36px;
+  min-width: 34px;
   padding: 0;
 }
 
@@ -1036,7 +1092,7 @@ onBeforeUnmount(() => {
   margin-left: 2px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #ffb400;
+  background: var(--vpp-yellow);
   color: #ffffff;
   font-size: 10px;
   font-weight: 800;
@@ -1051,7 +1107,7 @@ onBeforeUnmount(() => {
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--mp-text-secondary);
+  color: var(--vpp-text-faint);
 }
 
 .vpp-alert {
@@ -1069,9 +1125,9 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--vpp-surface-soft);
   transition: all 0.3s ease;
 }
 
@@ -1087,20 +1143,9 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #7ed3ff;
-  position: relative;
-}
-
-.vpp-stat-icon-wrap::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 9px;
-  background: linear-gradient(45deg, transparent, rgba(100, 200, 255, 0.2), transparent);
-  z-index: -1;
-  animation: vpp-rotate 4s linear infinite;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
+  color: var(--mp-color-primary);
 }
 
 .vpp-stat-copy {
@@ -1111,34 +1156,16 @@ onBeforeUnmount(() => {
 }
 
 .vpp-stat-value {
-  font-size: 1.4rem;
+  font-size: 18px;
   font-weight: 800;
   line-height: 1;
-  background: linear-gradient(45deg, #64c8ff, #4080ff);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--mp-text-primary);
 }
 
 .vpp-stat-label {
-  font-size: 0.7rem;
+  font-size: 11px;
   color: var(--vpp-text-faint);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.vpp-stat-glow {
-  position: absolute;
-  top: 50%;
-  right: 16px;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #64c8ff;
-  box-shadow: 0 0 12px #64c8ff;
-  transform: translateY(-50%);
-  animation: vpp-pulse-status 2s infinite;
+  font-weight: 700;
 }
 
 .vpp-card-grid {
@@ -1152,103 +1179,52 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-height: 268px;
+  min-height: 220px;
   padding: 18px;
-  border-radius: 16px;
+  border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.03), transparent 62%);
-  border-color: rgba(255, 255, 255, 0.15);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.vpp-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.4), transparent);
-  transform: translateX(-100%);
-  transition: transform 0.8s ease;
-}
-
-.vpp-card:hover::before {
-  transform: translateX(100%);
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.08), transparent 48%),
+    var(--vpp-surface);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--mp-shadow-color) 90%, transparent);
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
 }
 
 .vpp-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  border-color: rgba(100, 200, 255, 0.4);
-  box-shadow: 0 12px 35px rgba(100, 200, 255, 0.15);
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, rgb(var(--vpp-tone-rgb)) 24%, var(--vpp-line));
+  box-shadow: 0 22px 44px color-mix(in srgb, var(--mp-shadow-color) 88%, transparent);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.06), transparent 62%);
+    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.12), transparent 52%),
+    var(--vpp-surface-strong);
 }
 
 .vpp-card.is-enabled {
-  border-left: 3px solid #4caf50;
-  box-shadow: inset 3px 0 0 rgba(76, 175, 80, 0.2);
-  background:
-    linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(255, 255, 255, 0.03)),
-    linear-gradient(180deg, rgba(var(--vpp-tone-rgb), 0.03), transparent 62%);
+  border-color: color-mix(in srgb, var(--vpp-green) 20%, var(--vpp-line));
 }
 
 .vpp-card-glow {
   position: absolute;
-  top: 24px;
-  right: 18px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #64c8ff;
-  box-shadow: 0 0 12px rgba(100, 200, 255, 0.85);
-  opacity: 0.9;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(var(--vpp-tone-rgb), 0.88), transparent);
+  opacity: 0.72;
 }
 
 .vpp-card-head {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 2px;
 }
 
 .vpp-logo-wrap {
-  position: relative;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.vpp-card:hover .vpp-logo-wrap {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(100, 200, 255, 0.2);
-}
-
-.vpp-logo-wrap::after {
-  content: '';
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  background: #7a7a7a;
-  box-shadow: 0 0 5px rgba(122, 122, 122, 0.4);
-}
-
-.vpp-card.is-enabled .vpp-logo-wrap::after {
-  background: #75dc6f;
-  box-shadow: 0 0 10px rgba(117, 220, 111, 0.7);
-  animation: vpp-pulse-dot 2s infinite;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 14px;
+  background: color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.16) 50%, var(--vpp-surface-muted));
+  border: 1px solid color-mix(in srgb, rgba(var(--vpp-tone-rgb), 0.22) 60%, var(--vpp-line));
 }
 
 .vpp-logo {
@@ -1276,21 +1252,27 @@ onBeforeUnmount(() => {
 
 .vpp-card-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 16px;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .vpp-status-pill,
-.vpp-runtime-pill {
+.vpp-mini-pill,
+.vpp-runtime-pill,
+.vpp-meta-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
+  min-height: 24px;
+  padding: 0 10px;
   border-radius: 999px;
+  white-space: nowrap;
+}
+
+.vpp-status-pill {
   font-size: 11px;
   font-weight: 800;
-  white-space: nowrap;
 }
 
 .vpp-status-pill.is-enabled {
@@ -1304,11 +1286,11 @@ onBeforeUnmount(() => {
 }
 
 .vpp-card-desc {
-  margin: 4px 0 0;
-  color: var(--vpp-text-soft);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  margin: 5px 0 0;
+  color: var(--vpp-text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: lowercase;
 }
 
@@ -1322,90 +1304,80 @@ onBeforeUnmount(() => {
 .vpp-card-meta-item {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
+  min-height: 24px;
+  padding: 0 9px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-muted);
   color: var(--vpp-text-soft);
   font-size: 11px;
   line-height: 1;
 }
 
-.vpp-runtime-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: -2px;
-}
-
 .vpp-runtime-pill {
-  border: 1px solid rgba(30, 160, 255, 0.9);
-  background: rgba(30, 160, 255, 0.08);
-  color: #39b0ff;
+  border: 1px solid rgba(76, 168, 255, 0.4);
+  background: rgba(76, 168, 255, 0.1);
+  color: var(--vpp-blue);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .vpp-runtime-pill.is-success {
-  color: #39b0ff;
+  border-color: rgba(45, 184, 112, 0.42);
+  background: rgba(45, 184, 112, 0.12);
+  color: var(--vpp-green);
 }
 
 .vpp-runtime-pill.is-warning {
-  border-color: rgba(255, 190, 70, 0.7);
-  color: #ffbf4b;
-  background: rgba(255, 190, 70, 0.08);
+  border-color: rgba(233, 162, 59, 0.42);
+  color: var(--vpp-yellow);
+  background: rgba(233, 162, 59, 0.12);
 }
 
 .vpp-runtime-pill.is-danger {
-  border-color: rgba(255, 91, 91, 0.7);
-  color: #ff6969;
-  background: rgba(255, 91, 91, 0.08);
+  border-color: rgba(227, 96, 96, 0.42);
+  color: var(--vpp-red);
+  background: rgba(227, 96, 96, 0.12);
 }
 
-.vpp-runtime-title {
-  color: var(--mp-text-primary);
-  font-size: 13px;
-  font-weight: 600;
+.vpp-card-body {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-muted);
 }
 
-.vpp-runtime-text {
-  min-height: 38px;
-  margin: 0;
-  color: var(--vpp-text-soft);
-  font-size: 12px;
-  line-height: 1.65;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.vpp-metric-grid {
-  display: none;
-}
-
-.vpp-card-info-stack {
-  display: grid;
-  gap: 8px;
-}
-
-.vpp-tag-row {
+.vpp-card-state-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: -4px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.vpp-tag {
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(30, 160, 255, 0.75);
-  background: rgba(30, 160, 255, 0.08);
-  color: #39b0ff;
-  font-size: 10px;
+.vpp-card-state-label {
+  font-size: 12px;
   font-weight: 700;
+  color: var(--vpp-text-faint);
+}
+
+.vpp-mini-pill {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.vpp-mini-pill.is-enabled {
+  color: #ffffff;
+  background: var(--vpp-green);
+}
+
+.vpp-mini-pill.is-disabled {
+  color: #ffffff;
+  background: rgba(136, 136, 148, 0.88);
 }
 
 .vpp-action-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }
@@ -1413,36 +1385,47 @@ onBeforeUnmount(() => {
 .vpp-action-btn,
 .vpp-confirm-btn {
   min-height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.11) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 1px solid var(--vpp-line) !important;
+  background: var(--vpp-surface-muted) !important;
   text-transform: none;
   font-weight: 700;
   letter-spacing: 0;
-  transition: all 0.3s ease;
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
 }
 
 .vpp-action-btn {
-  flex: 1;
-  color: #8d7cff;
+  flex: 1 1 0;
+  color: var(--mp-text-primary);
 }
 
-.vpp-action-btn.is-copy {
-  color: #9d7cff;
+.vpp-action-btn:hover,
+.vpp-confirm-btn:hover {
+  transform: translateY(-1px);
 }
 
 .vpp-action-btn.is-logs:hover {
-  border-color: rgba(33, 150, 243, 0.5);
-  box-shadow: 0 0 12px rgba(33, 150, 243, 0.22);
-  background: rgba(33, 150, 243, 0.06);
+  border-color: rgba(76, 168, 255, 0.44);
+  box-shadow: 0 12px 26px rgba(76, 168, 255, 0.16);
+  background: rgba(76, 168, 255, 0.08);
 }
 
 .vpp-action-btn.is-config:hover,
 .vpp-action-btn.is-copy:hover {
-  border-color: rgba(156, 39, 176, 0.5);
-  box-shadow: 0 0 12px rgba(156, 39, 176, 0.22);
-  background: rgba(156, 39, 176, 0.06);
+  border-color: rgba(155, 92, 255, 0.44);
+  box-shadow: 0 12px 26px rgba(155, 92, 255, 0.16);
+  background: rgba(155, 92, 255, 0.08);
+}
+
+.vpp-action-btn.is-delete {
+  flex-basis: auto;
+  color: var(--vpp-red);
+}
+
+.vpp-action-btn.is-delete:hover {
+  border-color: rgba(227, 96, 96, 0.44);
+  box-shadow: 0 12px 26px rgba(227, 96, 96, 0.14);
+  background: rgba(227, 96, 96, 0.08);
 }
 
 .vpp-action-btn :deep(.v-btn__content),
@@ -1452,31 +1435,28 @@ onBeforeUnmount(() => {
 }
 
 .vpp-confirm-btn {
-  flex: 0 0 auto;
   color: #d08cff;
-  border-color: rgba(181, 89, 255, 0.72);
-  background: rgba(155, 92, 255, 0.06);
 }
 
 .vpp-confirm-btn:hover {
-  box-shadow: 0 0 14px rgba(155, 92, 255, 0.24);
   background: rgba(155, 92, 255, 0.1);
+  box-shadow: 0 12px 26px rgba(155, 92, 255, 0.16);
 }
 
 .vpp-dialog-card {
   border-radius: 18px !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: color-mix(in srgb, var(--mp-bg-card) 84%, #10141d 16%) !important;
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-strong) !important;
   color: var(--mp-text-primary);
-  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.3);
 }
 
 .vpp-dialog-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 22px 24px 8px;
+  gap: 14px;
+  padding: 18px 20px 8px;
 }
 
 .vpp-dialog-title-wrap {
@@ -1489,11 +1469,11 @@ onBeforeUnmount(() => {
 .vpp-dialog-icon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-muted);
 }
 
 .vpp-dialog-icon.is-config {
@@ -1501,119 +1481,76 @@ onBeforeUnmount(() => {
 }
 
 .vpp-dialog-icon.is-logs {
-  color: #64c8ff;
+  color: var(--vpp-blue);
 }
 
 .vpp-dialog-icon.is-copy {
-  color: #b98cff;
+  color: #8f90ff;
 }
 
 .vpp-dialog-title {
-  margin: 8px 0 0;
-  font-size: 20px;
-  line-height: 1.15;
+  margin: 4px 0 0;
+  font-size: 18px;
+  line-height: 1.2;
 }
 
 .vpp-dialog-body {
   display: grid;
-  gap: 16px;
-  padding: 8px 24px 0;
+  gap: 12px;
+  padding: 8px 20px 0;
 }
 
-.vpp-target-info {
-  margin-bottom: -2px;
+.vpp-dialog-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.vpp-target-name {
-  font-size: 1.08rem;
+.vpp-meta-chip {
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-muted);
+  color: var(--vpp-text-soft);
+  font-size: 11px;
   font-weight: 600;
 }
 
-.vpp-target-meta {
-  margin-top: 4px;
-  color: var(--vpp-text-faint);
-  font-size: 0.88rem;
-}
-
-.vpp-dialog-banner {
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(34, 170, 255, 0.12);
-  background: rgba(20, 105, 171, 0.2);
-  color: #7bd0ff;
-  font-size: 13px;
-  line-height: 1.7;
+.vpp-dialog-hint {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--vpp-line);
+  background: color-mix(in srgb, var(--mp-color-primary) 10%, transparent);
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .vpp-dialog-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 18px 24px 24px;
-}
-
-.vpp-info-stack {
-  display: grid;
-  gap: 10px;
-}
-
-.vpp-info-section {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  padding: 16px 20px 20px;
 }
 
-.vpp-info-label {
-  color: var(--vpp-text-faint);
-  font-size: 0.86rem;
-  font-weight: 600;
-}
-
-.vpp-info-value {
-  color: var(--mp-text-primary);
-  font-size: 0.86rem;
-  font-weight: 700;
-  text-align: right;
-  word-break: break-word;
-}
-
-.vpp-card-info-stack .vpp-info-section {
-  padding: 10px 12px;
-}
-
-.vpp-card-info-stack .vpp-info-label,
-.vpp-card-info-stack .vpp-info-value {
-  font-size: 12px;
-}
-
-.vpp-note-box {
-  display: block;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--vpp-text-soft);
-  font-size: 12px;
-  line-height: 1.7;
+.vpp-dialog-actions-left,
+.vpp-dialog-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .vpp-dialog-panel {
   display: grid;
   gap: 12px;
   padding: 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid var(--vpp-line);
+  background: var(--vpp-surface-muted);
 }
 
 .vpp-section-title {
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--mp-text-primary);
 }
 
@@ -1628,27 +1565,35 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--vpp-line);
+  background: color-mix(in srgb, var(--vpp-surface-muted) 76%, transparent);
 }
 
 .vpp-switch-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .vpp-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-.vpp-field-block {
-  margin-top: 12px;
+.vpp-form-grid.is-single {
+  grid-template-columns: 1fr;
+}
+
+.vpp-field-span-2 {
+  grid-column: span 2;
 }
 
 .vpp-dialog-card :deep(.v-field) {
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: var(--vpp-surface-muted);
 }
 
 .vpp-dialog-card :deep(.v-field__overlay) {
@@ -1662,7 +1607,7 @@ onBeforeUnmount(() => {
 .vpp-dialog-card :deep(.v-label),
 .vpp-dialog-card :deep(.v-field__input),
 .vpp-dialog-card :deep(textarea) {
-  color: rgba(235, 240, 247, 0.92);
+  color: var(--mp-text-primary);
 }
 
 .vpp-dialog-card :deep(.v-btn__overlay) {
@@ -1682,71 +1627,99 @@ onBeforeUnmount(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #75dc6f;
-  box-shadow: 0 0 0 6px rgba(117, 220, 111, 0.18);
+  background: var(--vpp-green);
+  box-shadow: 0 0 0 6px rgba(45, 184, 112, 0.18);
   animation: pulse 1.8s ease infinite;
 }
 
 .vpp-log-panel {
-  padding: 14px;
+  padding: 12px;
 }
 
-.vpp-log-list {
+.vpp-log-table {
   display: grid;
   gap: 10px;
+}
+
+.vpp-log-table-head,
+.vpp-log-row {
+  display: grid;
+  grid-template-columns: 140px 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.vpp-log-table-head {
+  padding: 0 10px;
+  color: var(--vpp-text-faint);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vpp-log-table-body {
+  display: grid;
+  gap: 8px;
   max-height: 50vh;
   padding-right: 4px;
 }
 
-.vpp-log-item {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 14px;
-  transition: all 0.2s ease;
+.vpp-log-row {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--vpp-line);
+  background: color-mix(in srgb, var(--vpp-surface-muted) 72%, transparent);
 }
 
-.vpp-log-item:hover {
-  border-color: rgba(100, 200, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
+.vpp-log-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--vpp-text-soft);
 }
 
-.vpp-log-head {
+.vpp-log-status {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
+  align-items: flex-start;
+}
+
+.vpp-log-detail {
+  min-width: 0;
 }
 
 .vpp-log-summary {
-  margin: 10px 0 0;
-  color: rgba(219, 227, 236, 0.74);
+  margin: 0;
+  color: var(--mp-text-primary);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.6;
+  word-break: break-word;
 }
 
 .vpp-log-lines {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .vpp-log-line {
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(219, 227, 236, 0.72);
+  background: var(--vpp-surface-muted);
+  color: var(--vpp-text-soft);
   font-size: 11px;
 }
 
 .vpp-empty-state {
-  padding: 22px 18px;
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  color: rgba(219, 227, 236, 0.66);
+  padding: 20px 18px;
+  border-radius: 14px;
+  border: 1px dashed var(--vpp-line);
+  color: var(--vpp-text-soft);
   text-align: center;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--vpp-surface-muted);
 }
 
 .vpp-grid-empty {
@@ -1818,14 +1791,12 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
   }
 
-  .vpp-switch-grid,
-  .vpp-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .vpp-switch-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 720px) {
-  .vpp-control-panel,
+@media (max-width: 760px) {
   .vpp-dialog-head,
   .vpp-dialog-body,
   .vpp-dialog-actions {
@@ -1833,13 +1804,44 @@ onBeforeUnmount(() => {
     padding-right: 16px;
   }
 
-  .vpp-card {
-    min-height: auto;
+  .vpp-log-table-head,
+  .vpp-log-row {
+    grid-template-columns: 1fr;
   }
 
+  .vpp-card-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .vpp-field-span-2 {
+    grid-column: auto;
+  }
+
+  .vpp-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vpp-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vpp-dialog-actions-left,
+  .vpp-dialog-actions-right {
+    width: 100%;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .vpp-dialog-actions-right > * {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 560px) {
   .vpp-card-title-row,
-  .vpp-log-head,
-  .vpp-info-section {
+  .vpp-card-state-row {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -1848,19 +1850,9 @@ onBeforeUnmount(() => {
     flex-direction: column;
   }
 
-  .vpp-switch-grid,
-  .vpp-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .vpp-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .vpp-panel-right {
-    justify-content: center;
+  .vpp-action-btn,
+  .vpp-action-btn.is-delete {
+    flex: 1 1 auto;
   }
 }
 </style>

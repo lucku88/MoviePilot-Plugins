@@ -75,31 +75,31 @@
 
 .mp-panel.mp-theme-light {
   --mp-bg-page: color-mix(in srgb, var(--mp-host-background) 86%, white);
-  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 88%, transparent);
-  --mp-bg-panel-strong: color-mix(in srgb, var(--mp-host-surface) 94%, transparent);
-  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 98%, transparent);
-  --mp-bg-input: color-mix(in srgb, var(--mp-host-surface) 96%, transparent);
+  --mp-bg-panel: color-mix(in srgb, var(--mp-host-surface) 92%, transparent);
+  --mp-bg-panel-strong: color-mix(in srgb, var(--mp-host-surface) 96%, transparent);
+  --mp-bg-card: color-mix(in srgb, var(--mp-host-surface) 99%, transparent);
+  --mp-bg-input: color-mix(in srgb, var(--mp-host-surface) 98%, transparent);
   --mp-text-primary: color-mix(in srgb, var(--mp-host-on-surface) 94%, #0f172a);
-  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 52%, #64748b);
-  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 12%, transparent);
-  --mp-border-strong: color-mix(in srgb, var(--mp-host-on-surface) 18%, transparent);
+  --mp-text-secondary: color-mix(in srgb, var(--mp-host-on-surface) 64%, #475569);
+  --mp-border-color: color-mix(in srgb, var(--mp-host-on-surface) 14%, transparent);
+  --mp-border-strong: color-mix(in srgb, var(--mp-host-on-surface) 22%, transparent);
 }
 
 .mp-panel.mp-theme-dark {
   --mp-color-primary: color-mix(in srgb, var(--mp-host-primary) 74%, #73a7ff);
   --mp-color-secondary: color-mix(in srgb, var(--mp-host-secondary) 76%, #ba9cff);
   --mp-bg-page: color-mix(in srgb, #0b1220 84%, var(--mp-host-background));
-  --mp-bg-panel: rgba(13, 20, 34, 0.84);
-  --mp-bg-panel-strong: rgba(15, 23, 42, 0.92);
-  --mp-bg-card: rgba(18, 27, 46, 0.96);
-  --mp-bg-input: rgba(20, 30, 50, 0.92);
+  --mp-bg-panel: rgba(11, 17, 29, 0.9);
+  --mp-bg-panel-strong: rgba(10, 15, 26, 0.96);
+  --mp-bg-card: rgba(9, 14, 25, 0.98);
+  --mp-bg-input: rgba(14, 21, 36, 0.96);
   --mp-bg-soft: color-mix(in srgb, var(--mp-color-primary) 12%, transparent);
   --mp-bg-soft-strong: color-mix(in srgb, var(--mp-color-primary) 18%, transparent);
   --mp-bg-subtle: rgba(148, 163, 184, 0.08);
   --mp-text-primary: #f8fbff;
-  --mp-text-secondary: color-mix(in srgb, white 62%, var(--mp-host-muted));
-  --mp-border-color: rgba(148, 163, 184, 0.16);
-  --mp-border-strong: rgba(148, 163, 184, 0.24);
+  --mp-text-secondary: color-mix(in srgb, white 72%, var(--mp-host-muted));
+  --mp-border-color: rgba(148, 163, 184, 0.18);
+  --mp-border-strong: rgba(148, 163, 184, 0.28);
   --mp-shadow-color: rgba(0, 0, 0, 0.32);
 }
 
