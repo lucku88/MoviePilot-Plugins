@@ -26,7 +26,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.25"
+    plugin_version = "0.1.26"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -65,6 +65,17 @@ class VuePanel(_PluginBase):
             "default_site_url": "https://si-qi.xyz",
             "singleton": False,
             "tone": "amber",
+        },
+        {
+            "key": "siqi_dineout",
+            "label": "定时下馆子",
+            "icon": "🍽️",
+            "description": "访问 /siqi_restaurant.php，按早餐 / 中餐 / 晚餐顺序前往其他餐馆用餐。",
+            "summary": "siqi dine out",
+            "default_site_name": "鎬濋綈涓荤珯",
+            "default_site_url": "https://si-qi.xyz",
+            "singleton": False,
+            "tone": "rose",
         },
         {
             "key": "newapi_checkin",
@@ -402,6 +413,7 @@ class VuePanel(_PluginBase):
             "siqi_sign": "填写 Cookie 后即可启用，执行时会自动识别验证码并提交签到。",
             "hnr_claim": "可与思齐签到共用同站 Cookie，执行时会按当前排名批量领取可用奖励。",
             "newapi_checkin": "需要单独填写 UID，复制后可管理多站点。",
+            "siqi_dineout": "按早餐 / 中餐 / 晚餐顺序前往填写的用户名，留空则跳过，每日最多 3 次。",
         }
         return mapping.get(module_key, "")
 
@@ -422,6 +434,9 @@ class VuePanel(_PluginBase):
                 "tone": module_meta.get("tone") or "azure",
                 "cookie": "",
                 "uid": "",
+                "breakfast_target": "",
+                "lunch_target": "",
+                "dinner_target": "",
                 "note": note,
             },
             fallback_id=f"{module_key}-default",
@@ -459,6 +474,9 @@ class VuePanel(_PluginBase):
                 "tone": module_meta.get("tone") or "azure",
                 "cookie": "",
                 "uid": uid,
+                "breakfast_target": "",
+                "lunch_target": "",
+                "dinner_target": "",
                 "note": note or self._default_module_note(module_key),
             },
             fallback_id=fallback_id,
@@ -535,6 +553,8 @@ class VuePanel(_PluginBase):
             return self._inspect_siqi_sign(card)
         if module_key == "hnr_claim":
             return self._inspect_hnr_claim(card)
+        if module_key == "siqi_dineout":
+            return self._inspect_siqi_dineout(card)
         if module_key == "newapi_checkin":
             return self._inspect_newapi_checkin(card)
         return self._error_result("未知功能模块", f"不支持的模块类型：{module_key}")
@@ -550,6 +570,8 @@ class VuePanel(_PluginBase):
             return self._run_siqi_sign(card)
         if module_key == "hnr_claim":
             return self._run_hnr_claim(card)
+        if module_key == "siqi_dineout":
+            return self._run_siqi_dineout(card)
         if module_key == "newapi_checkin":
             return self._run_newapi_checkin(card)
         return self._error_result("未知功能模块", f"不支持的模块类型：{module_key}")
@@ -740,6 +762,197 @@ class VuePanel(_PluginBase):
             notify_text=self._hnr_notify_text(level=level, claimed_total=total_amount, claimed_count=len(claimed)),
         )
 
+    def _inspect_siqi_dineout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        session = self._build_session(card)
+        page_url = urljoin(card["site_url"], "/siqi_restaurant.php")
+        response = session.get(page_url, timeout=(self._http_timeout, self._http_timeout))
+        response.raise_for_status()
+        info = self._parse_siqi_restaurant_page(response.text)
+        if info.get("invalid_cookie"):
+            return self._error_result("Cookie 失效", "当前站点返回未登录状态，请更新 Cookie。")
+
+        targets = self._siqi_dineout_targets(card)
+        visited_lookup = {item.lower() for item in info.get("visited_records") or []}
+        pending_targets = [item for item in targets if item.lower() not in visited_lookup]
+        metrics = self._siqi_dineout_metrics(info)
+        detail_lines = self._siqi_dineout_detail_lines(info)
+        remaining = max(self._safe_int(info.get("remaining"), 0), 0)
+
+        if not targets:
+            return self._warning_result(
+                "待配置餐馆",
+                "请先填写早餐 / 中餐 / 晚餐要前往的用户名。",
+                metrics=metrics,
+                detail_lines=detail_lines,
+            )
+
+        if remaining <= 0:
+            visited_text = self._format_name_list(info.get("visited_records") or [])
+            status_text = f"今日已完成下馆子：{visited_text}" if visited_text else "今日已完成下馆子。"
+            return self._success_result("今日已下馆子", status_text, metrics=metrics, detail_lines=detail_lines)
+
+        if not pending_targets:
+            return self._success_result(
+                "今日已下馆子",
+                f"配置目标已全部完成：{self._format_name_list(targets)}",
+                metrics=metrics,
+                detail_lines=detail_lines,
+            )
+
+        pending_text = self._format_name_list(pending_targets[:remaining] or pending_targets)
+        return self._warning_result(
+            "待执行下馆子",
+            f"还可前往 {remaining} 家餐馆，待执行：{pending_text}。",
+            metrics=metrics,
+            detail_lines=detail_lines,
+        )
+
+    def _run_siqi_dineout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        targets = self._siqi_dineout_targets(card)
+        if not targets:
+            return self._error_result("缺少目标餐馆", "请先填写至少一个要前往的用户名。")
+
+        session = self._build_session(card)
+        page_url = urljoin(card["site_url"], "/siqi_restaurant.php")
+        response = session.get(page_url, timeout=(self._http_timeout, self._http_timeout))
+        response.raise_for_status()
+        info = self._parse_siqi_restaurant_page(response.text)
+        if info.get("invalid_cookie"):
+            return self._error_result("Cookie 失效", "当前站点返回未登录状态，请更新 Cookie。")
+
+        visited_lookup = {item.lower() for item in info.get("visited_records") or []}
+        pending_targets = [item for item in targets if item.lower() not in visited_lookup]
+        remaining = max(self._safe_int(info.get("remaining"), 0), 0)
+        if remaining <= 0:
+            visited_text = self._format_name_list(info.get("visited_records") or []) or "无需额外执行"
+            return self._info_result(
+                "今日已下馆子",
+                f"今日已前往：{visited_text}",
+                metrics=self._siqi_dineout_metrics(info),
+                detail_lines=self._siqi_dineout_detail_lines(info),
+                notify_text="",
+            )
+
+        if not pending_targets:
+            return self._info_result(
+                "今日已下馆子",
+                f"配置目标已全部完成：{self._format_name_list(targets)}",
+                metrics=self._siqi_dineout_metrics(info),
+                detail_lines=self._siqi_dineout_detail_lines(info),
+                notify_text="",
+            )
+
+        latest_info = dict(info)
+        success_targets: List[str] = []
+        failed_lines: List[str] = []
+        skipped_targets: List[str] = []
+        run_lines: List[str] = []
+        available_slots = remaining
+
+        for target in pending_targets:
+            if available_slots <= 0:
+                skipped_targets.append(target)
+                continue
+
+            result = self._request_siqi_dineout(session, card, target, page_url)
+            actual_target = str(result.get("target_username") or target).strip() or target
+            if result.get("success"):
+                success_targets.append(actual_target)
+                run_lines.append(self._clean_siqi_dineout_message(result.get("message")) or f"成功前往 {actual_target} 的餐馆")
+                merged_records = result.get("visited_records") or [*(latest_info.get("visited_records") or []), actual_target]
+                latest_info["visited_records"] = self._normalize_name_list(merged_records)
+                latest_info["visited_count"] = len(latest_info["visited_records"])
+                if result.get("daily_limit") is not None:
+                    latest_info["daily_limit"] = self._safe_int(result.get("daily_limit"), latest_info.get("daily_limit") or 3)
+                if result.get("remaining") is not None:
+                    latest_info["remaining"] = max(self._safe_int(result.get("remaining"), 0), 0)
+                else:
+                    latest_info["remaining"] = max(available_slots - 1, 0)
+                if result.get("net_earnings_today") is not None:
+                    latest_info["net_earnings_today"] = str(result.get("net_earnings_today") or latest_info.get("net_earnings_today") or "0")
+                available_slots = max(self._safe_int(latest_info.get("remaining"), 0), 0)
+                continue
+
+            message = self._clean_siqi_dineout_message(result.get("message")) or "执行失败"
+            failed_lines.append(f"{actual_target}：{message}")
+            if result.get("daily_limit") is not None:
+                latest_info["daily_limit"] = self._safe_int(result.get("daily_limit"), latest_info.get("daily_limit") or 3)
+            if result.get("remaining") is not None:
+                latest_info["remaining"] = max(self._safe_int(result.get("remaining"), 0), 0)
+                available_slots = latest_info["remaining"]
+
+        if skipped_targets:
+            run_lines.append(f"今日剩余次数不足，未执行：{self._format_name_list(skipped_targets)}")
+
+        detail_lines: List[str] = []
+        for line in [*run_lines, *failed_lines, *self._siqi_dineout_detail_lines(latest_info)]:
+            text = str(line or "").strip()
+            if text and text not in detail_lines:
+                detail_lines.append(text)
+
+        metrics = self._siqi_dineout_metrics(latest_info)
+        if success_targets and not failed_lines:
+            return self._success_result(
+                "下馆子完成",
+                f"成功前往：{self._format_name_list(success_targets)}",
+                metrics=metrics,
+                detail_lines=detail_lines,
+                notify_text=self._siqi_dineout_notify_text(success_targets),
+            )
+        if success_targets:
+            return self._build_result(
+                True,
+                "warning",
+                "部分完成",
+                f"成功前往 {len(success_targets)} 家，失败 {len(failed_lines)} 家。",
+                metrics=metrics,
+                detail_lines=detail_lines,
+                notify_text=self._siqi_dineout_notify_text(success_targets),
+            )
+        return self._error_result(
+            "下馆子失败",
+            failed_lines[0] if failed_lines else "未成功前往任何餐馆。",
+            metrics=metrics,
+            detail_lines=detail_lines,
+            notify_text=self._siqi_dineout_notify_text([], failed_lines),
+        )
+
+    def _request_siqi_dineout(
+        self,
+        session: requests.Session,
+        card: Dict[str, Any],
+        target_username: str,
+        page_url: str,
+    ) -> Dict[str, Any]:
+        url = urljoin(card["site_url"], "/siqi_restaurant.php")
+        response = session.post(
+            url,
+            data={"action": "visit_restaurant", "target_username": target_username, "confirm": "yes"},
+            headers={
+                "Accept": "application/json, text/plain, */*",
+                "Origin": card["site_url"],
+                "Referer": page_url,
+            },
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        payload = self._safe_json(response)
+        if not isinstance(payload, dict):
+            response.raise_for_status()
+            return {"success": False, "message": f"HTTP {response.status_code}", "target_username": target_username}
+
+        visits = payload.get("visits") if isinstance(payload.get("visits"), dict) else {}
+        visit = payload.get("visit") if isinstance(payload.get("visit"), dict) else {}
+        state = payload.get("state") if isinstance(payload.get("state"), dict) else {}
+        return {
+            "success": bool(payload.get("success")),
+            "message": str(payload.get("message") or "").strip(),
+            "target_username": str(visit.get("target_username") or target_username).strip(),
+            "visited_records": self._normalize_name_list(visits.get("records") or []),
+            "remaining": visits.get("remaining"),
+            "daily_limit": visits.get("limit"),
+            "net_earnings_today": state.get("net_earnings_today"),
+        }
+
     def _inspect_newapi_checkin(self, card: Dict[str, Any]) -> Dict[str, Any]:
         session = self._build_session(card)
         status = self._request_newapi_status(session, card)
@@ -886,6 +1099,92 @@ class VuePanel(_PluginBase):
             "claims": claims,
         }
 
+    def _parse_siqi_restaurant_page(self, html: str) -> Dict[str, Any]:
+        visited_text = self._pick_first_group(html, r"今日已前往[：:]\s*([^。<]+)")
+        visited_records = self._normalize_name_list(visited_text)
+        daily_limit = self._safe_int(self._pick_first_group(html, r"每日最多前往\s*(\d+)\s*家"), 3)
+        remaining = max(daily_limit - len(visited_records), 0)
+        status_label = self._pick_first_group(html, r"状态[：:]\s*<span[^>]*>([^<]+)")
+        net_earnings_today = self._pick_first_group(html, r"今日净收益[：:]\s*([-+]?\d+(?:\.\d+)?)\s*魔力") or "0"
+        return {
+            "invalid_cookie": ("未登录" in html) or ("登录" in html and "注册" in html),
+            "status_label": status_label,
+            "visited_records": visited_records,
+            "visited_count": len(visited_records),
+            "daily_limit": daily_limit,
+            "remaining": remaining,
+            "net_earnings_today": str(net_earnings_today),
+        }
+
+    def _siqi_dineout_targets(self, card: Dict[str, Any]) -> List[str]:
+        return self._normalize_name_list(
+            [
+                card.get("breakfast_target"),
+                card.get("lunch_target"),
+                card.get("dinner_target"),
+            ]
+        )
+
+    def _siqi_dineout_metrics(self, info: Dict[str, Any]) -> List[Dict[str, str]]:
+        visited_records = self._normalize_name_list(info.get("visited_records") or [])
+        visited_count = self._safe_int(info.get("visited_count"), len(visited_records))
+        return [
+            {"label": "今日已前往", "value": str(visited_count)},
+            {"label": "剩余次数", "value": str(max(self._safe_int(info.get("remaining"), 0), 0))},
+            {"label": "今日净收益", "value": str(info.get("net_earnings_today") or "0")},
+        ]
+
+    def _siqi_dineout_detail_lines(self, info: Dict[str, Any]) -> List[str]:
+        lines: List[str] = []
+        visited_records = self._normalize_name_list(info.get("visited_records") or [])
+        if visited_records:
+            lines.append(f"今日已前往：{self._format_name_list(visited_records)}")
+        else:
+            lines.append("今日暂未前往其他餐馆")
+        if info.get("status_label"):
+            lines.append(f"当前状态：{info.get('status_label')}")
+        if str(info.get("net_earnings_today") or "").strip():
+            lines.append(f"今日净收益：{info.get('net_earnings_today')} 魔力")
+        return lines
+
+    @staticmethod
+    def _clean_siqi_dineout_message(message: Any) -> str:
+        return str(message or "").strip().rstrip("。")
+
+    @staticmethod
+    def _siqi_dineout_notify_text(success_targets: List[str], failed_lines: Optional[List[str]] = None) -> str:
+        if success_targets:
+            return f"前往 {VuePanel._format_name_list(success_targets)}"
+        if failed_lines:
+            first_line = str(failed_lines[0] or "").strip()
+            if "：" in first_line:
+                return first_line.split("：", 1)[1].strip()
+            return first_line
+        return ""
+
+    @staticmethod
+    def _normalize_name_list(value: Any) -> List[str]:
+        if isinstance(value, list):
+            source = value
+        else:
+            source = re.split(r"[、,，/\s]+", str(value or ""))
+        names: List[str] = []
+        seen: set = set()
+        for item in source:
+            text = str(item or "").strip().strip("。；;，、,")
+            if not text or text in {"暂无", "无"}:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            names.append(text)
+        return names
+
+    @staticmethod
+    def _format_name_list(value: Any) -> str:
+        return "、".join(VuePanel._normalize_name_list(value))
+
     def _build_dashboard(self, states: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         self._ensure_cards()
         success_count = 0
@@ -920,6 +1219,9 @@ class VuePanel(_PluginBase):
                     "tone": card["tone"],
                     "note": card.get("note") or "",
                     "uid": card.get("uid") or "",
+                    "breakfast_target": card.get("breakfast_target") or "",
+                    "lunch_target": card.get("lunch_target") or "",
+                    "dinner_target": card.get("dinner_target") or "",
                     "cookie_configured": bool(card.get("cookie")),
                     "status_label": "启用" if card.get("enabled") else "停用",
                     "status_key": "enabled" if card.get("enabled") else "disabled",
@@ -1094,6 +1396,10 @@ class VuePanel(_PluginBase):
             level = "warning"
             title = "待配置 UID"
             text = "New API 签到卡片需要填写 UID。"
+        elif card["module_key"] == "siqi_dineout" and not self._siqi_dineout_targets(card):
+            level = "warning"
+            title = "待配置餐馆"
+            text = "请先填写早餐 / 中餐 / 晚餐要前往的用户名。"
         else:
             level = "info"
             title = "等待刷新"
@@ -1125,6 +1431,9 @@ class VuePanel(_PluginBase):
             "last_run": "",
             "last_checked": "",
             "uid": card.get("uid") or "",
+            "breakfast_target": card.get("breakfast_target") or "",
+            "lunch_target": card.get("lunch_target") or "",
+            "dinner_target": card.get("dinner_target") or "",
             "cookie_configured": bool(card.get("cookie")),
             "note": card.get("note") or "",
         }
@@ -1166,6 +1475,9 @@ class VuePanel(_PluginBase):
             "last_run": now_text if record_run else str(prev.get("last_run") or ""),
             "last_checked": now_text,
             "uid": card.get("uid") or "",
+            "breakfast_target": card.get("breakfast_target") or "",
+            "lunch_target": card.get("lunch_target") or "",
+            "dinner_target": card.get("dinner_target") or "",
             "cookie_configured": bool(card.get("cookie")),
             "note": card.get("note") or "",
         }
@@ -1293,6 +1605,15 @@ class VuePanel(_PluginBase):
             "tone": tone,
             "cookie": str(item.get("cookie") or "").strip(),
             "uid": "" if is_singleton else str(item.get("uid") or "").strip(),
+            "breakfast_target": str(item.get("breakfast_target") or item.get("breakfast_username") or "").strip()
+            if module_key == "siqi_dineout"
+            else "",
+            "lunch_target": str(item.get("lunch_target") or item.get("lunch_username") or "").strip()
+            if module_key == "siqi_dineout"
+            else "",
+            "dinner_target": str(item.get("dinner_target") or item.get("dinner_username") or "").strip()
+            if module_key == "siqi_dineout"
+            else "",
             "note": str(item.get("note") or "").strip(),
         }
 
@@ -1396,6 +1717,10 @@ class VuePanel(_PluginBase):
             tags.append("发送通知")
         if card.get("module_key") == "newapi_checkin" and card.get("uid"):
             tags.append(f"UID {card['uid']}")
+        if card.get("module_key") == "siqi_dineout":
+            targets = self._siqi_dineout_targets(card)
+            if targets:
+                tags.append(f"目标 {len(targets)} 家")
         return tags
 
     def _site_group_key(self, card: Dict[str, Any]) -> str:
@@ -1436,6 +1761,10 @@ class VuePanel(_PluginBase):
                         str(card.get("tone") or ""),
                         str(bool(card.get("cookie"))),
                         str(card.get("uid") or ""),
+                        str(card.get("breakfast_target") or ""),
+                        str(card.get("lunch_target") or ""),
+                        str(card.get("dinner_target") or ""),
+                        str(card.get("note") or ""),
                     ]
                 )
             )

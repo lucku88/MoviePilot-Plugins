@@ -170,6 +170,35 @@
                 density="compact"
                 hide-details="auto"
               />
+              <template v-if="editor.module_key === 'siqi_dineout'">
+                <div class="vpp-form-hint vpp-field-span-2">
+                  按早餐 / 中餐 / 晚餐顺序前往填写的用户名，留空会自动跳过。
+                </div>
+                <v-text-field
+                  v-model="editor.breakfast_target"
+                  label="早餐用户名"
+                  placeholder="例如：xiaosa"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+                <v-text-field
+                  v-model="editor.lunch_target"
+                  label="中餐用户名"
+                  placeholder="例如：shigandang"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+                <v-text-field
+                  v-model="editor.dinner_target"
+                  label="晚餐用户名"
+                  placeholder="例如：yulliam"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+              </template>
               <v-text-field
                 v-model="editor.cookie"
                 label="Cookie"
@@ -411,6 +440,9 @@ const displayCards = computed(() => {
       card.module_description,
       card.status_text,
       card.note,
+      card.breakfast_target,
+      card.lunch_target,
+      card.dinner_target,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword)),
@@ -486,6 +518,9 @@ function createCardDraft(source = {}) {
     tone: String(source.tone || 'azure'),
     cookie: String(source.cookie || ''),
     uid: String(source.uid || ''),
+    breakfast_target: String(source.breakfast_target || ''),
+    lunch_target: String(source.lunch_target || ''),
+    dinner_target: String(source.dinner_target || ''),
     note: String(source.note || ''),
     run_once: false,
   }
@@ -538,6 +573,9 @@ function normalizeCard(source = {}, options = {}) {
     tone,
     cookie: String(source.cookie || '').trim(),
     uid: meta.key === 'newapi_checkin' ? String(source.uid || '').trim() : '',
+    breakfast_target: meta.key === 'siqi_dineout' ? String(source.breakfast_target || '').trim() : '',
+    lunch_target: meta.key === 'siqi_dineout' ? String(source.lunch_target || '').trim() : '',
+    dinner_target: meta.key === 'siqi_dineout' ? String(source.dinner_target || '').trim() : '',
     note: String(source.note || '').trim(),
   }
 }
@@ -599,6 +637,13 @@ function fallbackStatus(card, meta) {
       status_text: 'New API 签到卡片还需要填写 UID 才能正常执行。',
     }
   }
+  if (meta.key === 'siqi_dineout' && ![card.breakfast_target, card.lunch_target, card.dinner_target].some(Boolean)) {
+    return {
+      level: 'warning',
+      status_title: '待配置餐馆',
+      status_text: '请先填写早餐 / 中餐 / 晚餐要前往的用户名。',
+    }
+  }
   if (!card.auto_run) {
     return {
       level: 'info',
@@ -619,6 +664,8 @@ function fallbackTags(card) {
   tags.push(card.auto_run ? '自动执行' : '手动执行')
   if (card.cookie) tags.push('Cookie 已配置')
   if (card.uid) tags.push(`UID ${card.uid}`)
+  const dineoutTargets = [card.breakfast_target, card.lunch_target, card.dinner_target].filter(Boolean)
+  if (dineoutTargets.length) tags.push(`目标 ${dineoutTargets.length} 家`)
   return tags
 }
 
@@ -1863,6 +1910,21 @@ onBeforeUnmount(() => {
 
 .vpp-field-span-2 {
   grid-column: span 2;
+}
+
+.vpp-form-hint {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.24) 64%, var(--vpp-line));
+  background:
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), transparent 90%),
+    color-mix(in srgb, var(--vpp-field-bg) 94%, transparent);
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .vpp-dialog-card :deep(.v-field) {
