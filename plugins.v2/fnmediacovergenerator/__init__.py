@@ -34,13 +34,6 @@ from app.plugins.fnmediacovergenerator.style.style_static_1 import create_style_
 from app.plugins.fnmediacovergenerator.style.style_static_2 import create_style_static_2
 from app.plugins.fnmediacovergenerator.style.style_static_3 import create_style_static_3
 from app.plugins.fnmediacovergenerator.style.style_static_4 import create_style_static_4
-from app.plugins.fnmediacovergenerator.style.style_static_5 import create_style_static_5
-from app.plugins.fnmediacovergenerator.utils.style5_cover_strategy import (
-    pick_style5_source_urls,
-    remember_style5_primary,
-    resolve_style5_render_mode,
-    select_style5_image_urls,
-)
 from app.plugins.fnmediacovergenerator.utils.history_selection import (
     normalize_history_paths,
     resolve_history_delete_targets,
@@ -267,8 +260,6 @@ class FnMediaCoverGenerator(_PluginBase):
             {"path": "select_style_3", "endpoint": self.api_select_style_3, "auth": "bear", "methods": ["POST"], "summary": "选择风格3"},
             {"path": "/select_style_4", "endpoint": self.api_select_style_4, "auth": "bear", "methods": ["POST"], "summary": "选择风格4"},
             {"path": "select_style_4", "endpoint": self.api_select_style_4, "auth": "bear", "methods": ["POST"], "summary": "选择风格4"},
-            {"path": "/select_style_5", "endpoint": self.api_select_style_5, "auth": "bear", "methods": ["POST"], "summary": "选择风格5"},
-            {"path": "select_style_5", "endpoint": self.api_select_style_5, "auth": "bear", "methods": ["POST"], "summary": "选择风格5"},
             {"path": "/set_page_tab_generate", "endpoint": self.api_set_page_tab_generate, "auth": "bear", "methods": ["POST"], "summary": "切换到生成页"},
             {"path": "set_page_tab_generate", "endpoint": self.api_set_page_tab_generate, "auth": "bear", "methods": ["POST"], "summary": "切换到生成页"},
             {"path": "/set_page_tab_history", "endpoint": self.api_set_page_tab_history, "auth": "bear", "methods": ["POST"], "summary": "切换到历史页"},
@@ -341,7 +332,7 @@ class FnMediaCoverGenerator(_PluginBase):
                                     {
                                         "component": "VRow",
                                         "content": [
-                                            {"component": "VCol", "props": {"cols": 12, "md": 6}, "content": [{"component": "VSelect", "props": {"model": "cover_style_base", "label": "风格编号", "items": [{"title": "风格1", "value": "static_1"}, {"title": "风格2", "value": "static_2"}, {"title": "风格3", "value": "static_3"}, {"title": "风格4", "value": "static_4"}, {"title": "风格5", "value": "static_5"}]}}]},
+                                            {"component": "VCol", "props": {"cols": 12, "md": 6}, "content": [{"component": "VSelect", "props": {"model": "cover_style_base", "label": "风格编号", "items": [{"title": "风格1", "value": "static_1"}, {"title": "风格2", "value": "static_2"}, {"title": "风格3", "value": "static_3"}, {"title": "风格4", "value": "static_4"}]}}]},
                                             {"component": "VCol", "props": {"cols": 12, "md": 6}, "content": [{"component": "VSwitch", "props": {"model": "multi_1_blur", "label": "九宫格样式启用模糊底图"}}]},
                                         ],
                                     },
@@ -612,9 +603,6 @@ class FnMediaCoverGenerator(_PluginBase):
 
     def api_select_style_4(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         return self._select_style_index(4)
-
-    def api_select_style_5(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        return self._select_style_index(5)
 
     def api_set_page_tab_generate(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         self._page_tab = "generate-tab"
@@ -1054,7 +1042,7 @@ class FnMediaCoverGenerator(_PluginBase):
             required_items=required_items,
         )
 
-        ok, message, actual_primary_url = self._prepare_library_images_from_urls(
+        ok, message = self._prepare_library_images_from_urls(
             library_dir=library_dir,
             image_urls=image_urls,
             required_items=required_items,
@@ -1076,22 +1064,6 @@ class FnMediaCoverGenerator(_PluginBase):
         )
         if not image_base64:
             return {"server": server_name, "library_name": library_name, "library_id": library.get("id"), "success": False, "uploaded": False, "message": "封面生成失败"}
-        if self._cover_style == "static_5" and actual_primary_url:
-            library_key = str(
-                library.get("library_key")
-                or f"{library.get('server_name') or server_name}::{library.get('id') or ''}"
-            ).strip()
-            primary_state = self.get_data("style5_last_primary_urls") or {}
-            if not isinstance(primary_state, dict):
-                primary_state = {}
-            self.save_data(
-                "style5_last_primary_urls",
-                remember_style5_primary(
-                    state=primary_state,
-                    library_key=library_key,
-                    primary_url=actual_primary_url,
-                ),
-            )
 
         output_file, output_ext = self._save_generated_cover(
             image_base64=image_base64,
@@ -1124,7 +1096,7 @@ class FnMediaCoverGenerator(_PluginBase):
         server_name: str = "",
         library_name: str = "",
         library_id: str = "",
-    ) -> Tuple[bool, str, Optional[str]]:
+    ) -> Tuple[bool, str]:
         if library_dir.exists():
             shutil.rmtree(library_dir, ignore_errors=True)
         library_dir.mkdir(parents=True, exist_ok=True)
@@ -1150,23 +1122,16 @@ class FnMediaCoverGenerator(_PluginBase):
             ),
         )
         if not unique_urls:
-            return False, "媒体库没有可用的封面源图", None
-        if self._cover_style == "static_5":
-            # style_5 的第一张是主图候选，保序尝试，后续候选再随机。
-            tail = unique_urls[1:]
-            random.shuffle(tail)
-            unique_urls = [unique_urls[0]] + tail
-        else:
-            random.shuffle(unique_urls)
+            return False, "媒体库没有可用的封面源图"
+        random.shuffle(unique_urls)
 
         success_count = 0
-        actual_primary_url: Optional[str] = None
         content_hashes = set()
         for url in unique_urls:
             if success_count >= required_items:
                 break
             if self._stop_event.is_set():
-                return False, "任务已手动停止", None
+                return False, "任务已手动停止"
             try:
                 if self._is_trimemedia_runtime_ready(runtime) and self._is_trimemedia_request(url, runtime):
                     response = self._trimemedia_http_request(runtime=runtime, method="GET", url=url)
@@ -1181,31 +1146,16 @@ class FnMediaCoverGenerator(_PluginBase):
                 content_hash = hashlib.sha1(content).hexdigest()
                 if content_hash in content_hashes:
                     continue
-                next_index = success_count + 1
-                (library_dir / f"{next_index}.jpg").write_bytes(content)
                 content_hashes.add(content_hash)
-                success_count = next_index
-                if self._cover_style == "static_5" and actual_primary_url is None:
-                    actual_primary_url = url
+                success_count += 1
+                (library_dir / f"{success_count}.jpg").write_bytes(content)
             except Exception as err:
                 logger.warning("%s 下载媒体库源图失败：%s / %s", self.plugin_name, url, err)
         if success_count <= 0:
-            return False, "媒体库源图下载失败", None
-        if self._cover_style == "static_5":
-            render_mode = resolve_style5_render_mode(success_count)
-            logger.info(
-                "%s style_5 素材缓存保留真实张数 | 服务器=%s | 媒体库=%s | id=%s | 下载成功=%s | 模式=%s",
-                self.plugin_name,
-                server_name,
-                library_name,
-                library_id,
-                success_count,
-                render_mode.get("mode"),
-            )
-            return True, f"已准备 {success_count} 张不重复封面源图（style_5 保留真实张数）", actual_primary_url
+            return False, "媒体库源图下载失败"
         if not self.prepare_library_images(library_dir, required_items=required_items):
-            return False, "媒体库源图数量不足，无法补齐封面素材", None
-        return True, f"已准备 {success_count} 张不重复封面源图", None
+            return False, "媒体库源图数量不足，无法补齐封面素材"
+        return True, f"已准备 {success_count} 张不重复封面源图"
 
     def prepare_library_images(self, library_dir: Path, required_items: int = 9) -> bool:
         existing = [item for item in sorted(library_dir.glob("*.jpg"), key=lambda p: p.name) if item.is_file()]
@@ -1233,66 +1183,13 @@ class FnMediaCoverGenerator(_PluginBase):
         base_urls = merge_unique_image_urls(library.get("image_list") or [])
         target_count = min(max(required_items * 4, required_items), 60)
         extra_urls: List[str] = []
-        need_item_pool = self._cover_style == "static_5" or len(base_urls) < required_items
-        if need_item_pool:
+        if len(base_urls) < required_items:
             extra_urls = self._fetch_trimemedia_library_item_image_urls(
                 service=service,
                 library_id=str(library.get("id") or ""),
                 runtime=runtime,
                 target_count=target_count,
             )
-        if self._cover_style == "static_5":
-            primary_source_urls, source = pick_style5_source_urls(
-                base_urls=base_urls,
-                supplemental_urls=extra_urls,
-            )
-            library_key = str(
-                library.get("library_key")
-                or f"{library.get('server_name') or getattr(service, 'name', '')}::{library.get('id') or ''}"
-            ).strip()
-            primary_state = self.get_data("style5_last_primary_urls") or {}
-            if not isinstance(primary_state, dict):
-                primary_state = {}
-            last_primary = str(primary_state.get(library_key) or "").strip()
-            selected_primary, avoided_last_primary = select_style5_image_urls(
-                candidate_urls=primary_source_urls,
-                required_count=1,
-                last_primary_url=last_primary,
-            )
-            if not selected_primary:
-                return []
-            primary_url = selected_primary[0]
-            if source == "supplemental":
-                fill_candidates = merge_unique_image_urls(
-                    [item for item in extra_urls if item != primary_url]
-                    + [item for item in base_urls if item != primary_url],
-                    limit=target_count,
-                )
-                source_detail = "supplemental+base" if base_urls else "supplemental"
-            else:
-                fill_candidates = merge_unique_image_urls(
-                    [item for item in base_urls if item != primary_url],
-                    limit=target_count,
-                )
-                source_detail = source
-            random.shuffle(fill_candidates)
-            selected_urls = [primary_url] + fill_candidates[: max(0, required_items - 1)]
-            render_mode = resolve_style5_render_mode(len(selected_urls))
-            logger.info(
-                "%s style_5 选图策略 | 服务器=%s | 媒体库=%s | id=%s | key=%s | 来源=%s | 候选=%s | 抽取=%s | 避开上次主图=%s | 模式=%s | 当前风格需要 %s 张",
-                self.plugin_name,
-                library.get("server_name") or getattr(service, "name", "") or "",
-                library.get("name") or "",
-                str(library.get("id") or ""),
-                library_key,
-                source_detail,
-                len(primary_source_urls) + len(fill_candidates),
-                len(selected_urls),
-                "是" if avoided_last_primary else "否",
-                render_mode.get("mode"),
-                required_items,
-            )
-            return selected_urls
         selected_urls = prefer_supplemental_image_urls(
             base_urls=base_urls,
             supplemental_urls=extra_urls,
@@ -1320,7 +1217,7 @@ class FnMediaCoverGenerator(_PluginBase):
         target_count: int,
     ) -> List[str]:
         instance = getattr(service, "instance", None)
-        api = getattr(instance, "api", None) or getattr(instance, "_api", None)
+        api = getattr(instance, "_api", None)
         library_guid = str(library_id or "").strip()
         if not library_guid or api is None or not hasattr(api, "item_list") or not hasattr(api, "item"):
             return []
@@ -1384,9 +1281,7 @@ class FnMediaCoverGenerator(_PluginBase):
             return value
         host = str(runtime.get("api_host") or "").rstrip("/")
         if not host:
-            service_instance = getattr(service, "instance", None)
-            service_api = getattr(service_instance, "api", None) or getattr(service_instance, "_api", None)
-            host = str(getattr(service_api, "host", "") or "").rstrip("/")
+            host = str(getattr(getattr(getattr(service, "instance", None), "_api", None), "host", "") or "").rstrip("/")
         if not host:
             return value
         if not value.startswith("/"):
@@ -1419,8 +1314,6 @@ class FnMediaCoverGenerator(_PluginBase):
             return create_style_static_3(library_dir, title, font_path, font_size=font_size, font_offset=font_offset, is_blur=self._multi_1_blur, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
         if self._cover_style == "static_4":
             return create_style_static_4(single_image, title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
-        if self._cover_style == "static_5":
-            return create_style_static_5(str(library_dir), title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
         raise ValueError(f"不支持的风格：{self._cover_style}")
 
     def _save_generated_cover(self, image_base64: str, server_name: str, library_name: str, library_id: str) -> Tuple[Path, str]:
@@ -1517,7 +1410,7 @@ class FnMediaCoverGenerator(_PluginBase):
         return f"{int(size_bytes)} B"
 
     def _select_style_index(self, index: int) -> Dict[str, Any]:
-        self._cover_style_base = f"static_{max(1, min(5, int(index)))}"
+        self._cover_style_base = f"static_{max(1, min(4, int(index)))}"
         self._cover_style_variant = "static"
         self._cover_style = self.__compose_cover_style(self._cover_style_base, "static")
         self._update_config()
@@ -1533,14 +1426,14 @@ class FnMediaCoverGenerator(_PluginBase):
         return True
 
     def __compose_cover_style(self, base_style: str, variant: str) -> str:
-        base = base_style if base_style in {"static_1", "static_2", "static_3", "static_4", "static_5"} else "static_1"
+        base = base_style if base_style in {"static_1", "static_2", "static_3", "static_4"} else "static_1"
         return base
 
     def __resolve_cover_style_ui(self, cover_style: str) -> Tuple[str, str]:
-        if cover_style in {"animated_1", "animated_2", "animated_3", "animated_4", "animated_5"}:
+        if cover_style in {"animated_1", "animated_2", "animated_3", "animated_4"}:
             suffix = cover_style.split("_")[-1]
             return f"static_{suffix}", "static"
-        if cover_style in {"static_1", "static_2", "static_3", "static_4", "static_5"}:
+        if cover_style in {"static_1", "static_2", "static_3", "static_4"}:
             return cover_style, "static"
         return "static_1", "static"
 
@@ -1549,20 +1442,18 @@ class FnMediaCoverGenerator(_PluginBase):
             index = int(self._cover_style.split("_")[-1])
         except Exception:
             index = 1
-        return "static", max(1, min(5, index))
+        return "static", max(1, min(4, index))
 
     def __get_required_items(self) -> int:
         if self._cover_style == "static_1":
             return 3
         if self._cover_style == "static_3":
             return 9
-        if self._cover_style == "static_5":
-            return 4
         return 1
 
     def __build_page_style_cards(self, style_variant: str, selected_index: int) -> List[Dict[str, Any]]:
         cards: List[Dict[str, Any]] = []
-        for index in range(1, 6):
+        for index in range(1, 5):
             cards.append(
                 {
                     "component": "VCol",
@@ -1584,14 +1475,7 @@ class FnMediaCoverGenerator(_PluginBase):
 
     @staticmethod
     def __style_preview_src(index: int) -> str:
-        safe_index = max(1, min(5, int(index)))
-        local_preview = Path(__file__).resolve().parents[2] / "images" / f"style_{safe_index}.jpeg"
-        try:
-            if local_preview.exists() and local_preview.is_file():
-                encoded = base64.b64encode(local_preview.read_bytes()).decode("utf-8")
-                return f"data:image/jpeg;base64,{encoded}"
-        except Exception:
-            pass
+        safe_index = max(1, min(4, int(index)))
         return f"https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/images/style_{safe_index}.jpeg"
 
     def _build_resolution_config(self) -> ResolutionConfig:
