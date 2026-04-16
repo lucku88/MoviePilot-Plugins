@@ -96,6 +96,15 @@ class FakeResolutionConfig:
         return int(base_size * scale_factor)
 
 
+class Fake720ResolutionConfig:
+    width = 1280
+    height = 720
+
+    def get_font_size(self, base_size, scale_factor=1.0):
+        ratio = self.height / 1080
+        return int(base_size * ratio * scale_factor)
+
+
 class StyleStatic5Tests(unittest.TestCase):
     def _make_library_dir(self, image_count: int) -> Path:
         root = Path(tempfile.mkdtemp())
@@ -107,7 +116,8 @@ class StyleStatic5Tests(unittest.TestCase):
 
     def _decode_image(self, payload: str) -> Image.Image:
         raw = base64.b64decode(payload)
-        return Image.open(BytesIO(raw)).convert("RGB")
+        with Image.open(BytesIO(raw)) as image:
+            return image.convert("RGB").copy()
 
     def _standard_echo_boxes(self, size):
         width, height = size
@@ -151,7 +161,6 @@ class StyleStatic5Tests(unittest.TestCase):
 
     def test_create_style_static_5_renders_standard_sparse_and_fallback(self):
         module = load_module()
-        payloads = {}
         decoded_images = {}
         digests = {}
 
@@ -169,7 +178,6 @@ class StyleStatic5Tests(unittest.TestCase):
 
             payload = base64.b64decode(result)
             self.assertGreater(len(payload), 1000)
-            payloads[count] = payload
             decoded_images[count] = self._decode_image(result)
             digests[count] = hashlib.sha256(decoded_images[count].tobytes()).hexdigest()
 
@@ -196,6 +204,72 @@ class StyleStatic5Tests(unittest.TestCase):
         # standard vs sparse：两套布局核心区域都应体现明显差异。
         self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], std_2), 20.0)
         self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], sparse_1), 20.0)
+
+    def test_create_style_static_5_consumes_params_and_scales_with_resolution(self):
+        module = load_module()
+        library_dir = self._make_library_dir(1)
+
+        base_result = module.create_style_static_5(
+            library_dir=library_dir,
+            title=("日韩剧", "Japan & Korea Drama"),
+            font_path=("", ""),
+            font_size=(170, 72),
+            font_offset=(0, 40, 40),
+            blur_size=0,
+            color_ratio=0,
+            resolution_config=FakeResolutionConfig(),
+            bg_color_config={"mode": "custom", "custom_color": "#111111", "config_color": None},
+        )
+        shifted_result = module.create_style_static_5(
+            library_dir=library_dir,
+            title=("日韩剧", "Japan & Korea Drama"),
+            font_path=("", ""),
+            font_size=(170, 72),
+            font_offset=(140, 40, 40),
+            blur_size=0,
+            color_ratio=0,
+            resolution_config=FakeResolutionConfig(),
+            bg_color_config={"mode": "custom", "custom_color": "#111111", "config_color": None},
+        )
+        self.assertNotEqual(base_result, shifted_result)
+
+        red_tint_result = module.create_style_static_5(
+            library_dir=library_dir,
+            title=("日韩剧", "Japan & Korea Drama"),
+            font_path=("", ""),
+            font_size=(170, 72),
+            font_offset=(0, 40, 40),
+            blur_size=80,
+            color_ratio=1.0,
+            resolution_config=FakeResolutionConfig(),
+            bg_color_config={"mode": "custom", "custom_color": "#d94646", "config_color": None},
+        )
+        blue_tint_result = module.create_style_static_5(
+            library_dir=library_dir,
+            title=("日韩剧", "Japan & Korea Drama"),
+            font_path=("", ""),
+            font_size=(170, 72),
+            font_offset=(0, 40, 40),
+            blur_size=80,
+            color_ratio=1.0,
+            resolution_config=FakeResolutionConfig(),
+            bg_color_config={"mode": "custom", "custom_color": "#2563eb", "config_color": None},
+        )
+        self.assertNotEqual(red_tint_result, blue_tint_result)
+
+        resized_result = module.create_style_static_5(
+            library_dir=library_dir,
+            title=("日韩剧", "Japan & Korea Drama"),
+            font_path=("", ""),
+            font_size=(170, 72),
+            font_offset=(0, 40, 40),
+            blur_size=50,
+            color_ratio=0.8,
+            resolution_config=Fake720ResolutionConfig(),
+            bg_color_config={"mode": "auto", "custom_color": "", "config_color": None},
+        )
+        resized_image = self._decode_image(resized_result)
+        self.assertEqual(resized_image.size, (1280, 720))
 
 
 if __name__ == "__main__":
