@@ -258,6 +258,7 @@ class VuePill(_PluginBase):
                 expect_brick_update=self._safe_int(brick_result.get("moved"), 0) > 0,
                 expect_beach_cooldown=bool(beach_result.get("done")),
             )
+            brick_result = self._sync_brick_result_with_page(brick_result, page, final_page)
             if beach_result.get("done") and (self._auto_craft or self._auto_exchange):
                 auto_result, final_page = self._run_auto_post_beach(session, final_page)
                 final_page = self._fetch_stable_page_state(session, previous_page=final_page)
@@ -1029,6 +1030,7 @@ class VuePill(_PluginBase):
             urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         page = self._fetch_page_state(session)
+        initial_page = page
         if not page.get("brick", {}).get("ready"):
             lines = [f"ℹ️ 搬砖：{page.get('brick', {}).get('status_text') or '今日搬砖已满'}"]
             next_run, next_action = self._compute_next_plan(page)
@@ -1041,6 +1043,7 @@ class VuePill(_PluginBase):
             previous_page=page,
             expect_brick_update=self._safe_int(result.get("moved"), 0) > 0,
         )
+        result = self._sync_brick_result_with_page(result, initial_page, page)
         next_run, next_action = self._compute_next_plan(page)
         if page.get("brick", {}).get("ready") and (result.get("warning") or result.get("attempted")):
             retry_ts = int(time.time()) + self._ready_retry_seconds
@@ -1071,6 +1074,27 @@ class VuePill(_PluginBase):
         pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("🧱 手动搬砖", lines)
         return {"pill_status": pill_status, "lines": lines}
+
+    def _sync_brick_result_with_page(
+        self,
+        brick_result: Optional[Dict[str, Any]],
+        before_page: Optional[Dict[str, Any]],
+        after_page: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        result = dict(brick_result or {})
+        before_brick = (before_page or {}).get("brick") or {}
+        after_brick = (after_page or {}).get("brick") or {}
+        before_daily = max(0, self._safe_int(before_brick.get("daily_bricks"), 0))
+        after_daily = max(0, self._safe_int(after_brick.get("daily_bricks"), before_daily))
+        actual_moved = max(0, after_daily - before_daily)
+        reported_moved = max(0, self._safe_int(result.get("moved"), 0))
+        if actual_moved > reported_moved:
+            result["moved"] = actual_moved
+        result["next_reset_ts"] = self._safe_int(
+            after_brick.get("next_reset_ts"),
+            self._safe_int(result.get("next_reset_ts"), 0),
+        )
+        return result
 
     def _manual_clean_beach(self) -> Dict[str, Any]:
         self._ensure_cookie()
