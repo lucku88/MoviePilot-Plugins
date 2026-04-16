@@ -1181,11 +1181,12 @@ class FnMediaCoverGenerator(_PluginBase):
                 content_hash = hashlib.sha1(content).hexdigest()
                 if content_hash in content_hashes:
                     continue
+                next_index = success_count + 1
+                (library_dir / f"{next_index}.jpg").write_bytes(content)
                 content_hashes.add(content_hash)
-                success_count += 1
+                success_count = next_index
                 if self._cover_style == "static_5" and actual_primary_url is None:
                     actual_primary_url = url
-                (library_dir / f"{success_count}.jpg").write_bytes(content)
             except Exception as err:
                 logger.warning("%s 下载媒体库源图失败：%s / %s", self.plugin_name, url, err)
         if success_count <= 0:

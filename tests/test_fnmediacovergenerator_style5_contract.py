@@ -5,6 +5,7 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -326,6 +327,59 @@ class FnMediaCoverGeneratorStyle5ContractTests(unittest.TestCase):
         state = plugin.get_data("style5_last_primary_urls")
         self.assertIsInstance(state, dict)
         self.assertEqual(state.get("server::lib1"), "https://actual-primary.jpg")
+
+    def test_prepare_ignores_failed_first_write_for_actual_primary(self):
+        plugin = self.PluginClass()
+        plugin._cover_style = "static_5"
+        plugin._stop_event = types.SimpleNamespace(is_set=lambda: False)
+        plugin._is_trimemedia_runtime_ready = lambda runtime: False
+        plugin._is_trimemedia_request = lambda url, runtime: False
+        plugin.prepare_library_images = lambda library_dir, required_items=9: True
+
+        responses = {
+            "https://img-1.jpg": b"image-bytes-1",
+            "https://img-2.jpg": b"image-bytes-2",
+        }
+
+        def _fake_get(url, timeout=20, headers=None):
+            content = responses[url]
+            return types.SimpleNamespace(
+                raise_for_status=lambda: None,
+                headers={"content-type": "image/jpeg"},
+                content=content,
+                json=lambda: {},
+            )
+
+        original_get = self.module.requests.get
+        self.module.requests.get = _fake_get
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                library_dir = Path(temp_dir) / "library"
+                original_write_bytes = Path.write_bytes
+                state = {"calls": 0}
+
+                def _patched_write_bytes(self, data):
+                    state["calls"] += 1
+                    if self.name == "1.jpg" and state["calls"] == 1:
+                        raise OSError("disk full")
+                    return original_write_bytes(self, data)
+
+                with mock.patch.object(Path, "write_bytes", _patched_write_bytes):
+                    ok, message, actual_primary_url = plugin._prepare_library_images_from_urls(
+                        library_dir=library_dir,
+                        image_urls=["https://img-1.jpg", "https://img-2.jpg"],
+                        required_items=4,
+                        runtime={},
+                        server_name="server",
+                        library_name="library",
+                        library_id="lib1",
+                    )
+        finally:
+            self.module.requests.get = original_get
+
+        self.assertTrue(ok)
+        self.assertIn("已准备 1 张", message)
+        self.assertEqual(actual_primary_url, "https://img-2.jpg")
 
     def test_style5_preview_image_exists(self):
         self.assertTrue(STYLE5_PREVIEW_PATH.exists())
