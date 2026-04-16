@@ -51,7 +51,7 @@
     "name": "Vue-玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.10",
+    "version": "0.1.9",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
