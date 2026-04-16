@@ -56,3 +56,29 @@ class Style5LayoutTests(unittest.TestCase):
             ),
             149,
         )
+
+    def test_resolve_style5_title_font_size_never_drops_below_one(self):
+        module = load_module()
+
+        self.assertGreaterEqual(
+            module.resolve_style5_title_font_size(
+                base_size=1,
+                measured_width=9999,
+                max_width=1,
+                min_ratio=0,
+            ),
+            1,
+        )
+
+    def test_resolve_style5_title_font_size_with_large_min_ratio_never_exceeds_base_size(self):
+        module = load_module()
+
+        self.assertLessEqual(
+            module.resolve_style5_title_font_size(
+                base_size=10,
+                measured_width=100,
+                max_width=50,
+                min_ratio=1.5,
+            ),
+            10,
+        )

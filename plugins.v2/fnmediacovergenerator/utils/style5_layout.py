@@ -32,9 +32,15 @@ def resolve_style5_title_font_size(
     base_size = max(1, int(base_size))
     measured_width = max(1, int(measured_width))
     max_width = max(1, int(max_width))
+
+    min_ratio = float(min_ratio)
+    min_ratio = max(0.0, min(min_ratio, 1.0))
+
     if measured_width <= max_width:
         return base_size
 
     scaled = int(base_size * (max_width / measured_width))
     lower_bound = int(base_size * min_ratio)
+    scaled = max(1, min(base_size, scaled))
+    lower_bound = max(1, min(base_size, lower_bound))
     return max(lower_bound, scaled)
