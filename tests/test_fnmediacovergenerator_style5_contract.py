@@ -384,6 +384,67 @@ class FnMediaCoverGeneratorStyle5ContractTests(unittest.TestCase):
     def test_style5_preview_image_exists(self):
         self.assertTrue(STYLE5_PREVIEW_PATH.exists())
 
+    def test_style5_preview_prefers_local_data_uri_when_image_exists(self):
+        preview_src = getattr(
+            self.PluginClass,
+            "_FnMediaCoverGenerator__style_preview_src",
+        )(5)
+        self.assertTrue(preview_src.startswith("data:image/"))
+        self.assertNotIn("raw.githubusercontent.com", preview_src)
+
+    def test_fetch_library_item_images_supports_instance_api_and_resolves_relative_url(self):
+        plugin = self.PluginClass()
+
+        class _Api:
+            host = "https://trimemedia.example.com/v"
+
+            @staticmethod
+            def item_list(guid, page, page_size):
+                if guid != "library-guid" or page != 1:
+                    return []
+                return [{"guid": "movie-1", "type": "Movie"}]
+
+            @staticmethod
+            def item(guid):
+                if guid != "movie-1":
+                    return None
+                return {"guid": "movie-1", "poster": "/images/poster-1.jpg"}
+
+        service = types.SimpleNamespace(
+            instance=types.SimpleNamespace(api=_Api()),
+        )
+
+        def _fake_collect_library_item_image_paths(
+            library_guid,
+            fetch_children,
+            fetch_details,
+            limit,
+        ):
+            self.assertEqual(library_guid, "library-guid")
+            self.assertEqual(limit, 4)
+            children = list(fetch_children("library-guid"))
+            self.assertEqual(len(children), 1)
+            detail = fetch_details("movie-1")
+            self.assertEqual(detail.get("poster"), "/images/poster-1.jpg")
+            return [detail.get("poster")]
+
+        original_collect = self.module.collect_library_item_image_paths
+        self.module.collect_library_item_image_paths = _fake_collect_library_item_image_paths
+        try:
+            urls = plugin._fetch_trimemedia_library_item_image_urls(
+                service=service,
+                library_id="library-guid",
+                runtime={},
+                target_count=4,
+            )
+        finally:
+            self.module.collect_library_item_image_paths = original_collect
+
+        self.assertEqual(
+            urls,
+            ["https://trimemedia.example.com/v/images/poster-1.jpg"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

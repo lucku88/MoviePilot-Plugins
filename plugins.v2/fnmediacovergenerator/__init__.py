@@ -1320,7 +1320,7 @@ class FnMediaCoverGenerator(_PluginBase):
         target_count: int,
     ) -> List[str]:
         instance = getattr(service, "instance", None)
-        api = getattr(instance, "_api", None)
+        api = getattr(instance, "api", None) or getattr(instance, "_api", None)
         library_guid = str(library_id or "").strip()
         if not library_guid or api is None or not hasattr(api, "item_list") or not hasattr(api, "item"):
             return []
@@ -1384,7 +1384,9 @@ class FnMediaCoverGenerator(_PluginBase):
             return value
         host = str(runtime.get("api_host") or "").rstrip("/")
         if not host:
-            host = str(getattr(getattr(getattr(service, "instance", None), "_api", None), "host", "") or "").rstrip("/")
+            service_instance = getattr(service, "instance", None)
+            service_api = getattr(service_instance, "api", None) or getattr(service_instance, "_api", None)
+            host = str(getattr(service_api, "host", "") or "").rstrip("/")
         if not host:
             return value
         if not value.startswith("/"):
@@ -1583,6 +1585,13 @@ class FnMediaCoverGenerator(_PluginBase):
     @staticmethod
     def __style_preview_src(index: int) -> str:
         safe_index = max(1, min(5, int(index)))
+        local_preview = Path(__file__).resolve().parents[2] / "images" / f"style_{safe_index}.jpeg"
+        try:
+            if local_preview.exists() and local_preview.is_file():
+                encoded = base64.b64encode(local_preview.read_bytes()).decode("utf-8")
+                return f"data:image/jpeg;base64,{encoded}"
+        except Exception:
+            pass
         return f"https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/images/style_{safe_index}.jpeg"
 
     def _build_resolution_config(self) -> ResolutionConfig:
