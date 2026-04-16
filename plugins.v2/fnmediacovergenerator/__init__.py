@@ -34,6 +34,12 @@ from app.plugins.fnmediacovergenerator.style.style_static_1 import create_style_
 from app.plugins.fnmediacovergenerator.style.style_static_2 import create_style_static_2
 from app.plugins.fnmediacovergenerator.style.style_static_3 import create_style_static_3
 from app.plugins.fnmediacovergenerator.style.style_static_4 import create_style_static_4
+from app.plugins.fnmediacovergenerator.utils.history_selection import (
+    normalize_history_paths,
+    resolve_history_delete_targets,
+    retain_history_selection,
+    toggle_history_selection,
+)
 from app.plugins.fnmediacovergenerator.utils.library_image_debug import (
     count_non_empty_items,
     format_library_image_stats,
@@ -139,7 +145,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -266,6 +272,14 @@ class FnMediaCoverGenerator(_PluginBase):
             {"path": "clean_fonts", "endpoint": self.api_clean_fonts, "auth": "bear", "methods": ["POST"], "summary": "清理字体缓存"},
             {"path": "/delete_saved_cover", "endpoint": self.api_delete_saved_cover, "auth": "bear", "methods": ["POST", "GET"], "summary": "删除历史封面"},
             {"path": "delete_saved_cover", "endpoint": self.api_delete_saved_cover, "auth": "bear", "methods": ["POST", "GET"], "summary": "删除历史封面"},
+            {"path": "/toggle_saved_cover_selection", "endpoint": self.api_toggle_saved_cover_selection, "auth": "bear", "methods": ["POST", "GET"], "summary": "切换历史封面选择"},
+            {"path": "toggle_saved_cover_selection", "endpoint": self.api_toggle_saved_cover_selection, "auth": "bear", "methods": ["POST", "GET"], "summary": "切换历史封面选择"},
+            {"path": "/select_all_saved_covers", "endpoint": self.api_select_all_saved_covers, "auth": "bear", "methods": ["POST"], "summary": "全选历史封面"},
+            {"path": "select_all_saved_covers", "endpoint": self.api_select_all_saved_covers, "auth": "bear", "methods": ["POST"], "summary": "全选历史封面"},
+            {"path": "/clear_saved_cover_selection", "endpoint": self.api_clear_saved_cover_selection, "auth": "bear", "methods": ["POST"], "summary": "清空历史封面选择"},
+            {"path": "clear_saved_cover_selection", "endpoint": self.api_clear_saved_cover_selection, "auth": "bear", "methods": ["POST"], "summary": "清空历史封面选择"},
+            {"path": "/delete_selected_saved_covers", "endpoint": self.api_delete_selected_saved_covers, "auth": "bear", "methods": ["POST"], "summary": "批量删除历史封面"},
+            {"path": "delete_selected_saved_covers", "endpoint": self.api_delete_selected_saved_covers, "auth": "bear", "methods": ["POST"], "summary": "批量删除历史封面"},
         ]
 
     def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
@@ -422,9 +436,16 @@ class FnMediaCoverGenerator(_PluginBase):
             setup_warnings.append("未读取到媒体库列表，请先保存配置后重试")
 
         history_rows: List[Dict[str, Any]] = []
+        selected_history_files: List[str] = []
         if self._page_tab == "history-tab":
-            for item in self.__get_recent_generated_covers(limit=self._covers_page_history_limit):
+            history_items = self.__get_recent_generated_covers(limit=self._covers_page_history_limit)
+            visible_history_paths = [item["path"] for item in history_items if item.get("path")]
+            selected_history_files = self._prune_selected_history_files(visible_history_paths)
+            selected_history_set = set(selected_history_files)
+            for item in history_items:
                 delete_api = f"plugin/FnMediaCoverGenerator/delete_saved_cover?file={quote(item['path'])}"
+                toggle_api = f"plugin/FnMediaCoverGenerator/toggle_saved_cover_selection?file={quote(item['path'])}"
+                is_selected = item["path"] in selected_history_set
                 history_rows.append(
                     {
                         "component": "VCol",
@@ -436,6 +457,7 @@ class FnMediaCoverGenerator(_PluginBase):
                                 "content": [
                                     {"component": "VImg", "props": {"src": item["src"], "aspect-ratio": "16/9", "cover": True}},
                                     {"component": "VCardText", "props": {"class": "py-2"}, "content": [
+                                        {"component": "VBtn", "props": {"color": "primary" if is_selected else "default", "variant": "tonal" if is_selected else "outlined", "size": "small", "class": "mb-2 text-none", "prepend-icon": "mdi-checkbox-marked-circle-outline" if is_selected else "mdi-checkbox-blank-circle-outline"}, "text": "已选中" if is_selected else "选择", "events": {"click": {"api": toggle_api, "method": "post"}}},
                                         {"component": "div", "props": {"class": "text-body-2"}, "text": item["name"]},
                                         {"component": "div", "props": {"class": "text-caption text-medium-emphasis"}, "text": f"{item['mtime']} / {item['size']}"},
                                         {"component": "VBtn", "props": {"color": "error", "variant": "text", "size": "small", "class": "mt-2 text-none"}, "text": "删除", "events": {"click": {"api": delete_api, "method": "post"}}},
@@ -517,6 +539,18 @@ class FnMediaCoverGenerator(_PluginBase):
                     "props": {"variant": "outlined", "class": "mt-3"},
                     "content": [
                         {"component": "VCardTitle", "text": f"最近生成的封面（最多 {self._covers_page_history_limit} 张）"},
+                        {"component": "VCardText", "content": [
+                            {"component": "VRow", "content": [
+                                {"component": "VCol", "props": {"cols": 12, "md": 8}, "content": [
+                                    {"component": "div", "props": {"class": "text-caption text-medium-emphasis"}, "text": f"当前已选 {len(selected_history_files)} 张，可批量删除当前页勾选的历史封面。"}
+                                ]},
+                                {"component": "VCol", "props": {"cols": 12, "md": 4}, "content": [
+                                    {"component": "VBtn", "props": {"variant": "text", "size": "small", "class": "mr-2 mb-2 text-none", "prepend-icon": "mdi-select-all", "disabled": not history_rows}, "text": "全选当前页", "events": {"click": {"api": "plugin/FnMediaCoverGenerator/select_all_saved_covers", "method": "post"}}},
+                                    {"component": "VBtn", "props": {"variant": "text", "size": "small", "class": "mr-2 mb-2 text-none", "prepend-icon": "mdi-close-circle-outline", "disabled": len(selected_history_files) <= 0}, "text": "清空选择", "events": {"click": {"api": "plugin/FnMediaCoverGenerator/clear_saved_cover_selection", "method": "post"}}},
+                                    {"component": "VBtn", "props": {"color": "error", "variant": "flat", "size": "small", "class": "mb-2 text-none", "prepend-icon": "mdi-delete-sweep-outline", "disabled": len(selected_history_files) <= 0}, "text": f"删除已选（{len(selected_history_files)}）", "events": {"click": {"api": "plugin/FnMediaCoverGenerator/delete_selected_saved_covers", "method": "post"}}},
+                                ]},
+                            ]}
+                        ]},
                         {"component": "VCardText", "content": [{"component": "VRow", "content": history_rows or [{"component": "VAlert", "props": {"type": "info", "variant": "tonal"}, "text": "还没有可展示的历史封面。"}]}]},
                     ],
                 }
@@ -618,21 +652,73 @@ class FnMediaCoverGenerator(_PluginBase):
         return {"success": True, "message": f"已清理 {removed} 个字体缓存项"}
 
     def api_delete_saved_cover(self, file: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        target = str(file or "").strip()
-        if isinstance(data, dict) and data.get("file"):
-            target = str(data.get("file")).strip()
+        targets = resolve_history_delete_targets(file=file, data=data)
+        if not targets:
+            return {"success": False, "message": "缺少文件路径"}
+        output_dir = self._covers_output or (self.get_data_path() / "output")
+        deleted_paths: List[str] = []
+        missing_count = 0
+        invalid_count = 0
+        for target in targets:
+            path = Path(target)
+            try:
+                path.relative_to(output_dir)
+            except Exception:
+                invalid_count += 1
+                continue
+            if not path.exists():
+                missing_count += 1
+                continue
+            path.unlink(missing_ok=True)
+            deleted_paths.append(str(path))
+        if deleted_paths:
+            deleted_set = set(deleted_paths)
+            remaining_selected = [item for item in self._get_selected_history_files() if item not in deleted_set]
+            self._set_selected_history_files(remaining_selected)
+        if not deleted_paths:
+            if invalid_count > 0:
+                return {"success": False, "message": "只能删除插件输出目录中的文件"}
+            return {"success": False, "message": "文件不存在"}
+        if len(deleted_paths) == 1:
+            message = f"已删除 {Path(deleted_paths[0]).name}"
+        else:
+            message = f"已删除 {len(deleted_paths)} 张封面"
+        if missing_count > 0:
+            message += f"，跳过 {missing_count} 个不存在文件"
+        if invalid_count > 0:
+            message += f"，忽略 {invalid_count} 个非法路径"
+        return {"success": True, "message": message}
+
+    def api_toggle_saved_cover_selection(self, file: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        targets = resolve_history_delete_targets(file=file, data=data)
+        target = targets[0] if targets else ""
         if not target:
             return {"success": False, "message": "缺少文件路径"}
-        path = Path(target)
-        output_dir = self._covers_output or (self.get_data_path() / "output")
-        try:
-            path.relative_to(output_dir)
-        except Exception:
-            return {"success": False, "message": "只能删除插件输出目录中的文件"}
-        if not path.exists():
-            return {"success": False, "message": "文件不存在"}
-        path.unlink(missing_ok=True)
-        return {"success": True, "message": f"已删除 {path.name}"}
+        visible_paths = [item["path"] for item in self.__get_recent_generated_covers(limit=self._covers_page_history_limit) if item.get("path")]
+        if target not in visible_paths:
+            return {"success": False, "message": "文件不在当前历史列表中"}
+        selected = toggle_history_selection(self._get_selected_history_files(), target)
+        selected = retain_history_selection(selected, visible_paths)
+        self._set_selected_history_files(selected)
+        return {"success": True, "message": f"当前已选 {len(selected)} 张封面"}
+
+    def api_select_all_saved_covers(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        visible_paths = [item["path"] for item in self.__get_recent_generated_covers(limit=self._covers_page_history_limit) if item.get("path")]
+        if not visible_paths:
+            self._set_selected_history_files([])
+            return {"success": False, "message": "当前没有可选的历史封面"}
+        self._set_selected_history_files(visible_paths)
+        return {"success": True, "message": f"已选中当前页 {len(visible_paths)} 张封面"}
+
+    def api_clear_saved_cover_selection(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        self._set_selected_history_files([])
+        return {"success": True, "message": "已清空历史封面选择"}
+
+    def api_delete_selected_saved_covers(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        selected = self._prune_selected_history_files()
+        if not selected:
+            return {"success": False, "message": "请先选择要删除的历史封面"}
+        return self.api_delete_saved_cover(data={"files": selected})
 
     def _default_config(self) -> Dict[str, Any]:
         return {
@@ -1265,6 +1351,22 @@ class FnMediaCoverGenerator(_PluginBase):
         files.sort(key=lambda item: item.stat().st_mtime, reverse=True)
         for stale in files[self._covers_history_limit_per_library:]:
             stale.unlink(missing_ok=True)
+
+    def _get_selected_history_files(self) -> List[str]:
+        return normalize_history_paths(self.get_data("selected_history_files") or [])
+
+    def _set_selected_history_files(self, paths: List[str]):
+        self.save_data("selected_history_files", normalize_history_paths(paths))
+
+    def _prune_selected_history_files(self, visible_paths: Optional[List[str]] = None) -> List[str]:
+        selected = self._get_selected_history_files()
+        visible = visible_paths or [
+            item["path"] for item in self.__get_recent_generated_covers(limit=self._covers_page_history_limit) if item.get("path")
+        ]
+        retained = retain_history_selection(selected, visible)
+        if retained != selected:
+            self._set_selected_history_files(retained)
+        return retained
 
     def _library_cache_dir(self, server_name: str, library_name: str, library_id: str) -> Path:
         base = self._covers_path or (self.get_data_path() / "input")
