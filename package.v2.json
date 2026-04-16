@@ -51,7 +51,7 @@
     "name": "Vue-玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
@@ -133,6 +133,7 @@
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.10": "插件详情页切到 Vue 远程组件：配置页继续复用原有 schema 渲染，历史封面改成本地勾选后再批量删除，避免每点一次选择就整页闪烁刷新。",
       "v0.1.9": "历史封面页新增多选删除：支持逐张勾选、全选当前页、清空选择和批量删除，单张删除仍然保留。",
       "v0.1.8": "当媒体库 image_list 不足时，优先只使用按媒体库条目补抓到的真实 poster 参与取图，不再和默认 4 张媒体库图混用；不足 9 张时再走现有补齐兜底。",
       "v0.1.7": "当飞牛返回的媒体库 image_list 数量不足时，插件会继续按媒体库条目递归补抓更多 poster，再参与随机取图，减少风格3只能在 4 张图里重复补齐的问题。",

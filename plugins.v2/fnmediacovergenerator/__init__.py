@@ -145,7 +145,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -270,6 +270,8 @@ class FnMediaCoverGenerator(_PluginBase):
             {"path": "clean_images", "endpoint": self.api_clean_images, "auth": "bear", "methods": ["POST"], "summary": "清理图片缓存"},
             {"path": "/clean_fonts", "endpoint": self.api_clean_fonts, "auth": "bear", "methods": ["POST"], "summary": "清理字体缓存"},
             {"path": "clean_fonts", "endpoint": self.api_clean_fonts, "auth": "bear", "methods": ["POST"], "summary": "清理字体缓存"},
+            {"path": "/page_data", "endpoint": self.api_page_data, "auth": "bear", "methods": ["GET"], "summary": "获取 Vue 页面数据"},
+            {"path": "page_data", "endpoint": self.api_page_data, "auth": "bear", "methods": ["GET"], "summary": "获取 Vue 页面数据"},
             {"path": "/delete_saved_cover", "endpoint": self.api_delete_saved_cover, "auth": "bear", "methods": ["POST", "GET"], "summary": "删除历史封面"},
             {"path": "delete_saved_cover", "endpoint": self.api_delete_saved_cover, "auth": "bear", "methods": ["POST", "GET"], "summary": "删除历史封面"},
             {"path": "/toggle_saved_cover_selection", "endpoint": self.api_toggle_saved_cover_selection, "auth": "bear", "methods": ["POST", "GET"], "summary": "切换历史封面选择"},
@@ -418,6 +420,9 @@ class FnMediaCoverGenerator(_PluginBase):
                 ],
             }
         ], self._config_payload()
+
+    def get_render_mode(self) -> Tuple[str, Optional[str]]:
+        return "vue", "dist/assets/assets"
 
     def get_page(self) -> List[dict]:
         style_variant, style_index = self.__get_cover_style_parts()
@@ -650,6 +655,9 @@ class FnMediaCoverGenerator(_PluginBase):
         self._en_font_path = ""
         self._update_config()
         return {"success": True, "message": f"已清理 {removed} 个字体缓存项"}
+
+    def api_page_data(self, _: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return {"success": True, "data": self._build_page_data_payload()}
 
     def api_delete_saved_cover(self, file: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         targets = resolve_history_delete_targets(file=file, data=data)
@@ -1367,6 +1375,48 @@ class FnMediaCoverGenerator(_PluginBase):
         if retained != selected:
             self._set_selected_history_files(retained)
         return retained
+
+    def _build_page_data_payload(self) -> Dict[str, Any]:
+        style_variant, style_index = self.__get_cover_style_parts()
+        latest_result = self.get_data("latest_result") or {}
+        latest_message = latest_result.get("message") or "还没有执行记录"
+        latest_time = latest_result.get("finished_at") or self.get_data("last_run") or "-"
+        return {
+            "latest_message": latest_message,
+            "latest_time": latest_time,
+            "setup_warnings": self._collect_setup_warnings(),
+            "cover_style": self._cover_style,
+            "cover_style_base": self._cover_style_base,
+            "cover_style_variant": style_variant,
+            "cover_style_index": style_index,
+            "history_limit": self._covers_page_history_limit,
+            "history_items": self.__get_recent_generated_covers(limit=self._covers_page_history_limit),
+            "style_cards": self._build_style_card_payloads(selected_index=style_index),
+        }
+
+    def _collect_setup_warnings(self) -> List[str]:
+        warnings: List[str] = []
+        if not self._collect_server_options():
+            warnings.append("未检测到已配置的飞牛影视媒体服务器")
+        if not self._selected_servers:
+            warnings.append("当前未勾选媒体服务器，默认会处理全部飞牛媒体服务器")
+        if not self._all_libraries:
+            self._all_libraries = self._collect_library_options()
+        if self._selected_servers and not self._all_libraries:
+            warnings.append("未读取到媒体库列表，请先保存配置后重试")
+        return warnings
+
+    def _build_style_card_payloads(self, selected_index: int) -> List[Dict[str, Any]]:
+        cards: List[Dict[str, Any]] = []
+        for index in range(1, 5):
+            cards.append({
+                "index": index,
+                "name": f"风格{index}",
+                "variant": "静态",
+                "preview_src": self.__style_preview_src(index),
+                "selected": index == selected_index,
+            })
+        return cards
 
     def _library_cache_dir(self, server_name: str, library_name: str, library_id: str) -> Path:
         base = self._covers_path or (self.get_data_path() / "input")
