@@ -66,7 +66,36 @@ def _resolve_echo_paths(image_paths: list[Path], render_mode: dict) -> list[Path
     return available_echo[:max_echo]
 
 
-def _draw_echo_tiles(canvas: Image.Image, echo_paths: list[Path]) -> None:
+def _build_echo_tile(
+    image_path: Path,
+    size: Tuple[int, int],
+    corner: int,
+    border_width: int,
+) -> tuple[Image.Image, Image.Image]:
+    with Image.open(image_path) as echo_image:
+        tile = ImageOps.fit(
+            echo_image.convert("RGB"),
+            size,
+            method=Image.Resampling.LANCZOS,
+        ).convert("RGBA")
+    tile = _enhance_primary(tile.convert("RGB")).convert("RGBA")
+    mask = _build_rounded_mask(size, corner)
+    clipped = Image.new("RGBA", size, (0, 0, 0, 0))
+    clipped.paste(tile, (0, 0), mask)
+
+    border = Image.new("RGBA", size, (0, 0, 0, 0))
+    border_draw = ImageDraw.Draw(border)
+    border_draw.rounded_rectangle(
+        (1, 1, size[0] - 2, size[1] - 2),
+        radius=corner,
+        outline=(245, 245, 245, 232),
+        width=border_width,
+    )
+    clipped = Image.alpha_composite(clipped, border)
+    return clipped, mask
+
+
+def _draw_standard_echo_tiles(canvas: Image.Image, echo_paths: list[Path]) -> None:
     if not echo_paths:
         return
 
@@ -78,34 +107,46 @@ def _draw_echo_tiles(canvas: Image.Image, echo_paths: list[Path]) -> None:
     right_margin = max(40, int(width * 0.03))
     step_y = max(8, int(height * 0.01))
     corner = max(12, int(min(tile_w, tile_h) * 0.09))
+    border_width = max(2, int(width * 0.0015))
+    shadow_offset = 6
 
     for index, image_path in enumerate(echo_paths):
-        with Image.open(image_path) as echo_image:
-            tile = ImageOps.fit(
-                echo_image.convert("RGB"),
-                (tile_w, tile_h),
-                method=Image.Resampling.LANCZOS,
-            ).convert("RGBA")
-        tile = _enhance_primary(tile.convert("RGB")).convert("RGBA")
-        mask = _build_rounded_mask((tile_w, tile_h), corner)
-        clipped = Image.new("RGBA", (tile_w, tile_h), (0, 0, 0, 0))
-        clipped.paste(tile, (0, 0), mask)
-
-        border = Image.new("RGBA", (tile_w, tile_h), (0, 0, 0, 0))
-        border_draw = ImageDraw.Draw(border)
-        border_draw.rounded_rectangle(
-            (1, 1, tile_w - 2, tile_h - 2),
-            radius=corner,
-            outline=(245, 245, 245, 232),
-            width=max(2, int(width * 0.0015)),
-        )
-        clipped = Image.alpha_composite(clipped, border)
-
+        clipped, mask = _build_echo_tile(image_path, (tile_w, tile_h), corner, border_width)
         shadow = Image.new("RGBA", (tile_w, tile_h), (0, 0, 0, 95))
         shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(4)))
         x = width - right_margin - tile_w - index * (tile_w + gap)
         y = top_margin + index * step_y
-        canvas.alpha_composite(shadow, (x + 6, y + 6))
+        canvas.alpha_composite(shadow, (x + shadow_offset, y + shadow_offset))
+        canvas.alpha_composite(clipped, (x, y))
+
+
+def _draw_sparse_echo_tiles(canvas: Image.Image, echo_paths: list[Path]) -> None:
+    if not echo_paths:
+        return
+
+    width, height = canvas.size
+    tile_w = max(260, int(width * 0.2))
+    tile_h = max(340, int(height * 0.32))
+    gap = max(20, int(width * 0.012))
+    right_margin = max(44, int(width * 0.03))
+    bottom_margin = max(44, int(height * 0.04))
+    corner = max(18, int(min(tile_w, tile_h) * 0.08))
+    border_width = max(3, int(width * 0.0018))
+    shadow_offset = 8
+    shadow_alpha = 110
+
+    first_x = width - right_margin - tile_w
+    first_y = height - bottom_margin - tile_h
+    second_x = first_x - tile_w + int(tile_w * 0.22) - gap
+    second_y = first_y - int(tile_h * 0.08)
+    positions = [(first_x, first_y), (second_x, second_y)]
+
+    for index, image_path in enumerate(echo_paths[:2]):
+        clipped, mask = _build_echo_tile(image_path, (tile_w, tile_h), corner, border_width)
+        shadow = Image.new("RGBA", (tile_w, tile_h), (0, 0, 0, shadow_alpha))
+        shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(6)))
+        x, y = positions[index]
+        canvas.alpha_composite(shadow, (x + shadow_offset, y + shadow_offset))
         canvas.alpha_composite(clipped, (x, y))
 
 
@@ -135,9 +176,9 @@ def create_style_static_5(
     canvas = ImageOps.fit(primary, canvas_size, Image.Resampling.LANCZOS).convert("RGBA")
 
     if render_mode["mode"] == "a2_standard":
-        _draw_echo_tiles(canvas, echo_paths)
+        _draw_standard_echo_tiles(canvas, echo_paths)
     elif render_mode["mode"] == "a2_sparse":
-        _draw_echo_tiles(canvas, echo_paths)
+        _draw_sparse_echo_tiles(canvas, echo_paths)
 
     mask = Image.new("L", canvas.size, 0)
     mask_draw = ImageDraw.Draw(mask)

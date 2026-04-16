@@ -109,7 +109,7 @@ class StyleStatic5Tests(unittest.TestCase):
         raw = base64.b64decode(payload)
         return Image.open(BytesIO(raw)).convert("RGB")
 
-    def _echo_boxes(self, size):
+    def _standard_echo_boxes(self, size):
         width, height = size
         tile_w = max(160, int(width * 0.13))
         tile_h = max(220, int(height * 0.19))
@@ -125,6 +125,24 @@ class StyleStatic5Tests(unittest.TestCase):
             y = top_margin + index * step_y
             boxes.append((x + inset, y + inset, x + tile_w - inset, y + tile_h - inset))
         return boxes
+
+    def _sparse_echo_boxes(self, size):
+        width, height = size
+        tile_w = max(260, int(width * 0.2))
+        tile_h = max(340, int(height * 0.32))
+        gap = max(20, int(width * 0.012))
+        right_margin = max(44, int(width * 0.03))
+        bottom_margin = max(44, int(height * 0.04))
+        inset = max(10, int(min(tile_w, tile_h) * 0.1))
+
+        first_x = width - right_margin - tile_w
+        first_y = height - bottom_margin - tile_h
+        second_x = first_x - tile_w + int(tile_w * 0.22) - gap
+        second_y = first_y - int(tile_h * 0.08)
+        return [
+            (first_x + inset, first_y + inset, first_x + tile_w - inset, first_y + tile_h - inset),
+            (second_x + inset, second_y + inset, second_x + tile_w - inset, second_y + tile_h - inset),
+        ]
 
     def _region_diff_score(self, image_a: Image.Image, image_b: Image.Image, box) -> float:
         diff = ImageChops.difference(image_a.crop(box), image_b.crop(box))
@@ -159,21 +177,25 @@ class StyleStatic5Tests(unittest.TestCase):
         self.assertNotEqual(digests[2], digests[1])
         self.assertNotEqual(digests[4], digests[2])
 
-        echo_1, echo_2, echo_3 = self._echo_boxes(decoded_images[1].size)
+        std_1, std_2, std_3 = self._standard_echo_boxes(decoded_images[1].size)
+        sparse_1, sparse_2 = self._sparse_echo_boxes(decoded_images[1].size)
 
-        # 2 张图需要真实渲染 1 张 echo，且 fallback 不应有 echo。
-        self.assertGreater(self._region_diff_score(decoded_images[2], decoded_images[1], echo_1), 20.0)
-        self.assertLess(self._region_diff_score(decoded_images[2], decoded_images[1], echo_2), 5.0)
-        self.assertLess(self._region_diff_score(decoded_images[2], decoded_images[1], echo_3), 5.0)
+        # a2_standard：右上三连区域应明显变化，右下大卡区域应基本不受影响。
+        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], std_1), 20.0)
+        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], std_2), 20.0)
+        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], std_3), 20.0)
+        self.assertLess(self._region_diff_score(decoded_images[4], decoded_images[1], sparse_1), 8.0)
+        self.assertLess(self._region_diff_score(decoded_images[4], decoded_images[1], sparse_2), 8.0)
 
-        # 4 张图需要渲染 3 张 echo。
-        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], echo_1), 20.0)
-        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], echo_2), 20.0)
-        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[1], echo_3), 20.0)
+        # a2_sparse：右下大卡区域应明显变化，右上三连区域应基本不受影响。
+        self.assertGreater(self._region_diff_score(decoded_images[2], decoded_images[1], sparse_1), 20.0)
+        self.assertLess(self._region_diff_score(decoded_images[2], decoded_images[1], std_1), 8.0)
+        self.assertLess(self._region_diff_score(decoded_images[2], decoded_images[1], std_2), 8.0)
+        self.assertLess(self._region_diff_score(decoded_images[2], decoded_images[1], std_3), 8.0)
 
-        # 4 张图比 2 张图至少应在第 2、3 个 echo 位点有布局差异。
-        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], echo_2), 20.0)
-        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], echo_3), 20.0)
+        # standard vs sparse：两套布局核心区域都应体现明显差异。
+        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], std_2), 20.0)
+        self.assertGreater(self._region_diff_score(decoded_images[4], decoded_images[2], sparse_1), 20.0)
 
 
 if __name__ == "__main__":
