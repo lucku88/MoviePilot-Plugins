@@ -40,6 +40,10 @@ from app.plugins.fnmediacovergenerator.utils.library_image_debug import (
 )
 from app.plugins.fnmediacovergenerator.utils.image_manager import ResolutionConfig
 from app.plugins.fnmediacovergenerator.utils.network_helper import NetworkHelper, validate_font_file
+from app.plugins.fnmediacovergenerator.utils.trimemedia_library_images import (
+    collect_library_item_image_paths,
+    merge_unique_image_urls,
+)
 
 
 TRIMEMEDIA_SIGN_SECRET = "NDzZTVxnRKP8Z0jXg1VAMonaG8akvh"
@@ -134,7 +138,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -960,10 +964,16 @@ class FnMediaCoverGenerator(_PluginBase):
         runtime = self._extract_trimemedia_runtime(server_name, service, library)
         required_items = self.__get_required_items()
         library_dir = self._library_cache_dir(server_name, library_name, str(library.get("id") or ""))
+        image_urls = self._expand_trimemedia_library_image_urls(
+            service=service,
+            library=library,
+            runtime=runtime,
+            required_items=required_items,
+        )
 
         ok, message = self._prepare_library_images_from_urls(
             library_dir=library_dir,
-            image_urls=list(library.get("image_list") or []),
+            image_urls=image_urls,
             required_items=required_items,
             runtime=runtime,
             server_name=server_name,
@@ -1091,6 +1101,117 @@ class FnMediaCoverGenerator(_PluginBase):
             shutil.copyfile(selected, target)
             last_used = selected
         return True
+
+    def _expand_trimemedia_library_image_urls(
+        self,
+        service: Any,
+        library: Dict[str, Any],
+        runtime: Dict[str, Any],
+        required_items: int,
+    ) -> List[str]:
+        base_urls = merge_unique_image_urls(library.get("image_list") or [])
+        if len(base_urls) >= required_items:
+            return base_urls
+
+        target_count = min(max(required_items * 4, required_items), 60)
+        extra_urls = self._fetch_trimemedia_library_item_image_urls(
+            service=service,
+            library_id=str(library.get("id") or ""),
+            runtime=runtime,
+            target_count=target_count,
+        )
+        merged_urls = merge_unique_image_urls(base_urls, extra_urls, limit=target_count)
+        logger.info(
+            "%s 媒体库条目补图 | 服务器=%s | 媒体库=%s | id=%s | image_list=%s 张 | 条目补充=%s 张 | 合并后=%s 张 | 当前风格需要 %s 张",
+            self.plugin_name,
+            library.get("server_name") or getattr(service, "name", "") or "",
+            library.get("name") or "",
+            str(library.get("id") or ""),
+            len(base_urls),
+            len(extra_urls),
+            len(merged_urls),
+            required_items,
+        )
+        return merged_urls
+
+    def _fetch_trimemedia_library_item_image_urls(
+        self,
+        service: Any,
+        library_id: str,
+        runtime: Dict[str, Any],
+        target_count: int,
+    ) -> List[str]:
+        instance = getattr(service, "instance", None)
+        api = getattr(instance, "_api", None)
+        library_guid = str(library_id or "").strip()
+        if not library_guid or api is None or not hasattr(api, "item_list") or not hasattr(api, "item"):
+            return []
+
+        page_size = max(50, min(200, target_count * 5))
+        max_pages = max(1, min(10, (target_count * 6 + page_size - 1) // page_size))
+
+        def fetch_children(parent_guid: str) -> List[Any]:
+            collected: List[Any] = []
+            for page in range(1, max_pages + 1):
+                try:
+                    batch = list(api.item_list(guid=parent_guid, page=page, page_size=page_size) or [])
+                except Exception as err:
+                    logger.warning("%s 读取媒体库条目失败：%s / %s", self.plugin_name, parent_guid, err)
+                    break
+                if not batch:
+                    break
+                random.shuffle(batch)
+                collected.extend(batch)
+                if len(batch) < page_size:
+                    break
+            return collected
+
+        def fetch_details(item_guid: str) -> Any:
+            try:
+                return api.item(guid=item_guid)
+            except Exception as err:
+                logger.warning("%s 读取媒体详情失败：%s / %s", self.plugin_name, item_guid, err)
+                return None
+
+        image_paths = collect_library_item_image_paths(
+            library_guid=library_guid,
+            fetch_children=fetch_children,
+            fetch_details=fetch_details,
+            limit=target_count,
+        )
+        random.shuffle(image_paths)
+        resolved_urls = merge_unique_image_urls(
+            [
+                self._resolve_trimemedia_item_image_url(
+                    image_path=image_path,
+                    runtime=runtime,
+                    service=service,
+                )
+                for image_path in image_paths
+            ],
+            limit=target_count,
+        )
+        return resolved_urls
+
+    def _resolve_trimemedia_item_image_url(
+        self,
+        image_path: str,
+        runtime: Dict[str, Any],
+        service: Any,
+    ) -> str:
+        value = str(image_path or "").strip()
+        if not value:
+            return ""
+        if value.startswith("http://") or value.startswith("https://"):
+            return value
+        host = str(runtime.get("api_host") or "").rstrip("/")
+        if not host:
+            host = str(getattr(getattr(getattr(service, "instance", None), "_api", None), "host", "") or "").rstrip("/")
+        if not host:
+            return value
+        if not value.startswith("/"):
+            value = "/" + value
+        return f"{host}{value}"
 
     def _generate_image_from_path(self, server_name: str, library_name: str, library_dir: Path, title: Tuple[str, str], config_bg_color: Optional[str] = None) -> Any:
         if not self.health_check():
