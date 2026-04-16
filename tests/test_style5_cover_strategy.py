@@ -57,6 +57,48 @@ class Style5CoverStrategyTests(unittest.TestCase):
         self.assertNotEqual(selected[0], "https://a.jpg")
         self.assertTrue(avoided)
 
+    def test_select_style5_image_urls_not_avoid_when_last_primary_not_in_pool(self):
+        module = load_module()
+        rng = random.Random(7)
+
+        selected, avoided = module.select_style5_image_urls(
+            candidate_urls=["https://a.jpg", "https://b.jpg", "https://c.jpg"],
+            required_count=3,
+            last_primary_url="https://not-in-pool.jpg",
+            rng=rng,
+        )
+
+        self.assertEqual(len(selected), 3)
+        self.assertFalse(avoided)
+
+    def test_select_style5_image_urls_not_avoid_when_last_primary_blank(self):
+        module = load_module()
+        rng = random.Random(7)
+
+        selected, avoided = module.select_style5_image_urls(
+            candidate_urls=["https://a.jpg", "https://b.jpg", "https://c.jpg"],
+            required_count=3,
+            last_primary_url="   ",
+            rng=rng,
+        )
+
+        self.assertEqual(len(selected), 3)
+        self.assertFalse(avoided)
+
+    def test_select_style5_image_urls_returns_empty_when_required_count_is_zero(self):
+        module = load_module()
+        rng = random.Random(7)
+
+        selected, avoided = module.select_style5_image_urls(
+            candidate_urls=["https://a.jpg", "https://b.jpg"],
+            required_count=0,
+            last_primary_url="https://a.jpg",
+            rng=rng,
+        )
+
+        self.assertEqual(selected, [])
+        self.assertFalse(avoided)
+
     def test_resolve_style5_render_mode_degrades_without_duplication(self):
         module = load_module()
 

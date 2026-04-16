@@ -35,12 +35,17 @@ def select_style5_image_urls(
     rng: Optional[random.Random] = None,
 ) -> Tuple[List[str], bool]:
     rng = rng or random
+    if required_count <= 0:
+        return [], False
+
     pool = _clean_urls(candidate_urls)
     if not pool:
         return [], False
 
-    primary_candidates = [url for url in pool if url != str(last_primary_url or "").strip()]
-    avoided_last_primary = bool(primary_candidates) and bool(last_primary_url)
+    normalized_last_primary = str(last_primary_url or "").strip()
+    has_last_primary_in_pool = bool(normalized_last_primary) and normalized_last_primary in pool
+    primary_candidates = [url for url in pool if url != normalized_last_primary]
+    avoided_last_primary = has_last_primary_in_pool and bool(primary_candidates)
     primary_pool = primary_candidates or pool
     primary = rng.choice(primary_pool)
 
