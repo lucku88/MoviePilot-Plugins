@@ -1165,6 +1165,18 @@ class FnMediaCoverGenerator(_PluginBase):
                 logger.warning("%s 下载媒体库源图失败：%s / %s", self.plugin_name, url, err)
         if success_count <= 0:
             return False, "媒体库源图下载失败"
+        if self._cover_style == "static_5":
+            render_mode = resolve_style5_render_mode(success_count)
+            logger.info(
+                "%s style_5 素材缓存保留真实张数 | 服务器=%s | 媒体库=%s | id=%s | 下载成功=%s | 模式=%s",
+                self.plugin_name,
+                server_name,
+                library_name,
+                library_id,
+                success_count,
+                render_mode.get("mode"),
+            )
+            return True, f"已准备 {success_count} 张不重复封面源图（style_5 保留真实张数）"
         if not self.prepare_library_images(library_dir, required_items=required_items):
             return False, "媒体库源图数量不足，无法补齐封面素材"
         return True, f"已准备 {success_count} 张不重复封面源图"
@@ -1195,7 +1207,8 @@ class FnMediaCoverGenerator(_PluginBase):
         base_urls = merge_unique_image_urls(library.get("image_list") or [])
         target_count = min(max(required_items * 4, required_items), 60)
         extra_urls: List[str] = []
-        if len(base_urls) < required_items:
+        need_item_pool = self._cover_style == "static_5" or len(base_urls) < required_items
+        if need_item_pool:
             extra_urls = self._fetch_trimemedia_library_item_image_urls(
                 service=service,
                 library_id=str(library.get("id") or ""),
@@ -1203,10 +1216,14 @@ class FnMediaCoverGenerator(_PluginBase):
                 target_count=target_count,
             )
         if self._cover_style == "static_5":
-            candidate_urls, source = pick_style5_source_urls(
+            primary_urls, source = pick_style5_source_urls(
                 base_urls=base_urls,
                 supplemental_urls=extra_urls,
             )
+            candidate_urls = list(primary_urls)
+            if source == "supplemental" and len(primary_urls) < max(1, required_items) and base_urls:
+                candidate_urls = merge_unique_image_urls(primary_urls + base_urls, limit=target_count)
+                source = "supplemental+base"
             library_key = str(
                 library.get("library_key")
                 or f"{library.get('server_name') or getattr(service, 'name', '')}::{library.get('id') or ''}"
@@ -1535,7 +1552,7 @@ class FnMediaCoverGenerator(_PluginBase):
     @staticmethod
     def __style_preview_src(index: int) -> str:
         safe_index = max(1, min(5, int(index)))
-        return f"https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/images/style_{safe_index}.jpeg"
+        return f"https://raw.githubusercontent.com/justzerock/MoviePilot-Plugins/main/images/style_{safe_index}.jpeg"
 
     def _build_resolution_config(self) -> ResolutionConfig:
         if self._resolution == "custom":
