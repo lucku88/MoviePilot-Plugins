@@ -128,11 +128,12 @@
     "name": "飞牛影视媒体库封面生成",
     "description": "生成媒体库静态封面，支持飞牛影视",
     "labels": "媒体服务器,飞牛影视,封面",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "icon": "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.8": "当媒体库 image_list 不足时，优先只使用按媒体库条目补抓到的真实 poster 参与取图，不再和默认 4 张媒体库图混用；不足 9 张时再走现有补齐兜底。",
       "v0.1.7": "当飞牛返回的媒体库 image_list 数量不足时，插件会继续按媒体库条目递归补抓更多 poster，再参与随机取图，减少风格3只能在 4 张图里重复补齐的问题。",
       "v0.1.6": "新增飞牛媒体库源图统计日志，执行生成时会输出每个媒体库返回的 image_list 数量、URL 去重结果和当前风格所需张数，便于排查风格3重复来源。",
       "v0.1.5": "未配置 YAML 副标题时，会为常见媒体库名自动补默认副标题，例如国漫、动画、电影、动画电影等。",
