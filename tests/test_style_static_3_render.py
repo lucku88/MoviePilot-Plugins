@@ -199,6 +199,69 @@ class StyleStatic3RenderTests(unittest.TestCase):
             "即使 Pillow 的 draw.text 未实际落字，也应通过兜底路径渲染出标题像素",
         )
 
+    def test_draw_text_on_image_uses_outline_fallback_when_mask_is_empty(self):
+        module = load_style_module()
+        text_module = sys.modules["app.plugins.fnmediacovergenerator.style.text_rendering"]
+        font_path = find_font_path()
+        image = Image.new("RGBA", (420, 180), (20, 20, 20, 255))
+        outline_patch = Image.new("RGBA", (90, 36), (255, 255, 255, 255))
+
+        class EmptyMask:
+            size = (1, 1)
+
+            def getbbox(self):
+                return None
+
+            def __bytes__(self):
+                return b"\x00"
+
+        with mock.patch("PIL.ImageDraw.ImageDraw.text", autospec=True, side_effect=lambda *args, **kwargs: None), \
+                mock.patch("PIL.ImageFont.FreeTypeFont.getmask", autospec=True, return_value=EmptyMask()), \
+                mock.patch.object(text_module, "_build_outline_text_patch", return_value=(outline_patch, (0, 0))):
+            rendered = module.draw_text_on_image(
+                image,
+                "国产剧",
+                (30, 40),
+                font_path,
+                "unused.ttf",
+                72,
+                fill_color=(255, 255, 255, 255),
+                shadow=False,
+            )
+
+        pixels = np.array(rendered.convert("RGB"))
+        bright_pixels = int(
+            ((pixels[:, :, 0] > 220) & (pixels[:, :, 1] > 220) & (pixels[:, :, 2] > 220)).sum()
+        )
+        self.assertGreater(
+            bright_pixels,
+            500,
+            "draw.text 与 getmask 都不可用时，应继续调用字体轮廓兜底渲染标题",
+        )
+
+    def test_outline_text_patch_renders_real_cjk_font(self):
+        module = load_style_module()
+        text_module = sys.modules["app.plugins.fnmediacovergenerator.style.text_rendering"]
+        _, cjk_font = find_font_pair_without_and_with_cjk()
+        font, _ = module._load_font_with_fallback(cjk_font, "国漫", 72)
+
+        patch, _ = text_module._build_outline_text_patch(
+            "国漫",
+            font,
+            (255, 255, 255, 255),
+        )
+
+        if patch is None:
+            raise unittest.SkipTest("当前环境未安装 fonttools/brotli，跳过真实轮廓渲染验证")
+
+        pixels = np.array(patch.convert("RGBA"))
+        visible_pixels = int((pixels[:, :, 3] > 0).sum())
+        self.assertGreater(
+            visible_pixels,
+            500,
+            "字体轮廓兜底应能直接把真实中文字体栅格化为可见像素",
+        )
+
     @staticmethod
     def _render_style_static_3(module, font_path, resolution_config=None):
         with tempfile.TemporaryDirectory() as temp_dir:
