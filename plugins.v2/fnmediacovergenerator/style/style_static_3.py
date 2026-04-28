@@ -1104,10 +1104,13 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
         text_shadow_color = darken_color(blur_color, 0.8)
         zh_font_size = float(zh_font_size) * scale
         # 风格3标题块整体右收，避开飞牛和历史页常见的左侧裁切区域。
-        title_block_shift_x = s(110)
-        zh_title_position = (s(73.32) + title_block_shift_x, s(427.34) + s(zh_font_offset))
-        en_title_position = (s(124.68) + title_block_shift_x, s(624.55) + s(title_spacing))
-        color_block_position = (s(84.38) + title_block_shift_x, s(620.06) + s(title_spacing))
+        # 低分辨率下仅按比例缩放会把标题重新压回左侧，因此需要一个最小安全边距兜底。
+        title_base_x = max(s(73.32) + s(110), template_width * 0.17)
+        en_title_delta_x = s(124.68 - 73.32)
+        color_block_delta_x = s(84.38 - 73.32)
+        zh_title_position = (title_base_x, s(427.34) + s(zh_font_offset))
+        en_title_position = (title_base_x + en_title_delta_x, s(624.55) + s(title_spacing))
+        color_block_position = (title_base_x + color_block_delta_x, s(620.06) + s(title_spacing))
         logger.info(
             "风格3标题安全区 | 主标题=%s | 副标题=%s | 主标题锚点=(%s,%s) | 副标题锚点=(%s,%s) | 色条X=%s",
             library_ch_name,
