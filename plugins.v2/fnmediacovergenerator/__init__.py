@@ -40,10 +40,6 @@ from app.plugins.fnmediacovergenerator.utils.history_selection import (
     retain_history_selection,
     toggle_history_selection,
 )
-from app.plugins.fnmediacovergenerator.utils.library_image_debug import (
-    count_non_empty_items,
-    format_library_image_stats,
-)
 from app.plugins.fnmediacovergenerator.utils.image_manager import ResolutionConfig
 from app.plugins.fnmediacovergenerator.utils.network_helper import NetworkHelper, validate_font_file
 from app.plugins.fnmediacovergenerator.utils.style_config import (
@@ -53,7 +49,6 @@ from app.plugins.fnmediacovergenerator.utils.style_config import (
 from app.plugins.fnmediacovergenerator.utils.trimemedia_library_images import (
     collect_library_item_image_paths,
     merge_unique_image_urls,
-    prefer_supplemental_image_urls,
 )
 
 
@@ -149,7 +144,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
@@ -1001,17 +996,6 @@ class FnMediaCoverGenerator(_PluginBase):
         for library in raw_libraries:
             data = self._normalize_library(library)
             if data.get("id"):
-                logger.info(
-                    "%s",
-                    format_library_image_stats(
-                        plugin_name=self.plugin_name,
-                        server_name=getattr(service, "name", "") or "",
-                        library_name=data.get("name") or "",
-                        library_id=data.get("id") or "",
-                        returned_count=count_non_empty_items(data.get("image_list") or []),
-                        required_items=self.__get_required_items(),
-                    ),
-                )
                 libraries.append(data)
         return libraries
 
@@ -1114,18 +1098,6 @@ class FnMediaCoverGenerator(_PluginBase):
                 continue
             seen.add(url)
             unique_urls.append(url)
-        logger.info(
-            "%s",
-            format_library_image_stats(
-                plugin_name=self.plugin_name,
-                server_name=server_name,
-                library_name=library_name,
-                library_id=library_id,
-                returned_count=count_non_empty_items(image_urls),
-                required_items=required_items,
-                deduped_count=len(unique_urls),
-            ),
-        )
         if not unique_urls:
             return False, "媒体库没有可用的封面源图"
         random.shuffle(unique_urls)
@@ -1185,29 +1157,22 @@ class FnMediaCoverGenerator(_PluginBase):
         runtime: Dict[str, Any],
         required_items: int,
     ) -> List[str]:
-        base_urls = merge_unique_image_urls(library.get("image_list") or [])
         target_count = min(max(required_items * 4, required_items), 60)
-        extra_urls = self._fetch_trimemedia_library_item_image_urls(
+        item_urls = self._fetch_trimemedia_library_item_image_urls(
             service=service,
             library_id=str(library.get("id") or ""),
             runtime=runtime,
             target_count=target_count,
         )
-        selected_urls = merge_unique_image_urls(extra_urls, limit=target_count)
-        source = "条目补图"
-        if not selected_urls:
-            selected_urls = merge_unique_image_urls(base_urls, limit=target_count)
-            source = "媒体库图兜底"
+        selected_urls = merge_unique_image_urls(item_urls, limit=target_count)
         logger.info(
-            "%s 媒体库条目补图 | 服务器=%s | 媒体库=%s | id=%s | image_list=%s 张 | 条目补充=%s 张 | 最终采用=%s 张 | 来源=%s | 当前风格需要 %s 张",
+            "%s 条目源图统计 | 服务器=%s | 媒体库=%s | id=%s | 条目返回=%s 张 | URL 去重后=%s 张 | 当前风格需要 %s 张",
             self.plugin_name,
             library.get("server_name") or getattr(service, "name", "") or "",
             library.get("name") or "",
             str(library.get("id") or ""),
-            len(base_urls),
-            len(extra_urls),
+            len(item_urls),
             len(selected_urls),
-            source,
             required_items,
         )
         return selected_urls
@@ -1314,16 +1279,14 @@ class FnMediaCoverGenerator(_PluginBase):
         )
         bg_color_config = {"mode": self._bg_color_mode, "custom_color": self._custom_bg_color, "config_color": config_bg_color}
         logger.info(
-            "%s 封面标题与字体 | 服务器=%s | 媒体库=%s | 主标题=%s | 副标题=%s | 字体=%s / %s",
+            "%s 正在生成媒体库封面：%s / %s / %s | 主标题=%s | 副标题=%s",
             self.plugin_name,
             server_name,
             library_name,
+            self._cover_style,
             title[0],
             title[1],
-            Path(str(self._zh_font_path)).name,
-            Path(str(self._en_font_path)).name,
         )
-        logger.info("%s 正在生成媒体库封面：%s / %s / %s", self.plugin_name, server_name, library_name, self._cover_style)
         if self._cover_style == "static_1":
             return create_style_static_1(str(library_dir), title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
         single_image = str(library_dir / "1.jpg")

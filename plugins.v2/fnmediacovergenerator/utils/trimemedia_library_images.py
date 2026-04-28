@@ -53,17 +53,6 @@ def merge_unique_image_urls(*groups: Optional[Iterable[Any]], limit: Optional[in
     return merged
 
 
-def prefer_supplemental_image_urls(
-    base_urls: Optional[Iterable[Any]],
-    supplemental_urls: Optional[Iterable[Any]],
-    limit: Optional[int] = None,
-) -> List[str]:
-    preferred = merge_unique_image_urls(supplemental_urls, limit=limit)
-    if preferred:
-        return preferred
-    return merge_unique_image_urls(base_urls, limit=limit)
-
-
 def collect_library_item_image_paths(
     library_guid: str,
     fetch_children: Callable[[str], Iterable[Any]],

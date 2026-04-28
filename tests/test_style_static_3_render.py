@@ -131,50 +131,18 @@ def find_font_pair_without_and_with_cjk():
 
 
 class StyleStatic3RenderTests(unittest.TestCase):
-    def test_font_support_probe_uses_bbox_when_mask_bbox_is_empty(self):
-        module = load_style_module()
-
-        class EmptyMask:
-            def getbbox(self):
-                return None
-
-        class BBoxOnlyFont:
-            def getbbox(self, text):
-                return (0, 0, 120, 36)
-
-            def getmask(self, text, mode=""):
-                return EmptyMask()
-
-        self.assertTrue(
-            module._font_supports_text(BBoxOnlyFont(), "GUOMAN"),
-            "容器内 getmask 可能误报空字形，应允许 getbbox 成功的字体继续渲染",
-        )
-
-    def test_font_loader_falls_back_when_primary_font_cannot_render_cjk(self):
+    def test_font_loader_uses_primary_font_without_glyph_probe(self):
         module = load_style_module()
         _, cjk_font = find_font_pair_without_and_with_cjk()
 
-        original_fallbacks = list(module.ZH_FONT_FALLBACKS)
-        module.ZH_FONT_FALLBACKS = [cjk_font]
-        try:
-            font, used_path = module._load_font_with_fallback(
-                "Z:/non-existent-font.ttf",
-                "影视",
-                36,
-            )
-        finally:
-            module.ZH_FONT_FALLBACKS = original_fallbacks
+        font, used_path = module._load_font_with_fallback(cjk_font, "影视", 36)
 
-        self.assertTrue(module._font_supports_text(font, "影视"))
-        self.assertEqual(
-            used_path,
-            cjk_font,
-            "首选字体不支持中文时应回退到可渲染的中文字体",
-        )
+        self.assertEqual(used_path, cjk_font)
+        self.assertGreater(getattr(font, "size", 0), 0)
 
     def test_draw_text_on_image_still_renders_when_pil_text_draw_is_noop(self):
         module = load_style_module()
-        font_path = find_font_path()
+        _, font_path = find_font_pair_without_and_with_cjk()
         image = Image.new("RGBA", (420, 180), (20, 20, 20, 255))
 
         with mock.patch("PIL.ImageDraw.ImageDraw.text", autospec=True, side_effect=lambda *args, **kwargs: None):
@@ -196,28 +164,19 @@ class StyleStatic3RenderTests(unittest.TestCase):
         self.assertGreater(
             bright_pixels,
             500,
-            "即使 Pillow 的 draw.text 未实际落字，也应通过兜底路径渲染出标题像素",
+            "正式轮廓渲染路径不应依赖 Pillow 的 draw.text 才能出字",
         )
 
-    def test_draw_text_on_image_uses_outline_fallback_when_mask_is_empty(self):
+    def test_draw_text_on_image_uses_outline_renderer_directly(self):
         module = load_style_module()
         text_module = sys.modules["app.plugins.fnmediacovergenerator.style.text_rendering"]
         font_path = find_font_path()
         image = Image.new("RGBA", (420, 180), (20, 20, 20, 255))
         outline_patch = Image.new("RGBA", (90, 36), (255, 255, 255, 255))
 
-        class EmptyMask:
-            size = (1, 1)
-
-            def getbbox(self):
-                return None
-
-            def __bytes__(self):
-                return b"\x00"
-
-        with mock.patch("PIL.ImageDraw.ImageDraw.text", autospec=True, side_effect=lambda *args, **kwargs: None), \
-                mock.patch("PIL.ImageFont.FreeTypeFont.getmask", autospec=True, return_value=EmptyMask()), \
-                mock.patch.object(text_module, "_build_outline_text_patch", return_value=(outline_patch, (0, 0))):
+        with mock.patch("PIL.ImageDraw.ImageDraw.text", autospec=True, side_effect=AssertionError("draw.text should not be used")), \
+                mock.patch("PIL.ImageFont.FreeTypeFont.getmask", autospec=True, side_effect=AssertionError("getmask should not be used")), \
+                mock.patch.object(text_module, "_build_outline_text_patch", return_value=(outline_patch, (0, 0))) as outline_mock:
             rendered = module.draw_text_on_image(
                 image,
                 "国产剧",
@@ -229,6 +188,7 @@ class StyleStatic3RenderTests(unittest.TestCase):
                 shadow=False,
             )
 
+        outline_mock.assert_called()
         pixels = np.array(rendered.convert("RGB"))
         bright_pixels = int(
             ((pixels[:, :, 0] > 220) & (pixels[:, :, 1] > 220) & (pixels[:, :, 2] > 220)).sum()
@@ -236,7 +196,7 @@ class StyleStatic3RenderTests(unittest.TestCase):
         self.assertGreater(
             bright_pixels,
             500,
-            "draw.text 与 getmask 都不可用时，应继续调用字体轮廓兜底渲染标题",
+            "正式轮廓渲染路径应直接生成标题像素",
         )
 
     def test_outline_text_patch_renders_real_cjk_font(self):
@@ -259,7 +219,7 @@ class StyleStatic3RenderTests(unittest.TestCase):
         self.assertGreater(
             visible_pixels,
             500,
-            "字体轮廓兜底应能直接把真实中文字体栅格化为可见像素",
+            "字体轮廓路径应能直接把真实中文字体栅格化为可见像素",
         )
 
     @staticmethod

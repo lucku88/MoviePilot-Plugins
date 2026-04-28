@@ -38,18 +38,6 @@ def font_supports_text(font, text):
     if not sample:
         return True
     try:
-        bbox = font.getbbox(sample)
-        if bbox and bbox[2] > bbox[0] and bbox[3] > bbox[1]:
-            return True
-    except Exception:
-        pass
-    try:
-        mask = font.getmask(sample)
-        if mask.getbbox() is not None:
-            return True
-    except Exception:
-        pass
-    try:
         patch, _ = _build_text_patch(sample, font, (255, 255, 255, 255))
         return bool(patch and patch.getbbox())
     except Exception:
@@ -74,11 +62,7 @@ def load_font_with_fallback(font_path, text, font_size):
     for candidate in resolve_font_path(font_path, text):
         try:
             font = ImageFont.truetype(candidate, font_size)
-            if font_supports_text(font, text):
-                if str(candidate) != str(font_path or ""):
-                    logger.warning("文字渲染字体回退 | 文本=%s | 原字体=%s | 回退字体=%s", text, font_path, candidate)
-                return font, candidate
-            errors.append(f"{candidate}:glyph-missing")
+            return font, candidate
         except Exception as err:
             errors.append(f"{candidate}:{err}")
     logger.warning("文字渲染字体不可用 | 文本=%s | 原字体=%s | 错误=%s", text, font_path, "; ".join(errors[:5]))
@@ -94,37 +78,7 @@ def _to_rgba(fill_color):
 
 
 def _build_text_patch(text, font, fill_color):
-    bbox = font.getbbox(text)
-    left, top, right, bottom = bbox
-    width = max(1, int(right - left))
-    height = max(1, int(bottom - top))
-    fill_rgba = _to_rgba(fill_color)
-
-    patch = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(patch)
-    draw.text((-left, -top), text, font=font, fill=fill_rgba)
-    if patch.getbbox():
-        return patch, (left, top)
-
-    try:
-        mask = font.getmask(text, mode="L")
-        mask_bbox = mask.getbbox()
-        if mask_bbox is not None:
-            alpha = Image.frombytes("L", mask.size, bytes(mask))
-            if fill_rgba[3] < 255:
-                alpha = alpha.point(lambda value: int(value * fill_rgba[3] / 255))
-            glyph = Image.new("RGBA", mask.size, fill_rgba[:3] + (0,))
-            glyph.putalpha(alpha)
-            logger.info("文字渲染走掩膜路径 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
-            return glyph, (left, top)
-    except Exception as err:
-        logger.warning("文字掩膜兜底失败 | 文本=%s | 字体=%s | 错误=%s", text, getattr(font, "path", ""), err)
-
-    outline = _build_outline_text_patch(text, font, fill_color)
-    if outline[0] is not None:
-        logger.info("文字渲染走轮廓路径 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
-        return outline
-    return None, (left, top)
+    return _build_outline_text_patch(text, font, fill_color)
 
 
 def _build_outline_text_patch(text, font, fill_color):
@@ -132,7 +86,7 @@ def _build_outline_text_patch(text, font, fill_color):
         from fontTools.pens.basePen import BasePen
         from fontTools.ttLib import TTFont
     except Exception as err:
-        logger.warning("文字轮廓兜底不可用 | 文本=%s | 错误=%s", text, err)
+        logger.warning("文字轮廓渲染不可用 | 文本=%s | 错误=%s", text, err)
         return None, (0, 0)
 
     font_path = str(getattr(font, "path", "") or "").strip()
@@ -241,7 +195,7 @@ def _build_outline_text_patch(text, font, fill_color):
             return None, (0, 0)
         return glyph.crop(glyph_bbox), (glyph_bbox[0], glyph_bbox[1])
     except Exception as err:
-        logger.warning("文字轮廓兜底失败 | 文本=%s | 字体=%s | 错误=%s", text, font_path, err)
+        logger.warning("文字轮廓渲染失败 | 文本=%s | 字体=%s | 错误=%s", text, font_path, err)
         return None, (0, 0)
 
 

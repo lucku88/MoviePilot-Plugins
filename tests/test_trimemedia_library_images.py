@@ -69,20 +69,5 @@ class TrimemediaLibraryImagesTests(unittest.TestCase):
             ["https://a.jpg", "https://b.jpg", "https://c.jpg", "https://d.jpg"],
         )
 
-    def test_prefer_supplemental_urls_over_library_image_list(self):
-        module = load_module()
-
-        result = module.prefer_supplemental_image_urls(
-            base_urls=["https://base-1.jpg", "https://base-2.jpg"],
-            supplemental_urls=["https://item-1.jpg", "https://item-2.jpg"],
-            limit=9,
-        )
-
-        self.assertEqual(
-            result,
-            ["https://item-1.jpg", "https://item-2.jpg"],
-        )
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -1117,16 +1117,6 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
         zh_title_position = (title_base_x, s(427.34) + s(zh_font_offset))
         en_title_position = (title_base_x + en_title_delta_x, s(624.55) + s(title_spacing))
         color_block_position = (title_base_x + color_block_delta_x, s(620.06) + s(title_spacing))
-        logger.info(
-            "风格3标题安全区 | 主标题=%s | 副标题=%s | 主标题锚点=(%s,%s) | 副标题锚点=(%s,%s) | 色条X=%s",
-            library_ch_name,
-            library_eng_name,
-            int(round(zh_title_position[0])),
-            int(round(zh_title_position[1])),
-            int(round(en_title_position[0])),
-            int(round(en_title_position[1])),
-            int(round(color_block_position[0])),
-        )
         result = draw_text_on_image(
             result, library_ch_name, zh_title_position, zh_font_path, "ch.ttf", int(max(1, round(zh_font_size))),
             shadow=is_blur, shadow_color=text_shadow_color
@@ -1160,14 +1150,8 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
             else:
                 font_size = base_font_size
 
-            zh_font, zh_font_used = _load_font_with_fallback(zh_font_path, title_zh, int(max(1, round(zh_font_size))))
-            en_font, en_font_used = _load_font_with_fallback(en_font_path, library_eng_name, int(font_size))
-            if zh_font_used or en_font_used:
-                logger.info(
-                    "风格3字体生效 | 主标题字体=%s | 副标题字体=%s",
-                    zh_font_used or str(zh_font_path),
-                    en_font_used or str(en_font_path),
-                )
+            zh_font, _ = _load_font_with_fallback(zh_font_path, title_zh, int(max(1, round(zh_font_size))))
+            en_font, _ = _load_font_with_fallback(en_font_path, library_eng_name, int(font_size))
 
             zh_bbox = draw.textbbox((0, 0), title_zh, font=zh_font)
             zh_text_w = zh_bbox[2] - zh_bbox[0]

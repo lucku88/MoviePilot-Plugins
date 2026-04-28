@@ -260,7 +260,7 @@ def walk_components(node):
 
 
 class PluginHistoryPageTests(unittest.TestCase):
-    def test_library_item_images_are_preferred_over_media_library_image_list(self):
+    def test_library_item_images_are_used_instead_of_media_library_image_list(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             module = load_plugin_module(Path(temp_dir))
             plugin = module.FnMediaCoverGenerator()
@@ -283,6 +283,27 @@ class PluginHistoryPageTests(unittest.TestCase):
 
             self.assertEqual(len(urls), 11)
             self.assertTrue(all(url.startswith("https://item/") for url in urls))
+
+    def test_library_image_list_is_not_used_when_library_items_are_empty(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module = load_plugin_module(Path(temp_dir))
+            plugin = module.FnMediaCoverGenerator()
+            plugin.plugin_name = "飞牛影视媒体库封面生成"
+            plugin._fetch_trimemedia_library_item_image_urls = lambda **kwargs: []
+
+            urls = plugin._expand_trimemedia_library_image_urls(
+                service=types.SimpleNamespace(name="飞牛影视"),
+                library={
+                    "server_name": "飞牛影视",
+                    "name": "日韩剧",
+                    "id": "library-id",
+                    "image_list": [f"https://library/{index}.jpg" for index in range(4)],
+                },
+                runtime={},
+                required_items=9,
+            )
+
+            self.assertEqual(urls, [])
 
     def test_history_page_uses_uncropped_preview_and_exposes_original_image_link(self):
         with tempfile.TemporaryDirectory() as temp_dir:
