@@ -131,6 +131,25 @@ def find_font_pair_without_and_with_cjk():
 
 
 class StyleStatic3RenderTests(unittest.TestCase):
+    def test_font_support_probe_uses_bbox_when_mask_bbox_is_empty(self):
+        module = load_style_module()
+
+        class EmptyMask:
+            def getbbox(self):
+                return None
+
+        class BBoxOnlyFont:
+            def getbbox(self, text):
+                return (0, 0, 120, 36)
+
+            def getmask(self, text, mode=""):
+                return EmptyMask()
+
+        self.assertTrue(
+            module._font_supports_text(BBoxOnlyFont(), "GUOMAN"),
+            "容器内 getmask 可能误报空字形，应允许 getbbox 成功的字体继续渲染",
+        )
+
     def test_font_loader_falls_back_when_primary_font_cannot_render_cjk(self):
         module = load_style_module()
         _, cjk_font = find_font_pair_without_and_with_cjk()

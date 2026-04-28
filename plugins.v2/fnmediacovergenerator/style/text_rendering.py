@@ -37,8 +37,20 @@ def font_supports_text(font, text):
     if not sample:
         return True
     try:
+        bbox = font.getbbox(sample)
+        if bbox and bbox[2] > bbox[0] and bbox[3] > bbox[1]:
+            return True
+    except Exception:
+        pass
+    try:
         mask = font.getmask(sample)
-        return mask.getbbox() is not None
+        if mask.getbbox() is not None:
+            return True
+    except Exception:
+        pass
+    try:
+        patch, _ = _build_text_patch(sample, font, (255, 255, 255, 255))
+        return bool(patch and patch.getbbox())
     except Exception:
         return False
 
