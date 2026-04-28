@@ -46,6 +46,10 @@ from app.plugins.fnmediacovergenerator.utils.library_image_debug import (
 )
 from app.plugins.fnmediacovergenerator.utils.image_manager import ResolutionConfig
 from app.plugins.fnmediacovergenerator.utils.network_helper import NetworkHelper, validate_font_file
+from app.plugins.fnmediacovergenerator.utils.style_config import (
+    resolve_static_cover_style_base,
+    sanitize_title_layout_values,
+)
 from app.plugins.fnmediacovergenerator.utils.trimemedia_library_images import (
     collect_library_item_image_paths,
     merge_unique_image_urls,
@@ -795,8 +799,7 @@ class FnMediaCoverGenerator(_PluginBase):
     def _apply_config(self, config: Dict[str, Any]):
         cover_style = str(config.get("cover_style") or "static_1").strip()
         cover_style_base = str(config.get("cover_style_base") or "").strip()
-        resolved_base, _ = self.__resolve_cover_style_ui(cover_style)
-        self._cover_style_base = cover_style_base or resolved_base
+        self._cover_style_base = resolve_static_cover_style_base(cover_style, cover_style_base)
         self._cover_style_variant = "static"
         self._cover_style = self.__compose_cover_style(self._cover_style_base, "static")
         self._enabled = _safe_bool(config.get("enabled"), False)
@@ -1298,10 +1301,16 @@ class FnMediaCoverGenerator(_PluginBase):
         en_font_size = self._resolution_config.get_font_size(en_font_size) * title_scale
         font_path = (str(self._zh_font_path), str(self._en_font_path))
         font_size = (float(zh_font_size), float(en_font_size))
+        safe_zh_font_offset, safe_title_spacing, safe_en_line_spacing = sanitize_title_layout_values(
+            zh_font_offset=self._zh_font_offset,
+            title_spacing=self._title_spacing,
+            en_line_spacing=self._en_line_spacing,
+            title_scale=title_scale,
+        )
         font_offset = (
-            _safe_float(self._zh_font_offset, 0.0),
-            _safe_float(self._title_spacing, 40.0) * title_scale,
-            _safe_float(self._en_line_spacing, 40.0) * title_scale,
+            safe_zh_font_offset,
+            safe_title_spacing,
+            safe_en_line_spacing,
         )
         bg_color_config = {"mode": self._bg_color_mode, "custom_color": self._custom_bg_color, "config_color": config_bg_color}
         logger.info("%s 正在生成媒体库封面：%s / %s / %s", self.plugin_name, server_name, library_name, self._cover_style)
