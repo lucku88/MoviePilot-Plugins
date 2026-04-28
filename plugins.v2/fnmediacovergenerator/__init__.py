@@ -815,8 +815,9 @@ class FnMediaCoverGenerator(_PluginBase):
         self._en_font_preset = str(config.get("en_font_preset") or "EmblemaOne").strip() or "EmblemaOne"
         self._zh_font_custom = str(config.get("zh_font_custom") or "").strip()
         self._en_font_custom = str(config.get("en_font_custom") or "").strip()
-        self._zh_font_path = str(config.get("zh_font_path") or "").strip()
-        self._en_font_path = str(config.get("en_font_path") or "").strip()
+        # 运行时字体路径属于缓存值，不直接信任旧配置，避免历史缓存字体与当前预设不一致。
+        self._zh_font_path = ""
+        self._en_font_path = ""
         self._zh_font_size = _safe_int(config.get("zh_font_size"), 170, 20, 500)
         self._en_font_size = _safe_int(config.get("en_font_size"), 75, 10, 300)
         self._zh_font_offset = str(config.get("zh_font_offset") or "").strip()
@@ -1313,6 +1314,16 @@ class FnMediaCoverGenerator(_PluginBase):
             safe_en_line_spacing,
         )
         bg_color_config = {"mode": self._bg_color_mode, "custom_color": self._custom_bg_color, "config_color": config_bg_color}
+        logger.info(
+            "%s 封面标题与字体 | 服务器=%s | 媒体库=%s | 主标题=%s | 副标题=%s | 字体=%s / %s",
+            self.plugin_name,
+            server_name,
+            library_name,
+            title[0],
+            title[1],
+            Path(str(self._zh_font_path)).name,
+            Path(str(self._en_font_path)).name,
+        )
         logger.info("%s 正在生成媒体库封面：%s / %s / %s", self.plugin_name, server_name, library_name, self._cover_style)
         if self._cover_style == "static_1":
             return create_style_static_1(str(library_dir), title, font_path, font_size=font_size, font_offset=font_offset, blur_size=self._blur_size, color_ratio=self._color_ratio, resolution_config=self._resolution_config, bg_color_config=bg_color_config)
