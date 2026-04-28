@@ -16,6 +16,24 @@ from app.plugins.fnmediacovergenerator.utils.color_helper import ColorHelper
 代码修改自 https://github.com/HappyQuQu/jellyfin-library-poster/blob/main/gen_poster.py
 """
 
+ZH_FONT_FALLBACKS = [
+    r"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    r"/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    r"/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+    r"/usr/share/fonts/truetype/arphic/ukai.ttc",
+    r"C:\Windows\Fonts\msyh.ttc",
+    r"C:\Windows\Fonts\simhei.ttf",
+    r"/System/Library/Fonts/PingFang.ttc",
+    r"/System/Library/Fonts/Hiragino Sans GB.ttc",
+]
+
+EN_FONT_FALLBACKS = [
+    r"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    r"/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    r"C:\Windows\Fonts\arial.ttf",
+    r"/System/Library/Fonts/Supplemental/Arial.ttf",
+]
+
 # 海报生成配置
 POSTER_GEN_CONFIG = {
     "ROWS": 3,  # 每列图片数
@@ -32,6 +50,54 @@ POSTER_GEN_CONFIG = {
     "CANVAS_WIDTH": 1920,  # 画布宽度
     "CANVAS_HEIGHT": 1080,  # 画布高度
 }
+
+
+def _contains_cjk(text):
+    for char in str(text or ""):
+        code = ord(char)
+        if 0x4E00 <= code <= 0x9FFF or 0x3400 <= code <= 0x4DBF or 0x3040 <= code <= 0x30FF or 0xAC00 <= code <= 0xD7AF:
+            return True
+    return False
+
+
+def _font_supports_text(font, text):
+    sample = str(text or "").strip()
+    if not sample:
+        return True
+    try:
+        mask = font.getmask(sample)
+        return mask.getbbox() is not None
+    except Exception:
+        return False
+
+
+def _resolve_font_path(font_path, text):
+    candidates = []
+    primary = str(font_path or "").strip()
+    if primary:
+        candidates.append(primary)
+    fallback_candidates = ZH_FONT_FALLBACKS if _contains_cjk(text) else EN_FONT_FALLBACKS
+    for candidate in fallback_candidates:
+        if candidate and candidate not in candidates and os.path.exists(candidate):
+            candidates.append(candidate)
+    return candidates
+
+
+def _load_font_with_fallback(font_path, text, font_size):
+    errors = []
+    font_size = int(max(1, round(float(font_size))))
+    for candidate in _resolve_font_path(font_path, text):
+        try:
+            font = ImageFont.truetype(candidate, font_size)
+            if _font_supports_text(font, text):
+                if str(candidate) != str(font_path or ""):
+                    logger.warning("文字渲染字体回退 | 文本=%s | 原字体=%s | 回退字体=%s", text, font_path, candidate)
+                return font, candidate
+            errors.append(f"{candidate}:glyph-missing")
+        except Exception as err:
+            errors.append(f"{candidate}:{err}")
+    logger.warning("文字渲染字体不可用 | 文本=%s | 原字体=%s | 错误=%s", text, font_path, "; ".join(errors[:5]))
+    return ImageFont.load_default(), ""
 
 def add_shadow(img, offset=(5, 5), shadow_color=(0, 0, 0, 100), blur_radius=3):
     """
@@ -107,7 +173,7 @@ def draw_text_on_image(
     shadow_draw = ImageDraw.Draw(shadow_layer)
     font_size = int(max(1, round(float(font_size))))
     shadow_offset = int(max(1, round(float(shadow_offset))))
-    font = ImageFont.truetype(font_path, font_size)
+    font, _ = _load_font_with_fallback(font_path, text, font_size)
     
     # 如果需要添加阴影
     if shadow:
@@ -189,7 +255,7 @@ def draw_multiline_text_on_image(
     font_size = int(max(1, round(float(font_size))))
     shadow_offset = int(max(1, round(float(shadow_offset))))
     line_spacing = int(round(float(line_spacing)))
-    font = ImageFont.truetype(font_path, font_size)
+    font, _ = _load_font_with_fallback(font_path, text, font_size)
 
     # 按空格分割文本
     lines = text.split(" ")
@@ -1154,8 +1220,14 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
             else:
                 font_size = base_font_size
 
-            zh_font = ImageFont.truetype(zh_font_path, int(max(1, round(zh_font_size))))
-            en_font = ImageFont.truetype(en_font_path, int(font_size))
+            zh_font, zh_font_used = _load_font_with_fallback(zh_font_path, title_zh, int(max(1, round(zh_font_size))))
+            en_font, en_font_used = _load_font_with_fallback(en_font_path, library_eng_name, int(font_size))
+            if zh_font_used or en_font_used:
+                logger.info(
+                    "风格3字体生效 | 主标题字体=%s | 副标题字体=%s",
+                    zh_font_used or str(zh_font_path),
+                    en_font_used or str(en_font_path),
+                )
 
             zh_bbox = draw.textbbox((0, 0), title_zh, font=zh_font)
             zh_text_w = zh_bbox[2] - zh_bbox[0]

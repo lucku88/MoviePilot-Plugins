@@ -93,7 +93,49 @@ def find_font_path():
     raise unittest.SkipTest("未找到可用于样式渲染测试的字体文件")
 
 
+def find_font_pair_without_and_with_cjk():
+    latin_candidates = [
+        Path(r"C:\Windows\Fonts\arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    ]
+    cjk_candidates = [
+        Path(r"C:\Windows\Fonts\msyh.ttc"),
+        Path(r"C:\Windows\Fonts\simhei.ttf"),
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+        Path("/System/Library/Fonts/PingFang.ttc"),
+    ]
+    latin_font = next((str(path) for path in latin_candidates if path.exists()), "")
+    cjk_font = next((str(path) for path in cjk_candidates if path.exists()), "")
+    if not latin_font or not cjk_font:
+        raise unittest.SkipTest("未找到可用于字体回退验证的中英文字体组合")
+    return latin_font, cjk_font
+
+
 class StyleStatic3RenderTests(unittest.TestCase):
+    def test_font_loader_falls_back_when_primary_font_cannot_render_cjk(self):
+        module = load_style_module()
+        _, cjk_font = find_font_pair_without_and_with_cjk()
+
+        original_fallbacks = list(module.ZH_FONT_FALLBACKS)
+        module.ZH_FONT_FALLBACKS = [cjk_font]
+        try:
+            font, used_path = module._load_font_with_fallback(
+                "Z:/non-existent-font.ttf",
+                "影视",
+                36,
+            )
+        finally:
+            module.ZH_FONT_FALLBACKS = original_fallbacks
+
+        self.assertTrue(module._font_supports_text(font, "影视"))
+        self.assertEqual(
+            used_path,
+            cjk_font,
+            "首选字体不支持中文时应回退到可渲染的中文字体",
+        )
+
     @staticmethod
     def _render_style_static_3(module, font_path, resolution_config=None):
         with tempfile.TemporaryDirectory() as temp_dir:
