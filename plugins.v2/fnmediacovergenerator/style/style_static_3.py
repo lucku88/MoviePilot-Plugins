@@ -1103,8 +1103,23 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
         text_shadow_color = darken_color(blur_color, 0.8)
         text_shadow_color = darken_color(blur_color, 0.8)
         zh_font_size = float(zh_font_size) * scale
+        # 风格3标题块整体右收，避开飞牛和历史页常见的左侧裁切区域。
+        title_block_shift_x = s(110)
+        zh_title_position = (s(73.32) + title_block_shift_x, s(427.34) + s(zh_font_offset))
+        en_title_position = (s(124.68) + title_block_shift_x, s(624.55) + s(title_spacing))
+        color_block_position = (s(84.38) + title_block_shift_x, s(620.06) + s(title_spacing))
+        logger.info(
+            "风格3标题安全区 | 主标题=%s | 副标题=%s | 主标题锚点=(%s,%s) | 副标题锚点=(%s,%s) | 色条X=%s",
+            library_ch_name,
+            library_eng_name,
+            int(round(zh_title_position[0])),
+            int(round(zh_title_position[1])),
+            int(round(en_title_position[0])),
+            int(round(en_title_position[1])),
+            int(round(color_block_position[0])),
+        )
         result = draw_text_on_image(
-            result, library_ch_name, (s(73.32), s(427.34) + s(zh_font_offset)), zh_font_path, "ch.ttf", int(max(1, round(zh_font_size))),
+            result, library_ch_name, zh_title_position, zh_font_path, "ch.ttf", int(max(1, round(zh_font_size))),
             shadow=is_blur, shadow_color=text_shadow_color
         )
 
@@ -1155,7 +1170,7 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
             result, line_count = draw_multiline_text_on_image(
                 result,
                 library_eng_name,
-                (s(124.68), s(624.55) + s(title_spacing)),
+                en_title_position,
                 en_font_path, "en.otf",
                 int(font_size),
                 line_spacing,
@@ -1165,7 +1180,6 @@ def create_style_static_3(library_dir, title, font_path, font_size=(170,75), fon
             )
 
             # 根据行数调整色块高度
-            color_block_position = (s(84.38), s(620.06) + s(title_spacing))
             # 基础高度为55，每增加一行增加(font_size + line_spacing)的高度
             color_block_height = base_font_size + line_spacing + (line_count - 1) * (int(font_size) + line_spacing)
             color_block_size = (s(21.51), color_block_height)

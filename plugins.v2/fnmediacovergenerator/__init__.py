@@ -447,10 +447,11 @@ class FnMediaCoverGenerator(_PluginBase):
                                 "component": "VCard",
                                 "props": {"variant": "flat", "elevation": 2, "class": "rounded-lg"},
                                 "content": [
-                                    {"component": "VImg", "props": {"src": item["src"], "aspect-ratio": "16/9", "cover": True}},
+                                    {"component": "VImg", "props": {"src": item["src"], "aspect-ratio": "16/9", "contain": True}},
                                     {"component": "VCardText", "props": {"class": "py-2"}, "content": [
                                         {"component": "div", "props": {"class": "text-body-2"}, "text": item["name"]},
                                         {"component": "div", "props": {"class": "text-caption text-medium-emphasis"}, "text": f"{item['mtime']} / {item['size']}"},
+                                        {"component": "VBtn", "props": {"href": item["src"], "target": "_blank", "rel": "noopener noreferrer", "variant": "text", "size": "small", "class": "mt-2 mr-2 text-none"}, "text": "查看原图"},
                                         {"component": "VBtn", "props": {"color": "error", "variant": "text", "size": "small", "class": "mt-2 text-none"}, "text": "删除", "events": {"click": {"api": delete_api, "method": "post"}}},
                                     ]},
                                 ],

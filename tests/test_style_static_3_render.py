@@ -126,6 +126,42 @@ class StyleStatic3RenderTests(unittest.TestCase):
                 "legacy 大偏移下标题文字不应整体消失",
             )
 
+    def test_style_static_3_places_title_block_inside_safe_left_margin(self):
+        module = load_style_module()
+        font_path = find_font_path()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            for index in range(1, 10):
+                color = (90 + index * 10, 120 + index * 8, 160 + index * 6)
+                Image.new("RGB", (800, 1200), color).save(temp_path / f"{index}.jpg")
+
+            result = module.create_style_static_3(
+                temp_path,
+                ("LIBRARY", "Japan & Korea Drama"),
+                (font_path, font_path),
+                font_size=(170, 75),
+                font_offset=(0, 40, 40),
+                is_blur=True,
+            )
+
+            self.assertIsInstance(result, str)
+            image = Image.open(io.BytesIO(base64.b64decode(result))).convert("RGB")
+            image_array = np.array(image)
+            bright_mask = (
+                (image_array[:, :, 0] > 230)
+                & (image_array[:, :, 1] > 230)
+                & (image_array[:, :, 2] > 230)
+            )
+            _, bright_x = np.where(bright_mask)
+
+            self.assertGreater(len(bright_x), 1000)
+            self.assertGreaterEqual(
+                int(bright_x.min()),
+                150,
+                "风格3标题块应整体右移到飞牛展示安全区内",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
