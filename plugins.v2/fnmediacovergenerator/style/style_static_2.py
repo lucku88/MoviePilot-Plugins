@@ -11,6 +11,10 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from app.log import logger
 from app.plugins.fnmediacovergenerator.utils.color_helper import ColorHelper
+from app.plugins.fnmediacovergenerator.style.text_rendering import (
+    load_font_with_fallback,
+    draw_text_patch,
+)
 
 # ========== 配置 ==========
 canvas_size = (1920, 1080)
@@ -360,8 +364,8 @@ def create_style_static_2(image_path, title, font_path, font_size=(170,75), font
         # zh_font_size = int(canvas_size[1] * 0.17 * float(zh_font_size_ratio))
         # en_font_size = int(canvas_size[1] * 0.07 * float(en_font_size_ratio))
         
-        zh_font = ImageFont.truetype(zh_font_path, zh_font_size)
-        en_font = ImageFont.truetype(en_font_path, en_font_size)
+        zh_font, _ = load_font_with_fallback(zh_font_path, title_zh, zh_font_size)
+        en_font, _ = load_font_with_fallback(en_font_path, title_en, en_font_size)
             
         # 文字颜色和阴影颜色
         text_color = (255, 255, 255, 229)  # 85% 不透明度
@@ -445,10 +449,10 @@ def create_style_static_2(image_path, title, font_path, font_size=(170,75), font
         # 中文标题阴影效果
         for offset in range(3, shadow_offset + 1, 2):
             current_shadow_color = shadow_color[:3] + (shadow_alpha,)
-            shadow_draw.text((zh_x + offset, zh_y + offset), title_zh, font=zh_font, fill=current_shadow_color)
+            draw_text_patch(shadow_layer, title_zh, (zh_x + offset, zh_y + offset), zh_font, current_shadow_color)
         
         # 中文标题
-        draw.text((zh_x, zh_y), title_zh, font=zh_font, fill=text_color)
+        draw_text_patch(text_layer, title_zh, (zh_x, zh_y), zh_font, text_color)
 
         if en_lines:
             # 英文标题起始位置
@@ -467,10 +471,10 @@ def create_style_static_2(image_path, title, font_path, font_size=(170,75), font
                 # 英文标题阴影效果
                 for offset in range(2, shadow_offset // 2 + 1):
                     current_shadow_color = shadow_color[:3] + (shadow_alpha,)
-                    shadow_draw.text((en_x + offset, current_y + offset), line, font=en_font, fill=current_shadow_color)
+                    draw_text_patch(shadow_layer, line, (en_x + offset, current_y + offset), en_font, current_shadow_color)
                 
                 # 英文标题
-                draw.text((en_x, current_y), line, font=en_font, fill=text_color)
+                draw_text_patch(text_layer, line, (en_x, current_y), en_font, text_color)
         
         blurred_shadow = shadow_layer.filter(ImageFilter.GaussianBlur(radius=shadow_offset))
         combined = Image.alpha_composite(canvas, blurred_shadow)

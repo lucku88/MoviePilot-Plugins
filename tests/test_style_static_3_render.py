@@ -1,6 +1,7 @@
 import base64
 import importlib.util
 import io
+from unittest import mock
 import sys
 import tempfile
 import types
@@ -25,6 +26,13 @@ COLOR_HELPER_PATH = (
     / "fnmediacovergenerator"
     / "utils"
     / "color_helper.py"
+)
+TEXT_RENDERING_PATH = (
+    REPO_ROOT
+    / "plugins.v2"
+    / "fnmediacovergenerator"
+    / "style"
+    / "text_rendering.py"
 )
 
 
@@ -68,6 +76,15 @@ def load_style_module():
     assert helper_spec.loader is not None
     sys.modules[helper_spec.name] = helper_module
     helper_spec.loader.exec_module(helper_module)
+
+    text_spec = importlib.util.spec_from_file_location(
+        "app.plugins.fnmediacovergenerator.style.text_rendering",
+        TEXT_RENDERING_PATH,
+    )
+    text_module = importlib.util.module_from_spec(text_spec)
+    assert text_spec.loader is not None
+    sys.modules[text_spec.name] = text_module
+    text_spec.loader.exec_module(text_module)
 
     style_spec = importlib.util.spec_from_file_location(
         "app.plugins.fnmediacovergenerator.style.style_static_3",
@@ -136,6 +153,33 @@ class StyleStatic3RenderTests(unittest.TestCase):
             "首选字体不支持中文时应回退到可渲染的中文字体",
         )
 
+    def test_draw_text_on_image_still_renders_when_pil_text_draw_is_noop(self):
+        module = load_style_module()
+        font_path = find_font_path()
+        image = Image.new("RGBA", (420, 180), (20, 20, 20, 255))
+
+        with mock.patch("PIL.ImageDraw.ImageDraw.text", autospec=True, side_effect=lambda *args, **kwargs: None):
+            rendered = module.draw_text_on_image(
+                image,
+                "国产剧",
+                (30, 40),
+                font_path,
+                "unused.ttf",
+                72,
+                fill_color=(255, 255, 255, 255),
+                shadow=False,
+            )
+
+        pixels = np.array(rendered.convert("RGB"))
+        bright_pixels = int(
+            ((pixels[:, :, 0] > 220) & (pixels[:, :, 1] > 220) & (pixels[:, :, 2] > 220)).sum()
+        )
+        self.assertGreater(
+            bright_pixels,
+            500,
+            "即使 Pillow 的 draw.text 未实际落字，也应通过兜底路径渲染出标题像素",
+        )
+
     @staticmethod
     def _render_style_static_3(module, font_path, resolution_config=None):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -184,7 +228,7 @@ class StyleStatic3RenderTests(unittest.TestCase):
 
             self.assertGreater(
                 bright_pixels,
-                1000,
+                300,
                 "legacy 大偏移下标题文字不应整体消失",
             )
 

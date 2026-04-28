@@ -10,6 +10,10 @@ from app.plugins.fnmediacovergenerator.style.style_static_2 import (
     find_dominant_vibrant_colors,
 )
 from app.plugins.fnmediacovergenerator.utils.color_helper import ColorHelper
+from app.plugins.fnmediacovergenerator.style.text_rendering import (
+    load_font_with_fallback,
+    draw_text_patch,
+)
 
 
 def _wrap_english(draw, text, font, max_width):
@@ -91,8 +95,8 @@ def create_style_static_4(
         draw = ImageDraw.Draw(text_layer)
         sdraw = ImageDraw.Draw(shadow_layer)
 
-        zh_font = ImageFont.truetype(zh_font_path, int(max(1, float(zh_font_size))))
-        en_font = ImageFont.truetype(en_font_path, int(max(1, float(en_font_size))))
+        zh_font, _ = load_font_with_fallback(zh_font_path, title_zh, int(max(1, float(zh_font_size))))
+        en_font, _ = load_font_with_fallback(en_font_path, title_en, int(max(1, float(en_font_size))))
 
         cx = canvas_size[0] // 2
         cy = canvas_size[1] // 2
@@ -123,15 +127,15 @@ def create_style_static_4(
         zh_y = y0
 
         for off in range(3, 11, 2):
-            sdraw.text((zh_x + off, zh_y + off), title_zh, font=zh_font, fill=shadow_color)
-        draw.text((zh_x, zh_y), title_zh, font=zh_font, fill=text_color)
+            draw_text_patch(shadow_layer, title_zh, (zh_x + off, zh_y + off), zh_font, shadow_color)
+        draw_text_patch(text_layer, title_zh, (zh_x, zh_y), zh_font, text_color)
 
         ey = zh_y + zh_h + spacing
         for line, lw, lh in line_sizes:
             ex = cx - lw // 2
             for off in range(2, 8, 2):
-                sdraw.text((ex + off, ey + off), line, font=en_font, fill=shadow_color)
-            draw.text((ex, ey), line, font=en_font, fill=text_color)
+                draw_text_patch(shadow_layer, line, (ex + off, ey + off), en_font, shadow_color)
+            draw_text_patch(text_layer, line, (ex, ey), en_font, text_color)
             ey += lh + line_gap
 
         merged = Image.alpha_composite(canvas, shadow_layer.filter(ImageFilter.GaussianBlur(radius=8)))

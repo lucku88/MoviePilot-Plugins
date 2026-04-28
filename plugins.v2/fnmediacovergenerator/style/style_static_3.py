@@ -11,28 +11,18 @@ import colorsys
 import traceback
 from app.log import logger
 from app.plugins.fnmediacovergenerator.utils.color_helper import ColorHelper
+from app.plugins.fnmediacovergenerator.style.text_rendering import (
+    ZH_FONT_FALLBACKS,
+    EN_FONT_FALLBACKS,
+    contains_cjk as _contains_cjk,
+    font_supports_text as _font_supports_text,
+    load_font_with_fallback as _load_font_with_fallback,
+    draw_text_patch,
+)
 
 """ 
 代码修改自 https://github.com/HappyQuQu/jellyfin-library-poster/blob/main/gen_poster.py
 """
-
-ZH_FONT_FALLBACKS = [
-    r"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    r"/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-    r"/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-    r"/usr/share/fonts/truetype/arphic/ukai.ttc",
-    r"C:\Windows\Fonts\msyh.ttc",
-    r"C:\Windows\Fonts\simhei.ttf",
-    r"/System/Library/Fonts/PingFang.ttc",
-    r"/System/Library/Fonts/Hiragino Sans GB.ttc",
-]
-
-EN_FONT_FALLBACKS = [
-    r"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    r"/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
-    r"C:\Windows\Fonts\arial.ttf",
-    r"/System/Library/Fonts/Supplemental/Arial.ttf",
-]
 
 # 海报生成配置
 POSTER_GEN_CONFIG = {
@@ -50,54 +40,6 @@ POSTER_GEN_CONFIG = {
     "CANVAS_WIDTH": 1920,  # 画布宽度
     "CANVAS_HEIGHT": 1080,  # 画布高度
 }
-
-
-def _contains_cjk(text):
-    for char in str(text or ""):
-        code = ord(char)
-        if 0x4E00 <= code <= 0x9FFF or 0x3400 <= code <= 0x4DBF or 0x3040 <= code <= 0x30FF or 0xAC00 <= code <= 0xD7AF:
-            return True
-    return False
-
-
-def _font_supports_text(font, text):
-    sample = str(text or "").strip()
-    if not sample:
-        return True
-    try:
-        mask = font.getmask(sample)
-        return mask.getbbox() is not None
-    except Exception:
-        return False
-
-
-def _resolve_font_path(font_path, text):
-    candidates = []
-    primary = str(font_path or "").strip()
-    if primary:
-        candidates.append(primary)
-    fallback_candidates = ZH_FONT_FALLBACKS if _contains_cjk(text) else EN_FONT_FALLBACKS
-    for candidate in fallback_candidates:
-        if candidate and candidate not in candidates and os.path.exists(candidate):
-            candidates.append(candidate)
-    return candidates
-
-
-def _load_font_with_fallback(font_path, text, font_size):
-    errors = []
-    font_size = int(max(1, round(float(font_size))))
-    for candidate in _resolve_font_path(font_path, text):
-        try:
-            font = ImageFont.truetype(candidate, font_size)
-            if _font_supports_text(font, text):
-                if str(candidate) != str(font_path or ""):
-                    logger.warning("文字渲染字体回退 | 文本=%s | 原字体=%s | 回退字体=%s", text, font_path, candidate)
-                return font, candidate
-            errors.append(f"{candidate}:glyph-missing")
-        except Exception as err:
-            errors.append(f"{candidate}:{err}")
-    logger.warning("文字渲染字体不可用 | 文本=%s | 原字体=%s | 错误=%s", text, font_path, "; ".join(errors[:5]))
-    return ImageFont.load_default(), ""
 
 def add_shadow(img, offset=(5, 5), shadow_color=(0, 0, 0, 100), blur_radius=3):
     """
@@ -169,8 +111,6 @@ def draw_text_on_image(
     img_copy = image.copy()
     text_layer = Image.new('RGBA', img_copy.size, (255, 255, 255, 0))
     shadow_layer = Image.new('RGBA', img_copy.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(text_layer)
-    shadow_draw = ImageDraw.Draw(shadow_layer)
     font_size = int(max(1, round(float(font_size))))
     shadow_offset = int(max(1, round(float(shadow_offset))))
     font, _ = _load_font_with_fallback(font_path, text, font_size)
@@ -196,14 +136,15 @@ def draw_text_on_image(
                 raise ValueError("shadow_color 格式不正确")  # 抛出异常，明确错误
 
         for offset in range(3, shadow_offset + 1, 2):
-            shadow_draw.text(
-                (position[0] + offset, position[1] + offset),
+            draw_text_patch(
+                shadow_layer,
                 text,
-                font=font,
-                fill=shadow_color_with_alpha
+                (position[0] + offset, position[1] + offset),
+                font,
+                shadow_color_with_alpha,
             )
     # 绘制主文字
-    draw.text(position, text, font=font, fill=fill_color)
+    draw_text_patch(text_layer, text, position, font, fill_color)
     blurred_shadow = shadow_layer.filter(ImageFilter.GaussianBlur(radius=shadow_offset))
     combined = Image.alpha_composite(img_copy, blurred_shadow)
     img_copy = Image.alpha_composite(combined, text_layer)
@@ -251,7 +192,6 @@ def draw_multiline_text_on_image(
     # 创建一个可绘制的图像副本
     img_copy = image.copy()
     text_layer = Image.new('RGBA', img_copy.size, (255, 255, 255, 0))
-    draw = ImageDraw.Draw(text_layer)
     font_size = int(max(1, round(float(font_size))))
     shadow_offset = int(max(1, round(float(shadow_offset))))
     line_spacing = int(round(float(line_spacing)))
@@ -287,13 +227,14 @@ def draw_multiline_text_on_image(
     if len(lines) <= 1 or not is_multiline:
         if shadow:
             for offset in range(3, shadow_offset + 1, 2):
-                draw.text(
-                    (position[0] + offset, position[1] + offset),
+                draw_text_patch(
+                    text_layer,
                     text,
-                    font=font,
-                    fill=shadow_color_with_alpha
+                    (position[0] + offset, position[1] + offset),
+                    font,
+                    shadow_color_with_alpha,
                 )
-        draw.text(position, text, font=font, fill=fill_color)
+        draw_text_patch(text_layer, text, position, font, fill_color)
         img_copy = Image.alpha_composite(img_copy, text_layer)
         return img_copy, 1
 
@@ -304,13 +245,14 @@ def draw_multiline_text_on_image(
 
         if shadow:
             for offset in range(3, shadow_offset + 1, 2):
-                draw.text(
-                    (x + offset, current_y + offset),
+                draw_text_patch(
+                    text_layer,
                     line,
-                    font=font,
-                    fill=shadow_color_with_alpha
+                    (x + offset, current_y + offset),
+                    font,
+                    shadow_color_with_alpha,
                 )
-        draw.text((x, current_y), line, font=font, fill=fill_color)
+        draw_text_patch(text_layer, line, (x, current_y), font, fill_color)
     img_copy = Image.alpha_composite(img_copy, text_layer)
     return img_copy, len(lines)
 
