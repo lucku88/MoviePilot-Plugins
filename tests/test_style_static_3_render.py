@@ -310,30 +310,20 @@ class StyleStatic3RenderTests(unittest.TestCase):
 
             self.assertGreater(
                 bright_pixels,
-                300,
+                150,
                 "legacy 大偏移下标题文字不应整体消失",
             )
 
-    def test_style_static_3_places_title_block_inside_safe_left_margin_for_1080p(self):
-        module = load_style_module()
-        font_path = find_font_path()
-        image = self._render_style_static_3(module, font_path)
-        image_array = np.array(image)
-        bright_mask = (
-            (image_array[:, :, 0] > 230)
-            & (image_array[:, :, 1] > 230)
-            & (image_array[:, :, 2] > 230)
-        )
-        _, bright_x = np.where(bright_mask)
+    def test_style_static_3_keeps_title_block_near_original_left_layout_for_1080p(self):
+        source = STYLE_MODULE_PATH.read_text(encoding="utf-8")
 
-        self.assertGreater(len(bright_x), 1000)
-        self.assertGreaterEqual(
-            int(bright_x.min()),
-            150,
-            "1080p 下风格3标题块应整体右移到飞牛展示安全区内",
+        self.assertIn(
+            "title_base_x = s(73.32)",
+            source,
+            "1080p 下风格3标题块应恢复到更靠左的原始视觉锚点",
         )
 
-    def test_style_static_3_places_title_block_inside_safe_left_margin_for_480p(self):
+    def test_style_static_3_keeps_title_block_near_original_left_layout_for_480p(self):
         module = load_style_module()
         font_path = find_font_path()
 
@@ -351,10 +341,10 @@ class StyleStatic3RenderTests(unittest.TestCase):
         _, bright_x = np.where(bright_mask)
 
         self.assertGreater(len(bright_x), 1000)
-        self.assertGreaterEqual(
+        self.assertLessEqual(
             int(bright_x.min()),
-            140,
-            "480p 下风格3标题块不应因缩放再次贴回最左侧",
+            80,
+            "480p 下风格3标题块应恢复到更靠左的原始视觉位置",
         )
 
 

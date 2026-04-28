@@ -115,14 +115,14 @@ def _build_text_patch(text, font, fill_color):
                 alpha = alpha.point(lambda value: int(value * fill_rgba[3] / 255))
             glyph = Image.new("RGBA", mask.size, fill_rgba[:3] + (0,))
             glyph.putalpha(alpha)
-            logger.warning("文字渲染走掩膜兜底 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
+            logger.info("文字渲染走掩膜路径 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
             return glyph, (left, top)
     except Exception as err:
         logger.warning("文字掩膜兜底失败 | 文本=%s | 字体=%s | 错误=%s", text, getattr(font, "path", ""), err)
 
     outline = _build_outline_text_patch(text, font, fill_color)
     if outline[0] is not None:
-        logger.warning("文字渲染走轮廓兜底 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
+        logger.info("文字渲染走轮廓路径 | 文本=%s | 字体=%s", text, getattr(font, "path", ""))
         return outline
     return None, (left, top)
 

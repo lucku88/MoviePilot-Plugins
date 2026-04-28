@@ -1187,19 +1187,17 @@ class FnMediaCoverGenerator(_PluginBase):
     ) -> List[str]:
         base_urls = merge_unique_image_urls(library.get("image_list") or [])
         target_count = min(max(required_items * 4, required_items), 60)
-        extra_urls: List[str] = []
-        if len(base_urls) < required_items:
-            extra_urls = self._fetch_trimemedia_library_item_image_urls(
-                service=service,
-                library_id=str(library.get("id") or ""),
-                runtime=runtime,
-                target_count=target_count,
-            )
-        selected_urls = prefer_supplemental_image_urls(
-            base_urls=base_urls,
-            supplemental_urls=extra_urls,
-            limit=target_count,
+        extra_urls = self._fetch_trimemedia_library_item_image_urls(
+            service=service,
+            library_id=str(library.get("id") or ""),
+            runtime=runtime,
+            target_count=target_count,
         )
+        selected_urls = merge_unique_image_urls(extra_urls, limit=target_count)
+        source = "条目补图"
+        if not selected_urls:
+            selected_urls = merge_unique_image_urls(base_urls, limit=target_count)
+            source = "媒体库图兜底"
         logger.info(
             "%s 媒体库条目补图 | 服务器=%s | 媒体库=%s | id=%s | image_list=%s 张 | 条目补充=%s 张 | 最终采用=%s 张 | 来源=%s | 当前风格需要 %s 张",
             self.plugin_name,
@@ -1209,7 +1207,7 @@ class FnMediaCoverGenerator(_PluginBase):
             len(base_urls),
             len(extra_urls),
             len(selected_urls),
-            "条目补图" if extra_urls else "媒体库图",
+            source,
             required_items,
         )
         return selected_urls
