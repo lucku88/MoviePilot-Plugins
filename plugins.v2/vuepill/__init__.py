@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.16"
+    plugin_version = "0.1.17"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -246,6 +246,9 @@ class VuePill(_PluginBase):
             scheduled_action = self._resolve_scheduled_action(force, reason)
             run_brick = self._enable_brick and scheduled_action in {"all", "brick"}
             run_beach = self._enable_beach and scheduled_action in {"all", "beach"}
+            beach_due_action = not force and reason == "schedule" and scheduled_action == "beach" and run_beach
+            if beach_due_action and not (page.get("beach") or {}).get("ready"):
+                page = self._refresh_beach_due_page(session, page)
 
             brick_result: Dict[str, Any] = {}
             beach_result: Dict[str, Any] = {}
@@ -268,6 +271,13 @@ class VuePill(_PluginBase):
                 expect_beach_cooldown=bool(beach_result.get("done")),
             )
             brick_result = self._sync_brick_result_with_page(brick_result, page, final_page)
+            if beach_due_action and not beach_result.get("done") and (final_page.get("beach") or {}).get("ready"):
+                beach_result = self._run_beach_flow(session)
+                final_page = self._fetch_stable_page_state(
+                    session,
+                    previous_page=final_page,
+                    expect_beach_cooldown=bool(beach_result.get("done")),
+                )
             if beach_result.get("done") and (self._auto_craft or self._auto_exchange):
                 auto_result, final_page = self._run_auto_post_beach(session, final_page)
                 final_page = self._fetch_stable_page_state(session, previous_page=final_page)
@@ -279,6 +289,10 @@ class VuePill(_PluginBase):
                     next_run, next_action = retry_ts, retry_action
                 elif retry_ts == next_run:
                     next_action = self._merge_trigger_actions(next_action, retry_action)
+            if beach_due_action and not beach_result.get("done"):
+                retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
+                if not next_run or next_action not in {"beach", "all"} or next_run > retry_ts:
+                    next_run, next_action = retry_ts, "beach"
 
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
@@ -812,6 +826,27 @@ class VuePill(_PluginBase):
             page = self._fetch_page_state(session)
 
         return page
+
+    def _refresh_beach_due_page(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
+        current = page
+        try:
+            current = self._fetch_stable_page_state(session, previous_page=page)
+        except Exception as err:
+            logger.warning("%s 沙滩到点重刷状态失败：%s", self.plugin_name, self._get_error_detail(err))
+            return current
+        if (current.get("beach") or {}).get("ready"):
+            return current
+
+        for wait_seconds in (0.8, 1.5):
+            time.sleep(wait_seconds)
+            try:
+                current = self._fetch_page_state(session)
+            except Exception as err:
+                logger.warning("%s 沙滩到点延迟重刷状态失败：%s", self.plugin_name, self._get_error_detail(err))
+                break
+            if (current.get("beach") or {}).get("ready"):
+                break
+        return current
 
     def _parse_page_state(self, html: str) -> Dict[str, Any]:
         stats = {

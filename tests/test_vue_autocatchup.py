@@ -188,6 +188,47 @@ class VueAutoCatchupTests(unittest.TestCase):
         plugin._update_config = lambda: None
         plugin._reregister_plugin = lambda reason="": None
 
+    def _ready_vuepill_for_scheduled_action(self, plugin, module, action="beach"):
+        plugin._enabled = True
+        plugin._auto_cookie = False
+        plugin._cookie = "sid=ok"
+        plugin._force_ipv4 = False
+        plugin._notify = False
+        plugin._random_delay_max_seconds = 0
+        plugin._ready_retry_seconds = 60
+        plugin._next_trigger_time = plugin._aware_now() - module.timedelta(seconds=1)
+        plugin._next_trigger_mode = f"run:{action}"
+        plugin._build_session = lambda: object()
+        plugin._reregister_plugin = lambda reason="": None
+
+    def _vuepill_page(self, beach_ready=False, beach_next_ts=0, brick_ready=False, brick_next_ts=0):
+        return {
+            "title": "搬砖捡破烂炼魔丸",
+            "server_now": int(time.time()),
+            "stats": {
+                "points": 0,
+                "bonus_earned": 0,
+                "magic_pills": 0,
+                "daily_bricks": 50 if not brick_ready else 0,
+                "daily_limit": 50,
+            },
+            "exchange": {},
+            "brick": {
+                "ready": brick_ready,
+                "daily_bricks": 50 if not brick_ready else 0,
+                "daily_limit": 50,
+                "next_reset_ts": brick_next_ts,
+                "status_text": "可以搬砖" if brick_ready else "今日搬砖已满",
+            },
+            "beach": {
+                "ready": beach_ready,
+                "status_text": "可以进入清理" if beach_ready else "沙滩冷却中",
+                "next_ready_ts": beach_next_ts,
+            },
+            "inventory": [],
+            "recipes": [],
+        }
+
     def test_vuepill_save_config_runs_after_refresh_when_beach_ready(self):
         module = _load_plugin("vuepill")
         plugin = module.VuePill()
@@ -228,6 +269,70 @@ class VueAutoCatchupTests(unittest.TestCase):
 
         self.assertEqual([], run_calls)
         self.assertEqual("配置已保存", result["message"])
+
+    def test_vuepill_scheduled_beach_runs_when_ready_after_final_refresh(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        initial_page = self._vuepill_page(beach_ready=False, beach_next_ts=int(time.time()) + 1)
+        ready_page = self._vuepill_page(beach_ready=True)
+        beach_calls = []
+        plugin._fetch_page_state = lambda session: initial_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: ready_page
+        plugin._run_beach_flow = lambda session: beach_calls.append("beach") or {
+            "done": True,
+            "items": [{"name": "木材", "count": 1, "icon": "🪵"}],
+        }
+
+        result = plugin.run_job(force=False, reason="schedule")
+
+        self.assertEqual(["beach"], beach_calls)
+        self.assertIn("沙滩", result["message"])
+        self.assertNotEqual("ℹ️ 本次无可执行动作", result["message"])
+
+    def test_vuepill_scheduled_beach_keeps_short_retry_when_still_not_ready(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = True
+        future_brick = int(time.time()) + 24 * 3600
+        not_ready_page = self._vuepill_page(
+            beach_ready=False,
+            beach_next_ts=0,
+            brick_ready=False,
+            brick_next_ts=future_brick,
+        )
+        beach_calls = []
+        plugin._fetch_page_state = lambda session: not_ready_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: not_ready_page
+        plugin._run_beach_flow = lambda session: beach_calls.append("beach") or {"done": True, "items": []}
+
+        plugin.run_job(force=False, reason="schedule")
+        next_run = plugin._load_saved_next_run()
+
+        self.assertIsNotNone(next_run)
+        self.assertEqual([], beach_calls)
+        self.assertLessEqual(next_run.timestamp(), time.time() + plugin._ready_retry_seconds + 5)
+        self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
+
+    def test_vuepill_scheduled_brick_does_not_expand_to_ready_beach(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="brick")
+        plugin._enable_beach = True
+        plugin._enable_brick = True
+        page = self._vuepill_page(beach_ready=True, brick_ready=False)
+        beach_calls = []
+        plugin._fetch_page_state = lambda session: page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: page
+        plugin._run_beach_flow = lambda session: beach_calls.append("beach") or {"done": True, "items": []}
+
+        plugin.run_job(force=False, reason="schedule")
+
+        self.assertEqual([], beach_calls)
 
     def test_vuetoy_bootstrap_runs_after_refresh_when_personal_collectable(self):
         module = _load_plugin("vuetoy")
