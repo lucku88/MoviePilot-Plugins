@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -110,7 +110,7 @@ class VueFarm(_PluginBase):
         self._load_saved_next_run()
         self._load_saved_next_trigger()
         self._load_saved_next_trigger_mode()
-        self._bootstrap_pending = self._enabled and not self._next_trigger_time
+        self._bootstrap_pending = self._enabled and not self._onlyonce
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -395,6 +395,9 @@ class VueFarm(_PluginBase):
             return {"success": False, "message": "插件未启用"}
         try:
             farm_status = self._refresh_state(reason="scheduled-refresh", record_run=False)
+            catchup_result = self._run_after_refresh_if_due(farm_status, run_reason="smart", refresh_reason="scheduled-refresh")
+            if catchup_result:
+                return catchup_result
             return {"success": True, "message": "农场状态已预刷新", "farm_status": farm_status}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -408,6 +411,9 @@ class VueFarm(_PluginBase):
             return {"success": False, "message": "插件未启用"}
         try:
             farm_status = self._refresh_state(reason="bootstrap", record_run=False)
+            catchup_result = self._run_after_refresh_if_due(farm_status, run_reason="bootstrap", refresh_reason="bootstrap")
+            if catchup_result:
+                return catchup_result
             return {"success": True, "message": "已初始化农场状态", "farm_status": farm_status}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -567,12 +573,25 @@ class VueFarm(_PluginBase):
         self.init_plugin(merged)
         self._update_config()
         self._reregister_plugin("save_config")
+        catchup_result: Optional[Dict[str, Any]] = None
         if self._enabled:
             try:
-                self._refresh_state(reason="save-config", record_run=False)
+                farm_status = self._refresh_state(reason="save-config", record_run=False)
+                catchup_result = self._run_after_refresh_if_due(farm_status, run_reason="save-config", refresh_reason="save-config")
             except Exception as err:
                 logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
-        return {"success": True, "message": "配置已保存", "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
+        message = "配置已保存"
+        if catchup_result:
+            if catchup_result.get("success", True):
+                message = "配置已保存，已执行补跑"
+            else:
+                message = f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
+        return {
+            "success": True,
+            "message": message,
+            "config": self._get_config(),
+            "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
+        }
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
@@ -673,6 +692,38 @@ class VueFarm(_PluginBase):
         if record_run:
             self.save_data("last_run", self._format_time(self._aware_now()))
         return farm_status
+
+    def _run_after_refresh_if_due(self, farm_status: Dict[str, Any], run_reason: str, refresh_reason: str) -> Optional[Dict[str, Any]]:
+        if not self._should_run_after_refresh(farm_status):
+            return None
+        logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
+        return self.run_job(force=True, reason=run_reason)
+
+    def _should_run_after_refresh(self, farm_status: Optional[Dict[str, Any]]) -> bool:
+        if not self._enabled:
+            return False
+
+        status = farm_status or {}
+        highlights = status.get("highlights") or {}
+        if self._safe_int(highlights.get("ready_count"), 0) > 0:
+            return True
+
+        now_ts = int(time.time())
+        for key in ("next_run_ts", "next_trigger_ts"):
+            ts_value = self._safe_int(status.get(key), 0)
+            if ts_value and ts_value <= now_ts:
+                return True
+
+        now = self._aware_now()
+        next_run = self._load_saved_next_run()
+        if next_run and next_run <= now:
+            return True
+
+        next_trigger = self._load_saved_next_trigger()
+        if next_trigger and next_trigger <= now:
+            return True
+
+        return False
 
     def _get_seed_options(self) -> List[str]:
         farm_status = self.get_data("farm_status") or {}
@@ -1054,10 +1105,19 @@ class VueFarm(_PluginBase):
             retry_network=False,
         )
         if result and result.get("success", True):
+            inventory = (result or {}).get("inventory")
+            items = inventory if isinstance(inventory, list) else [inventory]
+            single_items: List[Dict[str, Any]] = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                single_item = dict(item)
+                single_item["added"] = self._safe_int(single_item.get("added"), 0) or 1
+                single_items.append(single_item)
             return {
                 "success": True,
                 "result": result,
-                "items": self._normalize_harvest_items((result or {}).get("inventory"), default_added=1),
+                "items": self._normalize_harvest_items(single_items, default_added=1),
             }
         return {"success": False, "detail": (result or {}).get("msg") or "收菜失败", "result": result or {}}
 
@@ -1138,50 +1198,6 @@ class VueFarm(_PluginBase):
             return False
         return self._aware_now() + timedelta(seconds=max(5, self._schedule_buffer_seconds)) < next_run
 
-    def _get_next_run_for_service(self) -> Optional[datetime]:
-        next_trigger = self._load_saved_next_trigger()
-        now = self._aware_now()
-        if next_trigger:
-            return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
-        if self._bootstrap_pending:
-            return now + timedelta(seconds=8)
-        return None
-
-    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
-        self._bootstrap_pending = False
-        now = self._aware_now()
-        if next_run_ts:
-            next_run = self._aware_from_timestamp(next_run_ts)
-            trigger_run_at = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
-            pre_refresh_at = trigger_run_at - timedelta(seconds=self.PRE_REFRESH_SECONDS)
-            if pre_refresh_at > now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
-                next_trigger = pre_refresh_at
-                trigger_mode = "refresh"
-            else:
-                next_trigger = trigger_run_at
-                if next_trigger < now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
-                    next_trigger = now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
-                trigger_mode = "run"
-            self._next_run_time = next_run
-            self._next_trigger_time = next_trigger
-            self._next_trigger_mode = trigger_mode
-            self.save_data("next_run_time", self._format_time(next_run))
-            self.save_data("next_trigger_time", self._format_time(next_trigger))
-            self.save_data("next_trigger_mode", trigger_mode)
-            logger.info("INFO 最近收菜时间：%s", self._format_time(next_run))
-            logger.info("INFO 计划触发时间：%s", self._format_time(next_trigger))
-        else:
-            self._next_run_time = None
-            self._next_trigger_time = now + timedelta(seconds=self.IDLE_REFRESH_SECONDS)
-            self._next_trigger_mode = "refresh"
-            self.save_data("next_run_time", "")
-            self.save_data("next_trigger_time", self._format_time(self._next_trigger_time))
-            self.save_data("next_trigger_mode", "refresh")
-            logger.info("INFO 当前没有已识别的收菜时间，不注册下一次自动运行")
-
-        if self._enabled:
-            self._reregister_plugin(reason or "schedule_next_run")
-
     def _reregister_plugin(self, reason: str = ""):
         try:
             Scheduler().update_plugin_job(self.__class__.__name__)
@@ -1210,12 +1226,12 @@ class VueFarm(_PluginBase):
         return self._next_trigger_mode
 
     def _get_next_run_for_service(self) -> Optional[datetime]:
-        next_trigger = self._load_saved_next_trigger()
         now = self._aware_now()
-        if next_trigger:
-            return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
         if self._bootstrap_pending:
             return now + timedelta(seconds=8)
+        next_trigger = self._load_saved_next_trigger()
+        if next_trigger:
+            return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
         return None
 
     def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
