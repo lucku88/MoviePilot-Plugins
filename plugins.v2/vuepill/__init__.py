@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.15"
+    plugin_version = "0.1.16"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -125,7 +125,7 @@ class VuePill(_PluginBase):
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
-        self._bootstrap_pending = self._enabled and not self._next_trigger_time
+        self._bootstrap_pending = self._enabled and (self._enable_brick or self._enable_beach) and not self._onlyonce
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -212,7 +212,16 @@ class VuePill(_PluginBase):
                 urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+                before_refresh = self._capture_refresh_catchup_state()
                 pill_status = self._refresh_state(reason="pre-run-refresh", record_run=False)
+                catchup_result = self._run_after_refresh_if_due(
+                    pill_status,
+                    run_reason="schedule",
+                    refresh_reason="pre-run-refresh",
+                    before_refresh=before_refresh,
+                )
+                if catchup_result:
+                    return catchup_result
                 logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
                 return {
                     "success": True,
@@ -324,7 +333,74 @@ class VuePill(_PluginBase):
         self._bootstrap_pending = False
         if not self._enabled:
             return {"success": False, "message": "插件未启用"}
-        return self.run_job(force=True, reason="bootstrap")
+        try:
+            before_refresh = self._capture_refresh_catchup_state()
+            status = self._refresh_state(reason="status-init", record_run=False)
+            catchup_result = self._run_after_refresh_if_due(
+                status,
+                run_reason="bootstrap",
+                refresh_reason="status-init",
+                before_refresh=before_refresh,
+            )
+            if catchup_result:
+                return catchup_result
+            return {"success": True, "message": "启动状态已刷新", "pill_status": status, "status": self._build_status(auto_refresh=False)}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 启动初始化刷新失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
+    def _capture_refresh_catchup_state(self) -> Dict[str, Any]:
+        now = self._aware_now()
+        next_run = self._load_saved_next_run()
+        next_trigger = self._load_saved_next_trigger()
+        trigger_mode = self._load_saved_next_trigger_mode()
+        return {
+            "next_run_overdue": bool(next_run and next_run <= now),
+            "next_trigger_overdue": bool(next_trigger and next_trigger <= now),
+            "trigger_mode": trigger_mode,
+        }
+
+    def _run_after_refresh_if_due(
+        self,
+        status: Optional[Dict[str, Any]],
+        run_reason: str,
+        refresh_reason: str,
+        before_refresh: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        if not self._should_run_after_refresh(status, before_refresh):
+            return None
+        logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
+        return self.run_job(force=True, reason=run_reason)
+
+    def _should_run_after_refresh(
+        self,
+        status: Optional[Dict[str, Any]],
+        before_refresh: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        if not self._enabled or not (self._enable_brick or self._enable_beach):
+            return False
+
+        before = before_refresh or {}
+        trigger_mode = str(before.get("trigger_mode") or "run")
+        if before.get("next_run_overdue") or (before.get("next_trigger_overdue") and trigger_mode.startswith("run")):
+            return True
+
+        pill_status = status or {}
+        if self._enable_beach and self._is_beach_ready(pill_status.get("beach") or {}):
+            return True
+
+        return False
+
+    def _is_beach_ready(self, beach: Dict[str, Any]) -> bool:
+        if not isinstance(beach, dict):
+            return False
+        return bool(
+            beach.get("ready")
+            or beach.get("can_clean")
+            or beach.get("can_collect")
+            or str(beach.get("action_kind") or "").lower() in {"ready", "run", "clean"}
+        )
 
     def _refresh_data(self):
         try:
@@ -512,18 +588,35 @@ class VuePill(_PluginBase):
         }
 
     def _save_config(self, config_payload: dict):
+        before_refresh = self._capture_refresh_catchup_state()
         merged = self._default_config()
         merged.update(self._get_config(include_options=False))
         merged.update(config_payload or {})
         self.init_plugin(merged)
         self._update_config()
         self._reregister_plugin("save-config")
+        catchup_result: Optional[Dict[str, Any]] = None
         try:
             status = self._refresh_state(reason="save-config")
+            catchup_result = self._run_after_refresh_if_due(
+                status,
+                run_reason="save-config",
+                refresh_reason="save-config",
+                before_refresh=before_refresh,
+            )
         except Exception as err:
             logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
             status = self.get_data("pill_status") or {}
-        return {"success": True, "message": "配置已保存", "config": self._get_config(), "pill_status": status, "status": self._build_status(auto_refresh=False)}
+        message = "配置已保存"
+        if catchup_result:
+            message = "配置已保存，已执行补跑" if catchup_result.get("success", True) else f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
+        return {
+            "success": True,
+            "message": message,
+            "config": self._get_config(),
+            "pill_status": (catchup_result or {}).get("pill_status") or status,
+            "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
+        }
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
@@ -1590,9 +1683,8 @@ class VuePill(_PluginBase):
         return self._next_trigger_time
 
     def _load_saved_next_trigger_mode(self) -> str:
-        if self._next_trigger_mode:
-            return self._next_trigger_mode
-        self._next_trigger_mode = str(self.get_data("next_trigger_mode") or "run").strip() or "run"
+        raw = self.get_data("next_trigger_mode") or ((self.get_data("state") or {}).get("next_trigger_mode")) or self._next_trigger_mode or "run"
+        self._next_trigger_mode = str(raw or "run").strip() or "run"
         return self._next_trigger_mode
 
     def _compute_next_plan(self, data: dict) -> Tuple[Optional[int], str]:

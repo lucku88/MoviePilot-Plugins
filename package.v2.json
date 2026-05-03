@@ -25,11 +25,12 @@
     "name": "Vue-魔丸",
     "description": "兑换、搬砖、清沙滩、炼造、获取执行记录。",
     "labels": "工具,自动化,魔丸,Vue",
-    "version": "0.1.15",
+    "version": "0.1.16",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.16": "补齐 Vue-魔丸 保存配置、启动初始化和运行前预刷新后的补跑判断：沙滩冷却已好或旧计划真正过期时立即执行，避免重启错过触发点，同时不因搬砖今日未满而反复补跑。",
       "v0.1.15": "重排 Vue-魔丸 炼造与兑换工具卡，将数量输入框移动到操作按钮前并统一顶边、右边与间距对齐。",
       "v0.1.14": "移除 Vue-魔丸 炼造与兑换工具卡里的数量标签，并将输入区整体右对齐，和卡片右上角动作位保持同一视觉轴线。",
       "v0.1.13": "继续收紧 Vue-魔丸 当前库存里的炼造与兑换工具卡，将操作按钮统一移动到各功能卡的右上角动作位。",
@@ -52,11 +53,12 @@
     "name": "Vue-玩偶",
     "description": "盲盒、回收、展出、获取执行记录。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.10": "补齐 Vue-玩偶 保存配置、启动初始化和运行前预刷新后的补跑判断：可收回、自家展位可补位或旧计划过期时立即执行，并避免只有多余玩偶时无脑外展。",
       "v0.1.9": "Center Vue-toy cabinet and remote record cards, tighten internal alignment, and keep the dense grid ready for larger toy collections and external display histories.",
       "v0.1.8": "进一步压缩 Vue-玩偶 的玩偶柜子、我的展柜、抢占他人展位和外展记录四个区块，统一高密度卡片间距，并预留内部滚动与虚拟列表参数。",
       "v0.1.7": "强化 Vue-玩偶 的多列网格约束与卡片宽度控制，确保玩偶柜子、我的展柜、抢占他人展位和外展记录在大量玩偶场景下保持紧凑多列布局。",
@@ -73,11 +75,12 @@
     "name": "Vue-表情",
     "description": "老虎机、开包、舞台演出、获取执行记录。",
     "labels": "工具,自动化,表情,Vue",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.2": "补齐 Vue-表情 保存配置、启动初始化和运行前预刷新后的补跑判断：待收开包、可开包、舞台可召回/开演或旧计划过期时立即执行，老虎机仍按计划触发控制。",
       "v0.1.1": "对齐 Vue-魔丸 的页头结构，收紧我的表情包操作区，移除合成区与老虎机提示文案，并统一状态页和配置页的卡片密度。",
       "v0.1.0": "???????? Vue-?? ?????????????? Vue-???Vue-???????? Vue ???"
     }

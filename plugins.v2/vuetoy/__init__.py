@@ -27,7 +27,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "盲盒、回收、展出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -99,7 +99,7 @@ class VueToy(_PluginBase):
         self._load_saved_next_run()
         self._load_saved_next_trigger()
         self._load_saved_next_trigger_mode()
-        self._bootstrap_pending = self._enabled and not self._next_trigger_time
+        self._bootstrap_pending = self._enabled and (self._auto_collect or self._auto_place) and not self._onlyonce
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -199,7 +199,16 @@ class VueToy(_PluginBase):
                 time.sleep(rand_delay)
 
             if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+                before_refresh = self._capture_refresh_catchup_state()
                 toy_status = self._refresh_state(reason="pre-run-refresh")
+                catchup_result = self._run_after_refresh_if_due(
+                    toy_status,
+                    run_reason="schedule",
+                    refresh_reason="pre-run-refresh",
+                    before_refresh=before_refresh,
+                )
+                if catchup_result:
+                    return catchup_result
                 logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
                 return {
                     "success": True,
@@ -323,14 +332,119 @@ class VueToy(_PluginBase):
             logger.info("## 执行结束... %s", self._format_time(self._aware_now()))
 
     def _manual_worker(self):
-        self.run_job(force=True, reason="onlyonce")
+        return self.run_job(force=True, reason="onlyonce")
 
     def _bootstrap_worker(self):
         self._bootstrap_pending = False
-        self.run_job(force=True, reason="bootstrap")
+        if not self._enabled:
+            return {"success": False, "message": "插件未启用"}
+        try:
+            before_refresh = self._capture_refresh_catchup_state()
+            toy_status = self._refresh_state(reason="status-init")
+            catchup_result = self._run_after_refresh_if_due(
+                toy_status,
+                run_reason="bootstrap",
+                refresh_reason="status-init",
+                before_refresh=before_refresh,
+            )
+            if catchup_result:
+                return catchup_result
+            return {"success": True, "message": "启动状态已刷新", "toy_status": toy_status, "status": self._build_status(auto_refresh=False)}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 启动初始化刷新失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     def _auto_worker(self):
-        self.run_job(force=False, reason="schedule")
+        return self.run_job(force=False, reason="schedule")
+
+    def _capture_refresh_catchup_state(self) -> Dict[str, Any]:
+        now = self._aware_now()
+        next_run = self._load_saved_next_run()
+        next_trigger = self._load_saved_next_trigger()
+        trigger_mode = self._load_saved_next_trigger_mode()
+        return {
+            "next_run_overdue": bool(next_run and next_run <= now),
+            "next_trigger_overdue": bool(next_trigger and next_trigger <= now),
+            "trigger_mode": trigger_mode,
+        }
+
+    def _run_after_refresh_if_due(
+        self,
+        toy_status: Optional[Dict[str, Any]],
+        run_reason: str,
+        refresh_reason: str,
+        before_refresh: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        if not self._should_run_after_refresh(toy_status, before_refresh):
+            return None
+        logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
+        return self.run_job(force=True, reason=run_reason)
+
+    def _should_run_after_refresh(
+        self,
+        toy_status: Optional[Dict[str, Any]],
+        before_refresh: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        if not self._enabled or not (self._auto_collect or self._auto_place):
+            return False
+
+        before = before_refresh or {}
+        trigger_mode = str(before.get("trigger_mode") or "run")
+        if before.get("next_run_overdue") or (before.get("next_trigger_overdue") and trigger_mode.startswith("run")):
+            return True
+
+        status = toy_status or {}
+        if self._auto_collect and (self._has_collectable_personal_slot(status) or self._has_collectable_remote_slot(status)):
+            return True
+        if self._auto_place and self._has_empty_personal_slot(status) and self._has_available_doll(status):
+            return True
+        return False
+
+    def _has_collectable_personal_slot(self, status: Dict[str, Any]) -> bool:
+        for slot in self._iter_dicts(status.get("personal_slots") or []):
+            if slot.get("can_collect") or str(slot.get("action_kind") or "").lower() == "ready":
+                return True
+            if bool(slot.get("viewer_is_occupant")) and slot.get("remaining_seconds") is not None and self._safe_int(slot.get("remaining_seconds"), 1) <= 0:
+                return True
+            occupant = slot.get("occupant") or {}
+            if occupant.get("viewer_is_occupant"):
+                remaining = self._get_personal_remain_sec(slot)
+                if remaining is not None and remaining <= 0:
+                    return True
+        return False
+
+    def _has_collectable_remote_slot(self, status: Dict[str, Any]) -> bool:
+        records = status.get("remote_records")
+        if records is None:
+            records = status.get("remote_deployments") or []
+        for item in self._iter_dicts(records):
+            if item.get("remaining_seconds") is not None and self._safe_int(item.get("remaining_seconds"), 1) <= 0:
+                return True
+            remaining = self._get_remote_remain_sec(item)
+            if remaining is not None and remaining <= 0:
+                return True
+        return False
+
+    def _has_empty_personal_slot(self, status: Dict[str, Any]) -> bool:
+        for slot in self._iter_dicts(status.get("personal_slots") or []):
+            if bool(slot.get("cooldown_active")):
+                continue
+            if "empty" in slot:
+                if bool(slot.get("empty")):
+                    return True
+                continue
+            if not slot.get("occupant"):
+                return True
+        return False
+
+    def _has_available_doll(self, status: Dict[str, Any]) -> bool:
+        inventories = [status.get("cabinet") or [], status.get("doll_inventory") or []]
+        for inventory in inventories:
+            for item in self._iter_dicts(inventory):
+                if item.get("can_place") or self._safe_int(item.get("available"), 0) > 0:
+                    return True
+        return False
 
     def _refresh_data(self):
         try:
@@ -462,18 +576,35 @@ class VueToy(_PluginBase):
         }
 
     def _save_config(self, config_payload: dict):
+        before_refresh = self._capture_refresh_catchup_state()
         merged = self._default_config()
         merged.update(self._get_config(include_options=False))
         merged.update(config_payload or {})
         self.init_plugin(merged)
         self._update_config()
         self._reregister_plugin("save-config")
+        catchup_result: Optional[Dict[str, Any]] = None
         try:
             status = self._refresh_state(reason="save-config")
+            catchup_result = self._run_after_refresh_if_due(
+                status,
+                run_reason="save-config",
+                refresh_reason="save-config",
+                before_refresh=before_refresh,
+            )
         except Exception as err:
             logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
             status = self.get_data("toy_status") or {}
-        return {"success": True, "message": "配置已保存", "config": self._get_config(), "toy_status": status, "status": self._build_status(auto_refresh=False)}
+        message = "配置已保存"
+        if catchup_result:
+            message = "配置已保存，已执行补跑" if catchup_result.get("success", True) else f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
+        return {
+            "success": True,
+            "message": message,
+            "config": self._get_config(),
+            "toy_status": (catchup_result or {}).get("toy_status") or status,
+            "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
+        }
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
