@@ -455,30 +455,17 @@ const controlStats = computed(() => [
 ])
 const activeDashboardCard = computed(() => cards.value.find((item) => item.card_id === selectedCardId.value) || null)
 const currentLogCard = computed(() => activeDashboardCard.value || logCardSeed.value || null)
-const latestStateLog = computed(() => {
-  const card = currentLogCard.value
-  if (!card) return null
-  const entry = cardToLogEntry(card)
-  if (!entry) return null
-  return {
-    ...entry,
-    id: `latest-${entry.card_id || card.card_id || card.id || 'item'}-${entry.time || 'state'}`,
-  }
-})
 const selectedLogs = computed(() => {
   const card = currentLogCard.value
   if (!card) return []
   const fallbackLogs = card.log_items || []
   const merged = new Map()
-  for (const item of [latestStateLog.value, ...fallbackLogs, ...historyItems.value]) {
+  for (const item of [...fallbackLogs, ...historyItems.value]) {
     if (!logMatchesCard(item, card)) continue
     const key = logEntryKey(item)
     if (!merged.has(key)) merged.set(key, item)
   }
-  const items = [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
-  if (items.length) return items
-  const fallbackItem = cardToLogEntry(card)
-  return fallbackItem ? [fallbackItem] : []
+  return [...merged.values()].sort((a, b) => String(b.time || '').localeCompare(String(a.time || '')))
 })
 
 function createEmptyConfig() {
@@ -830,28 +817,6 @@ function logEntryKey(item) {
     String(item.summary || '').trim(),
     visibleLogLines(item).join('|'),
   ].join('::')
-}
-
-function cardToLogEntry(card) {
-  if (!card) return null
-  const time = String(card.last_run || card.last_checked || '').trim()
-  const summary = String(card.status_text || '').trim()
-  const lines = Array.isArray(card.detail_lines) ? card.detail_lines.filter(Boolean) : []
-  const title = String(card.title || '').trim()
-  if (!time && !summary && !lines.length && !title) return null
-  return {
-    id: `card-fallback-${card.card_id || card.id || 'item'}-${time || 'now'}`,
-    time: time || '--',
-    title: title || '最近状态',
-    summary,
-    status_title: String(card.status_title || '最近状态').trim(),
-    level: String(card.level || 'info').trim(),
-    lines,
-    card_id: String(card.card_id || card.id || '').trim(),
-    module_key: String(card.module_key || '').trim(),
-    site_name: String(card.site_name || '').trim(),
-    site_url: String(card.site_url || '').trim(),
-  }
 }
 
 function logMatchesCard(item, card) {

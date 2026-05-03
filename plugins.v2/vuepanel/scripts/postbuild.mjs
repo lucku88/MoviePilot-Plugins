@@ -20,6 +20,13 @@ for (const [src, dest] of copyPairs) {
   }
 }
 
+function normalizeLineEndings(filePath) {
+  if (!fs.existsSync(filePath)) return
+
+  const content = fs.readFileSync(filePath, 'utf8')
+  fs.writeFileSync(filePath, content.replace(/\r\n/g, '\n'))
+}
+
 const chunkNames = fs.existsSync(distRoot)
   ? fs.readdirSync(distRoot)
   : []
@@ -50,3 +57,5 @@ function patchRemoteEntry(remoteEntryPath) {
 
 patchRemoteEntry(path.join(distRoot, 'remoteEntry.js'))
 patchRemoteEntry(path.join(nestedAssetsRoot, 'remoteEntry.js'))
+normalizeLineEndings(path.join(distRoot, 'style.css'))
+normalizeLineEndings(path.join(nestedAssetsRoot, 'style.css'))

@@ -27,7 +27,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.31"
+    plugin_version = "0.1.32"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -115,7 +115,7 @@ class VuePanel(_PluginBase):
     def __init__(self):
         super().__init__()
 
-    def init_plugin(self, config: Optional[dict] = None):
+    def init_plugin(self, config: Optional[dict] = None, schedule_bootstrap: bool = True):
         self.stop_service()
 
         merged = self._default_config()
@@ -129,8 +129,20 @@ class VuePanel(_PluginBase):
         self._ensure_cards(persist=True)
         self._save_schedule_meta()
 
-        if self._onlyonce:
+        if self._onlyonce or schedule_bootstrap:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+
+        if schedule_bootstrap and self._scheduler:
+            self._scheduler.add_job(
+                func=self._bootstrap_schedule_worker,
+                trigger="date",
+                run_date=self._aware_now() + timedelta(seconds=5),
+                id="VuePanelBootstrapScheduleCheck",
+                name=f"{self.plugin_name}-启动调度自检",
+                replace_existing=True,
+            )
+
+        if self._onlyonce and self._scheduler:
             self._scheduler.add_job(
                 func=self._manual_worker,
                 trigger="date",
@@ -139,8 +151,10 @@ class VuePanel(_PluginBase):
             )
             self._onlyonce = False
             self._update_config()
-            self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+        if self._scheduler:
+            self._scheduler.start()
 
     def get_state(self) -> bool:
         return True
@@ -210,6 +224,9 @@ class VuePanel(_PluginBase):
     def _scheduled_card_worker(self, card_id: str):
         return self.run_job(force=False, reason="scheduled-card", card_id=card_id)
 
+    def _bootstrap_schedule_worker(self):
+        return self._refresh_and_catchup_schedule("startup")
+
     def _get_config_api(self):
         return self._get_config()
 
@@ -220,13 +237,6 @@ class VuePanel(_PluginBase):
         card_id = str((payload or {}).get("card_id") or "").strip()
         try:
             dashboard = self._refresh_state(reason="manual-refresh", card_id=card_id)
-            if card_id:
-                states = self._load_card_states()
-                state = states.get(card_id)
-                if isinstance(state, dict):
-                    self._append_history(state)
-                    dashboard = self._build_dashboard(states)
-                    self.save_data("dashboard_status", dashboard)
             message = "卡片状态已刷新" if card_id else "全部卡片状态已刷新"
             return {"success": True, "message": message, "dashboard": dashboard, "status": self._build_status(auto_refresh=False)}
         except Exception as err:
@@ -248,11 +258,17 @@ class VuePanel(_PluginBase):
             return {"success": False, "message": "缺少 card_id", "status": self._build_status(auto_refresh=False)}
         return self.run_job(force=True, reason="manual-card", card_id=card_id)
 
-    def run_job(self, force: bool = False, reason: str = "manual", card_id: str = "") -> Dict[str, Any]:
+    def run_job(
+        self,
+        force: bool = False,
+        reason: str = "manual",
+        card_id: str = "",
+        target_cards: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         run_start = time.time()
         logger.info("## 开始执行... %s", self._format_time(self._aware_now()))
         try:
-            targets = self._select_cards_for_run(card_id=card_id, force=force, reason=reason)
+            targets = list(target_cards) if target_cards is not None else self._select_cards_for_run(card_id=card_id, force=force, reason=reason)
             if not targets:
                 return {"success": False, "message": "暂无可执行卡片", "status": self._build_status(auto_refresh=False)}
 
@@ -347,7 +363,7 @@ class VuePanel(_PluginBase):
             "next_trigger_mode": self._load_next_trigger_mode(),
             "last_run": self.get_data("last_run") or "",
             "dashboard": dashboard,
-            "history": (self.get_data("history") or [])[: self.HISTORY_LIMIT],
+            "history": self._filter_run_history_items(self.get_data("history") or [])[: self.HISTORY_LIMIT],
             "config": self._get_config(),
         }
 
@@ -379,16 +395,10 @@ class VuePanel(_PluginBase):
             if request_cron_snapshot:
                 logger.info("%s 保存请求卡片 Cron：%s", self.plugin_name, request_cron_snapshot)
 
-        self.init_plugin(merged)
+        self.init_plugin(merged, schedule_bootstrap=False)
         self._update_config()
-        self._reregister_plugin("save_config")
-        self._log_schedule_snapshot("save_config")
-
-        try:
-            dashboard = self._refresh_state(reason="save-config")
-        except Exception as err:
-            logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
-            dashboard = self._build_dashboard(self._load_card_states())
+        result = self._refresh_and_catchup_schedule("save_config")
+        dashboard = result.get("dashboard") or self._build_dashboard(self._load_card_states())
 
         return {"success": True, "message": "配置已保存", "config": self._get_config(), "dashboard": dashboard, "status": self._build_status(auto_refresh=False)}
 
@@ -1243,7 +1253,7 @@ class VuePanel(_PluginBase):
         error_count = 0
         auto_count = 0
         pending_count = 0
-        history_items = list(self.get_data("history") or [])
+        history_items = self._filter_run_history_items(self.get_data("history") or [])
         display_history_items = history_items if history_items else self._build_state_history_items(states)
         card_logs = self._build_card_history_map(display_history_items, limit=12)
         cards: List[Dict[str, Any]] = []
@@ -1391,7 +1401,7 @@ class VuePanel(_PluginBase):
         bucket: Dict[str, List[Dict[str, Any]]] = {}
         if not isinstance(history_items, list):
             return bucket
-        for item in history_items:
+        for item in self._filter_run_history_items(history_items):
             if not isinstance(item, dict):
                 continue
             card_id = str(item.get("card_id") or "").strip()
@@ -1407,7 +1417,7 @@ class VuePanel(_PluginBase):
         items: List[Dict[str, Any]] = []
         for card in self._cards:
             state = dict(states.get(card["id"]) or {})
-            event_time = str(state.get("last_run") or state.get("last_checked") or "").strip()
+            event_time = str(state.get("last_run") or "").strip()
             if not event_time:
                 continue
             module_meta = self._module_meta(card["module_key"])
@@ -1428,6 +1438,8 @@ class VuePanel(_PluginBase):
                     "site_name": str(state.get("site_name") or card.get("site_name") or ""),
                     "site_url": str(state.get("site_url") or card.get("site_url") or ""),
                     "tags": list(state.get("tags") or self._build_card_tags(card)),
+                    "source": "run",
+                    "record_run": True,
                 }
             )
 
@@ -1567,9 +1579,52 @@ class VuePanel(_PluginBase):
                 "site_name": state.get("site_name") or "",
                 "site_url": state.get("site_url") or "",
                 "tags": list(state.get("tags") or []),
+                "source": "run",
+                "record_run": True,
             },
         )
         self.save_data("history", history[: self.HISTORY_LIMIT])
+
+    def _filter_run_history_items(self, history_items: Any) -> List[Dict[str, Any]]:
+        if not isinstance(history_items, list):
+            return []
+        return [item for item in history_items if self._is_run_history_item(item)]
+
+    @staticmethod
+    def _is_run_history_item(item: Any) -> bool:
+        if not isinstance(item, dict):
+            return False
+        if item.get("source") == "run" or item.get("record_run") is True:
+            return True
+        if not str(item.get("time") or "").strip():
+            return False
+        status = str(item.get("status_title") or item.get("title") or "").strip()
+        summary = str(item.get("summary") or "").strip()
+        blocked_status = {
+            "已停用",
+            "待配置 Cookie",
+            "待配置 UID",
+            "待配置网站地址",
+            "待配置餐馆",
+            "等待刷新",
+            "仅手动执行",
+            "最近状态",
+        }
+        blocked_fragments = [
+            "当前功能卡片已停用",
+            "卡片已停用",
+            "请先在配置弹窗",
+            "请先填写",
+            "尚未填写",
+            "需要填写",
+            "需要先填写",
+            "卡片配置已经加载",
+            "可先执行",
+            "当前已启用，但只会在你手动点击执行时运行",
+        ]
+        if status in blocked_status:
+            return False
+        return not any(fragment in summary for fragment in blocked_fragments)
 
     def _load_card_states(self) -> Dict[str, Dict[str, Any]]:
         data = self.get_data("card_states") or {}
@@ -1758,6 +1813,72 @@ class VuePanel(_PluginBase):
         session.headers.update(headers)
         session.cookies.update(self._parse_cookie(card.get("cookie") or ""))
         return session
+
+    def _refresh_and_catchup_schedule(self, reason: str = "") -> Dict[str, Any]:
+        reason_text = reason or "schedule_check"
+        dashboard: Dict[str, Any] = {}
+        missed_cards: List[Dict[str, Any]] = []
+
+        try:
+            dashboard = self._refresh_state(reason=f"{reason_text}-refresh")
+        except Exception as err:
+            logger.warning("%s 调度自检刷新状态失败：%s", self.plugin_name, self._get_error_detail(err))
+            dashboard = self._build_dashboard(self._load_card_states())
+            self.save_data("dashboard_status", dashboard)
+
+        try:
+            missed_cards = self._select_missed_catchup_cards(self._load_card_states())
+            if missed_cards:
+                names = "、".join(str(card.get("title") or card.get("id") or "") for card in missed_cards)
+                logger.info("%s 检测到已过执行时间且今日未运行卡片：%s", self.plugin_name, names)
+                run_result = self.run_job(reason=f"{reason_text}-catchup", target_cards=missed_cards)
+                dashboard = run_result.get("dashboard") or self.get_data("dashboard_status") or dashboard
+            else:
+                logger.info("%s 调度自检未发现需要补跑的卡片：%s", self.plugin_name, reason_text)
+        except Exception as err:
+            logger.warning("%s 调度自检补跑判断失败：%s", self.plugin_name, self._get_error_detail(err))
+        finally:
+            self._save_schedule_meta()
+            self._reregister_plugin(reason_text)
+            self._log_schedule_snapshot(reason_text)
+
+        return {"dashboard": dashboard, "catchup_count": len(missed_cards)}
+
+    def _select_missed_catchup_cards(self, states: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        now = self._aware_now()
+        missed_cards: List[Dict[str, Any]] = []
+        for card in self._cards:
+            if not self._card_schedule_enabled(card):
+                continue
+            latest_fire = self._get_card_latest_fire_today(card, now)
+            if not latest_fire:
+                continue
+            state = states.get(card["id"]) if isinstance(states, dict) else {}
+            last_run = self._parse_datetime((state or {}).get("last_run"))
+            if last_run and last_run >= latest_fire:
+                continue
+            missed_cards.append(card)
+        return missed_cards
+
+    def _get_card_latest_fire_today(self, card: Dict[str, Any], now: Optional[datetime] = None) -> Optional[datetime]:
+        trigger = self._parse_card_cron(self._get_card_cron(card), title=str(card.get("title") or card.get("id") or ""))
+        if not trigger:
+            return None
+        current = now or self._aware_now()
+        day_start = current.replace(hour=0, minute=0, second=0, microsecond=0)
+        previous_fire: Optional[datetime] = None
+        cursor = day_start
+        latest_fire: Optional[datetime] = None
+
+        for _ in range(2000):
+            next_fire = trigger.get_next_fire_time(previous_fire, cursor)
+            if not next_fire or next_fire > current:
+                break
+            if next_fire >= day_start:
+                latest_fire = next_fire
+            previous_fire = next_fire
+            cursor = next_fire + timedelta(seconds=1)
+        return latest_fire
 
     def _save_schedule_meta(self):
         next_run = self._get_next_run_time()
