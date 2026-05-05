@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.10"
+    plugin_version = "0.1.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -423,6 +423,18 @@ class VueFarm(_PluginBase):
     def _refresh_data(self):
         try:
             farm_status = self._refresh_state(reason="manual-refresh", record_run=False)
+            catchup_result = self._run_after_refresh_if_due(farm_status, run_reason="manual-refresh", refresh_reason="manual-refresh")
+            if catchup_result:
+                if catchup_result.get("success", True):
+                    message = "农场数据已刷新，已执行补跑"
+                else:
+                    message = f"农场数据已刷新，补跑失败：{catchup_result.get('message') or '未知原因'}"
+                return {
+                    "success": catchup_result.get("success", True),
+                    "message": message,
+                    "farm_status": ((catchup_result.get("status") or {}).get("farm_status") or farm_status),
+                    "status": catchup_result.get("status") or self._build_status(auto_refresh=False),
+                }
             return {"success": True, "message": "农场数据已刷新", "farm_status": farm_status, "status": self._build_status(auto_refresh=False)}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -685,9 +697,10 @@ class VueFarm(_PluginBase):
         session = self._build_session()
         data = self._fetch_state(session)
         next_run = self._compute_next_run(data)
-        self._schedule_next_run(next_run, reason)
-        self.save_data("state", self._build_state_record(data, next_run, []))
-        farm_status = self._build_ui_state(data, next_run, [])
+        schedule_run = self._normalize_refresh_schedule_run(data, next_run)
+        self._schedule_next_run(schedule_run, reason)
+        self.save_data("state", self._build_state_record(data, schedule_run, []))
+        farm_status = self._build_ui_state(data, schedule_run, [])
         self.save_data("farm_status", farm_status)
         if record_run:
             self.save_data("last_run", self._format_time(self._aware_now()))
@@ -1070,8 +1083,7 @@ class VueFarm(_PluginBase):
             if not plot.get("seed_id"):
                 continue
             seed = seed_map.get(str(plot.get("seed_id"))) or {}
-            harvest_ts = self._plot_harvest_time(plot, seed)
-            if plot.get("is_ready") == 1 or (harvest_ts and harvest_ts <= now_sec):
+            if self._is_plot_ready(plot, seed, now_sec):
                 ready_plots.append(plot)
         return ready_plots
 
@@ -1327,7 +1339,7 @@ class VueFarm(_PluginBase):
             )
             seed = seed_map.get(str((plot or {}).get("seed_id"))) or {}
             harvest_ts = self._plot_harvest_time(plot, seed) if plot else 0
-            ready = bool(plot and (plot.get("is_ready") == 1 or (harvest_ts and harvest_ts <= int(time.time()))))
+            ready = bool(plot and self._is_plot_ready(plot, seed))
             is_open_slot = meta.get("land_unlocked") and slot_index <= int(meta.get("available_slots") or 0)
             return {
                 "land": land,
@@ -1567,13 +1579,20 @@ class VueFarm(_PluginBase):
         for plot in (data.get("user_lands") or []):
             if not plot.get("seed_id"):
                 continue
-            seed = seed_map.get(str(plot.get("seed_id")))
-            plant_time = int(plot.get("plant_time") or 0)
-            grow_time = int((seed or {}).get("grow_time") or 0)
-            harvest_ts = int(plot.get("harvest_time") or 0) or (plant_time + grow_time if plant_time and grow_time else 0)
+            seed = seed_map.get(str(plot.get("seed_id"))) or {}
+            if self._is_plot_ready(plot, seed, now):
+                continue
+            harvest_ts = self._plot_harvest_time(plot, seed)
             if harvest_ts > now:
                 future_times.append(harvest_ts)
         return min(future_times) if future_times else None
+
+    def _normalize_refresh_schedule_run(self, data: dict, next_run: Optional[int]) -> Optional[int]:
+        if next_run:
+            return next_run
+        if self._collect_ready_plots(data):
+            return int(time.time())
+        return None
 
     def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> dict:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -1613,7 +1632,7 @@ class VueFarm(_PluginBase):
                     "land_id": int(plot.get("land_id") or 0),
                     "plot_index": int(plot.get("plot_index") or 0) + 1,
                     "seed_name": (seed_map.get(str(plot.get("seed_id"))) or {}).get("name"),
-                    "ready": plot.get("is_ready") == 1,
+                    "ready": self._is_plot_ready(plot, seed_map.get(str(plot.get("seed_id"))) or {}),
                 }
                 for plot in (data.get("user_lands") or [])
             ],
@@ -1762,7 +1781,7 @@ class VueFarm(_PluginBase):
                 if plot:
                     seed = seed_map.get(str(plot.get("seed_id"))) or {}
                     harvest_ts = self._plot_harvest_time(plot, seed)
-                    ready = plot.get("is_ready") == 1 or (harvest_ts and harvest_ts <= int(time.time()))
+                    ready = self._is_plot_ready(plot, seed)
                     slots.append({
                         "land_id": land_id,
                         "land_name": land_name,
@@ -1829,14 +1848,22 @@ class VueFarm(_PluginBase):
         return groups
 
     def _plot_harvest_time(self, plot: dict, seed: dict) -> int:
-        harvest_ts = int(plot.get("harvest_time") or 0)
+        harvest_ts = self._safe_int(plot.get("harvest_time"), 0)
         if harvest_ts:
             return harvest_ts
-        plant_time = int(plot.get("plant_time") or 0)
-        grow_time = int(seed.get("grow_time") or 0)
+        plant_time = self._safe_int(plot.get("plant_time"), 0)
+        grow_time = self._safe_int(seed.get("grow_time"), 0)
         if plant_time and grow_time:
             return plant_time + grow_time
         return 0
+
+    def _is_plot_ready(self, plot: dict, seed: dict, now_sec: Optional[int] = None) -> bool:
+        if not plot or not plot.get("seed_id"):
+            return False
+        if self._to_bool(plot.get("is_ready")):
+            return True
+        harvest_ts = self._plot_harvest_time(plot, seed or {})
+        return bool(harvest_ts and harvest_ts <= (now_sec or int(time.time())))
 
     def _build_result_lines(
         self,
@@ -2105,7 +2132,16 @@ class VueFarm(_PluginBase):
 
     @staticmethod
     def _to_bool(val: Any) -> bool:
-        return val if isinstance(val, bool) else (val.lower() == "true" if isinstance(val, str) else bool(val))
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            text = val.strip().lower()
+            if text in {"1", "true", "yes", "y", "on"}:
+                return True
+            if text in {"0", "false", "no", "n", "off", ""}:
+                return False
+            return False
+        return bool(val)
 
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:

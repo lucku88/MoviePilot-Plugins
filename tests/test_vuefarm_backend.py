@@ -308,6 +308,42 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual("配置已保存，已执行补跑", result["message"])
         self.assertEqual({"ran": True}, result["status"])
 
+    def test_manual_refresh_runs_full_job_after_refresh_when_ready(self):
+        run_calls = []
+        self.plugin._refresh_state = lambda reason, record_run=False: {"highlights": {"ready_count": 1}}
+        self.plugin.run_job = lambda force=False, reason="manual": run_calls.append((force, reason)) or {
+            "success": True,
+            "message": "补跑完成",
+            "status": {"ran": True},
+        }
+
+        result = self.plugin._refresh_data()
+
+        self.assertEqual([(True, "manual-refresh")], run_calls)
+        self.assertEqual("农场数据已刷新，已执行补跑", result["message"])
+        self.assertEqual({"ran": True}, result["status"])
+
+    def test_status_refresh_with_ready_string_registers_immediate_run(self):
+        data = _ready_farm_data(18)
+        for plot in data["user_lands"]:
+            plot["is_ready"] = "1"
+            plot["plant_time"] = None
+            plot["harvest_time"] = None
+
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_state = lambda session: data
+        self.plugin._reregister_plugin = lambda reason="": None
+
+        before_ts = int(time.time())
+        farm_status = self.plugin._refresh_state(reason="status-init", record_run=False)
+
+        self.assertEqual(18, farm_status["highlights"]["ready_count"])
+        self.assertEqual("run", self.plugin.get_data("next_trigger_mode"))
+        next_trigger = self.plugin._parse_datetime(self.plugin.get_data("next_trigger_time"))
+        self.assertIsNotNone(next_trigger)
+        self.assertLessEqual(int(next_trigger.timestamp()), before_ts + self.plugin.MIN_TRIGGER_SECONDS + 2)
+
     def test_refresh_only_when_not_ready_or_overdue(self):
         run_calls = []
         future_ts = int(time.time()) + 3600

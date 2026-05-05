@@ -3,11 +3,12 @@
     "name": "Vue-农场",
     "description": "收菜、种植、出售、获取执行记录。",
     "labels": "工具,自动化,农场,Vue",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.11": "修复 Vue-农场 状态初始化和手动刷新遇到已成熟田块时把调度改成 12 小时刷新：成熟田会立即注册执行，手动刷新会直接补跑，并兼容站点返回 is_ready 字符串。",
       "v0.1.10": "Fix Vue-农场 fallback harvest counting so per-plot recovery does not sum cumulative inventory, and catch up immediately after config save or MoviePilot restart when crops are already ready.",
       "v0.1.9": "Fix Vue-farm preferred seed matching so saved planting choices like 西红柿 are normalized consistently across config save, status refresh, and auto-plant execution.",
       "v0.1.8": "Tighten Vue-farm inventory and seed shop cards with denser spacing, smaller controls, and cleaner alignment so the two commerce panels waste less space and read more consistently.",
