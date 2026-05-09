@@ -17,6 +17,8 @@
         </div>
 
         <div class="vpp-panel-right">
+          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-download-outline" @click="exportConfig">导出配置</v-btn>
+          <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-upload-outline" :loading="saving.importConfig" @click="triggerImportConfig">导入配置</v-btn>
           <v-btn class="vpp-toolbar-btn" variant="text" prepend-icon="mdi-flash" :loading="loading.runAll" @click="runAll">
             执行启用
             <span class="vpp-toolbar-badge">{{ enabledCount }}</span>
@@ -25,6 +27,13 @@
           <v-btn class="vpp-toolbar-btn is-icon" icon="mdi-close" variant="text" @click="closePlugin" />
         </div>
       </header>
+      <input
+        ref="importInput"
+        class="vpp-hidden-file-input"
+        type="file"
+        accept="application/json,.json"
+        @change="importConfigFile"
+      />
 
       <v-alert
         v-if="message.text"
@@ -363,6 +372,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import BaseCronField from './ui/BaseCronField.vue'
 import { usePanelTheme } from '../composables/usePanelTheme'
+import { logEntryKey, logMatchesCard, visibleLogLines } from '../utils/logMatching.js'
 
 const DEFAULT_CRON = '5 8 * * *'
 
@@ -387,7 +397,7 @@ const panelConfig = ref(createEmptyConfig())
 const message = reactive({ text: '', type: 'success' })
 const dialog = reactive({ config: false, logs: false, copy: false })
 const loading = reactive({ refreshAll: false, runAll: false, cardRefresh: false, cardRun: false })
-const saving = reactive({ config: false, copy: false, delete: false })
+const saving = reactive({ config: false, copy: false, delete: false, importConfig: false })
 const failedLogos = reactive({})
 const editor = reactive(createCardDraft())
 const copyForm = reactive({ title: '', note: '' })
@@ -397,6 +407,7 @@ const searchQuery = ref('')
 const deletingCardId = ref('')
 const logCardSeed = ref(null)
 const rootEl = ref(null)
+const importInput = ref(null)
 
 let logTimer = null
 
@@ -784,62 +795,11 @@ function logStatusLabel(item) {
   return item?.status_title || item?.title || runtimeLabel(item?.level)
 }
 
-function visibleLogLines(item) {
-  const summary = String(item?.summary || '').trim()
-  const statusTitle = String(item?.status_title || item?.title || '').trim()
-  const lines = Array.isArray(item?.lines) ? item.lines : []
-  const unique = []
-  const seen = new Set()
-  for (const line of lines) {
-    const text = String(line || '').trim()
-    if (!text || text === summary || text === statusTitle) continue
-    const key = text.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    unique.push(text)
-  }
-  return unique
-}
-
 function logDetail(item) {
   if (item?.summary) return item.summary
   const lines = visibleLogLines(item)
   if (lines.length) return lines[0]
   return '暂无详情'
-}
-
-function logEntryKey(item) {
-  if (!item) return ''
-  return [
-    String(item.card_id || '').trim(),
-    String(item.time || '').trim(),
-    String(item.status_title || item.title || '').trim(),
-    String(item.summary || '').trim(),
-    visibleLogLines(item).join('|'),
-  ].join('::')
-}
-
-function logMatchesCard(item, card) {
-  if (!item || !card) return false
-  const cardId = String(card.card_id || card.id || '').trim()
-  const itemCardId = String(item.card_id || '').trim()
-  if (cardId && itemCardId && cardId === itemCardId) return true
-
-  const cardModule = String(card.module_key || '').trim()
-  const itemModule = String(item.module_key || '').trim()
-  if (!cardModule || !itemModule || cardModule !== itemModule) return false
-
-  const cardSiteUrl = String(card.site_url || '').trim().toLowerCase()
-  const itemSiteUrl = String(item.site_url || '').trim().toLowerCase()
-  if (cardSiteUrl && itemSiteUrl && cardSiteUrl === itemSiteUrl) return true
-
-  const cardSiteName = String(card.site_name || '').trim().toLowerCase()
-  const itemSiteName = String(item.site_name || '').trim().toLowerCase()
-  if (cardSiteName && itemSiteName && cardSiteName === itemSiteName) return true
-
-  const cardTitle = String(card.title || '').trim().toLowerCase()
-  const itemTitle = String(item.title || '').trim().toLowerCase()
-  return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
 function scheduleText(card) {
@@ -935,6 +895,76 @@ async function persistCards(nextCards, successText) {
   flash(response.message || successText || '配置已保存')
   if (!response?.status) await loadStatus(false)
   return response
+}
+
+function exportConfig() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+  const payload = {
+    plugin: 'VuePanel',
+    schema_version: dashboard.value.schema_version || '',
+    exported_at: new Date().toISOString(),
+    config: {
+      ...serializeConfig(),
+      module_options: deepClone(panelConfig.value.module_options || []),
+      tone_options: deepClone(panelConfig.value.tone_options || []),
+    },
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+  const url = window.URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `vuepanel-config-${stamp}.json`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.URL.revokeObjectURL(url)
+  flash('配置已导出，文件包含 Cookie，请妥善保存')
+}
+
+function triggerImportConfig() {
+  importInput.value?.click()
+}
+
+function extractImportConfig(payload) {
+  const source = payload?.config || payload?.status?.config || payload
+  if (!source || typeof source !== 'object' || !Array.isArray(source.cards)) {
+    throw new Error('导入文件格式不正确，没有找到 cards 配置')
+  }
+  return {
+    ...panelConfig.value,
+    ...source,
+    module_options: panelConfig.value.module_options || [],
+    tone_options: panelConfig.value.tone_options || [],
+    cards: source.cards,
+  }
+}
+
+async function importConfigFile(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  saving.importConfig = true
+  try {
+    const parsed = JSON.parse(await file.text())
+    const importedConfig = normalizeConfig(extractImportConfig(parsed))
+    if (!importedConfig.cards.length) throw new Error('导入文件里没有功能卡片')
+    if (
+      panelConfig.value.cards?.length
+      && typeof window !== 'undefined'
+      && !window.confirm(`导入会覆盖当前 ${panelConfig.value.cards.length} 张卡片，确认继续吗？`)
+    ) {
+      return
+    }
+    panelConfig.value = importedConfig
+    await persistCards(importedConfig.cards, `已导入 ${importedConfig.cards.length} 张卡片配置`)
+    await loadStatus(false)
+    flash(`已导入 ${importedConfig.cards.length} 张卡片配置`)
+  } catch (error) {
+    flash(error?.message || '导入配置失败', 'error')
+  } finally {
+    saving.importConfig = false
+    if (event?.target) event.target.value = ''
+  }
 }
 
 async function refreshStatus() {
@@ -1320,6 +1350,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.vpp-hidden-file-input {
+  display: none;
 }
 
 .vpp-toolbar-btn {
@@ -1785,6 +1819,9 @@ onBeforeUnmount(() => {
 
 .vpp-dialog-card.is-logs {
   --vpp-accent-rgb: var(--vpp-theme-rgb);
+  display: flex;
+  flex-direction: column;
+  max-height: min(86vh, 760px);
 }
 
 .vpp-dialog-card.is-copy {
@@ -1844,6 +1881,13 @@ onBeforeUnmount(() => {
   padding: 14px 20px 0;
 }
 
+.vpp-dialog-card.is-logs .vpp-dialog-body {
+  flex: 1 1 auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
 .vpp-dialog-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1874,6 +1918,14 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px 20px;
+}
+
+.vpp-dialog-card.is-logs .vpp-dialog-actions {
+  flex: 0 0 auto;
+  border-top: 1px solid color-mix(in srgb, rgba(var(--vpp-theme-rgb), 0.16) 62%, var(--vpp-line));
+  background:
+    linear-gradient(180deg, rgba(var(--vpp-theme-rgb), 0.08), transparent 72%),
+    var(--vpp-dialog-bg);
 }
 
 .vpp-dialog-actions-left,
@@ -2042,11 +2094,14 @@ onBeforeUnmount(() => {
 
 .vpp-log-panel {
   padding: 12px;
+  min-height: 0;
 }
 
 .vpp-log-table {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
+  min-height: 0;
 }
 
 .vpp-log-table-head,
@@ -2071,6 +2126,12 @@ onBeforeUnmount(() => {
   gap: 8px;
   max-height: 50vh;
   padding-right: 4px;
+  overflow-y: auto;
+}
+
+.vpp-dialog-card.is-logs .vpp-log-table-body {
+  max-height: none;
+  min-height: 0;
 }
 
 .vpp-log-row {

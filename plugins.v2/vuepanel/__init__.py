@@ -28,7 +28,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.33"
+    plugin_version = "0.1.34"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -1959,6 +1959,7 @@ class VuePanel(_PluginBase):
                 "module_icon": state.get("module_icon") or "",
                 "site_name": state.get("site_name") or "",
                 "site_url": state.get("site_url") or "",
+                "uid": state.get("uid") or "",
                 "tags": list(state.get("tags") or []),
                 "source": "run",
                 "record_run": True,

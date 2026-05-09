@@ -182,12 +182,99 @@ function usePanelTheme(rootEl) {
   }
 }
 
-const Page_vue_vue_type_style_index_0_scoped_a55a2185_lang = '';
+function cleanText(value) {
+  return String(value || '').trim()
+}
 
-const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,withCtx:_withCtx,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+function cleanLower(value) {
+  return cleanText(value).toLowerCase()
+}
+
+function normalizeUrl(value) {
+  const text = cleanLower(value).replace(/\/+$/, '');
+  if (!text) return ''
+  try {
+    const parsed = new URL(text);
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/, '')}`
+  } catch {
+    return text
+  }
+}
+
+function visibleLogLines(item) {
+  const summary = cleanText(item?.summary);
+  const statusTitle = cleanText(item?.status_title || item?.title);
+  const lines = Array.isArray(item?.lines) ? item.lines : [];
+  const unique = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const text = cleanText(line);
+    if (!text || text === summary || text === statusTitle) continue
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue
+    seen.add(key);
+    unique.push(text);
+  }
+  return unique
+}
+
+function logEntryKey(item) {
+  if (!item) return ''
+  return [
+    cleanText(item.card_id),
+    cleanText(item.time),
+    cleanText(item.status_title || item.title),
+    cleanText(item.summary),
+    visibleLogLines(item).join('|'),
+  ].join('::')
+}
+
+function sameLegacyNewApiTarget(item, card) {
+  const cardSiteUrl = normalizeUrl(card.site_url);
+  const itemSiteUrl = normalizeUrl(item.site_url);
+  const cardUid = cleanText(card.uid);
+  const itemUid = cleanText(item.uid);
+
+  if (!cardSiteUrl || !itemSiteUrl || cardSiteUrl !== itemSiteUrl) return false
+  if (cardUid && itemUid) return cardUid === itemUid
+  return true
+}
+
+function logMatchesCard(item, card) {
+  if (!item || !card) return false
+
+  const cardId = cleanText(card.card_id || card.id);
+  const itemCardId = cleanText(item.card_id);
+  if (cardId && itemCardId) return cardId === itemCardId
+  if (!cardId && itemCardId) return false
+
+  const cardModule = cleanText(card.module_key);
+  const itemModule = cleanText(item.module_key);
+  if (!cardModule || !itemModule || cardModule !== itemModule) return false
+
+  if (cardModule === 'newapi_checkin') {
+    return sameLegacyNewApiTarget(item, card)
+  }
+
+  const cardSiteUrl = normalizeUrl(card.site_url);
+  const itemSiteUrl = normalizeUrl(item.site_url);
+  if (cardSiteUrl && itemSiteUrl && cardSiteUrl === itemSiteUrl) return true
+
+  const cardSiteName = cleanLower(card.site_name);
+  const itemSiteName = cleanLower(item.site_name);
+  if (cardSiteName && itemSiteName && cardSiteName === itemSiteName) return true
+
+  const cardTitle = cleanLower(card.title);
+  const itemTitle = cleanLower(item.title);
+  return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
+}
+
+const Page_vue_vue_type_style_index_0_scoped_3da109a4_lang = '';
+
+const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,unref:_unref,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a55a2185"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3da109a4"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -339,7 +426,7 @@ const panelConfig = ref(createEmptyConfig());
 const message = reactive({ text: '', type: 'success' });
 const dialog = reactive({ config: false, logs: false, copy: false });
 const loading = reactive({ refreshAll: false, runAll: false, cardRefresh: false, cardRun: false });
-const saving = reactive({ config: false, copy: false, delete: false });
+const saving = reactive({ config: false, copy: false, delete: false, importConfig: false });
 const failedLogos = reactive({});
 const editor = reactive(createCardDraft());
 const copyForm = reactive({ title: '', note: '' });
@@ -349,6 +436,7 @@ const searchQuery = ref('');
 const deletingCardId = ref('');
 const logCardSeed = ref(null);
 const rootEl = ref(null);
+const importInput = ref(null);
 
 let logTimer = null;
 
@@ -736,62 +824,11 @@ function logStatusLabel(item) {
   return item?.status_title || item?.title || runtimeLabel(item?.level)
 }
 
-function visibleLogLines(item) {
-  const summary = String(item?.summary || '').trim();
-  const statusTitle = String(item?.status_title || item?.title || '').trim();
-  const lines = Array.isArray(item?.lines) ? item.lines : [];
-  const unique = [];
-  const seen = new Set();
-  for (const line of lines) {
-    const text = String(line || '').trim();
-    if (!text || text === summary || text === statusTitle) continue
-    const key = text.toLowerCase();
-    if (seen.has(key)) continue
-    seen.add(key);
-    unique.push(text);
-  }
-  return unique
-}
-
 function logDetail(item) {
   if (item?.summary) return item.summary
   const lines = visibleLogLines(item);
   if (lines.length) return lines[0]
   return '暂无详情'
-}
-
-function logEntryKey(item) {
-  if (!item) return ''
-  return [
-    String(item.card_id || '').trim(),
-    String(item.time || '').trim(),
-    String(item.status_title || item.title || '').trim(),
-    String(item.summary || '').trim(),
-    visibleLogLines(item).join('|'),
-  ].join('::')
-}
-
-function logMatchesCard(item, card) {
-  if (!item || !card) return false
-  const cardId = String(card.card_id || card.id || '').trim();
-  const itemCardId = String(item.card_id || '').trim();
-  if (cardId && itemCardId && cardId === itemCardId) return true
-
-  const cardModule = String(card.module_key || '').trim();
-  const itemModule = String(item.module_key || '').trim();
-  if (!cardModule || !itemModule || cardModule !== itemModule) return false
-
-  const cardSiteUrl = String(card.site_url || '').trim().toLowerCase();
-  const itemSiteUrl = String(item.site_url || '').trim().toLowerCase();
-  if (cardSiteUrl && itemSiteUrl && cardSiteUrl === itemSiteUrl) return true
-
-  const cardSiteName = String(card.site_name || '').trim().toLowerCase();
-  const itemSiteName = String(item.site_name || '').trim().toLowerCase();
-  if (cardSiteName && itemSiteName && cardSiteName === itemSiteName) return true
-
-  const cardTitle = String(card.title || '').trim().toLowerCase();
-  const itemTitle = String(item.title || '').trim().toLowerCase();
-  return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
 function scheduleText(card) {
@@ -887,6 +924,76 @@ async function persistCards(nextCards, successText) {
   flash(response.message || successText || '配置已保存');
   if (!response?.status) await loadStatus(false);
   return response
+}
+
+function exportConfig() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const payload = {
+    plugin: 'VuePanel',
+    schema_version: dashboard.value.schema_version || '',
+    exported_at: new Date().toISOString(),
+    config: {
+      ...serializeConfig(),
+      module_options: deepClone(panelConfig.value.module_options || []),
+      tone_options: deepClone(panelConfig.value.tone_options || []),
+    },
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `vuepanel-config-${stamp}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+  flash('配置已导出，文件包含 Cookie，请妥善保存');
+}
+
+function triggerImportConfig() {
+  importInput.value?.click();
+}
+
+function extractImportConfig(payload) {
+  const source = payload?.config || payload?.status?.config || payload;
+  if (!source || typeof source !== 'object' || !Array.isArray(source.cards)) {
+    throw new Error('导入文件格式不正确，没有找到 cards 配置')
+  }
+  return {
+    ...panelConfig.value,
+    ...source,
+    module_options: panelConfig.value.module_options || [],
+    tone_options: panelConfig.value.tone_options || [],
+    cards: source.cards,
+  }
+}
+
+async function importConfigFile(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return
+  saving.importConfig = true;
+  try {
+    const parsed = JSON.parse(await file.text());
+    const importedConfig = normalizeConfig(extractImportConfig(parsed));
+    if (!importedConfig.cards.length) throw new Error('导入文件里没有功能卡片')
+    if (
+      panelConfig.value.cards?.length
+      && typeof window !== 'undefined'
+      && !window.confirm(`导入会覆盖当前 ${panelConfig.value.cards.length} 张卡片，确认继续吗？`)
+    ) {
+      return
+    }
+    panelConfig.value = importedConfig;
+    await persistCards(importedConfig.cards, `已导入 ${importedConfig.cards.length} 张卡片配置`);
+    await loadStatus(false);
+    flash(`已导入 ${importedConfig.cards.length} 张卡片配置`);
+  } catch (error) {
+    flash(error?.message || '导入配置失败', 'error');
+  } finally {
+    saving.importConfig = false;
+    if (event?.target) event.target.value = '';
+  }
 }
 
 async function refreshStatus() {
@@ -1126,6 +1233,29 @@ return (_ctx, _cache) => {
           _createVNode(_component_v_btn, {
             class: "vpp-toolbar-btn",
             variant: "text",
+            "prepend-icon": "mdi-download-outline",
+            onClick: exportConfig
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode("导出配置")
+            ]),
+            _: 1
+          }),
+          _createVNode(_component_v_btn, {
+            class: "vpp-toolbar-btn",
+            variant: "text",
+            "prepend-icon": "mdi-upload-outline",
+            loading: saving.importConfig,
+            onClick: triggerImportConfig
+          }, {
+            default: _withCtx(() => [
+              _createTextVNode("导入配置")
+            ]),
+            _: 1
+          }, 8, ["loading"]),
+          _createVNode(_component_v_btn, {
+            class: "vpp-toolbar-btn",
+            variant: "text",
             "prepend-icon": "mdi-flash",
             loading: loading.runAll,
             onClick: runAll
@@ -1156,6 +1286,14 @@ return (_ctx, _cache) => {
           })
         ])
       ]),
+      _createElementVNode("input", {
+        ref_key: "importInput",
+        ref: importInput,
+        class: "vpp-hidden-file-input",
+        type: "file",
+        accept: "application/json,.json",
+        onChange: importConfigFile
+      }, null, 544),
       (message.text)
         ? (_openBlock(), _createBlock(_component_v_alert, {
             key: 0,
@@ -1537,9 +1675,9 @@ return (_ctx, _cache) => {
                             ]),
                             _createElementVNode("div", _hoisted_72, [
                               _createElementVNode("div", _hoisted_73, _toDisplayString(logDetail(item)), 1),
-                              (visibleLogLines(item).length)
+                              (_unref(visibleLogLines)(item).length)
                                 ? (_openBlock(), _createElementBlock("div", _hoisted_74, [
-                                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(visibleLogLines(item), (line) => {
+                                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_unref(visibleLogLines)(item), (line) => {
                                       return (_openBlock(), _createElementBlock("span", {
                                         key: `${item.id}-${line}`,
                                         class: "vpp-log-line"
@@ -1686,6 +1824,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a55a2185"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3da109a4"]]);
 
 export { PageView as default, usePanelTheme as u };
