@@ -34,10 +34,13 @@
 
 ### 2. 当前已有模块
 
-目前 `Vue-面板` 已经内置三类模块，可直接拿来参考：
+目前 `Vue-面板` 已经内置这些模块，可直接拿来参考：
 
 - `siqi_sign`
 - `hnr_claim`
+- `siqi_dineout`
+- `siqi_cabinet_shout`
+- `siqi_stage_shout`
 - `newapi_checkin`
 
 推荐优先参考顺序：

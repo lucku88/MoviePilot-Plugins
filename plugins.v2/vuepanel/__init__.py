@@ -5,6 +5,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from functools import partial
+from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
@@ -27,7 +28,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.32"
+    plugin_version = "0.1.33"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -77,6 +78,30 @@ class VuePanel(_PluginBase):
             "default_site_url": "https://si-qi.xyz",
             "singleton": False,
             "tone": "rose",
+        },
+        {
+            "key": "siqi_cabinet_shout",
+            "label": "思齐展柜呐喊",
+            "icon": "📺",
+            "description": "自动为直播展柜玩偶呐喊",
+            "summary": "siqi cabinet shout",
+            "default_site_name": "思齐",
+            "default_site_url": "https://si-qi.xyz",
+            "default_cron": "5 0 * * *",
+            "singleton": False,
+            "tone": "violet",
+        },
+        {
+            "key": "siqi_stage_shout",
+            "label": "思齐舞台呐喊",
+            "icon": "🎭",
+            "description": "自动为直播舞台呐喊",
+            "summary": "siqi stage shout",
+            "default_site_name": "思齐",
+            "default_site_url": "https://si-qi.xyz",
+            "default_cron": "5 0 * * *",
+            "singleton": False,
+            "tone": "slate",
         },
         {
             "key": "newapi_checkin",
@@ -429,11 +454,17 @@ class VuePanel(_PluginBase):
             "hnr_claim": "思齐HNR领取奖励",
             "newapi_checkin": "配置站点和UID",
             "siqi_dineout": "依次前往填写的用户名",
+            "siqi_cabinet_shout": "自动为直播展柜玩偶呐喊",
+            "siqi_stage_shout": "自动为直播舞台呐喊",
         }
         return mapping.get(module_key, "")
 
+    def _default_module_cron(self, module_key: str) -> str:
+        return str(self._module_meta(module_key).get("default_cron") or self.DEFAULT_CRON).strip() or self.DEFAULT_CRON
+
     def _fixed_card_template(self, module_key: str, note: str = "") -> Dict[str, Any]:
         module_meta = self._module_meta(module_key)
+        default_cron = self._default_module_cron(module_key)
         return self._normalize_card(
             {
                 "id": f"{module_key}-default",
@@ -443,7 +474,7 @@ class VuePanel(_PluginBase):
                 "site_url": module_meta["default_site_url"],
                 "enabled": False,
                 "auto_run": True,
-                "cron": self.DEFAULT_CRON,
+                "cron": default_cron,
                 "show_status": True,
                 "notify": True,
                 "tone": module_meta.get("tone") or "azure",
@@ -474,6 +505,7 @@ class VuePanel(_PluginBase):
     ) -> Dict[str, Any]:
         module_meta = self._module_meta(module_key)
         fallback_id = f"{self._safe_card_id(module_key)}-default"
+        default_cron = self._default_module_cron(module_key)
         return self._normalize_card(
             {
                 "id": fallback_id,
@@ -483,7 +515,7 @@ class VuePanel(_PluginBase):
                 "site_url": module_meta["default_site_url"],
                 "enabled": False,
                 "auto_run": True,
-                "cron": self.DEFAULT_CRON,
+                "cron": default_cron,
                 "show_status": True,
                 "notify": True,
                 "tone": module_meta.get("tone") or "azure",
@@ -579,6 +611,10 @@ class VuePanel(_PluginBase):
             return self._inspect_hnr_claim(card)
         if module_key == "siqi_dineout":
             return self._inspect_siqi_dineout(card)
+        if module_key == "siqi_cabinet_shout":
+            return self._inspect_siqi_cabinet_shout(card)
+        if module_key == "siqi_stage_shout":
+            return self._inspect_siqi_stage_shout(card)
         if module_key == "newapi_checkin":
             return self._inspect_newapi_checkin(card)
         return self._error_result("未知功能模块", f"不支持的模块类型：{module_key}")
@@ -598,6 +634,10 @@ class VuePanel(_PluginBase):
             return self._run_hnr_claim(card)
         if module_key == "siqi_dineout":
             return self._run_siqi_dineout(card)
+        if module_key == "siqi_cabinet_shout":
+            return self._run_siqi_cabinet_shout(card)
+        if module_key == "siqi_stage_shout":
+            return self._run_siqi_stage_shout(card)
         if module_key == "newapi_checkin":
             return self._run_newapi_checkin(card)
         return self._error_result("未知功能模块", f"不支持的模块类型：{module_key}")
@@ -995,6 +1035,212 @@ class VuePanel(_PluginBase):
             "net_earnings_today": state.get("net_earnings_today"),
         }
 
+    def _inspect_siqi_cabinet_shout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        info = self._request_siqi_entertainment_fetch(self._build_session(card), card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "娱乐页读取失败。")
+        count = len(info.get("cabinet_forms") or [])
+        metrics = self._siqi_entertainment_metrics(info, mode="cabinet")
+        detail_lines = self._siqi_entertainment_detail_lines(info, mode="cabinet")
+        if count:
+            return self._warning_result("待呐喊", f"当前可呐喊 {count} 个展柜玩偶。", metrics=metrics, detail_lines=detail_lines)
+        return self._info_result("暂无可呐喊", "当前没有可呐喊的展柜玩偶。", metrics=metrics, detail_lines=detail_lines)
+
+    def _run_siqi_cabinet_shout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        session = self._build_session(card)
+        page_url = urljoin(card["site_url"], "/entertainment.php")
+        info = self._request_siqi_entertainment_fetch(session, card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "娱乐页读取失败。")
+
+        forms = list(info.get("cabinet_forms") or [])
+        if not forms:
+            return self._info_result(
+                "暂无可呐喊",
+                "当前没有可呐喊的展柜玩偶。",
+                metrics=self._siqi_entertainment_metrics(info, mode="cabinet"),
+                detail_lines=self._siqi_entertainment_detail_lines(info, mode="cabinet"),
+                notify_text="",
+            )
+
+        success_messages: List[str] = []
+        failed_lines: List[str] = []
+        reward_total = 0
+        for form in forms:
+            result = self._request_siqi_cabinet_shout(session, card, form, page_url)
+            label = self._siqi_cabinet_target_label(form)
+            message = str(result.get("message") or "").strip()
+            if result.get("success"):
+                success_messages.append(message or f"{label}：呐喊成功")
+                reward_total += self._extract_self_magic_reward(message)
+                continue
+            failed_lines.append(f"{label}：{message or '呐喊失败'}")
+
+        latest_info = self._request_siqi_entertainment_fetch(session, card)
+        if not latest_info.get("success"):
+            latest_info = info
+        detail_lines = self._siqi_entertainment_run_lines(success_messages, failed_lines)
+        if latest_info.get("success"):
+            detail_lines.extend(self._siqi_entertainment_detail_lines(latest_info, mode="cabinet"))
+        metrics = self._siqi_entertainment_metrics(latest_info, mode="cabinet")
+        metrics.insert(0, {"label": "本次完成", "value": str(len(success_messages))})
+        metrics.insert(1, {"label": "本次收益", "value": f"+{reward_total}" if reward_total else "0"})
+
+        notify_text = self._siqi_shout_notify_text(len(success_messages), reward_total)
+        status_text = self._siqi_shout_status_text(len(success_messages), reward_total)
+        if success_messages and not failed_lines:
+            return self._success_result("展柜呐喊完成", status_text, metrics=metrics, detail_lines=detail_lines, notify_text=notify_text)
+        if success_messages:
+            return self._build_result(True, "warning", "展柜部分完成", status_text, metrics=metrics, detail_lines=detail_lines, notify_text=notify_text)
+        return self._error_result(
+            "展柜呐喊失败",
+            failed_lines[0] if failed_lines else "未成功呐喊任何展柜玩偶。",
+            metrics=metrics,
+            detail_lines=detail_lines,
+            notify_text=self._siqi_shout_failure_notify_text(failed_lines),
+        )
+
+    def _inspect_siqi_stage_shout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        info = self._request_siqi_entertainment_fetch(self._build_session(card), card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "娱乐页读取失败。")
+        count = len(info.get("stage_buttons") or [])
+        metrics = self._siqi_entertainment_metrics(info, mode="stage")
+        detail_lines = self._siqi_entertainment_detail_lines(info, mode="stage")
+        if count:
+            return self._warning_result("待呐喊", f"当前可呐喊 {count} 个直播舞台。", metrics=metrics, detail_lines=detail_lines)
+        return self._info_result("暂无可呐喊", "当前没有可呐喊的直播舞台。", metrics=metrics, detail_lines=detail_lines)
+
+    def _run_siqi_stage_shout(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        session = self._build_session(card)
+        page_url = urljoin(card["site_url"], "/entertainment.php")
+        info = self._request_siqi_entertainment_fetch(session, card)
+        if not info.get("success"):
+            return self._error_result("状态读取失败", info.get("message") or "娱乐页读取失败。")
+
+        buttons = list(info.get("stage_buttons") or [])
+        if not buttons:
+            return self._info_result(
+                "暂无可呐喊",
+                "当前没有可呐喊的直播舞台。",
+                metrics=self._siqi_entertainment_metrics(info, mode="stage"),
+                detail_lines=self._siqi_entertainment_detail_lines(info, mode="stage"),
+                notify_text="",
+            )
+
+        success_messages: List[str] = []
+        failed_lines: List[str] = []
+        reward_total = 0
+        for button in buttons:
+            cabinet_no = str(button.get("cabinet_no") or "").strip()
+            result = self._request_siqi_stage_shout(session, card, cabinet_no, page_url)
+            label = f"舞台 #{cabinet_no or '?'}"
+            message = str(result.get("message") or "").strip()
+            if result.get("success"):
+                success_messages.append(message or f"{label}：呐喊成功")
+                reward_total += self._extract_self_magic_reward(message)
+                continue
+            failed_lines.append(f"{label}：{message or '呐喊失败'}")
+
+        latest_info = self._request_siqi_entertainment_fetch(session, card)
+        if not latest_info.get("success"):
+            latest_info = info
+        detail_lines = self._siqi_entertainment_run_lines(success_messages, failed_lines)
+        if latest_info.get("success"):
+            detail_lines.extend(self._siqi_entertainment_detail_lines(latest_info, mode="stage"))
+        metrics = self._siqi_entertainment_metrics(latest_info, mode="stage")
+        metrics.insert(0, {"label": "本次完成", "value": str(len(success_messages))})
+        metrics.insert(1, {"label": "本次收益", "value": f"+{reward_total}" if reward_total else "0"})
+
+        notify_text = self._siqi_shout_notify_text(len(success_messages), reward_total)
+        status_text = self._siqi_shout_status_text(len(success_messages), reward_total)
+        if success_messages and not failed_lines:
+            return self._success_result("舞台呐喊完成", status_text, metrics=metrics, detail_lines=detail_lines, notify_text=notify_text)
+        if success_messages:
+            return self._build_result(True, "warning", "舞台部分完成", status_text, metrics=metrics, detail_lines=detail_lines, notify_text=notify_text)
+        return self._error_result(
+            "舞台呐喊失败",
+            failed_lines[0] if failed_lines else "未成功呐喊任何直播舞台。",
+            metrics=metrics,
+            detail_lines=detail_lines,
+            notify_text=self._siqi_shout_failure_notify_text(failed_lines),
+        )
+
+    def _request_siqi_entertainment_fetch(self, session: requests.Session, card: Dict[str, Any]) -> Dict[str, Any]:
+        url = urljoin(card["site_url"], "/entertainment.php")
+        response = session.get(
+            url,
+            headers={"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Referer": card["site_url"]},
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        response.raise_for_status()
+        info = self._parse_siqi_entertainment_page(response.text or "")
+        if info.get("invalid_cookie"):
+            return {"success": False, "message": "当前站点返回未登录状态，请更新 Cookie。", "invalid_cookie": True}
+        info["success"] = True
+        return info
+
+    def _request_siqi_cabinet_shout(
+        self,
+        session: requests.Session,
+        card: Dict[str, Any],
+        form: Dict[str, str],
+        page_url: str,
+    ) -> Dict[str, Any]:
+        data = {
+            "live_cabinet_action": "live_cabinet_shout",
+            "cabinet_no": str(form.get("cabinet_no") or ""),
+            "slot_index": str(form.get("slot_index") or ""),
+            "doll_key": str(form.get("doll_key") or ""),
+            "slot_owner": str(form.get("slot_owner") or ""),
+            "live_cabinet_ajax": "1",
+        }
+        response = session.post(
+            page_url,
+            data=data,
+            headers={"Accept": "application/json, text/plain, */*", "Origin": card["site_url"], "Referer": page_url},
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        payload = self._safe_json(response)
+        if not isinstance(payload, dict):
+            response.raise_for_status()
+            return {"success": False, "message": f"HTTP {response.status_code}"}
+        return {
+            "success": bool(payload.get("ok")),
+            "type": str(payload.get("type") or ""),
+            "cabinet_no": str(payload.get("cabinet_no") or data["cabinet_no"]),
+            "message": str(payload.get("message") or "").strip(),
+        }
+
+    def _request_siqi_stage_shout(
+        self,
+        session: requests.Session,
+        card: Dict[str, Any],
+        cabinet_no: str,
+        page_url: str,
+    ) -> Dict[str, Any]:
+        data = {
+            "live_emoji_action": "live_emoji_shout",
+            "cabinet_no": str(cabinet_no or ""),
+            "live_emoji_ajax": "1",
+        }
+        response = session.post(
+            page_url,
+            data=data,
+            headers={"Accept": "application/json, text/plain, */*", "Origin": card["site_url"], "Referer": page_url},
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        payload = self._safe_json(response)
+        if not isinstance(payload, dict):
+            response.raise_for_status()
+            return {"success": False, "message": f"HTTP {response.status_code}"}
+        return {
+            "success": bool(payload.get("ok")),
+            "type": str(payload.get("type") or ""),
+            "cabinet_no": str(payload.get("cabinet_no") or data["cabinet_no"]),
+            "message": str(payload.get("message") or "").strip(),
+        }
+
     def _inspect_newapi_checkin(self, card: Dict[str, Any]) -> Dict[str, Any]:
         session = self._build_session(card)
         status = self._request_newapi_status(session, card)
@@ -1160,6 +1406,141 @@ class VuePanel(_PluginBase):
             "visited_note": f"今日已前往：{self._format_name_list(visited_records)}。" if visited_records else "今日已前往：暂无。",
             "net_earnings_today": str(net_earnings_today),
         }
+
+    @staticmethod
+    def _parse_siqi_entertainment_page(html: str) -> Dict[str, Any]:
+        text = str(html or "")
+        cabinet_forms: List[Dict[str, str]] = []
+        stage_buttons: List[Dict[str, str]] = []
+
+        for match in re.finditer(r"<form\b(?P<attrs>[^>]*)>(?P<body>.*?)</form>", text, re.IGNORECASE | re.DOTALL):
+            form_attrs = VuePanel._parse_html_attrs(match.group("attrs"))
+            form_body = match.group("body") or ""
+            if "live-shout-form" not in str(form_attrs.get("class") or ""):
+                continue
+            if re.search(r"<button\b[^>]*\bdisabled(?:\s|=|>|/)", form_body, re.IGNORECASE):
+                continue
+            fields: Dict[str, str] = {}
+            for input_match in re.finditer(r"<input\b(?P<attrs>[^>]*)>", form_body, re.IGNORECASE | re.DOTALL):
+                attrs = VuePanel._parse_html_attrs(input_match.group("attrs"))
+                name = str(attrs.get("name") or "").strip()
+                if name:
+                    fields[name] = str(attrs.get("value") or "")
+            if fields.get("live_cabinet_action") != "live_cabinet_shout":
+                continue
+            required = ["cabinet_no", "slot_index", "doll_key", "slot_owner"]
+            if all(fields.get(key) for key in required):
+                cabinet_forms.append({key: fields[key] for key in required})
+
+        for match in re.finditer(r"<button\b(?P<attrs>[^>]*)>(?P<body>.*?)</button>", text, re.IGNORECASE | re.DOTALL):
+            attrs = VuePanel._parse_html_attrs(match.group("attrs"))
+            if "live-emoji-shout-btn" not in str(attrs.get("class") or ""):
+                continue
+            used = str(attrs.get("data-used") or "0").strip()
+            limit = str(attrs.get("data-limit") or "0").strip()
+            disabled = "disabled" in attrs
+            if disabled or (limit.isdigit() and used.isdigit() and int(limit) > 0 and int(used) >= int(limit)):
+                continue
+            cabinet_no = str(attrs.get("data-cabinet") or "").strip()
+            if cabinet_no:
+                stage_buttons.append({"cabinet_no": cabinet_no, "used": used, "limit": limit})
+
+        return {
+            "invalid_cookie": ("未登录" in text) or ("登录" in text and "注册" in text and "欢迎回来" not in text),
+            "cabinet_forms": cabinet_forms,
+            "stage_buttons": stage_buttons,
+            "cabinet_count": len(cabinet_forms),
+            "stage_count": len(stage_buttons),
+        }
+
+    @staticmethod
+    def _parse_html_attrs(raw_attrs: str) -> Dict[str, str]:
+        attrs: Dict[str, str] = {}
+        pattern = r"""([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?"""
+        for match in re.finditer(pattern, str(raw_attrs or "")):
+            name = match.group(1).lower()
+            value = next((group for group in match.groups()[1:] if group is not None), name)
+            attrs[name] = unescape(str(value))
+        return attrs
+
+    @staticmethod
+    def _extract_self_magic_reward(message: Any) -> int:
+        text = str(message or "")
+        matches = re.findall(r"(?:你|您)\s*获得\s*魔力\s*([+-]?\d+)", text)
+        if not matches:
+            return 0
+        return sum(VuePanel._safe_int(item, 0) for item in matches)
+
+    @staticmethod
+    def _siqi_cabinet_target_label(form: Dict[str, Any]) -> str:
+        return f"展柜 #{form.get('cabinet_no') or '?'} 槽位 {form.get('slot_index') or '?'}"
+
+    @staticmethod
+    def _siqi_shout_status_text(done_count: int, reward_total: int) -> str:
+        if reward_total:
+            return f"完成 {done_count} 次，获得魔力 +{reward_total}"
+        return f"完成 {done_count} 次"
+
+    @staticmethod
+    def _siqi_shout_notify_text(done_count: int, reward_total: int) -> str:
+        if done_count <= 0:
+            return ""
+        if reward_total:
+            return f"完成 {done_count} 次，获得魔力 +{reward_total}"
+        return f"完成 {done_count} 次"
+
+    @staticmethod
+    def _siqi_shout_failure_notify_text(failed_lines: Optional[List[str]] = None) -> str:
+        if failed_lines:
+            first = str(failed_lines[0] or "").strip()
+            if "：" in first:
+                return first.split("：", 1)[1].strip()
+            return first
+        return "呐喊失败"
+
+    @staticmethod
+    def _siqi_entertainment_run_lines(success_messages: List[str], failed_lines: List[str]) -> List[str]:
+        lines: List[str] = []
+        if success_messages:
+            lines.append(f"成功：{len(success_messages)} 次")
+            lines.extend(success_messages[:5])
+            if len(success_messages) > 5:
+                lines.append(f"还有 {len(success_messages) - 5} 条成功记录已省略。")
+        if failed_lines:
+            lines.append(f"失败：{len(failed_lines)} 次")
+            lines.extend(failed_lines[:5])
+        return lines
+
+    @staticmethod
+    def _siqi_entertainment_metrics(info: Dict[str, Any], mode: str = "cabinet") -> List[Dict[str, str]]:
+        cabinet_count = len(info.get("cabinet_forms") or [])
+        stage_count = len(info.get("stage_buttons") or [])
+        if mode == "stage":
+            return [
+                {"label": "可呐喊舞台", "value": str(stage_count)},
+                {"label": "可呐喊展柜", "value": str(cabinet_count)},
+            ]
+        return [
+            {"label": "可呐喊玩偶", "value": str(cabinet_count)},
+            {"label": "可呐喊舞台", "value": str(stage_count)},
+        ]
+
+    @staticmethod
+    def _siqi_entertainment_detail_lines(info: Dict[str, Any], mode: str = "cabinet") -> List[str]:
+        cabinet_forms = list(info.get("cabinet_forms") or [])
+        stage_buttons = list(info.get("stage_buttons") or [])
+        cabinet_nos = sorted({str(item.get("cabinet_no") or "") for item in cabinet_forms if item.get("cabinet_no")})
+        stage_nos = sorted({str(item.get("cabinet_no") or "") for item in stage_buttons if item.get("cabinet_no")})
+        lines = []
+        if mode == "stage":
+            lines.append(f"可呐喊舞台：{len(stage_buttons)} 个")
+            if stage_nos:
+                lines.append(f"舞台编号：{VuePanel._format_name_list(stage_nos)}")
+            return lines
+        lines.append(f"可呐喊展柜玩偶：{len(cabinet_forms)} 个")
+        if cabinet_nos:
+            lines.append(f"展柜编号：{VuePanel._format_name_list(cabinet_nos)}")
+        return lines
 
     def _siqi_dineout_targets(self, card: Dict[str, Any]) -> List[str]:
         return self._normalize_name_list(
