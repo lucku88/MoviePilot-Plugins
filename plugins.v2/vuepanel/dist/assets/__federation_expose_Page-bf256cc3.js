@@ -269,12 +269,12 @@ function logMatchesCard(item, card) {
   return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
-const Page_vue_vue_type_style_index_0_scoped_3da109a4_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_1190cb70_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,unref:_unref,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-3da109a4"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-1190cb70"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -396,7 +396,6 @@ const {computed,nextTick,onBeforeUnmount,onMounted,reactive,ref,watch} = await i
 
 const DEFAULT_CRON = '5 8 * * *';
 
-
 const _sfc_main = {
   __name: 'Page',
   props: {
@@ -409,6 +408,8 @@ const _sfc_main = {
   setup(__props, { emit }) {
 
 const props = __props;
+
+const DEPRECATED_MODULE_KEYS = new Set(['newapi_checkin']);
 
 
 
@@ -632,10 +633,12 @@ function normalizeConfig(source = {}) {
   next.http_timeout = Number(source.http_timeout || 15);
   next.http_retry_times = Number(source.http_retry_times || 3);
   next.random_delay_max_seconds = Number(source.random_delay_max_seconds || 5);
-  next.module_options = Array.isArray(source.module_options) ? deepClone(source.module_options) : [];
+  next.module_options = Array.isArray(source.module_options)
+    ? deepClone(source.module_options).filter((item) => !DEPRECATED_MODULE_KEYS.has(String(item?.key || '').trim()))
+    : [];
   next.tone_options = Array.isArray(source.tone_options) ? deepClone(source.tone_options) : [];
   next.cards = Array.isArray(source.cards)
-    ? source.cards.map((item) => {
+    ? source.cards.filter((item) => !DEPRECATED_MODULE_KEYS.has(String(item?.module_key || item?.module || '').trim())).map((item) => {
       const meta = next.module_options.find((module) => module.key === String(item.module_key || item.module || 'siqi_sign')) || null;
       return normalizeCardWithMeta(item, meta, next.tone_options)
     })
@@ -689,20 +692,6 @@ function fallbackStatus(card, meta) {
       level: 'warning',
       status_title: '待配置 Cookie',
       status_text: '请先在配置弹窗中填写 Cookie，保存后再刷新或执行。',
-    }
-  }
-  if (meta.key === 'newapi_checkin' && !card.site_url) {
-    return {
-      level: 'warning',
-      status_title: '待配置网站地址',
-      status_text: 'New API 签到卡片还需要填写站点地址才能正常执行。',
-    }
-  }
-  if (meta.key === 'newapi_checkin' && !card.uid) {
-    return {
-      level: 'warning',
-      status_title: '待配置 UID',
-      status_text: 'New API 签到卡片还需要填写 UID 才能正常执行。',
     }
   }
   if (meta.key === 'siqi_dineout' && ![card.breakfast_target, card.lunch_target, card.dinner_target].some(Boolean)) {
@@ -1411,7 +1400,7 @@ return (_ctx, _cache) => {
     ]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.config,
-      "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((dialog.config) = $event)),
+      "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((dialog.config) = $event)),
       "max-width": "760"
     }, {
       default: _withCtx(() => [
@@ -1518,22 +1507,11 @@ return (_ctx, _cache) => {
                     label: "Cron",
                     class: "vpp-cron-field"
                   }, null, 8, ["modelValue"]),
-                  (editor.module_key === 'newapi_checkin')
-                    ? (_openBlock(), _createBlock(_component_v_text_field, {
-                        key: 0,
-                        modelValue: editor.uid,
-                        "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((editor.uid) = $event)),
-                        label: "UID",
-                        variant: "outlined",
-                        density: "compact",
-                        "hide-details": "auto"
-                      }, null, 8, ["modelValue"]))
-                    : _createCommentVNode("", true),
                   (editor.module_key === 'siqi_dineout')
-                    ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
+                    ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
                         _createVNode(_component_v_text_field, {
                           modelValue: editor.breakfast_target,
-                          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editor.breakfast_target) = $event)),
+                          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((editor.breakfast_target) = $event)),
                           label: "早餐用户名",
                           variant: "outlined",
                           density: "compact",
@@ -1541,7 +1519,7 @@ return (_ctx, _cache) => {
                         }, null, 8, ["modelValue"]),
                         _createVNode(_component_v_text_field, {
                           modelValue: editor.lunch_target,
-                          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editor.lunch_target) = $event)),
+                          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editor.lunch_target) = $event)),
                           label: "中餐用户名",
                           variant: "outlined",
                           density: "compact",
@@ -1549,7 +1527,7 @@ return (_ctx, _cache) => {
                         }, null, 8, ["modelValue"]),
                         _createVNode(_component_v_text_field, {
                           modelValue: editor.dinner_target,
-                          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((editor.dinner_target) = $event)),
+                          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editor.dinner_target) = $event)),
                           label: "晚餐用户名",
                           variant: "outlined",
                           density: "compact",
@@ -1559,7 +1537,7 @@ return (_ctx, _cache) => {
                     : _createCommentVNode("", true),
                   _createVNode(_component_v_text_field, {
                     modelValue: editor.cookie,
-                    "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((editor.cookie) = $event)),
+                    "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((editor.cookie) = $event)),
                     label: "Cookie",
                     variant: "outlined",
                     density: "compact",
@@ -1568,7 +1546,7 @@ return (_ctx, _cache) => {
                   }, null, 8, ["modelValue"]),
                   _createVNode(_component_v_textarea, {
                     modelValue: editor.note,
-                    "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((editor.note) = $event)),
+                    "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((editor.note) = $event)),
                     label: "功能描述",
                     variant: "outlined",
                     rows: "2",
@@ -1599,7 +1577,7 @@ return (_ctx, _cache) => {
               _createElementVNode("div", _hoisted_53, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
-                  onClick: _cache[15] || (_cache[15] = $event => (dialog.config = false))
+                  onClick: _cache[14] || (_cache[14] = $event => (dialog.config = false))
                 }, {
                   default: _withCtx(() => [
                     _createTextVNode("取消")
@@ -1627,7 +1605,7 @@ return (_ctx, _cache) => {
     }, 8, ["modelValue"]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.logs,
-      "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((dialog.logs) = $event)),
+      "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((dialog.logs) = $event)),
       "max-width": "900"
     }, {
       default: _withCtx(() => [
@@ -1697,7 +1675,7 @@ return (_ctx, _cache) => {
               _createElementVNode("div", _hoisted_77, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
-                  onClick: _cache[17] || (_cache[17] = $event => (dialog.logs = false))
+                  onClick: _cache[16] || (_cache[16] = $event => (dialog.logs = false))
                 }, {
                   default: _withCtx(() => [
                     _createTextVNode("关闭")
@@ -1738,7 +1716,7 @@ return (_ctx, _cache) => {
     }, 8, ["modelValue"]),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.copy,
-      "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((dialog.copy) = $event)),
+      "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((dialog.copy) = $event)),
       "max-width": "560"
     }, {
       default: _withCtx(() => [
@@ -1769,7 +1747,7 @@ return (_ctx, _cache) => {
                 _createElementVNode("div", _hoisted_88, [
                   _createVNode(_component_v_text_field, {
                     modelValue: copyForm.title,
-                    "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((copyForm.title) = $event)),
+                    "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((copyForm.title) = $event)),
                     label: "复制功能名称",
                     variant: "outlined",
                     density: "compact",
@@ -1777,7 +1755,7 @@ return (_ctx, _cache) => {
                   }, null, 8, ["modelValue"]),
                   _createVNode(_component_v_textarea, {
                     modelValue: copyForm.note,
-                    "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((copyForm.note) = $event)),
+                    "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((copyForm.note) = $event)),
                     label: "功能描述",
                     variant: "outlined",
                     rows: "2",
@@ -1793,7 +1771,7 @@ return (_ctx, _cache) => {
               _createElementVNode("div", _hoisted_91, [
                 _createVNode(_component_v_btn, {
                   variant: "text",
-                  onClick: _cache[21] || (_cache[21] = $event => (dialog.copy = false))
+                  onClick: _cache[20] || (_cache[20] = $event => (dialog.copy = false))
                 }, {
                   default: _withCtx(() => [
                     _createTextVNode("取消")
@@ -1824,6 +1802,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3da109a4"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1190cb70"]]);
 
 export { PageView as default, usePanelTheme as u };

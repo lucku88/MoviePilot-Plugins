@@ -171,14 +171,6 @@
                 label="Cron"
                 class="vpp-cron-field"
               />
-              <v-text-field
-                v-if="editor.module_key === 'newapi_checkin'"
-                v-model="editor.uid"
-                label="UID"
-                variant="outlined"
-                density="compact"
-                hide-details="auto"
-              />
               <template v-if="editor.module_key === 'siqi_dineout'">
                 <v-text-field
                   v-model="editor.breakfast_target"
@@ -375,6 +367,7 @@ import { usePanelTheme } from '../composables/usePanelTheme'
 import { logEntryKey, logMatchesCard, visibleLogLines } from '../utils/logMatching.js'
 
 const DEFAULT_CRON = '5 8 * * *'
+const DEPRECATED_MODULE_KEYS = new Set(['newapi_checkin'])
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -603,10 +596,12 @@ function normalizeConfig(source = {}) {
   next.http_timeout = Number(source.http_timeout || 15)
   next.http_retry_times = Number(source.http_retry_times || 3)
   next.random_delay_max_seconds = Number(source.random_delay_max_seconds || 5)
-  next.module_options = Array.isArray(source.module_options) ? deepClone(source.module_options) : []
+  next.module_options = Array.isArray(source.module_options)
+    ? deepClone(source.module_options).filter((item) => !DEPRECATED_MODULE_KEYS.has(String(item?.key || '').trim()))
+    : []
   next.tone_options = Array.isArray(source.tone_options) ? deepClone(source.tone_options) : []
   next.cards = Array.isArray(source.cards)
-    ? source.cards.map((item) => {
+    ? source.cards.filter((item) => !DEPRECATED_MODULE_KEYS.has(String(item?.module_key || item?.module || '').trim())).map((item) => {
       const meta = next.module_options.find((module) => module.key === String(item.module_key || item.module || 'siqi_sign')) || null
       return normalizeCardWithMeta(item, meta, next.tone_options)
     })
@@ -660,20 +655,6 @@ function fallbackStatus(card, meta) {
       level: 'warning',
       status_title: '待配置 Cookie',
       status_text: '请先在配置弹窗中填写 Cookie，保存后再刷新或执行。',
-    }
-  }
-  if (meta.key === 'newapi_checkin' && !card.site_url) {
-    return {
-      level: 'warning',
-      status_title: '待配置网站地址',
-      status_text: 'New API 签到卡片还需要填写站点地址才能正常执行。',
-    }
-  }
-  if (meta.key === 'newapi_checkin' && !card.uid) {
-    return {
-      level: 'warning',
-      status_title: '待配置 UID',
-      status_text: 'New API 签到卡片还需要填写 UID 才能正常执行。',
     }
   }
   if (meta.key === 'siqi_dineout' && ![card.breakfast_target, card.lunch_target, card.dinner_target].some(Boolean)) {

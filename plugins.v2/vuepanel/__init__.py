@@ -28,7 +28,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.34"
+    plugin_version = "0.1.35"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -103,18 +103,8 @@ class VuePanel(_PluginBase):
             "singleton": False,
             "tone": "slate",
         },
-        {
-            "key": "newapi_checkin",
-            "label": "New API签到",
-            "icon": "🛰️",
-            "description": "配置站点和UID",
-            "summary": "new api checkin",
-            "default_site_name": "New API 站点",
-            "default_site_url": "",
-            "singleton": False,
-            "tone": "azure",
-        },
     ]
+    DEPRECATED_MODULE_KEYS = {"newapi_checkin"}
 
     TONES: List[Dict[str, str]] = [
         {"key": "emerald", "label": "薄荷绿"},
@@ -452,7 +442,6 @@ class VuePanel(_PluginBase):
         mapping = {
             "siqi_sign": "思齐专用签到",
             "hnr_claim": "思齐HNR领取奖励",
-            "newapi_checkin": "配置站点和UID",
             "siqi_dineout": "依次前往填写的用户名",
             "siqi_cabinet_shout": "自动为直播展柜玩偶呐喊",
             "siqi_stage_shout": "自动为直播舞台呐喊",
@@ -486,14 +475,6 @@ class VuePanel(_PluginBase):
                 "note": note,
             },
             fallback_id=f"{module_key}-default",
-        )
-
-    def _newapi_card_template(self) -> Dict[str, Any]:
-        return self._collection_card_template(
-            "newapi_checkin",
-            site_name="New API 站点",
-            uid="",
-            note="配置站点和UID",
         )
 
     def _collection_card_template(
@@ -2043,6 +2024,7 @@ class VuePanel(_PluginBase):
 
     def _normalize_cards(self, cards: Any) -> List[Dict[str, Any]]:
         source = cards if isinstance(cards, list) and cards else []
+        active_module_keys = {item["key"] for item in self.MODULES}
         fixed_cards: Dict[str, Dict[str, Any]] = {}
         collection_cards: Dict[str, List[Dict[str, Any]]] = {
             item["key"]: [] for item in self.MODULES if self._module_is_singleton(item["key"]) is False
@@ -2052,8 +2034,13 @@ class VuePanel(_PluginBase):
         for index, item in enumerate(source):
             if not isinstance(item, dict):
                 continue
+            raw_module_key = str(item.get("module_key") or item.get("module") or "").strip()
+            if raw_module_key in self.DEPRECATED_MODULE_KEYS or (raw_module_key and raw_module_key not in active_module_keys):
+                continue
             card = self._normalize_card(item, fallback_id=f"card-{index + 1}")
             module_key = card.get("module_key") or ""
+            if module_key in self.DEPRECATED_MODULE_KEYS or module_key not in active_module_keys:
+                continue
             if self._module_is_singleton(module_key):
                 if module_key not in fixed_cards:
                     fixed_cards[module_key] = card

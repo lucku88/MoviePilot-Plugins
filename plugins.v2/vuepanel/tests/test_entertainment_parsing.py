@@ -170,5 +170,49 @@ class EntertainmentParsingTest(unittest.TestCase):
         self.assertEqual(self.VuePanel._extract_self_magic_reward("没有收益"), 0)
 
 
+class CardNormalizationTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.VuePanel = load_vuepanel_class()
+
+    def test_normalize_cards_drops_deprecated_newapi_cards(self):
+        plugin = self.VuePanel()
+
+        normalized = plugin._normalize_cards(
+            [
+                {
+                    "id": "newapi_checkin-default",
+                    "title": "New API签到",
+                    "module_key": "newapi_checkin",
+                    "site_name": "New API 站点",
+                    "site_url": "https://api.example.com",
+                    "uid": "1001",
+                    "cookie": "token=a",
+                },
+                {
+                    "id": "newapi_checkin-copy",
+                    "title": "New API签到 副本",
+                    "module_key": "newapi_checkin",
+                    "site_name": "New API 站点",
+                    "site_url": "https://api-copy.example.com",
+                    "uid": "2002",
+                    "cookie": "token=b",
+                },
+                {
+                    "id": "siqi_sign-default",
+                    "title": "思齐签到",
+                    "module_key": "siqi_sign",
+                    "site_name": "思齐",
+                    "site_url": "https://si-qi.xyz",
+                    "cookie": "c_secure_pass=ok",
+                },
+            ]
+        )
+
+        self.assertNotIn("newapi_checkin", {item["module_key"] for item in normalized})
+        self.assertTrue(any(item["module_key"] == "siqi_sign" for item in normalized))
+        self.assertFalse(any(item["title"].startswith("New API") for item in normalized))
+
+
 if __name__ == "__main__":
     unittest.main()
