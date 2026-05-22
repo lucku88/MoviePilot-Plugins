@@ -35,6 +35,9 @@
           <div class="vfc-switch-card">
             <v-switch v-model="config.onlyonce" class="vfc-switch" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
           </div>
+          <div class="vfc-switch-card">
+            <v-switch v-model="config.enable_ocr_harvest" class="vfc-switch" label="OCR批量收菜" color="#7c5cff" density="compact" hide-details inset />
+          </div>
         </div>
       </section>
 
@@ -91,14 +94,16 @@
               placeholder="http://ip:8089/api/tr-run/"
               hide-details="auto"
             />
+            <div class="vfc-note">仅在开启 OCR批量收菜 时使用；关闭或未配置时自动逐坑位收菜。</div>
           </div>
         </div>
       </section>
 
       <section class="vfc-card">
         <h2 class="vfc-section-title">📘 OCR 说明</h2>
-        <div class="vfc-note">批量收菜验证码依赖 OCR。未配置 OCR 时，插件仍可刷新状态，并在批量收获失败后尝试逐坑位兜底收菜。</div>
-        <div class="vfc-note">推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
+        <div class="vfc-note">默认关闭 OCR批量收菜，成熟后会直接逐坑位快速收菜，并在收菜后复查漏收。</div>
+        <div class="vfc-note">开启 OCR批量收菜 且配置 OCR API 后才会先尝试批量收菜；验证码连续 3 次失败会马上切换逐坑位收菜。</div>
+        <div class="vfc-note">如需批量收菜，推荐先部署 <code>trwebocr</code>，再把 OCR 地址填成 <code>http://ip:8089/api/tr-run/</code>。</div>
         <pre class="vfc-code">{{ ocrComposeExample }}</pre>
       </section>
     </div>
@@ -123,6 +128,7 @@ const config = reactive({
   auto_cookie: true,
   enable_sell: true,
   enable_plant: true,
+  enable_ocr_harvest: false,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',

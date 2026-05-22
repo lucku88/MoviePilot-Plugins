@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
-    plugin_desc = "收菜、种植、出售、获取执行记录。"
+    plugin_desc = "收菜、种植、出售、OCR 批量收菜开关、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.1.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -43,6 +43,7 @@ class VueFarm(_PluginBase):
     PRE_REFRESH_SECONDS = 60
     IDLE_REFRESH_SECONDS = 12 * 60 * 60
     MIN_TRIGGER_SECONDS = 5
+    BATCH_HARVEST_ATTEMPTS = 3
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -53,6 +54,7 @@ class VueFarm(_PluginBase):
     _auto_cookie: bool = True
     _enable_sell: bool = True
     _enable_plant: bool = True
+    _enable_ocr_harvest: bool = False
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cron: str = DEFAULT_CRON
@@ -544,6 +546,7 @@ class VueFarm(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
+            "enable_ocr_harvest": self._enable_ocr_harvest,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -562,6 +565,7 @@ class VueFarm(_PluginBase):
             "auto_cookie": self._auto_cookie,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
+            "enable_ocr_harvest": self._enable_ocr_harvest,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -619,6 +623,7 @@ class VueFarm(_PluginBase):
             "auto_cookie": True,
             "enable_sell": True,
             "enable_plant": True,
+            "enable_ocr_harvest": False,
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
@@ -639,6 +644,7 @@ class VueFarm(_PluginBase):
         self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
         self._enable_sell = self._to_bool(config.get("enable_sell", True))
         self._enable_plant = self._to_bool(config.get("enable_plant", True))
+        self._enable_ocr_harvest = self._to_bool(config.get("enable_ocr_harvest", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cron = self.DEFAULT_CRON
@@ -1030,8 +1036,8 @@ class VueFarm(_PluginBase):
     def _harvest_all(self, session: requests.Session) -> Dict[str, Any]:
         logger.info("INFO 开始收获...")
         last_detail = "未知原因"
-        for idx in range(1, 6):
-            logger.info("Harvest attempt %s/5", idx)
+        for idx in range(1, self.BATCH_HARVEST_ATTEMPTS + 1):
+            logger.info("Harvest attempt %s/%s", idx, self.BATCH_HARVEST_ATTEMPTS)
             try:
                 cap_res = self._post_action(session, "get_harvest_all_captcha", {}, retry_network=True)
                 if not cap_res or not cap_res.get("success") or not cap_res.get("captcha"):
@@ -1074,6 +1080,9 @@ class VueFarm(_PluginBase):
                 logger.warning("harvest flow failed: %s", err)
         logger.warning("harvest not completed after retries")
         return {"success": False, "detail": last_detail, "reward": 0, "items": []}
+
+    def _should_use_ocr_batch_harvest(self) -> bool:
+        return bool(self._enable_ocr_harvest and self._ocr_api_url)
 
     def _collect_ready_plots(self, data: dict) -> List[dict]:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -1133,15 +1142,58 @@ class VueFarm(_PluginBase):
             }
         return {"success": False, "detail": (result or {}).get("msg") or "收菜失败", "result": result or {}}
 
+    def _harvest_plots_individually(
+        self,
+        session: requests.Session,
+        ready_plots: List[dict],
+        counted_keys: Optional[set] = None,
+    ) -> Tuple[int, List[str], List[Dict[str, Any]]]:
+        counted = counted_keys if counted_keys is not None else set()
+        success_count = 0
+        failures: List[str] = []
+        harvested_items: List[Dict[str, Any]] = []
+        for plot in ready_plots:
+            land_id = int(plot.get("land_id") or 0)
+            plot_index = int(plot.get("plot_index") or 0)
+            plot_key = (land_id, plot_index)
+            try:
+                single_result = self._harvest_single_plot(session, land_id, plot_index)
+                if single_result.get("success"):
+                    if plot_key not in counted:
+                        success_count += 1
+                        harvested_items.extend(single_result.get("items") or [])
+                        counted.add(plot_key)
+                else:
+                    failures.append(
+                        f"{land_id}-{plot_index + 1}:{single_result.get('detail') or '收菜失败'}"
+                    )
+            except Exception as err:
+                failures.append(f"{land_id}-{plot_index + 1}:{self._get_error_detail(err)}")
+        return success_count, failures, harvested_items
+
     def _harvest_ready_plots(self, session: requests.Session, data: dict) -> Dict[str, Any]:
         ready_before = self._collect_ready_plots(data)
         if not ready_before:
             return {"success": False, "detail": "当前没有可收获田块", "note": "", "data": data, "harvested_count": 0, "harvest_items": []}
 
-        batch_result = self._harvest_all(session)
-        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.6, default=data) or data
-        remaining_ready = self._collect_ready_plots(latest_data)
-        harvested_items: List[Dict[str, Any]] = list(batch_result.get("items") or [])
+        batch_attempted = False
+        batch_result: Dict[str, Any] = {"success": False, "detail": "", "items": []}
+        latest_data = data
+        remaining_ready = ready_before
+        harvested_items: List[Dict[str, Any]] = []
+        note_prefix = "OCR批量收菜未开启，已使用逐坑位收菜"
+
+        if self._should_use_ocr_batch_harvest():
+            batch_attempted = True
+            note_prefix = "批量收菜失败，已自动切换逐坑位收菜"
+            batch_result = self._harvest_all(session)
+            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
+            remaining_ready = self._collect_ready_plots(latest_data)
+            harvested_items = list(batch_result.get("items") or [])
+            if batch_result.get("success") and remaining_ready:
+                note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
+        elif self._enable_ocr_harvest and not self._ocr_api_url:
+            note_prefix = "OCR批量收菜已开启但未配置 OCR API，已使用逐坑位收菜"
 
         if batch_result.get("success") and not remaining_ready:
             return {
@@ -1154,33 +1206,33 @@ class VueFarm(_PluginBase):
             }
 
         fallback_success = 0
+        counted_success_keys = set()
         fallback_failures: List[str] = []
         if remaining_ready:
-            for plot in remaining_ready:
-                land_id = int(plot.get("land_id") or 0)
-                plot_index = int(plot.get("plot_index") or 0)
-                try:
-                    single_result = self._harvest_single_plot(session, land_id, plot_index)
-                    if single_result.get("success"):
-                        fallback_success += 1
-                        harvested_items.extend(single_result.get("items") or [])
-                    else:
-                        fallback_failures.append(
-                            f"{land_id}-{plot_index + 1}:{single_result.get('detail') or '收菜失败'}"
-                        )
-                except Exception as err:
-                    fallback_failures.append(f"{land_id}-{plot_index + 1}:{self._get_error_detail(err)}")
+            success_count, failures, single_items = self._harvest_plots_individually(session, remaining_ready, counted_success_keys)
+            fallback_success += success_count
+            fallback_failures.extend(failures)
+            harvested_items.extend(single_items)
 
-        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.6, default=latest_data) or latest_data
+        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=latest_data) or latest_data
         remaining_after = self._collect_ready_plots(latest_data)
+
+        if remaining_after:
+            logger.warning("INFO 收菜后复查发现仍有 %s 块成熟田，立即逐坑位补收", len(remaining_after))
+            success_count, failures, single_items = self._harvest_plots_individually(session, remaining_after, counted_success_keys)
+            fallback_success += success_count
+            fallback_failures.extend(failures)
+            harvested_items.extend(single_items)
+            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=latest_data) or latest_data
+            remaining_after = self._collect_ready_plots(latest_data)
+
         harvested_count = max(0, len(ready_before) - len(remaining_after))
 
         note = ""
-        if remaining_ready:
-            if batch_result.get("success"):
-                note = "已对剩余成熟田执行逐坑位收菜兜底。"
-            elif fallback_success > 0:
-                note = f"批量收菜失败，已自动切换逐坑位收菜，成功 {fallback_success} 块。"
+        if fallback_success > 0:
+            note = f"{note_prefix}，成功 {fallback_success} 块。"
+        elif batch_attempted and batch_result.get("success"):
+            note = "批量收菜后复查仍有成熟田未收获。"
 
         detail = ""
         batch_detail = batch_result.get("detail") or ""

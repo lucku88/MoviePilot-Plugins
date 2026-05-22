@@ -1,13 +1,14 @@
 {
   "VueFarm": {
     "name": "Vue-农场",
-    "description": "收菜、种植、出售、获取执行记录。",
+    "description": "收菜、种植、出售、OCR 批量收菜开关、获取执行记录。",
     "labels": "工具,自动化,农场,Vue",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.1.12": "新增 Vue-农场 OCR 批量收菜开关：默认关闭并直接逐坑位快速收菜；开启且配置 OCR API 后才批量，验证码 3 次失败或复查漏收会立即切换逐坑位补收。",
       "v0.1.11": "修复 Vue-农场 状态初始化和手动刷新遇到已成熟田块时把调度改成 12 小时刷新：成熟田会立即注册执行，手动刷新会直接补跑，并兼容站点返回 is_ready 字符串。",
       "v0.1.10": "Fix Vue-农场 fallback harvest counting so per-plot recovery does not sum cumulative inventory, and catch up immediately after config save or MoviePilot restart when crops are already ready.",
       "v0.1.9": "Fix Vue-farm preferred seed matching so saved planting choices like 西红柿 are normalized consistently across config save, status refresh, and auto-plant execution.",
@@ -84,7 +85,7 @@
     "history": {
       "v0.1.2": "补齐 Vue-表情 保存配置、启动初始化和运行前预刷新后的补跑判断：待收开包、可开包、舞台可召回/开演或旧计划过期时立即执行，老虎机仍按计划触发控制。",
       "v0.1.1": "对齐 Vue-魔丸 的页头结构，收紧我的表情包操作区，移除合成区与老虎机提示文案，并统一状态页和配置页的卡片密度。",
-      "v0.1.0": "???????? Vue-?? ?????????????? Vue-???Vue-???????? Vue ???"
+      "v0.1.0": "首版发布，独立为 Vue-表情 插件，提供老虎机、开包、舞台演出、执行历史和站点 Cookie 同步页面。"
     }
   },
   "VuePanel": {

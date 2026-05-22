@@ -208,6 +208,7 @@ class VueFarmBackendTests(unittest.TestCase):
         ready_data = _ready_farm_data(20)
         empty_data = {**ready_data, "user_lands": []}
 
+        self.plugin._enable_ocr_harvest = True
         self.plugin._harvest_all = lambda session: {
             "success": False,
             "detail": "OCR 未识别出有效验证码",
@@ -258,6 +259,86 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(20, result["harvested_count"])
         self.assertIn("✅收菜：🍆茄子×20", lines)
         self.assertNotIn("✅收菜：🍆茄子×210", lines)
+
+    def test_ocr_batch_disabled_harvests_individually_and_rechecks_remaining(self):
+        ready_data = _ready_farm_data(3)
+        remaining_one = {**ready_data, "user_lands": [ready_data["user_lands"][-1]]}
+        empty_data = {**ready_data, "user_lands": []}
+        refetches = iter([remaining_one, empty_data])
+        harvest_calls = []
+
+        self.plugin._enable_ocr_harvest = False
+        self.plugin._harvest_all = lambda session: self.fail("OCR 批量收菜关闭时不应调用批量接口")
+        self.plugin._refetch_state_until = lambda *args, **kwargs: next(refetches)
+
+        def harvest_single(session, land_id, plot_index):
+            harvest_calls.append((land_id, plot_index))
+            return {
+                "success": True,
+                "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
+            }
+
+        self.plugin._harvest_single_plot = harvest_single
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(3, result["harvested_count"])
+        self.assertEqual(
+            [(1, 0), (1, 1), (1, 2), (1, 2)],
+            harvest_calls,
+        )
+        self.assertIn("逐坑位收菜", result["note"])
+        self.assertIn("成功 3 块", result["note"])
+
+    def test_ocr_batch_enabled_without_api_harvests_individually(self):
+        ready_data = _ready_farm_data(2)
+        empty_data = {**ready_data, "user_lands": []}
+        harvest_calls = []
+
+        self.plugin._enable_ocr_harvest = True
+        self.plugin._ocr_api_url = ""
+        self.plugin._harvest_all = lambda session: self.fail("未配置 OCR API 时不应调用批量接口")
+        self.plugin._refetch_state_until = lambda *args, **kwargs: empty_data
+        self.plugin._harvest_single_plot = lambda session, land_id, plot_index: harvest_calls.append((land_id, plot_index)) or {
+            "success": True,
+            "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
+        }
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(2, result["harvested_count"])
+        self.assertEqual([(1, 0), (1, 1)], harvest_calls)
+        self.assertIn("未配置 OCR API", result["note"])
+
+    def test_batch_harvest_stops_after_three_failed_captcha_attempts(self):
+        class FakeResponse:
+            content = b"captcha"
+
+            def raise_for_status(self):
+                return None
+
+        class FakeSession:
+            def get(self, *args, **kwargs):
+                return FakeResponse()
+
+        captcha_calls = {"count": 0}
+
+        def post_action(session, action, payload, retry_network=False):
+            if action == "get_harvest_all_captcha":
+                captcha_calls["count"] += 1
+                return {"success": True, "captcha": {"image_url": "/cap.jpg", "imagehash": "hash"}}
+            self.fail(f"验证码识别失败时不应提交收菜：{action}")
+
+        self.plugin._post_action = post_action
+        self.plugin._recognize_captcha = lambda session, image_content: ""
+
+        result = self.plugin._harvest_all(FakeSession())
+
+        self.assertFalse(result["success"])
+        self.assertEqual(3, captcha_calls["count"])
+        self.assertIn("OCR", result["detail"])
 
     def test_bootstrap_runs_full_job_after_refresh_when_ready(self):
         run_calls = []
