@@ -1,5 +1,9 @@
 import os
 import math
+import importlib
+import site
+import subprocess
+import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -23,6 +27,12 @@ EN_FONT_FALLBACKS = [
     r"C:\Windows\Fonts\arial.ttf",
     r"/System/Library/Fonts/Supplemental/Arial.ttf",
 ]
+
+FONTTOOLS_DEPENDENCIES = ("fonttools==4.58.0", "brotli==1.1.0")
+_FONTTOOLS_INSTALL_ATTEMPTED = False
+_FONTTOOLS_INSTALL_SUCCESS_LOGGED = False
+_FONTTOOLS_INSTALL_FAILED_LOGGED = False
+_FONTTOOLS_UNAVAILABLE_LOGGED = False
 
 
 def contains_cjk(text):
@@ -81,13 +91,104 @@ def _build_text_patch(text, font, fill_color):
     return _build_outline_text_patch(text, font, fill_color)
 
 
-def _build_outline_text_patch(text, font, fill_color):
+def _is_fonttools_dependency_error(err):
+    missing_name = str(getattr(err, "name", "") or "")
+    if missing_name in {"fontTools", "brotli", "Brotli"} or missing_name.startswith("fontTools."):
+        return True
+    message = str(err)
+    return "fontTools" in message or "No module named 'brotli'" in message or "No module named 'Brotli'" in message
+
+
+def _log_fonttools_unavailable_once(text, err):
+    global _FONTTOOLS_UNAVAILABLE_LOGGED
+    if _FONTTOOLS_UNAVAILABLE_LOGGED:
+        return
+    _FONTTOOLS_UNAVAILABLE_LOGGED = True
+    logger.warning("文字轮廓渲染不可用 | 文本=%s | 错误=%s", text, err)
+
+
+def _install_fonttools_dependency():
+    global _FONTTOOLS_INSTALL_ATTEMPTED
+    global _FONTTOOLS_INSTALL_SUCCESS_LOGGED
+    global _FONTTOOLS_INSTALL_FAILED_LOGGED
+
+    if _FONTTOOLS_INSTALL_ATTEMPTED:
+        return False
+    _FONTTOOLS_INSTALL_ATTEMPTED = True
+
+    base_command = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--disable-pip-version-check",
+        *FONTTOOLS_DEPENDENCIES,
+    ]
+    strategies = []
+    try:
+        from app.core.config import settings
+        if getattr(settings, "PIP_PROXY", ""):
+            strategies.append(("镜像站", base_command + ["-i", settings.PIP_PROXY]))
+        if getattr(settings, "PROXY_HOST", ""):
+            strategies.append(("代理", base_command + ["--proxy", settings.PROXY_HOST]))
+    except Exception:
+        pass
+    strategies.append(("直连", base_command))
+
+    last_error = ""
+    for strategy_name, command in strategies:
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except Exception as err:
+            last_error = f"{strategy_name}:{err}"
+            continue
+
+        if result.returncode == 0:
+            importlib.invalidate_caches()
+            try:
+                importlib.reload(site)
+            except Exception:
+                pass
+            if not _FONTTOOLS_INSTALL_SUCCESS_LOGGED:
+                _FONTTOOLS_INSTALL_SUCCESS_LOGGED = True
+                logger.info("文字轮廓渲染依赖自动安装成功 | 策略=%s | 依赖=%s", strategy_name, ",".join(FONTTOOLS_DEPENDENCIES))
+            return True
+        output = (result.stderr or result.stdout or "").strip()
+        last_error = f"{strategy_name}:{output[-500:]}"
+
+    if not _FONTTOOLS_INSTALL_FAILED_LOGGED:
+        _FONTTOOLS_INSTALL_FAILED_LOGGED = True
+        logger.warning("文字轮廓渲染依赖自动安装失败 | 依赖=%s | 错误=%s", ",".join(FONTTOOLS_DEPENDENCIES), last_error)
+    return False
+
+
+def _load_fonttools_modules(text):
     try:
         from fontTools.pens.basePen import BasePen
         from fontTools.ttLib import TTFont
+        return BasePen, TTFont
     except Exception as err:
-        logger.warning("文字轮廓渲染不可用 | 文本=%s | 错误=%s", text, err)
+        if _is_fonttools_dependency_error(err) and _install_fonttools_dependency():
+            try:
+                from fontTools.pens.basePen import BasePen
+                from fontTools.ttLib import TTFont
+                return BasePen, TTFont
+            except Exception as retry_err:
+                err = retry_err
+        _log_fonttools_unavailable_once(text, err)
+        return None
+
+
+def _build_outline_text_patch(text, font, fill_color):
+    fonttools_modules = _load_fonttools_modules(text)
+    if not fonttools_modules:
         return None, (0, 0)
+    BasePen, TTFont = fonttools_modules
 
     font_path = str(getattr(font, "path", "") or "").strip()
     if not font_path or not os.path.exists(font_path):
@@ -195,6 +296,8 @@ def _build_outline_text_patch(text, font, fill_color):
             return None, (0, 0)
         return glyph.crop(glyph_bbox), (glyph_bbox[0], glyph_bbox[1])
     except Exception as err:
+        if _is_fonttools_dependency_error(err) and _install_fonttools_dependency():
+            return _build_outline_text_patch(text, font, fill_color)
         logger.warning("文字轮廓渲染失败 | 文本=%s | 字体=%s | 错误=%s", text, font_path, err)
         return None, (0, 0)
 

@@ -1,4 +1,5 @@
 import base64
+import builtins
 import importlib.util
 import io
 from unittest import mock
@@ -221,6 +222,40 @@ class StyleStatic3RenderTests(unittest.TestCase):
             500,
             "字体轮廓路径应能直接把真实中文字体栅格化为可见像素",
         )
+
+    def test_outline_renderer_repairs_missing_fonttools_dependency_once(self):
+        try:
+            import fontTools  # noqa: F401
+        except Exception:
+            raise unittest.SkipTest("当前环境未安装 fonttools，无法验证依赖自修复后的重试路径")
+
+        module = load_style_module()
+        text_module = sys.modules["app.plugins.fnmediacovergenerator.style.text_rendering"]
+        font_path = find_font_path()
+        font, _ = module._load_font_with_fallback(font_path, "Drama", 72)
+        original_import = builtins.__import__
+        state = {"failed": False}
+
+        def fail_fonttools_once(name, globals=None, locals=None, fromlist=(), level=0):
+            if name.startswith("fontTools") and not state["failed"]:
+                state["failed"] = True
+                raise ModuleNotFoundError("No module named 'fontTools'")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with mock.patch("builtins.__import__", side_effect=fail_fonttools_once), \
+                mock.patch.object(text_module, "_install_fonttools_dependency", return_value=True, create=True) as install_mock:
+            patch, _ = text_module._build_outline_text_patch(
+                "Drama",
+                font,
+                (255, 255, 255, 255),
+            )
+
+        install_mock.assert_called_once()
+        self.assertIsNotNone(
+            patch,
+            "fontTools 首次缺失但自动安装成功后，应重试轮廓渲染并生成文字像素",
+        )
+        self.assertGreater(patch.getbbox()[2], 20)
 
     @staticmethod
     def _render_style_static_3(module, font_path, resolution_config=None):
