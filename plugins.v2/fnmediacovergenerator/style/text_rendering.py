@@ -28,7 +28,7 @@ EN_FONT_FALLBACKS = [
     r"/System/Library/Fonts/Supplemental/Arial.ttf",
 ]
 
-FONTTOOLS_DEPENDENCIES = ("fonttools==4.58.0", "brotli==1.1.0")
+FONTTOOLS_DEPENDENCIES = ("fonttools>=4.58.0", "brotli>=1.1.0")
 _FONTTOOLS_INSTALL_ATTEMPTED = False
 _FONTTOOLS_INSTALL_SUCCESS_LOGGED = False
 _FONTTOOLS_INSTALL_FAILED_LOGGED = False

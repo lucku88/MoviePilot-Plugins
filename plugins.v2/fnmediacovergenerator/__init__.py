@@ -144,7 +144,7 @@ class FnMediaCoverGenerator(_PluginBase):
     plugin_name = "飞牛影视媒体库封面生成"
     plugin_desc = "生成媒体库静态封面，支持飞牛影视"
     plugin_icon = "https://raw.githubusercontent.com/lucku88/MoviePilot-Plugins/main/icons/fnys.png"
-    plugin_version = "0.1.13"
+    plugin_version = "0.1.14"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins"
     plugin_config_prefix = "fnmediacovergenerator_"
