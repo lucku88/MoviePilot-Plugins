@@ -27,7 +27,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.1.17"
+    plugin_version = "0.1.18"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -38,6 +38,8 @@ class VuePill(_PluginBase):
     DEFAULT_SITE_DOMAIN = "si-qi.xyz"
     DEFAULT_BRICK_CRON = "5 0 * * *"
     PRE_REFRESH_SECONDS = 60
+    MAX_NETWORK_RETRY_TIMES = 5
+    MAX_CONSECUTIVE_ERROR_RETRIES = 5
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -92,7 +94,7 @@ class VuePill(_PluginBase):
     _schedule_buffer_seconds: int = 5
     _random_delay_max_seconds: int = 3
     _http_timeout: int = 12
-    _http_retry_times: int = 3
+    _http_retry_times: int = MAX_NETWORK_RETRY_TIMES
     _http_retry_delay: int = 1500
     _move_max_loops: int = 80
     _move_delay_min_ms: int = 30
@@ -285,14 +287,22 @@ class VuePill(_PluginBase):
             next_run, next_action = self._compute_next_plan(final_page)
             if retry_action:
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
-                if not next_run or retry_ts < next_run:
-                    next_run, next_action = retry_ts, retry_action
-                elif retry_ts == next_run:
-                    next_action = self._merge_trigger_actions(next_action, retry_action)
+                next_run, next_action = self._limit_retry_plan_if_needed(
+                    retry_action,
+                    retry_ts,
+                    next_run,
+                    next_action,
+                    reason,
+                )
             if beach_due_action and not beach_result.get("done"):
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
-                if not next_run or next_action not in {"beach", "all"} or next_run > retry_ts:
-                    next_run, next_action = retry_ts, "beach"
+                next_run, next_action = self._limit_retry_plan_if_needed(
+                    "beach",
+                    retry_ts,
+                    next_run,
+                    next_action,
+                    reason,
+                )
 
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
@@ -319,6 +329,8 @@ class VuePill(_PluginBase):
                     text=self._build_notify_text(lines, next_run),
                 )
 
+            if not has_warning:
+                self._reset_error_retry_count()
             return {
                 "success": True,
                 "message": lines[0],
@@ -327,11 +339,15 @@ class VuePill(_PluginBase):
             }
         except Exception as err:
             detail = self._get_error_detail(err)
+            retry_count = self._record_error_retry(detail)
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
             logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
-                self.post_message(mtype=NotificationType.Plugin, title=f"【⚠️{self.plugin_name}】 执行异常", text=f"⚠️ {detail}")
+                text = f"⚠️ {detail}"
+                if retry_count > self.MAX_CONSECUTIVE_ERROR_RETRIES:
+                    text += f"\n⛔ 已连续失败 {retry_count} 次，停止短间隔自动重试"
+                self.post_message(mtype=NotificationType.Plugin, title=f"【⚠️{self.plugin_name}】 执行异常", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
             cost_sec = max(1, round(time.time() - run_start))
@@ -655,7 +671,7 @@ class VuePill(_PluginBase):
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 3,
             "http_timeout": 12,
-            "http_retry_times": 3,
+            "http_retry_times": self.MAX_NETWORK_RETRY_TIMES,
             "http_retry_delay": 1500,
             "move_delay_min_ms": 30,
             "move_delay_max_ms": 80,
@@ -679,7 +695,7 @@ class VuePill(_PluginBase):
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 3))
         self._http_timeout = max(5, self._safe_int(config.get("http_timeout"), 12))
-        self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), 3))
+        self._http_retry_times = max(1, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
         self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
         self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
@@ -689,6 +705,51 @@ class VuePill(_PluginBase):
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
 
+    def _get_error_retry_count(self) -> int:
+        return max(0, self._safe_int(self.get_data("consecutive_error_retries"), 0))
+
+    def _record_error_retry(self, detail: str = "") -> int:
+        count = self._get_error_retry_count() + 1
+        self.save_data("consecutive_error_retries", count)
+        if detail:
+            self.save_data("last_error_retry_detail", detail)
+        return count
+
+    def _reset_error_retry_count(self):
+        if self._get_error_retry_count():
+            self.save_data("consecutive_error_retries", 0)
+            self.save_data("last_error_retry_detail", "")
+
+    def _can_schedule_error_retry(self, count: Optional[int] = None) -> bool:
+        retry_count = self._get_error_retry_count() if count is None else max(0, int(count))
+        if retry_count <= self.MAX_CONSECUTIVE_ERROR_RETRIES:
+            return True
+        logger.warning(
+            "%s 已连续失败 %s 次，停止短间隔自动重试，等待下一次正常调度",
+            self.plugin_name,
+            retry_count,
+        )
+        return False
+
+    def _limit_retry_plan_if_needed(
+        self,
+        retry_action: str,
+        retry_ts: int,
+        next_run: Optional[int],
+        next_action: str,
+        reason: str = "",
+    ) -> Tuple[Optional[int], str]:
+        retry_count = self._record_error_retry(f"短间隔重试:{retry_action}")
+        if not self._can_schedule_error_retry(retry_count):
+            return next_run, next_action
+        if not next_run or retry_ts < next_run:
+            return retry_ts, retry_action
+        if retry_ts == next_run:
+            return next_run, self._merge_trigger_actions(next_action, retry_action)
+        if retry_action == "beach" and next_action not in {"beach", "all"} and reason == "schedule":
+            return retry_ts, retry_action
+        return next_run, next_action
+
     def _refresh_state(self, reason: str = "refresh", record_run: bool = True) -> Dict[str, Any]:
         self._ensure_cookie()
         if self._force_ipv4:
@@ -697,7 +758,9 @@ class VuePill(_PluginBase):
         data = self._fetch_page_state(session)
         next_run, next_action = self._compute_next_plan(data)
         self._schedule_next_run(next_run, reason, next_action)
-        return self._refresh_and_store_status(data, next_run, [], record_run=record_run, next_action=next_action)
+        status = self._refresh_and_store_status(data, next_run, [], record_run=record_run, next_action=next_action)
+        self._reset_error_retry_count()
+        return status
 
     def _ensure_cookie(self):
         if self._auto_cookie:

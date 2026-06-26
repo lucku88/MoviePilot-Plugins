@@ -27,7 +27,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "盲盒、回收、展出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.10"
+    plugin_version = "0.1.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -42,6 +42,8 @@ class VueToy(_PluginBase):
     )
     SUMMARY_LINE = "━━━━━━━━━━━━━━"
     PRE_REFRESH_SECONDS = 60
+    MAX_NETWORK_RETRY_TIMES = 5
+    MAX_CONSECUTIVE_ERROR_RETRIES = 5
 
     QUALITY_ORDER = {"珍稀": 4, "稀有": 4, "特别": 3, "高级": 2, "入门": 1}
 
@@ -64,7 +66,7 @@ class VueToy(_PluginBase):
     _schedule_buffer_seconds: int = 5
     _random_delay_max_seconds: int = 5
     _http_timeout: int = 12
-    _http_retry_times: int = 3
+    _http_retry_times: int = MAX_NETWORK_RETRY_TIMES
     _http_retry_delay: int = 1500
     _skip_before_seconds: int = 60
     _collect_retry: int = 3
@@ -253,6 +255,7 @@ class VueToy(_PluginBase):
             if self._notify and lines:
                 self._send_report(lines, next_run)
 
+            self._reset_error_retry_count()
             return {
                 "success": True,
                 "message": lines[0] if lines else "本次没有可执行动作",
@@ -279,8 +282,11 @@ class VueToy(_PluginBase):
                 gain_exposure, gain_magic = self._summarize_gains(state.get("activity_logs") or [], start_time)
 
             partial_lines = self._build_summary_lines(collect_names, place_names, gain_exposure, gain_magic)
+            retry_count = 0
             if self._enabled and (partial_lines or reason in {"schedule", "bootstrap", "onlyonce"}):
-                retry_at = int(time.time()) + fallback_delay
+                retry_count = self._record_error_retry(detail)
+                if self._can_schedule_error_retry(retry_count):
+                    retry_at = int(time.time()) + fallback_delay
             if state:
                 computed_next = self._compute_next_run(state, placed_times)
                 if computed_next:
@@ -322,6 +328,8 @@ class VueToy(_PluginBase):
                 text = detail
                 if retry_at:
                     text += "\n⏰ 已安排稍后自动重试"
+                elif retry_count > self.MAX_CONSECUTIVE_ERROR_RETRIES:
+                    text += f"\n⛔ 已连续失败 {retry_count} 次，停止短间隔自动重试"
                 self.post_message(
                     title="【⚠️玩偶异常】",
                     mtype=NotificationType.Plugin,
@@ -638,7 +646,7 @@ class VueToy(_PluginBase):
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 5))
         self._http_timeout = max(5, self._safe_int(config.get("http_timeout"), 12))
-        self._http_retry_times = max(0, self._safe_int(config.get("http_retry_times"), 3))
+        self._http_retry_times = max(0, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
         self._http_retry_delay = max(0, self._safe_int(config.get("http_retry_delay"), 1500))
         self._skip_before_seconds = max(0, self._safe_int(config.get("skip_before_seconds"), 60))
         self._collect_retry = max(1, self._safe_int(config.get("collect_retry"), 3))
@@ -659,6 +667,32 @@ class VueToy(_PluginBase):
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
         })
+
+    def _get_error_retry_count(self) -> int:
+        return max(0, self._safe_int(self.get_data("consecutive_error_retries"), 0))
+
+    def _record_error_retry(self, detail: str = "") -> int:
+        count = self._get_error_retry_count() + 1
+        self.save_data("consecutive_error_retries", count)
+        if detail:
+            self.save_data("last_error_retry_detail", detail)
+        return count
+
+    def _reset_error_retry_count(self):
+        if self._get_error_retry_count():
+            self.save_data("consecutive_error_retries", 0)
+            self.save_data("last_error_retry_detail", "")
+
+    def _can_schedule_error_retry(self, count: Optional[int] = None) -> bool:
+        retry_count = self._get_error_retry_count() if count is None else max(0, int(count))
+        if retry_count <= self.MAX_CONSECUTIVE_ERROR_RETRIES:
+            return True
+        logger.warning(
+            "%s 已连续失败 %s 次，停止短间隔自动重试，等待下一次正常调度",
+            self.plugin_name,
+            retry_count,
+        )
+        return False
 
     def _resolve_site_profile(self):
         self._site_domain = self.DEFAULT_SITE_DOMAIN
@@ -744,7 +778,7 @@ class VueToy(_PluginBase):
         session = self._build_session()
         bundle = self._fetch_bundle(session)
         next_run = self._compute_next_run(bundle["state"])
-        return self._refresh_and_store_status(
+        status = self._refresh_and_store_status(
             bundle["state"],
             bundle["html"],
             next_run,
@@ -752,6 +786,8 @@ class VueToy(_PluginBase):
             target_panel=target_panel,
             history_manual=history_manual,
         )
+        self._reset_error_retry_count()
+        return status
 
     def _manual_collect_slot(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         owner_id = self._safe_int(payload.get("owner_id"), 0)

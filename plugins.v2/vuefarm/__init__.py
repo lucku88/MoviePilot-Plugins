@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、OCR 批量收菜开关、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.12"
+    plugin_version = "0.1.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -44,6 +44,8 @@ class VueFarm(_PluginBase):
     IDLE_REFRESH_SECONDS = 12 * 60 * 60
     MIN_TRIGGER_SECONDS = 5
     BATCH_HARVEST_ATTEMPTS = 3
+    MAX_NETWORK_RETRY_TIMES = 5
+    MAX_CONSECUTIVE_ERROR_RETRIES = 5
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -68,7 +70,7 @@ class VueFarm(_PluginBase):
     _schedule_buffer_seconds: int = 5
     _random_delay_max_seconds: int = 5
     _http_timeout: int = 12
-    _http_retry_times: int = 3
+    _http_retry_times: int = MAX_NETWORK_RETRY_TIMES
     _http_retry_delay: int = 1500
     _ocr_retry_times: int = 2
     _ready_retry_seconds: int = 60
@@ -360,19 +362,23 @@ class VueFarm(_PluginBase):
                     text="\n".join(msg_lines),
                 )
 
+            if not has_warning_lines:
+                self._reset_error_retry_count()
             return {"success": True, "message": msg_lines[0] if msg_lines else "本次无动作", "status": self._build_status(auto_refresh=False)}
         except Exception as err:
             detail = self._get_error_detail(err)
             retry_scheduled = False
             if self._enabled and reason in {"smart", "bootstrap", "onlyonce"}:
-                retry_delay = max(30, self._ready_retry_seconds)
-                retry_at = int(time.time()) + retry_delay
-                try:
-                    self._schedule_next_run(retry_at, f"{reason}-error-retry")
-                    retry_scheduled = True
-                    logger.warning("%s 本次执行异常，已安排 %s 秒后自动重试：%s", self.plugin_name, retry_delay, self._format_ts(retry_at))
-                except Exception as schedule_err:
-                    logger.warning("%s 异常后补重试失败：%s", self.plugin_name, schedule_err)
+                retry_count = self._record_error_retry(detail)
+                if self._can_schedule_error_retry(retry_count):
+                    retry_delay = max(30, self._ready_retry_seconds)
+                    retry_at = int(time.time()) + retry_delay
+                    try:
+                        self._schedule_next_run(retry_at, f"{reason}-error-retry")
+                        retry_scheduled = True
+                        logger.warning("%s 本次执行异常，已安排 %s 秒后自动重试：%s", self.plugin_name, retry_delay, self._format_ts(retry_at))
+                    except Exception as schedule_err:
+                        logger.warning("%s 异常后补重试失败：%s", self.plugin_name, schedule_err)
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
             logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
             self._append_history("❌ Vue-农场异常", [f"⚠️ {detail}"])
@@ -380,6 +386,8 @@ class VueFarm(_PluginBase):
                 text = f"⚠️ {detail}"
                 if retry_scheduled:
                     text += "\n⏰ 已安排稍后自动重试"
+                elif self._get_error_retry_count() > self.MAX_CONSECUTIVE_ERROR_RETRIES:
+                    text += f"\n⛔ 已连续失败 {self._get_error_retry_count()} 次，停止短间隔自动重试"
                 self.post_message(mtype=NotificationType.Plugin, title="【⚠️农场异常】", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
@@ -632,7 +640,7 @@ class VueFarm(_PluginBase):
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 5,
             "http_timeout": 12,
-            "http_retry_times": 3,
+            "http_retry_times": self.MAX_NETWORK_RETRY_TIMES,
             "http_retry_delay": 1500,
             "ocr_retry_times": 2,
         }
@@ -655,7 +663,7 @@ class VueFarm(_PluginBase):
         self._schedule_buffer_seconds = self._safe_int(config.get("schedule_buffer_seconds"), 5)
         self._random_delay_max_seconds = self._safe_int(config.get("random_delay_max_seconds"), 5)
         self._http_timeout = self._safe_int(config.get("http_timeout"), 12)
-        self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), 3))
+        self._http_retry_times = max(1, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
         self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
 
@@ -696,6 +704,32 @@ class VueFarm(_PluginBase):
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
 
+    def _get_error_retry_count(self) -> int:
+        return max(0, self._safe_int(self.get_data("consecutive_error_retries"), 0))
+
+    def _record_error_retry(self, detail: str = "") -> int:
+        count = self._get_error_retry_count() + 1
+        self.save_data("consecutive_error_retries", count)
+        if detail:
+            self.save_data("last_error_retry_detail", detail)
+        return count
+
+    def _reset_error_retry_count(self):
+        if self._get_error_retry_count():
+            self.save_data("consecutive_error_retries", 0)
+            self.save_data("last_error_retry_detail", "")
+
+    def _can_schedule_error_retry(self, count: Optional[int] = None) -> bool:
+        retry_count = self._get_error_retry_count() if count is None else max(0, int(count))
+        if retry_count <= self.MAX_CONSECUTIVE_ERROR_RETRIES:
+            return True
+        logger.warning(
+            "%s 已连续失败 %s 次，停止短间隔自动重试，等待下一次正常调度",
+            self.plugin_name,
+            retry_count,
+        )
+        return False
+
     def _refresh_state(self, reason: str = "refresh", record_run: bool = False) -> Dict[str, Any]:
         self._ensure_cookie()
         if self._force_ipv4:
@@ -710,6 +744,7 @@ class VueFarm(_PluginBase):
         self.save_data("farm_status", farm_status)
         if record_run:
             self.save_data("last_run", self._format_time(self._aware_now()))
+        self._reset_error_retry_count()
         return farm_status
 
     def _run_after_refresh_if_due(self, farm_status: Dict[str, Any], run_reason: str, refresh_reason: str) -> Optional[Dict[str, Any]]:

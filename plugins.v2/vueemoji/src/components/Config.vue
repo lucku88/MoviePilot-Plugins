@@ -137,7 +137,7 @@ const config = reactive({
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
   http_timeout: 12,
-  http_retry_times: 3,
+  http_retry_times: 5,
   http_retry_delay: 1500,
   skip_before_seconds: 60,
   auto_stage_effect_key: 'auto',
