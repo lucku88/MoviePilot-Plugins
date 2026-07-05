@@ -26,7 +26,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "收菜、种植、出售、OCR 批量收菜开关、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.13"
+    plugin_version = "0.1.14"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -286,12 +286,13 @@ class VueFarm(_PluginBase):
                             action_plant = True
                             planted_seed_name = best_seed.get("name") or ""
                             plant_snapshot.append(self._normalize_plant_item(result or {}, best_seed, empty_count))
+                            seed_cost = self._safe_int(best_seed.get("cost"), 0)
                             plant_cost_actual = self._safe_int(
                                 (result or {}).get("total_cost"),
-                                int(best_seed.get("cost") or 0) * self._safe_int((result or {}).get("planted"), empty_count),
+                                seed_cost * self._safe_int((result or {}).get("planted"), empty_count),
                             )
-                            plant_cost_estimate = int(best_seed.get("cost") or 0) * empty_count
-                            plant_next_run_fallback = int(time.time()) + int(best_seed.get("grow_time") or 0)
+                            plant_cost_estimate = seed_cost * empty_count
+                            plant_next_run_fallback = int(time.time()) + self._safe_int(best_seed.get("grow_time"), 0)
                             logger.info("INFO 种植完成：%s", best_seed.get("name"))
                         data = self._refetch_state_until(
                             session,
@@ -701,6 +702,14 @@ class VueFarm(_PluginBase):
         prefer_key = self._normalize_seed_name(preference)
         return bool(seed_key and prefer_key and seed_key == prefer_key)
 
+    def _seed_is_unlocked(self, seed: Dict[str, Any], total_harvest: int) -> bool:
+        for key in ("unlocked", "is_unlocked", "available", "is_available"):
+            if key in seed and self._to_bool(seed.get(key)):
+                return True
+
+        unlock_need = self._safe_int(seed.get("unlock_harvest"), 0)
+        return unlock_need <= 0 or total_harvest >= unlock_need
+
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
 
@@ -792,18 +801,18 @@ class VueFarm(_PluginBase):
         effective = plot_slot.get("effective_plot_counts") or {}
         max_counts = plot_slot.get("max_plot_counts") or plot_slot.get("plot_counts") or {}
         user_stats = data.get("user_stats") or {}
-        total_harvest = int(user_stats.get("total_harvest") or 0)
-        unlocked_count = int(user_stats.get("unlocked_land_count") or 0)
-        land_id = int(land.get("id") or 0)
-        unlock_need = int(land.get("unlock_harvest") or 0)
+        total_harvest = self._safe_int(user_stats.get("total_harvest"), 0)
+        unlocked_count = self._safe_int(user_stats.get("unlocked_land_count"), 0)
+        land_id = self._safe_int(land.get("id"), 0)
+        unlock_need = self._safe_int(land.get("unlock_harvest"), 0)
         plot_indexes = [
-            int(plot.get("plot_index") or 0) + 1
+            self._safe_int(plot.get("plot_index"), 0) + 1
             for plot in (data.get("user_lands") or [])
-            if int(plot.get("land_id") or 0) == land_id
+            if self._safe_int(plot.get("land_id"), 0) == land_id
         ]
-        base_total = int(land.get("plot_count") or 0)
-        max_total = int(max_counts.get(str(land_id)) or max_counts.get(land_id) or 0)
-        effective_total = int(effective.get(str(land_id)) or effective.get(land_id) or 0)
+        base_total = self._safe_int(land.get("plot_count"), 0)
+        max_total = self._safe_int(max_counts.get(str(land_id)) or max_counts.get(land_id), 0)
+        effective_total = self._safe_int(effective.get(str(land_id)) or effective.get(land_id), 0)
         planted_max = max(plot_indexes) if plot_indexes else 0
         total_slots = max(10, base_total, max_total, effective_total, planted_max)
         land_unlocked = (
@@ -1398,12 +1407,18 @@ class VueFarm(_PluginBase):
                 preference,
                 ", ".join(str(seed.get("name") or "") for seed in unlocked) or "无",
             )
-        unlocked.sort(key=lambda item: ((float(item.get("base_reward") or 0) - float(item.get("cost") or 0)) / max(float(item.get("grow_time") or 1), 1)), reverse=True)
+        unlocked.sort(
+            key=lambda item: (
+                (self._safe_int(item.get("base_reward"), 0) - self._safe_int(item.get("cost"), 0))
+                / max(self._safe_int(item.get("grow_time"), 1), 1)
+            ),
+            reverse=True,
+        )
         return unlocked[0]
 
     def _get_unlocked_seeds(self, data: dict) -> List[dict]:
         total_harvest = self._get_stat_number(data, "total_harvest")
-        return [seed for seed in (data.get("seeds") or []) if total_harvest >= int(seed.get("unlock_harvest") or 0)]
+        return [seed for seed in (data.get("seeds") or []) if self._seed_is_unlocked(seed, total_harvest)]
 
     def _find_slot_context(self, data: dict, land_id: int, slot_index: int) -> Dict[str, Any]:
         lands = data.get("lands") or []
@@ -1810,19 +1825,19 @@ class VueFarm(_PluginBase):
     def _build_seed_shop(self, data: dict) -> List[Dict[str, Any]]:
         total_harvest = self._get_stat_number(data, "total_harvest")
         cards = []
-        for seed in sorted(data.get("seeds") or [], key=lambda item: int(item.get("unlock_harvest") or 0)):
-            grow_time = int(seed.get("grow_time") or 0)
-            unlock_need = int(seed.get("unlock_harvest") or 0)
+        for seed in sorted(data.get("seeds") or [], key=lambda item: self._safe_int(item.get("unlock_harvest"), 0)):
+            grow_time = self._safe_int(seed.get("grow_time"), 0)
+            unlock_need = self._safe_int(seed.get("unlock_harvest"), 0)
             name = seed.get("name") or "未知种子"
             cards.append({
-                "id": int(seed.get("id") or 0),
+                "id": self._safe_int(seed.get("id"), 0),
                 "name": name,
                 "icon": self._crop_icon.get(name, "🌱"),
-                "cost": int(seed.get("cost") or 0),
-                "reward": int(seed.get("base_reward") or 0),
+                "cost": self._safe_int(seed.get("cost"), 0),
+                "reward": self._safe_int(seed.get("base_reward"), 0),
                 "grow_text": self._format_duration(grow_time),
                 "unlock_text": f"解锁：总收获 {unlock_need}",
-                "unlocked": total_harvest >= unlock_need,
+                "unlocked": self._seed_is_unlocked(seed, total_harvest),
                 "preferred": self._seed_matches_preference(name, self._prefer_seed),
             })
         return cards
@@ -1877,9 +1892,9 @@ class VueFarm(_PluginBase):
                         "title": seed.get("name") or "已种植",
                         "icon": self._crop_icon.get(seed.get("name"), "🌱"),
                         "badge": "可收获" if ready else "成长中",
-                        "description": f"收获 +{int(seed.get('base_reward') or 0)} 魔力",
+                        "description": f"收获 +{self._safe_int(seed.get('base_reward'), 0)} 魔力",
                         "remaining_label": "现在可收" if ready else self._format_duration(max(0, harvest_ts - int(time.time()))),
-                        "reward_text": f"成长 {self._format_duration(int(seed.get('grow_time') or 0))}",
+                        "reward_text": f"成长 {self._format_duration(self._safe_int(seed.get('grow_time'), 0))}",
                         "harvest_ts": harvest_ts,
                     })
                 elif slot_index <= available_slots:
@@ -2164,7 +2179,7 @@ class VueFarm(_PluginBase):
         self.save_data("history", history[:20])
 
     def _parse_logs(self, logs: List[dict], since_time: float, seeds: Optional[List[dict]] = None) -> dict:
-        seed_cost_map = {str(seed.get("name") or ""): int(seed.get("cost") or 0) for seed in (seeds or [])}
+        seed_cost_map = {str(seed.get("name") or ""): self._safe_int(seed.get("cost"), 0) for seed in (seeds or [])}
         result = {"harvest": {}, "sell": {}, "plant": {}, "harvest_income": 0, "sell_income": 0, "plant_cost": 0}
         for item in logs:
             created_at = item.get("created_at")
@@ -2233,6 +2248,14 @@ class VueFarm(_PluginBase):
     @staticmethod
     def _safe_int(value: Any, default: int) -> int:
         try:
+            if isinstance(value, str):
+                text = value.strip().replace(",", "")
+                if not text:
+                    return default
+                matched = re.search(r"-?\d+(?:\.\d+)?", text)
+                if not matched:
+                    return default
+                return int(float(matched.group(0)))
             return int(value)
         except Exception:
             return default

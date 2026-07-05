@@ -260,6 +260,74 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertIn("✅收菜：🍆茄子×20", lines)
         self.assertNotIn("✅收菜：🍆茄子×210", lines)
 
+    def test_prefer_mushroom_when_total_harvest_contains_commas(self):
+        data = {
+            "success": True,
+            "user_stats": {"total_harvest": "5,000,000"},
+            "seeds": [
+                {
+                    "id": "4",
+                    "name": "茄子",
+                    "icon": "🍆",
+                    "cost": "3600",
+                    "grow_time": "259200",
+                    "base_reward": "4230",
+                    "unlock_harvest": "500000",
+                },
+                {
+                    "id": "5",
+                    "name": "蘑菇",
+                    "icon": "🍄",
+                    "cost": "8400",
+                    "grow_time": "604800",
+                    "base_reward": "10080",
+                    "unlock_harvest": "5000000",
+                },
+            ],
+        }
+        self.plugin._prefer_seed = "蘑菇"
+
+        picked = self.plugin._pick_seed(data)
+
+        self.assertIsNotNone(picked)
+        self.assertEqual("蘑菇", picked["name"])
+
+    def test_prefer_mushroom_when_seed_reports_unlocked_before_stats_refresh(self):
+        data = {
+            "success": True,
+            "user_stats": {"total_harvest": "4,999,999"},
+            "seeds": [
+                {
+                    "id": "4",
+                    "name": "茄子",
+                    "icon": "🍆",
+                    "cost": "3600",
+                    "grow_time": "259200",
+                    "base_reward": "4230",
+                    "unlock_harvest": "500000",
+                    "unlocked": True,
+                },
+                {
+                    "id": "5",
+                    "name": "蘑菇",
+                    "icon": "🍄",
+                    "cost": "8400",
+                    "grow_time": "604800",
+                    "base_reward": "10080",
+                    "unlock_harvest": "5000000",
+                    "unlocked": True,
+                },
+            ],
+        }
+        self.plugin._prefer_seed = "蘑菇"
+
+        picked = self.plugin._pick_seed(data)
+        seed_shop = self.plugin._build_seed_shop(data)
+
+        self.assertIsNotNone(picked)
+        self.assertEqual("蘑菇", picked["name"])
+        self.assertTrue(next(seed for seed in seed_shop if seed["name"] == "蘑菇")["unlocked"])
+
     def test_ocr_batch_disabled_harvests_individually_and_rechecks_remaining(self):
         ready_data = _ready_farm_data(3)
         remaining_one = {**ready_data, "user_lands": [ready_data["user_lands"][-1]]}
