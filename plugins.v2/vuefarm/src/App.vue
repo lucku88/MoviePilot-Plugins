@@ -25,7 +25,7 @@ import ConfigView from './components/Config.vue'
 import PageView from './components/Page.vue'
 import { createRequest } from './utils/request'
 
-const tab = ref('page')
+const tab = ref(new URLSearchParams(window.location.search).get('tab') === 'config' ? 'config' : 'page')
 const pluginConfig = reactive({})
 const request = createRequest(import.meta.env.VITE_API_BASE || 'http://localhost:3000')
 const api = {

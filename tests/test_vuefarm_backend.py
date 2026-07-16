@@ -3,6 +3,7 @@ import sys
 import time
 import types
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 
@@ -510,6 +511,163 @@ class VueFarmBackendTests(unittest.TestCase):
 
         self.assertEqual([], run_calls)
         self.assertEqual("农场状态已预刷新", result["message"])
+
+    def test_social_worker_runs_steal_only_once_in_same_time_window(self):
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = False
+        self.plugin._active_steal_window = lambda now=None: "2026-07-16|07:00-09:00"
+        calls = []
+        self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or {
+            "success": True,
+            "message": "本时段已检查",
+        }
+
+        self.plugin._social_worker()
+        self.plugin._social_worker()
+
+        self.assertEqual(["steal"], calls)
+        self.assertEqual("2026-07-16|07:00-09:00", self.plugin.get_data("auto_steal_window_key"))
+
+    def test_social_worker_stops_later_windows_after_daily_steal_is_exhausted(self):
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = False
+        self.plugin._active_steal_window = lambda now=None: "2026-07-16|07:00-09:00"
+        calls = []
+        self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or {
+            "success": True,
+            "message": "今日次数已用完",
+            "exhausted": True,
+        }
+
+        self.plugin._social_worker()
+        self.plugin._active_steal_window = lambda now=None: "2026-07-16|12:00-14:00"
+        self.plugin._social_worker()
+
+        self.assertEqual(["steal"], calls)
+        self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_steal_done_date"))
+
+    def test_steal_cycle_visits_requested_number_of_unique_victims(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        victims = iter([
+            {"success": True, "victim_id": "a", "victim_name": "甲", "max_steal_count": 5, "steal_count_today": 0},
+            {"success": True, "victim_id": "a", "victim_name": "甲", "max_steal_count": 5, "steal_count_today": 0},
+            {"success": True, "victim_id": "b", "victim_name": "乙", "max_steal_count": 5, "steal_count_today": 0},
+            {"success": True, "victim_id": "c", "victim_name": "丙", "max_steal_count": 5, "steal_count_today": 0},
+        ])
+        self.plugin._post_action = lambda session, action, payload=None, retry_network=False: next(victims)
+        self.plugin._victim_stealable_plots = lambda victim, requested_crop: []
+
+        result = self.plugin._run_steal_cycle(force=True, payload={"visit_count": 3})
+
+        self.assertTrue(result["success"])
+        self.assertEqual(3, result["visited"])
+
+    def test_victim_crop_filter_only_returns_requested_crop(self):
+        now = int(time.time())
+        victim = {
+            "seeds": [
+                {"id": 4, "name": "茄子"},
+                {"id": 5, "name": "蘑菇"},
+            ],
+            "victim_lands": [{"id": 1, "unlocked": 1}],
+            "victim_plots": [
+                {"land_id": 1, "plot_index": 0, "seed_id": 4, "harvest_time": now - 1},
+                {"land_id": 1, "plot_index": 1, "seed_id": 5, "harvest_time": now - 1},
+            ],
+        }
+
+        plots = self.plugin._victim_stealable_plots(victim, "蘑菇")
+
+        self.assertEqual([(1, 1, "蘑菇")], plots)
+
+    def test_auto_like_marks_today_checked_when_no_targets_exist(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._post_action = lambda session, action, payload=None, retry_network=False: {
+            "success": True,
+            "usernames": [],
+        }
+
+        result = self.plugin._run_like_cycle(force=False)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_like_date"))
+
+    def test_active_steal_window_supports_cross_midnight_ranges(self):
+        self.plugin._steal_time_windows = "22:00-01:00,07:00-09:00"
+        current = datetime(2026, 7, 16, 0, 30)
+
+        window_key = self.plugin._active_steal_window(current)
+
+        self.assertEqual("2026-07-15|22:00-01:00", window_key)
+
+    def test_manual_social_endpoints_use_reference_farm_actions(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload or {}))
+            if action == "get_victim_farm":
+                return {"success": True, "victim_id": 88, "victim_name": "测试用户"}
+            if action == "random_like_targets":
+                return {"success": True, "usernames": ["甲", "乙"]}
+            return {"success": True, "reward": 12, "message": "操作成功"}
+
+        self.plugin._post_action = post_action
+        self.plugin._refresh_state = lambda reason, record_run=False: {"last_updated": "now"}
+
+        target = self.plugin._steal_target_api()
+        stolen = self.plugin._steal_plot_api({"victim_id": 88, "land_id": 1, "plot_index": 2})
+        finished = self.plugin._finish_stealing_api({"stolen_count": 1, "reward": 12})
+        like_targets = self.plugin._like_targets_api()
+        liked = self.plugin._like_batch_api({"usernames": ["甲", "乙"]})
+
+        self.assertTrue(target["success"])
+        self.assertTrue(stolen["success"])
+        self.assertTrue(finished["success"])
+        self.assertEqual(["甲", "乙"], like_targets["usernames"])
+        self.assertTrue(liked["success"])
+        self.assertIn(("steal_vegetable", {"victim_id": 88, "land_id": 1, "plot_index": 2}), calls)
+        self.assertIn(("finish_stealing", {}), calls)
+        self.assertIn(("like_farm_batch", {"usernames": "甲\n乙"}), calls)
+
+    def test_sell_all_inventory_uses_one_backend_flow(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        data = {
+            "success": True,
+            "inventory": [
+                {"seed_id": 1, "name": "萝卜", "quantity": 2, "unit_reward": 220},
+                {"seed_id": 2, "name": "西红柿", "quantity": 3, "unit_reward": 450},
+            ],
+            "seeds": [],
+            "lands": [],
+            "user_lands": [],
+            "user_logs": [],
+        }
+        empty = {**data, "inventory": []}
+        self.plugin._fetch_state = lambda session: data
+        calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload))
+            return {"success": True, "gain": int(payload["quantity"]) * (220 if payload["seed_id"] == 1 else 450)}
+
+        self.plugin._post_action = post_action
+        self.plugin._refetch_state_until = lambda *args, **kwargs: empty
+        self.plugin._refresh_and_store_farm_state = lambda latest, reason, lines=None: {"inventory": {"items": []}}
+
+        result = self.plugin._sell_all_inventory_api()
+
+        self.assertTrue(result["success"])
+        self.assertEqual(2, result["sold_types"])
+        self.assertEqual(1790, result["gain"])
+        self.assertEqual([
+            ("sell_inventory", {"seed_id": 1, "quantity": 2}),
+            ("sell_inventory", {"seed_id": 2, "quantity": 3}),
+        ], calls)
 
 
 if __name__ == "__main__":

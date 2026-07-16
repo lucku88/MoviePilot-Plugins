@@ -24,9 +24,9 @@ from app.schemas import NotificationType
 
 class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
-    plugin_desc = "收菜、种植、出售、OCR 批量收菜开关、获取执行记录。"
+    plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.1.14"
+    plugin_version = "0.2.0"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -74,6 +74,12 @@ class VueFarm(_PluginBase):
     _http_retry_delay: int = 1500
     _ocr_retry_times: int = 2
     _ready_retry_seconds: int = 60
+    _auto_steal: bool = False
+    _auto_like: bool = False
+    _steal_crop: str = "全部作物"
+    _steal_visit_count: int = 5
+    _steal_time_windows: str = "07:00-09:00,12:00-14:00,18:00-23:00"
+    _social_cron: str = "*/5 * * * *"
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -148,7 +154,15 @@ class VueFarm(_PluginBase):
             {"path": "/harvest-all", "endpoint": self._harvest_all_api, "methods": ["POST"], "auth": "bear", "summary": "一键收获"},
             {"path": "/plant-empty", "endpoint": self._plant_empty_api, "methods": ["POST"], "auth": "bear", "summary": "一键种植空地"},
             {"path": "/sell-inventory", "endpoint": self._sell_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "售出背包作物"},
+            {"path": "/sell-all", "endpoint": self._sell_all_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "一键售出背包"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
+            {"path": "/steal", "endpoint": self._steal_once_api, "methods": ["POST"], "auth": "bear", "summary": "立即执行偷菜"},
+            {"path": "/steal-target", "endpoint": self._steal_target_api, "methods": ["POST"], "auth": "bear", "summary": "获取偷菜目标"},
+            {"path": "/steal-plot", "endpoint": self._steal_plot_api, "methods": ["POST"], "auth": "bear", "summary": "偷取指定作物"},
+            {"path": "/steal-finish", "endpoint": self._finish_stealing_api, "methods": ["POST"], "auth": "bear", "summary": "完成偷菜会话"},
+            {"path": "/like", "endpoint": self._like_once_api, "methods": ["POST"], "auth": "bear", "summary": "立即执行点赞"},
+            {"path": "/like-targets", "endpoint": self._like_targets_api, "methods": ["POST"], "auth": "bear", "summary": "获取随机点赞目标"},
+            {"path": "/like-batch", "endpoint": self._like_batch_api, "methods": ["POST"], "auth": "bear", "summary": "批量点赞农场"},
         ]
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
@@ -174,6 +188,21 @@ class VueFarm(_PluginBase):
                     "trigger": "date",
                     "func": job_func,
                     "kwargs": {"run_date": next_run},
+                })
+            if self._auto_steal or self._auto_like:
+                try:
+                    from apscheduler.triggers.cron import CronTrigger
+                    try:
+                        social_trigger = CronTrigger.from_crontab(self._social_cron, timezone=settings.TZ)
+                    except Exception:
+                        social_trigger = CronTrigger.from_crontab("*/5 * * * *", timezone=settings.TZ)
+                except Exception:
+                    social_trigger = "*/5 * * * *"
+                services.append({
+                    "id": "VueFarm_social",
+                    "name": "Vue-农场偷菜与点赞",
+                    "trigger": social_trigger,
+                    "func": self._social_worker,
                 })
         return services
 
@@ -530,6 +559,64 @@ class VueFarm(_PluginBase):
             logger.warning("%s 手动售出失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    def _sell_all_inventory_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            data = self._fetch_state(session)
+            inventory = list(data.get("inventory") or [])
+            if not inventory:
+                return {"success": True, "message": "背包暂无可出售作物", "sold_types": 0, "gain": 0, "status": self._build_status(auto_refresh=False)}
+
+            sold_types = 0
+            total_gain = 0
+            sold_items: List[Dict[str, Any]] = []
+            failures: List[str] = []
+            for item in inventory:
+                quantity = max(0, self._safe_int(item.get("quantity"), 0))
+                if quantity <= 0:
+                    continue
+                result = self._post_action(session, "sell_inventory", {
+                    "seed_id": item.get("seed_id"),
+                    "quantity": quantity,
+                }, retry_network=False)
+                if result.get("success", True):
+                    sold_types += 1
+                    gain = self._safe_int(result.get("gain"), quantity * self._safe_int(item.get("unit_reward"), 0))
+                    total_gain += gain
+                    sold_items.append(self._normalize_sell_item(result, item, quantity))
+                else:
+                    failures.append(str(result.get("msg") or result.get("message") or item.get("name") or "出售失败"))
+
+            latest = self._refetch_state_until(
+                session,
+                predicate=lambda state: not (state.get("inventory") or []),
+                attempts=3,
+                delay_seconds=0.5,
+                default=data,
+            ) or data
+            item_text = " ".join(f"{item.get('icon') or '🌱'}{item.get('name')}×{item.get('qty')}" for item in sold_items)
+            lines = [f"🧺售出：{item_text}" if item_text else "🧺售出：本次没有成功售出的作物"]
+            if total_gain:
+                lines.append(f"💰收益：{total_gain} 魔力")
+            if failures:
+                lines.append(f"⚠️出售失败：{' / '.join(failures[:3])}")
+            farm_status = self._refresh_and_store_farm_state(latest, "manual-sell-all", lines)
+            self._append_history("🧺 手动售出", lines)
+            return {
+                "success": sold_types > 0 and not failures,
+                "message": f"一键出售完成：售出 {sold_types} 类作物，获得 {total_gain} 魔力",
+                "sold_types": sold_types,
+                "gain": total_gain,
+                "failures": failures,
+                "farm_status": farm_status,
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 一键售出失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
@@ -586,6 +673,12 @@ class VueFarm(_PluginBase):
             "http_retry_times": self._http_retry_times,
             "http_retry_delay": self._http_retry_delay,
             "ocr_retry_times": self._ocr_retry_times,
+            "auto_steal": self._auto_steal,
+            "auto_like": self._auto_like,
+            "steal_crop": self._steal_crop,
+            "steal_visit_count": self._steal_visit_count,
+            "steal_time_windows": self._steal_time_windows,
+            "social_cron": self._social_cron,
         }
         if include_options:
             config["seed_options"] = self._get_seed_options()
@@ -624,6 +717,318 @@ class VueFarm(_PluginBase):
             self._reregister_plugin("sync_cookie")
         return {**result, "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
 
+    def _steal_once_api(self, payload: Optional[dict] = None):
+        return self._run_steal_cycle(force=True, payload=payload or {})
+
+    def _like_once_api(self, payload: Optional[dict] = None):
+        return self._run_like_cycle(force=True, payload=payload or {})
+
+    def _steal_target_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            return self._post_action(session, "get_victim_farm", {}, retry_network=True)
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 获取偷菜目标失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _steal_plot_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        body = payload or {}
+        victim_id = body.get("victim_id")
+        land_id = body.get("land_id")
+        plot_index = body.get("plot_index")
+        if victim_id in (None, "") or land_id in (None, "") or plot_index in (None, ""):
+            return {"success": False, "message": "偷菜参数不完整"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            return self._post_action(session, "steal_vegetable", {
+                "victim_id": victim_id,
+                "land_id": land_id,
+                "plot_index": plot_index,
+            }, retry_network=False)
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 偷取指定作物失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _finish_stealing_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        body = payload or {}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            result = self._post_action(session, "finish_stealing", {}, retry_network=False)
+            farm_status = self._refresh_state(reason="manual-steal-finish", record_run=False) if result.get("success") else {}
+            stolen_count = max(0, self._safe_int(body.get("stolen_count"), 0))
+            reward = max(0, self._safe_int(body.get("reward"), 0))
+            if result.get("success") and stolen_count:
+                line = f"🥷偷菜：成功 {stolen_count} 份"
+                if reward:
+                    line += f" / 💰收益：{reward} 魔力"
+                self._append_history("🥷 手动偷菜", [line])
+            return {**result, "farm_status": farm_status, "status": self._build_status(auto_refresh=False)}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 完成偷菜会话失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _like_targets_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            return self._post_action(session, "random_like_targets", {}, retry_network=True)
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 获取点赞目标失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _like_batch_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        usernames = self._normalize_usernames((payload or {}).get("usernames"))
+        if not usernames:
+            return {"success": False, "message": "请先填写点赞用户名"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            result = self._post_action(session, "like_farm_batch", {"usernames": usernames}, retry_network=False)
+            message = str(result.get("msg") or result.get("message") or ("点赞完成" if result.get("success") else "点赞失败"))
+            if result.get("success"):
+                self.save_data("auto_like_date", self._today_key())
+                self._append_history("👍 手动点赞", [f"👍点赞：{message}"])
+            return {**result, "message": message, "status": self._build_status(auto_refresh=False)}
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 批量点赞失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _social_worker(self):
+        if not self._enabled:
+            return
+        window_key = self._active_steal_window()
+        steal_done_today = self.get_data("auto_steal_done_date") == self._today_key()
+        if self._auto_steal and not steal_done_today and window_key and self.get_data("auto_steal_window_key") != window_key:
+            steal_result = self._run_steal_cycle()
+            if steal_result.get("success"):
+                self.save_data("auto_steal_window_key", window_key)
+                if steal_result.get("exhausted"):
+                    self.save_data("auto_steal_done_date", self._today_key())
+        if self._auto_like and self.get_data("auto_like_date") != self._today_key():
+            self._run_like_cycle()
+
+    def _run_steal_cycle(self, force: bool = False, payload: Optional[dict] = None) -> Dict[str, Any]:
+        if not force and not self._is_in_steal_time_window():
+            return {"success": True, "message": "当前不在偷菜时间段，等待下次检查"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            requested_crop = str((payload or {}).get("crop") or self._steal_crop or "全部作物").strip()
+            visit_count = max(1, min(30, self._safe_int((payload or {}).get("visit_count"), self._steal_visit_count)))
+            visited = 0
+            stolen = 0
+            reward = 0
+            exhausted = False
+            messages: List[str] = []
+            seen_victims = set()
+            attempts = 0
+            attempt_limit = max(visit_count * 3, visit_count + 5)
+
+            while visited < visit_count and attempts < attempt_limit:
+                attempts += 1
+                victim = self._post_action(session, "get_victim_farm", {}, retry_network=True)
+                if not victim.get("success"):
+                    message = str(victim.get("msg") or victim.get("message") or "未找到可访问农场")
+                    messages.append(message)
+                    if any(word in message for word in ("已用完", "达到上限", "无剩余", "次数不足")):
+                        exhausted = True
+                        break
+                    continue
+
+                victim_id = victim.get("victim_id")
+                victim_key = str(victim_id or victim.get("victim_name") or victim.get("victim_desc_name") or "")
+                if victim_key and victim_key in seen_victims:
+                    continue
+                if victim_key:
+                    seen_victims.add(victim_key)
+                visited += 1
+
+                remaining = self._safe_int(victim.get("max_steal_count"), 0) - self._safe_int(victim.get("steal_count_today"), 0)
+                if self._safe_int(victim.get("max_steal_count"), 0) > 0 and remaining <= 0:
+                    exhausted = True
+                    break
+
+                plots = self._victim_stealable_plots(victim, requested_crop)
+                victim_stolen = 0
+                for land_id, plot_index, crop_name in plots[:max(0, remaining) or 1]:
+                    result = self._post_action(session, "steal_vegetable", {
+                        "victim_id": victim_id,
+                        "land_id": land_id,
+                        "plot_index": plot_index,
+                    })
+                    if not result.get("success"):
+                        message = str(result.get("msg") or result.get("message") or "偷菜失败")
+                        messages.append(message)
+                        if any(word in message for word in ("已用完", "达到上限", "无剩余", "次数不足")):
+                            exhausted = True
+                        break
+                    stolen += 1
+                    victim_stolen += 1
+                    reward += self._safe_int(result.get("reward"), 0)
+                    messages.append(f"偷到 {crop_name or '作物'}")
+                    time.sleep(0.3)
+                if victim_stolen:
+                    self._post_action(session, "finish_stealing", {})
+                    if self._safe_int(victim.get("max_steal_count"), 0) > 0 and victim_stolen >= max(0, remaining):
+                        exhausted = True
+                if exhausted:
+                    break
+
+            crop_text = "任意作物" if requested_crop in ("", "全部作物") else requested_crop
+            message = f"偷菜完成：访问 {visited} 人，偷到 {stolen} 份{crop_text}，获得 {reward} 魔力"
+            if not stolen:
+                message = f"本时段访问 {visited} 人，没有找到可偷的{crop_text}，等待下一个偷菜时段"
+            self._append_history("🥷 自动偷菜" if not force else "🥷 手动偷菜", [message])
+            if self._notify and not force and stolen > 0:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【🌱农场互动】",
+                    text=f"🥷 {message}",
+                )
+            return {"success": True, "message": message, "visited": visited, "stolen": stolen, "reward": reward, "exhausted": exhausted, "details": messages[-10:]}
+        except Exception as err:
+            logger.error("%s 偷菜失败：%s", self.plugin_name, err)
+            return {"success": False, "message": f"偷菜失败：{err}"}
+
+    def _run_like_cycle(self, force: bool = False, payload: Optional[dict] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            usernames = str((payload or {}).get("usernames") or "").strip()
+            if not usernames:
+                targets = self._post_action(session, "random_like_targets", {}, retry_network=True)
+                if not targets.get("success"):
+                    if not force and self._is_daily_action_exhausted(targets):
+                        self.save_data("auto_like_date", self._today_key())
+                    return targets
+                usernames = self._normalize_usernames(targets.get("usernames") or [])
+            if not usernames:
+                if not force:
+                    self.save_data("auto_like_date", self._today_key())
+                    self._append_history("👍 自动点赞", ["👍点赞：当前没有可点赞目标，今天不再重复检查"])
+                return {"success": True, "message": "当前没有可点赞目标"}
+            result = self._post_action(session, "like_farm_batch", {"usernames": usernames})
+            message = str(result.get("msg") or result.get("message") or ("点赞完成" if result.get("success") else "点赞失败"))
+            if result.get("success"):
+                self.save_data("auto_like_date", self._today_key())
+                self._append_history("👍 自动点赞" if not force else "👍 手动点赞", [message])
+                if self._notify and not force:
+                    self.post_message(
+                        mtype=NotificationType.Plugin,
+                        title="【🌱农场互动】",
+                        text=f"👍 点赞：{message}",
+                    )
+            elif not force and self._is_daily_action_exhausted(result):
+                self.save_data("auto_like_date", self._today_key())
+            return {**result, "message": message}
+        except Exception as err:
+            logger.error("%s 点赞失败：%s", self.plugin_name, err)
+            return {"success": False, "message": f"点赞失败：{err}"}
+
+    def _victim_stealable_plots(self, victim: Dict[str, Any], requested_crop: str) -> List[Tuple[Any, Any, str]]:
+        seeds = victim.get("seeds") or []
+        seed_map = {str(seed.get("id")): seed for seed in seeds if isinstance(seed, dict)}
+        unlocked = {
+            self._safe_int(land.get("id"), 0)
+            for land in (victim.get("victim_lands") or [])
+            if isinstance(land, dict) and (land.get("unlocked") is None or self._to_bool(land.get("unlocked")))
+        }
+        candidates = list(victim.get("victim_plots") or [])
+        if not candidates:
+            for land in victim.get("lands") or victim.get("user_lands") or []:
+                if not isinstance(land, dict):
+                    continue
+                land_id = land.get("id") or land.get("land_id")
+                for plot in land.get("plots") or []:
+                    if isinstance(plot, dict):
+                        candidates.append({**plot, "land_id": plot.get("land_id") or land_id})
+
+        now = int(time.time())
+        matches: List[Tuple[Any, Any, str]] = []
+        for plot in candidates:
+            if not isinstance(plot, dict) or plot.get("stolen"):
+                continue
+            land_id = plot.get("land_id")
+            if unlocked and self._safe_int(land_id, 0) not in unlocked:
+                continue
+            seed = seed_map.get(str(plot.get("seed_id"))) or {}
+            crop_name = str(plot.get("seed_name") or plot.get("name") or seed.get("name") or "").strip()
+            harvest_time = self._safe_int(plot.get("harvest_time"), 0)
+            ready = self._to_bool(plot.get("ready") or plot.get("can_steal")) or (harvest_time > 0 and harvest_time <= now)
+            if not plot.get("seed_id") or not ready:
+                continue
+            if requested_crop not in ("", "全部作物") and not self._seed_matches_preference(crop_name, requested_crop):
+                continue
+            matches.append((land_id, plot.get("plot_index"), crop_name))
+        return matches
+
+    @staticmethod
+    def _normalize_usernames(value: Any) -> str:
+        if isinstance(value, (list, tuple, set)):
+            raw_items = value
+        else:
+            raw_items = re.split(r"[,，;；\n\r]+", str(value or ""))
+        usernames: List[str] = []
+        seen = set()
+        for item in raw_items:
+            username = str(item or "").strip()
+            if not username or username in seen:
+                continue
+            seen.add(username)
+            usernames.append(username)
+        return "\n".join(usernames)
+
+    @staticmethod
+    def _is_daily_action_exhausted(result: Dict[str, Any]) -> bool:
+        message = str(result.get("msg") or result.get("message") or "")
+        return any(keyword in message for keyword in (
+            "今日可偷数量已用完",
+            "没有可点赞目标",
+            "已用完",
+            "无剩余",
+            "没有剩余",
+            "达到上限",
+            "次数不足",
+        ))
+
+    def _active_steal_window(self, now: Optional[datetime] = None) -> str:
+        if not self._steal_time_windows:
+            current = now or self._aware_now()
+            return f"{current.strftime('%Y-%m-%d')}|全天"
+
+        current = now or self._aware_now()
+        minute = current.hour * 60 + current.minute
+        for raw_window in re.split(r"[,，;；\n]+", self._steal_time_windows):
+            matched = re.match(r"^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$", raw_window)
+            if not matched:
+                continue
+            start_hour, start_minute, end_hour, end_minute = (int(value) for value in matched.groups())
+            if start_hour > 23 or end_hour > 23 or start_minute > 59 or end_minute > 59:
+                continue
+            start = start_hour * 60 + start_minute
+            end = end_hour * 60 + end_minute
+            label = f"{start_hour:02d}:{start_minute:02d}-{end_hour:02d}:{end_minute:02d}"
+            if start <= end and start <= minute <= end:
+                return f"{current.strftime('%Y-%m-%d')}|{label}"
+            if start > end and (minute >= start or minute <= end):
+                window_date = current if minute >= start else current - timedelta(days=1)
+                return f"{window_date.strftime('%Y-%m-%d')}|{label}"
+        return ""
+
+    def _is_in_steal_time_window(self, now: Optional[datetime] = None) -> bool:
+        return bool(self._active_steal_window(now))
+
+    def _today_key(self) -> str:
+        return self._aware_now().strftime("%Y-%m-%d")
+
     def _default_config(self) -> Dict[str, Any]:
         return {
             "enabled": False,
@@ -644,6 +1049,12 @@ class VueFarm(_PluginBase):
             "http_retry_times": self.MAX_NETWORK_RETRY_TIMES,
             "http_retry_delay": 1500,
             "ocr_retry_times": 2,
+            "auto_steal": False,
+            "auto_like": False,
+            "steal_crop": "全部作物",
+            "steal_visit_count": 5,
+            "steal_time_windows": "07:00-09:00,12:00-14:00,18:00-23:00",
+            "social_cron": "*/5 * * * *",
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -667,6 +1078,12 @@ class VueFarm(_PluginBase):
         self._http_retry_times = max(1, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
         self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
+        self._auto_steal = self._to_bool(config.get("auto_steal", False))
+        self._auto_like = self._to_bool(config.get("auto_like", False))
+        self._steal_crop = str(config.get("steal_crop") or "全部作物").strip() or "全部作物"
+        self._steal_visit_count = max(1, min(30, self._safe_int(config.get("steal_visit_count"), 5)))
+        self._steal_time_windows = str(config.get("steal_time_windows") or "").strip()
+        self._social_cron = str(config.get("social_cron") or "*/5 * * * *").strip() or "*/5 * * * *"
 
     def _normalize_seed_name(self, value: Any) -> str:
         text = re.sub(r"\s+", "", str(value or "").strip())
@@ -1793,6 +2210,12 @@ class VueFarm(_PluginBase):
                 "growing_count": growing_count,
                 "empty_count": empty_count,
                 "land_count": unlocked_land_count,
+            },
+            "social": {
+                "active_steal_window": self._active_steal_window(),
+                "last_steal_window": self.get_data("auto_steal_window_key") or "",
+                "steal_done_today": self.get_data("auto_steal_done_date") == self._today_key(),
+                "like_done_today": self.get_data("auto_like_date") == self._today_key(),
             },
             "inventory": self._build_inventory_cards(data.get("inventory") or []),
             "seed_shop": self._build_seed_shop(data),
