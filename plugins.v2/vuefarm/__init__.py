@@ -1,3 +1,4 @@
+import base64
 import random
 import re
 import socket
@@ -26,7 +27,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.0"
+    plugin_version = "0.2.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -147,6 +148,7 @@ class VueFarm(_PluginBase):
             {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-农场配置"},
             {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 Vue-农场配置"},
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-农场状态"},
+            {"path": "/data", "endpoint": self._get_page_data, "methods": ["GET"], "auth": "bear", "summary": "获取参考页面农场数据"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新农场数据"},
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行一次 Vue-农场"},
             {"path": "/harvest-plot", "endpoint": self._harvest_plot_api, "methods": ["POST"], "auth": "bear", "summary": "手动收菜"},
@@ -155,6 +157,12 @@ class VueFarm(_PluginBase):
             {"path": "/plant-empty", "endpoint": self._plant_empty_api, "methods": ["POST"], "auth": "bear", "summary": "一键种植空地"},
             {"path": "/sell-inventory", "endpoint": self._sell_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "售出背包作物"},
             {"path": "/sell-all", "endpoint": self._sell_all_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "一键售出背包"},
+            {"path": "/plant", "endpoint": self._reference_plant_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面种植"},
+            {"path": "/plant-fill", "endpoint": self._plant_empty_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面一键种植"},
+            {"path": "/harvest", "endpoint": self._reference_harvest_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面收菜"},
+            {"path": "/harvest-ocr", "endpoint": self._harvest_all_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面一键收获"},
+            {"path": "/sell", "endpoint": self._sell_inventory_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面出售"},
+            {"path": "/buy-plot-slot", "endpoint": self._buy_plot_slot_api, "methods": ["POST"], "auth": "bear", "summary": "购买菜地坑位"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
             {"path": "/steal", "endpoint": self._steal_once_api, "methods": ["POST"], "auth": "bear", "summary": "立即执行偷菜"},
             {"path": "/steal-target", "endpoint": self._steal_target_api, "methods": ["POST"], "auth": "bear", "summary": "获取偷菜目标"},
@@ -163,6 +171,11 @@ class VueFarm(_PluginBase):
             {"path": "/like", "endpoint": self._like_once_api, "methods": ["POST"], "auth": "bear", "summary": "立即执行点赞"},
             {"path": "/like-targets", "endpoint": self._like_targets_api, "methods": ["POST"], "auth": "bear", "summary": "获取随机点赞目标"},
             {"path": "/like-batch", "endpoint": self._like_batch_api, "methods": ["POST"], "auth": "bear", "summary": "批量点赞农场"},
+            {"path": "/like-random", "endpoint": self._like_random_api, "methods": ["POST"], "auth": "bear", "summary": "参考页面随机点赞"},
+            {"path": "/like-farm", "endpoint": self._like_farm_api, "methods": ["POST"], "auth": "bear", "summary": "点赞指定农场"},
+            {"path": "/visit-farm", "endpoint": self._visit_farm_api, "methods": ["POST"], "auth": "bear", "summary": "按用户名访问农场"},
+            {"path": "/visit-random", "endpoint": self._visit_random_farm_api, "methods": ["POST"], "auth": "bear", "summary": "随机访问农场"},
+            {"path": "/stage-image", "endpoint": self._stage_image_api, "methods": ["GET"], "auth": "bear", "summary": "加载作物阶段图片"},
         ]
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
@@ -619,6 +632,145 @@ class VueFarm(_PluginBase):
 
     def _get_status(self):
         return self._build_status(auto_refresh=True)
+
+    def _get_page_data(self) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            data = self._fetch_state(session)
+            if not data or not data.get("success"):
+                return {"success": False, "message": "获取农场数据失败，Cookie 可能失效"}
+
+            next_run = self._compute_next_run(data)
+            schedule_run = self._normalize_refresh_schedule_run(data, next_run)
+            self._schedule_next_run(schedule_run, "page-data")
+            ui_state = self._build_ui_state(data, schedule_run, [])
+            self.save_data("farm_status", ui_state)
+            self.save_data("state", self._build_state_record(data, schedule_run, []))
+
+            result = dict(data)
+            ready_count = len(self._collect_ready_plots(data))
+            planted_count = len([plot for plot in (data.get("user_lands") or []) if plot.get("seed_id")])
+            result.update({
+                "success": True,
+                "current_username": (
+                    data.get("current_username")
+                    or data.get("username")
+                    or (data.get("user") or {}).get("username")
+                    or (data.get("user_stats") or {}).get("username")
+                    or ""
+                ),
+                "summary": {
+                    "ready": ready_count,
+                    "planted": planted_count,
+                    "empty": self._count_empty_plots(data),
+                    "inventory": sum(self._safe_int(item.get("quantity"), 0) for item in (data.get("inventory") or [])),
+                },
+                "dynamic_schedule": True,
+                "next_run_time": self._format_ts(schedule_run) if schedule_run else "",
+                "next_trigger_time": self._format_time(self._next_trigger_time) if self._next_trigger_time else "",
+                "next_trigger_mode": self._next_trigger_mode,
+                "schedule_buffer_seconds": self._schedule_buffer_seconds,
+                "can_steal": bool(data.get("can_steal", self.get_data("auto_steal_done_date") != self._today_key())),
+                "config": self._get_config(),
+                "history": self._get_clean_history(persist=True)[:10],
+            })
+            return result
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 获取参考页面数据失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail}
+
+    def _reference_plant_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        body = payload or {}
+        return self._plant_plot_api({
+            "land_id": body.get("land_id"),
+            "slot_index": self._safe_int(body.get("plot_index"), 0) + 1,
+            "seed_id": body.get("seed_id"),
+        })
+
+    def _reference_harvest_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        body = payload or {}
+        return self._harvest_plot_api({
+            "land_id": body.get("land_id"),
+            "slot_index": self._safe_int(body.get("plot_index"), 0) + 1,
+        })
+
+    def _buy_plot_slot_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        land_id = (payload or {}).get("land_id")
+        if land_id in (None, ""):
+            return {"success": False, "message": "缺少农场参数"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            result = self._post_action(session, "buy_plot_slot", {"land_id": land_id}, retry_network=False)
+            if result.get("success"):
+                self._refresh_state(reason="buy-plot-slot", record_run=False)
+            return result
+        except Exception as err:
+            return {"success": False, "message": self._get_error_detail(err)}
+
+    def _like_random_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        if (payload or {}).get("usernames"):
+            return self._like_batch_api(payload)
+        return self._like_once_api(payload)
+
+    def _like_farm_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        target_id = (payload or {}).get("target_id")
+        if target_id in (None, ""):
+            return {"success": False, "message": "缺少点赞目标"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            return self._post_action(session, "like_farm", {"target_id": target_id}, retry_network=False)
+        except Exception as err:
+            return {"success": False, "message": self._get_error_detail(err)}
+
+    def _visit_farm_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        username = str((payload or {}).get("username") or "").strip()
+        if not username:
+            return {"success": False, "message": "请输入用户名"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            result = self._post_action(session, "view_farm_by_username", {"username": username}, retry_network=True)
+            if result.get("success") and not any(result.get(key) for key in ("target_desc_name", "target_name", "target_username", "username")):
+                result["target_desc_name"] = username
+            return result
+        except Exception as err:
+            return {"success": False, "message": self._get_error_detail(err)}
+
+    def _visit_random_farm_api(self, payload: Optional[dict] = None) -> Dict[str, Any]:
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            return self._post_action(session, "view_random_farm", {}, retry_network=True)
+        except Exception as err:
+            return {"success": False, "message": self._get_error_detail(err)}
+
+    def _stage_image_api(self, path: str = "") -> Dict[str, Any]:
+        image_path = str(path or "").strip()
+        if not image_path:
+            return {"success": False, "message": "缺少图片路径"}
+        if "://" in image_path or image_path.startswith("//"):
+            return {"success": False, "message": "无效的图片路径"}
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            image_url = urljoin(f"{self._site_url.rstrip('/')}/", image_path.lstrip("/"))
+            response = session.get(
+                image_url,
+                headers={"Referer": f"{self._site_url}/plant_game.php"},
+                timeout=(self._http_timeout, self._http_timeout),
+            )
+            if response.status_code != 200 or not response.content:
+                return {"success": False, "message": "图片加载失败"}
+            content_type = response.headers.get("content-type", "image/png")
+            encoded = base64.b64encode(response.content).decode("ascii")
+            return {"success": True, "data": f"data:{content_type};base64,{encoded}"}
+        except Exception as err:
+            logger.warning("%s 加载作物阶段图片失败：%s", self.plugin_name, self._get_error_detail(err))
+            return {"success": False, "message": "图片加载失败"}
 
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         farm_status = self.get_data("farm_status") or {}

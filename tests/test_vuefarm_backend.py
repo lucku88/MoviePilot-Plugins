@@ -669,6 +669,108 @@ class VueFarmBackendTests(unittest.TestCase):
             ("sell_inventory", {"seed_id": 2, "quantity": 3}),
         ], calls)
 
+    def test_reference_page_data_includes_raw_farm_and_dynamic_schedule(self):
+        data = _ready_farm_data(2)
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_state = lambda session: data
+        self.plugin._schedule_next_run = lambda next_run, reason="": None
+        self.plugin._compute_next_run = lambda latest: int(time.time()) + 3600
+
+        result = self.plugin._get_page_data()
+
+        self.assertTrue(result["success"])
+        self.assertEqual(data["seeds"], result["seeds"])
+        self.assertEqual(data["user_lands"], result["user_lands"])
+        self.assertTrue(result["dynamic_schedule"])
+        self.assertEqual(2, result["summary"]["ready"])
+        self.assertIn("next_run_time", result)
+        self.assertIn("config", result)
+
+    def test_reference_plot_endpoints_translate_zero_based_plot_index(self):
+        plant_payloads = []
+        harvest_payloads = []
+        self.plugin._plant_plot_api = lambda payload=None: plant_payloads.append(payload) or {"success": True}
+        self.plugin._harvest_plot_api = lambda payload=None: harvest_payloads.append(payload) or {"success": True}
+
+        self.plugin._reference_plant_api({"land_id": 2, "plot_index": 0, "seed_id": 5})
+        self.plugin._reference_harvest_api({"land_id": 2, "plot_index": 3})
+
+        self.assertEqual({"land_id": 2, "slot_index": 1, "seed_id": 5}, plant_payloads[0])
+        self.assertEqual({"land_id": 2, "slot_index": 4}, harvest_payloads[0])
+
+    def test_reference_stage_image_returns_data_url_from_same_site(self):
+        class FakeResponse:
+            status_code = 200
+            content = b"fake-png"
+            headers = {"content-type": "image/png"}
+
+            def raise_for_status(self):
+                return None
+
+        class FakeSession:
+            def __init__(self):
+                self.requested_url = ""
+
+            def get(self, url, **kwargs):
+                self.requested_url = url
+                return FakeResponse()
+
+        session = FakeSession()
+        self.plugin._site_url = "https://si-qi.xyz"
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: session
+
+        result = self.plugin._stage_image_api("images/farm/tomato.png")
+
+        self.assertTrue(result["success"])
+        self.assertEqual("https://si-qi.xyz/images/farm/tomato.png", session.requested_url)
+        self.assertTrue(result["data"].startswith("data:image/png;base64,"))
+
+    def test_reference_stage_image_rejects_external_url(self):
+        result = self.plugin._stage_image_api("https://example.com/not-allowed.png")
+
+        self.assertFalse(result["success"])
+        self.assertIn("无效", result["message"])
+
+    def test_reference_interaction_endpoints_keep_original_action_payloads(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._refresh_state = lambda reason, record_run=False: {}
+        calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload or {}, retry_network))
+            return {"success": True}
+
+        self.plugin._post_action = post_action
+
+        self.assertTrue(self.plugin._buy_plot_slot_api({"land_id": 3})["success"])
+        self.assertTrue(self.plugin._like_farm_api({"target_id": 88})["success"])
+        self.assertTrue(self.plugin._visit_farm_api({"username": "测试用户"})["success"])
+        self.assertTrue(self.plugin._visit_random_farm_api()["success"])
+
+        self.assertIn(("buy_plot_slot", {"land_id": 3}, False), calls)
+        self.assertIn(("like_farm", {"target_id": 88}, False), calls)
+        self.assertIn(("view_farm_by_username", {"username": "测试用户"}, True), calls)
+        self.assertIn(("view_random_farm", {}, True), calls)
+
+        route_paths = {route["path"] for route in self.plugin.get_api()}
+        self.assertTrue({
+            "/data",
+            "/plant",
+            "/plant-fill",
+            "/harvest",
+            "/harvest-ocr",
+            "/sell",
+            "/buy-plot-slot",
+            "/like-random",
+            "/like-farm",
+            "/visit-farm",
+            "/visit-random",
+            "/stage-image",
+        }.issubset(route_paths))
+
 
 if __name__ == "__main__":
     unittest.main()
