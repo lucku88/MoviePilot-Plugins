@@ -28,7 +28,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.3"
+    plugin_version = "0.2.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -114,10 +114,9 @@ class VueFarm(_PluginBase):
         self._page_stat_cache = None
         self._page_stat_cache_at = 0.0
 
-        if self._auto_cookie:
-            self._sync_cookie_from_site(silent=True)
-        else:
-            self._cookie_source = "手动配置" if self._cookie else "未配置"
+        cookie_result = self._sync_cookie_from_site(silent=True)
+        if not cookie_result.get("success"):
+            self._cookie_source = "手动配置（站点同步失败，作为备用）" if self._cookie else "站点同步失败"
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
@@ -799,7 +798,6 @@ class VueFarm(_PluginBase):
             "enabled": self._enabled,
             "notify": self._notify,
             "site_url": self._site_url,
-            "auto_cookie": self._auto_cookie,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
@@ -818,7 +816,6 @@ class VueFarm(_PluginBase):
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
@@ -1304,7 +1301,6 @@ class VueFarm(_PluginBase):
             "enabled": False,
             "notify": True,
             "onlyonce": False,
-            "auto_cookie": True,
             "enable_sell": True,
             "enable_plant": True,
             "enable_ocr_harvest": False,
@@ -1331,7 +1327,7 @@ class VueFarm(_PluginBase):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
-        self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
+        self._auto_cookie = True
         self._enable_sell = self._to_bool(config.get("enable_sell", True))
         self._enable_plant = self._to_bool(config.get("enable_plant", True))
         self._enable_ocr_harvest = self._to_bool(config.get("enable_ocr_harvest", False))
@@ -1520,14 +1516,13 @@ class VueFarm(_PluginBase):
         }
 
     def _ensure_cookie(self):
-        if self._auto_cookie:
-            result = self._sync_cookie_from_site(save_config=False, silent=True)
-            if result.get("success"):
-                return
-        if self._cookie and self._cookie.strip().lower() != "cookie":
-            self._cookie_source = self._cookie_source or "手动配置"
+        result = self._sync_cookie_from_site(save_config=False, silent=True)
+        if result.get("success"):
             return
-        raise ValueError("未配置有效 Cookie，请手动填写或开启自动同步")
+        if self._cookie and self._cookie.strip().lower() != "cookie":
+            self._cookie_source = "手动配置（站点同步失败，作为备用）"
+            return
+        raise ValueError("未找到有效站点 Cookie，请先在 MoviePilot 站点管理中更新 Cookie")
 
     def _resolve_site_profile(self):
         site_url = self.DEFAULT_SITE_URL

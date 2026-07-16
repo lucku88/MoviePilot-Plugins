@@ -50,10 +50,6 @@
             <div class="siqi-switch-main"><v-icon icon="mdi-lan-connect" size="18" /><div><div class="siqi-switch-label">使用代理</div><div class="siqi-switch-desc">请求站点时使用系统代理</div></div></div>
             <v-switch v-model="config.use_proxy" color="purple" hide-details density="compact" />
           </div>
-          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.auto_cookie}" style="--siqi-accent:99,102,241">
-            <div class="siqi-switch-main"><v-icon icon="mdi-cookie-sync" size="18" /><div><div class="siqi-switch-label">自动同步 Cookie</div><div class="siqi-switch-desc">优先读取 MoviePilot 站点 Cookie</div></div></div>
-            <v-switch v-model="config.auto_cookie" color="indigo" hide-details density="compact" />
-          </div>
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.force_ipv4}" style="--siqi-accent:14,165,233">
             <div class="siqi-switch-main"><v-icon icon="mdi-ip-network-outline" size="18" /><div><div class="siqi-switch-label">强制 IPv4</div><div class="siqi-switch-desc">避免部分环境 IPv6 请求不稳定</div></div></div>
             <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" />
@@ -171,14 +167,14 @@
             <v-icon icon="mdi-sync" size="16" class="mr-1" />从站点同步
           </v-btn>
         </div>
-        <v-textarea v-model="config.cookie" label="站点 Cookie" rows="2" auto-grow variant="outlined" class="siqi-input" :class="{'siqi-secret-input': !showCookie}" prepend-inner-icon="mdi-cookie" autocomplete="off">
+        <v-textarea v-model="config.cookie" label="站点 Cookie（自动同步）" rows="2" auto-grow variant="outlined" class="siqi-input" :class="{'siqi-secret-input': !showCookie}" prepend-inner-icon="mdi-cookie" autocomplete="off">
           <template #append-inner>
             <v-btn variant="text" density="comfortable" size="x-small" icon class="siqi-secret-toggle" @click.stop="showCookie = !showCookie">
               <v-icon :icon="showCookie ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" size="18" />
             </v-btn>
           </template>
         </v-textarea>
-        <div class="siqi-field-hint">开启“自动同步 Cookie”后通常不需要手动填写；如果站点登录状态变化，可点右上角同步。</div>
+        <div class="siqi-field-hint">插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。</div>
       </div>
 
     </div>
@@ -195,7 +191,6 @@ const config = reactive({
   enabled: false,
   notify: true,
   onlyonce: false,
-  auto_cookie: true,
   enable_sell: true,
   enable_plant: true,
   enable_ocr_harvest: false,

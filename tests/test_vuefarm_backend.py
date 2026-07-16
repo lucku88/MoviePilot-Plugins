@@ -720,6 +720,28 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual([True], social_calls)
         self.assertEqual("偷菜和点赞完成", result["social"]["message"])
 
+    def test_cookie_auto_sync_cannot_be_disabled_by_legacy_config(self):
+        config = self.plugin._default_config()
+        config["auto_cookie"] = False
+
+        self.plugin._apply_config(config)
+
+        self.assertTrue(self.plugin._auto_cookie)
+        self.assertNotIn("auto_cookie", self.plugin._get_config())
+
+    def test_ensure_cookie_always_attempts_site_sync_before_manual_fallback(self):
+        calls = []
+        self.plugin._auto_cookie = False
+        self.plugin._cookie = "manual-cookie"
+        self.plugin._sync_cookie_from_site = lambda save_config=False, silent=True: calls.append(
+            (save_config, silent)
+        ) or {"success": False, "message": "站点暂时不可用"}
+
+        self.plugin._ensure_cookie()
+
+        self.assertEqual([(False, True)], calls)
+        self.assertIn("备用", self.plugin._cookie_source)
+
     def test_auto_like_marks_today_checked_when_no_targets_exist(self):
         self.plugin._ensure_cookie = lambda: None
         self.plugin._build_session = lambda: object()
