@@ -141,7 +141,21 @@
           </span>
         </div>
         <div class="siqi-form-grid">
-          <v-select v-model="config.steal_crop" :items="stealCropOptions" label="只偷指定作物" density="compact" variant="outlined" hide-details class="siqi-input seed-select" prepend-inner-icon="mdi-food-apple-outline" />
+          <v-select
+            v-model="config.steal_crop"
+            :items="stealCropOptions"
+            label="偷菜作物（可多选）"
+            density="compact"
+            variant="outlined"
+            hide-details
+            multiple
+            chips
+            closable-chips
+            clearable
+            class="siqi-input seed-select steal-crop-select"
+            prepend-inner-icon="mdi-food-apple-outline"
+            @update:model-value="onStealCropChange"
+          />
           <v-text-field v-model.number="config.steal_visit_count" label="每轮随机访问人数" type="number" min="1" max="30" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-account-multiple-outline" />
           <v-select v-model="config.social_cron" :items="socialCronOptions" label="互动检查间隔" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-calendar-clock" />
         </div>
@@ -198,7 +212,7 @@ const config = reactive({
   ocr_retry_times: 3,
   auto_steal: false,
   auto_like: false,
-  steal_crop: '全部作物',
+  steal_crop: ['全部作物'],
   steal_visit_count: 5,
   steal_time_windows: '07:00-09:00,12:00-14:00,18:00-23:00',
   social_cron: '*/5 * * * *',
@@ -233,6 +247,24 @@ function numberValue(value) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function normalizeStealCropValues(value) {
+  const values = Array.isArray(value)
+    ? value.map(item => String(item || '').trim()).filter(Boolean)
+    : String(value || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean)
+  const unique = [...new Set(values)]
+  if (!unique.length) return ['全部作物']
+  if (unique.includes('全部作物') && unique.length > 1) {
+    return unique[unique.length - 1] === '全部作物'
+      ? ['全部作物']
+      : unique.filter(item => item !== '全部作物')
+  }
+  return unique
+}
+
+function onStealCropChange(value) {
+  config.steal_crop = normalizeStealCropValues(value)
+}
+
 function show(text, type = 'success') {
   message.value = text
   messageType.value = type
@@ -248,6 +280,7 @@ async function loadConfig() {
   try {
     const res = await apiGet('/config')
     Object.assign(config, res)
+    config.steal_crop = normalizeStealCropValues(res.steal_crop)
   } catch (e) {
     show(`加载失败：${e.message}`, 'error')
   } finally {
@@ -297,8 +330,12 @@ async function syncCookie() {
 async function saveConfig() {
   saving.value = true
   try {
-    const res = await apiPost('/config', { ...config })
+    const res = await apiPost('/config', {
+      ...config,
+      steal_crop: normalizeStealCropValues(config.steal_crop)
+    })
     if (res.config) Object.assign(config, res.config)
+    config.steal_crop = normalizeStealCropValues(config.steal_crop)
     show(res.message || (res.success ? '保存成功' : '保存失败'), res.success ? 'success' : 'error')
   } catch (e) {
     show(`保存失败：${e.message}`, 'error')

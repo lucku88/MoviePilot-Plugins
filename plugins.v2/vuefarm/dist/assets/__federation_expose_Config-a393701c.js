@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_1ec5ec58_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_4a4645af_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-1ec5ec58"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-4a4645af"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -146,7 +146,7 @@ const config = reactive({
   ocr_retry_times: 3,
   auto_steal: false,
   auto_like: false,
-  steal_crop: '全部作物',
+  steal_crop: ['全部作物'],
   steal_visit_count: 5,
   steal_time_windows: '07:00-09:00,12:00-14:00,18:00-23:00',
   social_cron: '*/5 * * * *',
@@ -181,6 +181,24 @@ function numberValue(value) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function normalizeStealCropValues(value) {
+  const values = Array.isArray(value)
+    ? value.map(item => String(item || '').trim()).filter(Boolean)
+    : String(value || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean);
+  const unique = [...new Set(values)];
+  if (!unique.length) return ['全部作物']
+  if (unique.includes('全部作物') && unique.length > 1) {
+    return unique[unique.length - 1] === '全部作物'
+      ? ['全部作物']
+      : unique.filter(item => item !== '全部作物')
+  }
+  return unique
+}
+
+function onStealCropChange(value) {
+  config.steal_crop = normalizeStealCropValues(value);
+}
+
 function show(text, type = 'success') {
   message.value = text;
   messageType.value = type;
@@ -196,6 +214,7 @@ async function loadConfig() {
   try {
     const res = await apiGet('/config');
     Object.assign(config, res);
+    config.steal_crop = normalizeStealCropValues(res.steal_crop);
   } catch (e) {
     show(`加载失败：${e.message}`, 'error');
   } finally {
@@ -245,8 +264,12 @@ async function syncCookie() {
 async function saveConfig() {
   saving.value = true;
   try {
-    const res = await apiPost('/config', { ...config });
+    const res = await apiPost('/config', {
+      ...config,
+      steal_crop: normalizeStealCropValues(config.steal_crop)
+    });
     if (res.config) Object.assign(config, res.config);
+    config.steal_crop = normalizeStealCropValues(config.steal_crop);
     show(res.message || (res.success ? '保存成功' : '保存失败'), res.success ? 'success' : 'error');
   } catch (e) {
     show(`保存失败：${e.message}`, 'error');
@@ -765,13 +788,20 @@ return (_ctx, _cache) => {
         _createElementVNode("div", _hoisted_56, [
           _createVNode(_component_v_select, {
             modelValue: config.steal_crop,
-            "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((config.steal_crop) = $event)),
+            "onUpdate:modelValue": [
+              _cache[22] || (_cache[22] = $event => ((config.steal_crop) = $event)),
+              onStealCropChange
+            ],
             items: stealCropOptions.value,
-            label: "只偷指定作物",
+            label: "偷菜作物（可多选）",
             density: "compact",
             variant: "outlined",
             "hide-details": "",
-            class: "siqi-input seed-select",
+            multiple: "",
+            chips: "",
+            "closable-chips": "",
+            clearable: "",
+            class: "siqi-input seed-select steal-crop-select",
             "prepend-inner-icon": "mdi-food-apple-outline"
           }, null, 8, ["modelValue", "items"]),
           _createVNode(_component_v_text_field, {
@@ -881,6 +911,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1ec5ec58"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4a4645af"]]);
 
 export { ConfigView as default };

@@ -27,7 +27,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.1"
+    plugin_version = "0.2.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -77,7 +77,7 @@ class VueFarm(_PluginBase):
     _ready_retry_seconds: int = 60
     _auto_steal: bool = False
     _auto_like: bool = False
-    _steal_crop: str = "全部作物"
+    _steal_crop: Any = "全部作物"
     _steal_visit_count: int = 5
     _steal_time_windows: str = "07:00-09:00,12:00-14:00,18:00-23:00"
     _social_cron: str = "*/5 * * * *"
@@ -961,9 +961,12 @@ class VueFarm(_PluginBase):
         if self._auto_steal and not steal_done_today and window_key and self.get_data("auto_steal_window_key") != window_key:
             steal_result = self._run_steal_cycle()
             if steal_result.get("success"):
-                self.save_data("auto_steal_window_key", window_key)
                 if steal_result.get("exhausted"):
+                    self.save_data("auto_steal_window_key", window_key)
                     self.save_data("auto_steal_done_date", self._today_key())
+                elif self._safe_int(steal_result.get("stolen"), 0) <= 0:
+                    # 本轮没有目标作物时等下一个时段；偷到但仍有额度则在当前时段继续检查。
+                    self.save_data("auto_steal_window_key", window_key)
         if self._auto_like and self.get_data("auto_like_date") != self._today_key():
             self._run_like_cycle()
 
@@ -973,12 +976,18 @@ class VueFarm(_PluginBase):
         try:
             self._ensure_cookie()
             session = self._build_session()
-            requested_crop = str((payload or {}).get("crop") or self._steal_crop or "全部作物").strip()
+            requested_value = (payload or {}).get("crops")
+            if requested_value in (None, ""):
+                requested_value = (payload or {}).get("crop")
+            if requested_value in (None, ""):
+                requested_value = self._steal_crop
+            requested_crops = self._normalize_crop_selection(requested_value)
             visit_count = max(1, min(30, self._safe_int((payload or {}).get("visit_count"), self._steal_visit_count)))
             visited = 0
             stolen = 0
             reward = 0
             exhausted = False
+            remaining: Optional[int] = None
             messages: List[str] = []
             seen_victims = set()
             attempts = 0
@@ -1003,14 +1012,18 @@ class VueFarm(_PluginBase):
                     seen_victims.add(victim_key)
                 visited += 1
 
-                remaining = self._safe_int(victim.get("max_steal_count"), 0) - self._safe_int(victim.get("steal_count_today"), 0)
-                if self._safe_int(victim.get("max_steal_count"), 0) > 0 and remaining <= 0:
+                victim_remaining = self._remaining_steal_quota(victim)
+                if victim_remaining is not None:
+                    remaining = victim_remaining if remaining is None else min(remaining, victim_remaining)
+                    victim_remaining = remaining
+                if victim_remaining == 0:
                     exhausted = True
                     break
 
-                plots = self._victim_stealable_plots(victim, requested_crop)
+                plots = self._victim_stealable_plots(victim, requested_crops)
                 victim_stolen = 0
-                for land_id, plot_index, crop_name in plots[:max(0, remaining) or 1]:
+                steal_limit = victim_remaining if victim_remaining is not None else len(plots)
+                for land_id, plot_index, crop_name in plots[:max(0, steal_limit)]:
                     result = self._post_action(session, "steal_vegetable", {
                         "victim_id": victim_id,
                         "land_id": land_id,
@@ -1021,20 +1034,32 @@ class VueFarm(_PluginBase):
                         messages.append(message)
                         if any(word in message for word in ("已用完", "达到上限", "无剩余", "次数不足")):
                             exhausted = True
+                            remaining = 0
                         break
                     stolen += 1
                     victim_stolen += 1
                     reward += self._safe_int(result.get("reward"), 0)
                     messages.append(f"偷到 {crop_name or '作物'}")
+                    result_remaining = self._remaining_steal_quota(result)
+                    if result_remaining is not None:
+                        remaining = result_remaining if remaining is None else min(remaining, result_remaining)
+                    elif remaining is not None:
+                        remaining = max(0, remaining - 1)
+                    if remaining == 0:
+                        exhausted = True
+                        break
                     time.sleep(0.3)
                 if victim_stolen:
-                    self._post_action(session, "finish_stealing", {})
-                    if self._safe_int(victim.get("max_steal_count"), 0) > 0 and victim_stolen >= max(0, remaining):
+                    finish_result = self._post_action(session, "finish_stealing", {})
+                    finish_remaining = self._remaining_steal_quota(finish_result)
+                    if finish_remaining is not None:
+                        remaining = finish_remaining if remaining is None else min(remaining, finish_remaining)
+                    if remaining == 0:
                         exhausted = True
                 if exhausted:
                     break
 
-            crop_text = "任意作物" if requested_crop in ("", "全部作物") else requested_crop
+            crop_text = self._crop_selection_text(requested_crops)
             message = f"偷菜完成：访问 {visited} 人，偷到 {stolen} 份{crop_text}，获得 {reward} 魔力"
             if not stolen:
                 message = f"本时段访问 {visited} 人，没有找到可偷的{crop_text}，等待下一个偷菜时段"
@@ -1045,7 +1070,16 @@ class VueFarm(_PluginBase):
                     title="【🌱农场互动】",
                     text=f"🥷 {message}",
                 )
-            return {"success": True, "message": message, "visited": visited, "stolen": stolen, "reward": reward, "exhausted": exhausted, "details": messages[-10:]}
+            return {
+                "success": True,
+                "message": message,
+                "visited": visited,
+                "stolen": stolen,
+                "reward": reward,
+                "remaining": remaining,
+                "exhausted": exhausted,
+                "details": messages[-10:],
+            }
         except Exception as err:
             logger.error("%s 偷菜失败：%s", self.plugin_name, err)
             return {"success": False, "message": f"偷菜失败：{err}"}
@@ -1085,7 +1119,9 @@ class VueFarm(_PluginBase):
             logger.error("%s 点赞失败：%s", self.plugin_name, err)
             return {"success": False, "message": f"点赞失败：{err}"}
 
-    def _victim_stealable_plots(self, victim: Dict[str, Any], requested_crop: str) -> List[Tuple[Any, Any, str]]:
+    def _victim_stealable_plots(self, victim: Dict[str, Any], requested_crop: Any) -> List[Tuple[Any, Any, str]]:
+        requested_crops = self._normalize_crop_selection(requested_crop)
+        steal_any_crop = "全部作物" in requested_crops
         seeds = victim.get("seeds") or []
         seed_map = {str(seed.get("id")): seed for seed in seeds if isinstance(seed, dict)}
         unlocked = {
@@ -1117,10 +1153,63 @@ class VueFarm(_PluginBase):
             ready = self._to_bool(plot.get("ready") or plot.get("can_steal")) or (harvest_time > 0 and harvest_time <= now)
             if not plot.get("seed_id") or not ready:
                 continue
-            if requested_crop not in ("", "全部作物") and not self._seed_matches_preference(crop_name, requested_crop):
+            if not steal_any_crop and not any(
+                self._seed_matches_preference(crop_name, crop)
+                for crop in requested_crops
+            ):
                 continue
             matches.append((land_id, plot.get("plot_index"), crop_name))
         return matches
+
+    @staticmethod
+    def _normalize_crop_selection(value: Any) -> List[str]:
+        if isinstance(value, (list, tuple, set)):
+            raw_items = value
+        else:
+            raw_items = re.split(r"[,，;；\n\r]+", str(value or ""))
+        crops: List[str] = []
+        seen = set()
+        for item in raw_items:
+            crop = str(item or "").strip()
+            if not crop:
+                continue
+            if crop in ("全部", "任意作物", "全部作物"):
+                return ["全部作物"]
+            key = re.sub(r"\s+", "", crop).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            crops.append(crop)
+        return crops or ["全部作物"]
+
+    @staticmethod
+    def _crop_selection_text(crops: List[str]) -> str:
+        if not crops or "全部作物" in crops:
+            return "任意作物"
+        return "、".join(crops)
+
+    def _remaining_steal_quota(self, result: Optional[Dict[str, Any]]) -> Optional[int]:
+        data = result or {}
+        if self._is_daily_action_exhausted(data):
+            return 0
+        for key in ("remaining_steal_count", "steal_remaining", "remaining_count", "remaining"):
+            if data.get(key) not in (None, ""):
+                return max(0, self._safe_int(data.get(key), 0))
+
+        max_value = None
+        for key in ("max_steal_count", "steal_max_count", "daily_steal_limit"):
+            if data.get(key) not in (None, ""):
+                max_value = self._safe_int(data.get(key), 0)
+                break
+        if max_value is None or max_value <= 0:
+            return None
+
+        used_value = 0
+        for key in ("steal_count_today", "stolen_today", "daily_steal_count"):
+            if data.get(key) not in (None, ""):
+                used_value = self._safe_int(data.get(key), 0)
+                break
+        return max(0, max_value - used_value)
 
     @staticmethod
     def _normalize_usernames(value: Any) -> str:
@@ -1203,7 +1292,7 @@ class VueFarm(_PluginBase):
             "ocr_retry_times": 2,
             "auto_steal": False,
             "auto_like": False,
-            "steal_crop": "全部作物",
+            "steal_crop": ["全部作物"],
             "steal_visit_count": 5,
             "steal_time_windows": "07:00-09:00,12:00-14:00,18:00-23:00",
             "social_cron": "*/5 * * * *",
@@ -1232,7 +1321,7 @@ class VueFarm(_PluginBase):
         self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
         self._auto_steal = self._to_bool(config.get("auto_steal", False))
         self._auto_like = self._to_bool(config.get("auto_like", False))
-        self._steal_crop = str(config.get("steal_crop") or "全部作物").strip() or "全部作物"
+        self._steal_crop = self._normalize_crop_selection(config.get("steal_crop"))
         self._steal_visit_count = max(1, min(30, self._safe_int(config.get("steal_visit_count"), 5)))
         self._steal_time_windows = str(config.get("steal_time_windows") or "").strip()
         self._social_cron = str(config.get("social_cron") or "*/5 * * * *").strip() or "*/5 * * * *"

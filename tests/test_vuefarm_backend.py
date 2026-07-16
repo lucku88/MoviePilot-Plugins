@@ -546,6 +546,23 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(["steal"], calls)
         self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_steal_done_date"))
 
+    def test_social_worker_retries_same_window_when_quota_remains_after_steal(self):
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = False
+        self.plugin._active_steal_window = lambda now=None: "2026-07-16|07:00-09:00"
+        results = iter([
+            {"success": True, "message": "偷到 1 份", "stolen": 1, "remaining": 2, "exhausted": False},
+            {"success": True, "message": "偷到 2 份", "stolen": 2, "remaining": 0, "exhausted": True},
+        ])
+        calls = []
+        self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or next(results)
+
+        self.plugin._social_worker()
+        self.plugin._social_worker()
+
+        self.assertEqual(["steal", "steal"], calls)
+        self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_steal_done_date"))
+
     def test_steal_cycle_visits_requested_number_of_unique_victims(self):
         self.plugin._ensure_cookie = lambda: None
         self.plugin._build_session = lambda: object()
@@ -580,6 +597,98 @@ class VueFarmBackendTests(unittest.TestCase):
         plots = self.plugin._victim_stealable_plots(victim, "蘑菇")
 
         self.assertEqual([(1, 1, "蘑菇")], plots)
+
+    def test_victim_crop_filter_accepts_multiple_requested_crops(self):
+        now = int(time.time())
+        victim = {
+            "seeds": [
+                {"id": 2, "name": "西红柿"},
+                {"id": 4, "name": "茄子"},
+                {"id": 5, "name": "蘑菇"},
+            ],
+            "victim_lands": [{"id": 1, "unlocked": 1}],
+            "victim_plots": [
+                {"land_id": 1, "plot_index": 0, "seed_id": 2, "harvest_time": now - 1},
+                {"land_id": 1, "plot_index": 1, "seed_id": 4, "harvest_time": now - 1},
+                {"land_id": 1, "plot_index": 2, "seed_id": 5, "harvest_time": now - 1},
+            ],
+        }
+
+        plots = self.plugin._victim_stealable_plots(victim, ["茄子", "蘑菇"])
+
+        self.assertEqual([(1, 1, "茄子"), (1, 2, "蘑菇")], plots)
+
+    def test_steal_cycle_uses_remaining_daily_quota_across_multiple_victims(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        now = int(time.time())
+        victims = iter([
+            {
+                "success": True,
+                "victim_id": "a",
+                "victim_name": "甲",
+                "max_steal_count": 4,
+                "steal_count_today": 0,
+                "seeds": [
+                    {"id": 2, "name": "西红柿"},
+                    {"id": 4, "name": "茄子"},
+                    {"id": 5, "name": "蘑菇"},
+                ],
+                "victim_lands": [{"id": 1, "unlocked": 1}],
+                "victim_plots": [
+                    {"land_id": 1, "plot_index": 0, "seed_id": 5, "harvest_time": now - 1},
+                    {"land_id": 1, "plot_index": 1, "seed_id": 4, "harvest_time": now - 1},
+                    {"land_id": 1, "plot_index": 2, "seed_id": 5, "harvest_time": now - 1},
+                    {"land_id": 1, "plot_index": 3, "seed_id": 2, "harvest_time": now - 1},
+                ],
+            },
+            {
+                "success": True,
+                "victim_id": "b",
+                "victim_name": "乙",
+                "max_steal_count": 4,
+                "steal_count_today": 3,
+                "seeds": [{"id": 4, "name": "茄子"}],
+                "victim_lands": [{"id": 2, "unlocked": 1}],
+                "victim_plots": [
+                    {"land_id": 2, "plot_index": 0, "seed_id": 4, "harvest_time": now - 1},
+                ],
+            },
+        ])
+        calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload or {}))
+            if action == "get_victim_farm":
+                return next(victims)
+            if action == "steal_vegetable":
+                return {"success": True, "reward": 10}
+            if action == "finish_stealing":
+                return {"success": True}
+            self.fail(f"未预期动作：{action}")
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._run_steal_cycle(
+            force=True,
+            payload={"crops": ["茄子", "蘑菇"], "visit_count": 5},
+        )
+
+        steal_calls = [payload for action, payload in calls if action == "steal_vegetable"]
+        self.assertEqual(4, len(steal_calls))
+        self.assertEqual(2, len([1 for action, _ in calls if action == "finish_stealing"]))
+        self.assertEqual(4, result["stolen"])
+        self.assertEqual(0, result["remaining"])
+        self.assertTrue(result["exhausted"])
+
+    def test_old_single_crop_config_is_normalized_to_multi_select_list(self):
+        config = self.plugin._default_config()
+        config["steal_crop"] = "蘑菇"
+
+        self.plugin._apply_config(config)
+
+        self.assertEqual(["蘑菇"], self.plugin._steal_crop)
+        self.assertEqual(["蘑菇"], self.plugin._get_config()["steal_crop"])
 
     def test_auto_like_marks_today_checked_when_no_targets_exist(self):
         self.plugin._ensure_cookie = lambda: None
