@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_4a4645af_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_f40778d7_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-4a4645af"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-f40778d7"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -182,9 +182,21 @@ function numberValue(value) {
 }
 
 function normalizeStealCropValues(value) {
-  const values = Array.isArray(value)
-    ? value.map(item => String(item || '').trim()).filter(Boolean)
-    : String(value || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean);
+  let source = value;
+  if (typeof source === 'string') {
+    const text = source.trim();
+    if (text.startsWith('[') && text.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) source = parsed;
+      } catch (e) {
+        // 兼容旧版本保存的非标准文本，继续按逗号拆分。
+      }
+    }
+  }
+  const values = Array.isArray(source)
+    ? source.map(item => String(item || '').trim()).filter(Boolean)
+    : String(source || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean);
   const unique = [...new Set(values)];
   if (!unique.length) return ['全部作物']
   if (unique.includes('全部作物') && unique.length > 1) {
@@ -252,7 +264,10 @@ async function syncCookie() {
   syncingCookie.value = true;
   try {
     const res = await apiGet('/cookie');
-    if (res.config) Object.assign(config, res.config);
+    if (res.config) {
+      Object.assign(config, res.config);
+      config.steal_crop = normalizeStealCropValues(config.steal_crop);
+    }
     show(res.message || (res.success ? 'Cookie 同步成功' : 'Cookie 同步失败'), res.success ? 'success' : 'error');
   } catch (e) {
     show(`Cookie 同步失败：${e.message}`, 'error');
@@ -911,6 +926,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4a4645af"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f40778d7"]]);
 
 export { ConfigView as default };

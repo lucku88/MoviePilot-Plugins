@@ -248,9 +248,21 @@ function numberValue(value) {
 }
 
 function normalizeStealCropValues(value) {
-  const values = Array.isArray(value)
-    ? value.map(item => String(item || '').trim()).filter(Boolean)
-    : String(value || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean)
+  let source = value
+  if (typeof source === 'string') {
+    const text = source.trim()
+    if (text.startsWith('[') && text.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(text)
+        if (Array.isArray(parsed)) source = parsed
+      } catch (e) {
+        // 兼容旧版本保存的非标准文本，继续按逗号拆分。
+      }
+    }
+  }
+  const values = Array.isArray(source)
+    ? source.map(item => String(item || '').trim()).filter(Boolean)
+    : String(source || '').split(/[,，;；\n\r]+/).map(item => item.trim()).filter(Boolean)
   const unique = [...new Set(values)]
   if (!unique.length) return ['全部作物']
   if (unique.includes('全部作物') && unique.length > 1) {
@@ -318,7 +330,10 @@ async function syncCookie() {
   syncingCookie.value = true
   try {
     const res = await apiGet('/cookie')
-    if (res.config) Object.assign(config, res.config)
+    if (res.config) {
+      Object.assign(config, res.config)
+      config.steal_crop = normalizeStealCropValues(config.steal_crop)
+    }
     show(res.message || (res.success ? 'Cookie 同步成功' : 'Cookie 同步失败'), res.success ? 'success' : 'error')
   } catch (e) {
     show(`Cookie 同步失败：${e.message}`, 'error')

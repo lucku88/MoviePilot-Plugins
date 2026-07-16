@@ -690,6 +690,36 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(["蘑菇"], self.plugin._steal_crop)
         self.assertEqual(["蘑菇"], self.plugin._get_config()["steal_crop"])
 
+    def test_json_encoded_multi_crop_config_is_normalized_without_brackets_or_quotes(self):
+        config = self.plugin._default_config()
+        config["steal_crop"] = '["萝卜", "玉米", "蘑菇"]'
+
+        self.plugin._apply_config(config)
+
+        self.assertEqual(["萝卜", "玉米", "蘑菇"], self.plugin._steal_crop)
+        self.assertEqual(["萝卜", "玉米", "蘑菇"], self.plugin._get_config()["steal_crop"])
+
+    def test_one_time_worker_also_runs_enabled_social_tasks(self):
+        main_calls = []
+        social_calls = []
+        self.plugin._enabled = True
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = True
+        self.plugin.run_job = lambda force=False, reason="manual": main_calls.append((force, reason)) or {
+            "success": True,
+            "message": "农场主任务完成",
+        }
+        self.plugin._social_worker = lambda force=False: social_calls.append(force) or {
+            "success": True,
+            "message": "偷菜和点赞完成",
+        }
+
+        result = self.plugin._manual_worker()
+
+        self.assertEqual([(True, "onlyonce")], main_calls)
+        self.assertEqual([True], social_calls)
+        self.assertEqual("偷菜和点赞完成", result["social"]["message"])
+
     def test_auto_like_marks_today_checked_when_no_targets_exist(self):
         self.plugin._ensure_cookie = lambda: None
         self.plugin._build_session = lambda: object()

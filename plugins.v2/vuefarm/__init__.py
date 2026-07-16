@@ -1,4 +1,5 @@
 import base64
+import json
 import random
 import re
 import socket
@@ -27,7 +28,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.2"
+    plugin_version = "0.2.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -438,7 +439,7 @@ class VueFarm(_PluginBase):
             logger.info("## 执行结束... %s  耗时 %s 秒", self._format_time(self._aware_now()), cost_sec)
 
     def _manual_worker(self):
-        return self.run_job(force=True, reason="onlyonce")
+        return self._run_once_with_social("onlyonce")
 
     def _auto_worker(self):
         return self.run_job(force=True, reason="smart")
@@ -495,7 +496,14 @@ class VueFarm(_PluginBase):
             return {"success": False, "message": detail}
 
     def _run_now(self):
-        return self.run_job(force=True, reason="manual-api")
+        return self._run_once_with_social("manual-api")
+
+    def _run_once_with_social(self, reason: str) -> Dict[str, Any]:
+        result = self.run_job(force=True, reason=reason)
+        if result.get("success") and (self._auto_steal or self._auto_like):
+            result = dict(result)
+            result["social"] = self._social_worker(force=True)
+        return result
 
     def _harvest_plot_api(self, payload: Optional[dict] = None):
         try:
@@ -953,22 +961,33 @@ class VueFarm(_PluginBase):
             logger.warning("%s 批量点赞失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail}
 
-    def _social_worker(self):
+    def _social_worker(self, force: bool = False):
         if not self._enabled:
-            return
+            return {"success": False, "message": "插件未启用"}
         window_key = self._active_steal_window()
         steal_done_today = self.get_data("auto_steal_done_date") == self._today_key()
-        if self._auto_steal and not steal_done_today and window_key and self.get_data("auto_steal_window_key") != window_key:
-            steal_result = self._run_steal_cycle()
+        steal_result = None
+        like_result = None
+        steal_allowed = force or (window_key and self.get_data("auto_steal_window_key") != window_key)
+        if self._auto_steal and not steal_done_today and steal_allowed:
+            steal_result = self._run_steal_cycle(force=force)
             if steal_result.get("success"):
                 if steal_result.get("exhausted"):
-                    self.save_data("auto_steal_window_key", window_key)
+                    if window_key:
+                        self.save_data("auto_steal_window_key", window_key)
                     self.save_data("auto_steal_done_date", self._today_key())
                 elif self._safe_int(steal_result.get("stolen"), 0) <= 0:
                     # 本轮没有目标作物时等下一个时段；偷到但仍有额度则在当前时段继续检查。
-                    self.save_data("auto_steal_window_key", window_key)
+                    if window_key:
+                        self.save_data("auto_steal_window_key", window_key)
         if self._auto_like and self.get_data("auto_like_date") != self._today_key():
-            self._run_like_cycle()
+            like_result = self._run_like_cycle(force=force)
+        results = [result for result in (steal_result, like_result) if result is not None]
+        return {
+            "success": all(result.get("success", False) for result in results) if results else True,
+            "steal": steal_result,
+            "like": like_result,
+        }
 
     def _run_steal_cycle(self, force: bool = False, payload: Optional[dict] = None) -> Dict[str, Any]:
         if not force and not self._is_in_steal_time_window():
@@ -1166,7 +1185,17 @@ class VueFarm(_PluginBase):
         if isinstance(value, (list, tuple, set)):
             raw_items = value
         else:
-            raw_items = re.split(r"[,，;；\n\r]+", str(value or ""))
+            text = str(value or "").strip()
+            raw_items = None
+            if text.startswith("[") and text.endswith("]"):
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, list):
+                        raw_items = parsed
+                except (TypeError, ValueError):
+                    raw_items = None
+            if raw_items is None:
+                raw_items = re.split(r"[,，;；\n\r]+", text)
         crops: List[str] = []
         seen = set()
         for item in raw_items:
