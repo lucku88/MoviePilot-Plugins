@@ -28,7 +28,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.4"
+    plugin_version = "0.2.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -447,10 +447,22 @@ class VueFarm(_PluginBase):
         if not self._enabled:
             return {"success": False, "message": "插件未启用"}
         try:
+            previous_next_run = self._load_saved_next_run()
             farm_status = self._refresh_state(reason="scheduled-refresh", record_run=False)
             catchup_result = self._run_after_refresh_if_due(farm_status, run_reason="smart", refresh_reason="scheduled-refresh")
             if catchup_result:
                 return catchup_result
+            if previous_next_run and previous_next_run <= self._aware_now():
+                logger.info("%s 预刷新保留的成熟时间已到，立即执行正式收菜", self.plugin_name)
+                return self.run_job(force=True, reason="smart")
+            next_run = self._load_saved_next_run() or previous_next_run
+            if next_run:
+                self._schedule_next_run(
+                    int(next_run.timestamp()),
+                    "scheduled-refresh-final",
+                    force_run=True,
+                )
+                logger.info("%s 已完成预刷新并注册正式收菜：%s", self.plugin_name, self._format_time(next_run))
             return {"success": True, "message": "农场状态已预刷新", "farm_status": farm_status}
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -1004,6 +1016,7 @@ class VueFarm(_PluginBase):
             reward = 0
             exhausted = False
             remaining: Optional[int] = None
+            stolen_crops: Dict[str, int] = {}
             messages: List[str] = []
             seen_victims = set()
             attempts = 0
@@ -1055,7 +1068,9 @@ class VueFarm(_PluginBase):
                     stolen += 1
                     victim_stolen += 1
                     reward += self._safe_int(result.get("reward"), 0)
-                    messages.append(f"偷到 {crop_name or '作物'}")
+                    actual_crop = crop_name or "作物"
+                    stolen_crops[actual_crop] = stolen_crops.get(actual_crop, 0) + 1
+                    messages.append(f"偷到 {actual_crop}")
                     result_remaining = self._remaining_steal_quota(result)
                     if result_remaining is not None:
                         remaining = result_remaining if remaining is None else min(remaining, result_remaining)
@@ -1076,7 +1091,11 @@ class VueFarm(_PluginBase):
                     break
 
             crop_text = self._crop_selection_text(requested_crops)
-            message = f"偷菜完成：访问 {visited} 人，偷到 {stolen} 份{crop_text}，获得 {reward} 魔力"
+            actual_crop_text = " ".join(
+                f"{self._crop_icon.get(name, '🌱')}{name}×{count}"
+                for name, count in stolen_crops.items()
+            )
+            message = f"偷菜完成：访问 {visited} 人，偷到 {actual_crop_text or f'{stolen} 份{crop_text}'}，获得 {reward} 魔力"
             if not stolen:
                 message = f"本时段访问 {visited} 人，没有找到可偷的{crop_text}，等待下一个偷菜时段"
             self._append_history("🥷 自动偷菜" if not force else "🥷 手动偷菜", [message])
@@ -1092,6 +1111,7 @@ class VueFarm(_PluginBase):
                 "visited": visited,
                 "stolen": stolen,
                 "reward": reward,
+                "stolen_crops": stolen_crops,
                 "remaining": remaining,
                 "exhausted": exhausted,
                 "details": messages[-10:],
@@ -2024,14 +2044,19 @@ class VueFarm(_PluginBase):
             return next_trigger if next_trigger > now else now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
         return None
 
-    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = ""):
+    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = "", force_run: bool = False):
         self._bootstrap_pending = False
         now = self._aware_now()
         if next_run_ts:
             next_run = self._aware_from_timestamp(next_run_ts)
             trigger_run_at = next_run + timedelta(seconds=max(0, self._schedule_buffer_seconds))
             pre_refresh_at = trigger_run_at - timedelta(seconds=self.PRE_REFRESH_SECONDS)
-            if pre_refresh_at > now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+            if force_run:
+                next_trigger = trigger_run_at
+                if next_trigger < now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
+                    next_trigger = now + timedelta(seconds=self.MIN_TRIGGER_SECONDS)
+                trigger_mode = "run"
+            elif pre_refresh_at > now + timedelta(seconds=self.MIN_TRIGGER_SECONDS):
                 next_trigger = pre_refresh_at
                 trigger_mode = "refresh"
             else:

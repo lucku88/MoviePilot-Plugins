@@ -439,6 +439,45 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual([(True, "smart")], run_calls)
         self.assertEqual("补跑完成", result["message"])
 
+    def test_scheduled_pre_refresh_re_registers_final_run_trigger(self):
+        next_run_ts = int(time.time()) + 60
+        schedule_calls = []
+        self.plugin._refresh_state = lambda reason, record_run=False: {
+            "highlights": {"ready_count": 0},
+            "next_run_ts": next_run_ts,
+        }
+        self.plugin._load_saved_next_run = lambda: self.plugin._aware_from_timestamp(next_run_ts)
+        self.plugin._schedule_next_run = lambda next_run, reason="", force_run=False: schedule_calls.append(
+            (next_run, reason, force_run)
+        )
+
+        result = self.plugin._refresh_worker()
+
+        self.assertTrue(result["success"])
+        self.assertEqual([(next_run_ts, "scheduled-refresh-final", True)], schedule_calls)
+
+    def test_scheduled_refresh_keeps_previous_manual_plant_time_when_plot_disappears(self):
+        next_run_ts = int(time.time()) + 60
+        self.plugin._next_run_time = self.plugin._aware_from_timestamp(next_run_ts)
+        schedule_calls = []
+
+        def refresh_state(reason, record_run=False):
+            self.plugin._next_run_time = None
+            return {
+                "highlights": {"ready_count": 0},
+                "next_run_ts": 0,
+            }
+
+        self.plugin._refresh_state = refresh_state
+        self.plugin._schedule_next_run = lambda next_run, reason="", force_run=False: schedule_calls.append(
+            (next_run, reason, force_run)
+        )
+
+        result = self.plugin._refresh_worker()
+
+        self.assertTrue(result["success"])
+        self.assertEqual([(next_run_ts, "scheduled-refresh-final", True)], schedule_calls)
+
     def test_save_config_runs_full_job_after_refresh_when_ready(self):
         run_calls = []
         self.plugin._enabled = True
@@ -680,6 +719,55 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(4, result["stolen"])
         self.assertEqual(0, result["remaining"])
         self.assertTrue(result["exhausted"])
+
+    def test_steal_notification_lists_only_crops_actually_stolen(self):
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        now = int(time.time())
+        victim = {
+            "success": True,
+            "victim_id": "corn-user",
+            "victim_name": "玉米用户",
+            "max_steal_count": 3,
+            "steal_count_today": 0,
+            "seeds": [
+                {"id": 3, "name": "玉米"},
+                {"id": 4, "name": "茄子"},
+                {"id": 5, "name": "蘑菇"},
+                {"id": 6, "name": "樱桃"},
+                {"id": 2, "name": "西红柿"},
+            ],
+            "victim_lands": [{"id": 1, "unlocked": 1}],
+            "victim_plots": [
+                {"land_id": 1, "plot_index": 0, "seed_id": 3, "harvest_time": now - 1},
+                {"land_id": 1, "plot_index": 1, "seed_id": 3, "harvest_time": now - 1},
+                {"land_id": 1, "plot_index": 2, "seed_id": 3, "harvest_time": now - 1},
+            ],
+        }
+        actions = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            actions.append(action)
+            if action == "get_victim_farm":
+                return victim if actions.count("get_victim_farm") == 1 else {
+                    "success": False,
+                    "message": "没有可访问农场",
+                }
+            if action == "steal_vegetable":
+                return {"success": True, "reward": 345}
+            if action == "finish_stealing":
+                return {"success": True}
+            self.fail(f"未预期动作：{action}")
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._run_steal_cycle(
+            force=True,
+            payload={"crops": ["玉米", "茄子", "蘑菇", "樱桃", "西红柿"], "visit_count": 9},
+        )
+
+        self.assertIn("🌽玉米×3", result["message"])
+        self.assertNotIn("茄子、蘑菇、樱桃、西红柿", result["message"])
 
     def test_old_single_crop_config_is_normalized_to_multi_select_list(self):
         config = self.plugin._default_config()
