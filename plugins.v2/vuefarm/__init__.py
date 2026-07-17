@@ -1,4 +1,6 @@
 import base64
+import asyncio
+import concurrent.futures
 import json
 import random
 import re
@@ -23,12 +25,17 @@ from app.plugins import _PluginBase
 from app.scheduler import Scheduler
 from app.schemas import NotificationType
 
+try:
+    from app.agent.tools.impl.recognize_captcha import RecognizeCaptchaTool
+except ImportError:
+    RecognizeCaptchaTool = None
+
 
 class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.8"
+    plugin_version = "0.2.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -59,6 +66,7 @@ class VueFarm(_PluginBase):
     _enable_sell: bool = True
     _enable_plant: bool = True
     _enable_ocr_harvest: bool = False
+    _ocr_provider: str = "moviepilot"
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cron: str = DEFAULT_CRON
@@ -67,15 +75,17 @@ class VueFarm(_PluginBase):
     _user_agent: str = DEFAULT_USER_AGENT
     _cookie: str = ""
     _cookie_source: str = "未配置"
-    _ocr_api_url: str = "http://ip:8089/api/tr-run/"
+    _ocr_api_url: str = ""
     _prefer_seed: str = "西红柿"
     _schedule_buffer_seconds: int = 5
     _random_delay_max_seconds: int = 5
     _http_timeout: int = 12
     _http_retry_times: int = MAX_NETWORK_RETRY_TIMES
     _http_retry_delay: int = 1500
-    _ocr_retry_times: int = 2
-    _ready_retry_seconds: int = 60
+    _ocr_retry_times: int = 3
+    _use_ai_captcha: bool = False
+    _harvest_time_budget_seconds: int = 45
+    _ready_retry_seconds: int = 30
     _auto_steal: bool = False
     _auto_like: bool = False
     _steal_crop: Any = "全部作物"
@@ -91,6 +101,8 @@ class VueFarm(_PluginBase):
     _bootstrap_pending: bool = False
     _page_stat_cache: Optional[Dict[str, int]] = None
     _page_stat_cache_at: float = 0.0
+    _harvest_deadline: Optional[float] = None
+    _harvest_batch_deadline: Optional[float] = None
 
     _crop_icon = {
         "萝卜": "🥕",
@@ -816,6 +828,7 @@ class VueFarm(_PluginBase):
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
+            "ocr_provider": self._ocr_provider,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -834,6 +847,7 @@ class VueFarm(_PluginBase):
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
+            "ocr_provider": self._ocr_provider,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -845,6 +859,8 @@ class VueFarm(_PluginBase):
             "http_retry_times": self._http_retry_times,
             "http_retry_delay": self._http_retry_delay,
             "ocr_retry_times": self._ocr_retry_times,
+            "use_ai_captcha": self._use_ai_captcha,
+            "harvest_time_budget_seconds": self._harvest_time_budget_seconds,
             "auto_steal": self._auto_steal,
             "auto_like": self._auto_like,
             "steal_crop": self._steal_crop,
@@ -856,6 +872,8 @@ class VueFarm(_PluginBase):
         }
         if include_options:
             config["seed_options"] = self._get_seed_options()
+            config["moviepilot_ocr_available"] = bool(getattr(settings, "OCR_HOST", None))
+            config["ai_available"] = self._ai_agent_available()
         return config
 
     def _save_config(self, config_payload: dict):
@@ -1317,6 +1335,32 @@ class VueFarm(_PluginBase):
         return usernames
 
     @staticmethod
+    def _normalize_ocr_provider(value: Any, default: str = "moviepilot") -> str:
+        provider = str(value or "").strip().lower()
+        return provider if provider in {"moviepilot", "trwebocr"} else default
+
+    @staticmethod
+    def _normalize_captcha_text(value: Any) -> str:
+        text = "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+        return text if 4 <= len(text) <= 8 else ""
+
+    def _ai_agent_available(self) -> bool:
+        return bool(getattr(settings, "AI_AGENT_ENABLE", False) and RecognizeCaptchaTool is not None)
+
+    def _harvest_time_left(self, deadline: Optional[float] = None) -> Optional[float]:
+        target = deadline if deadline is not None else self._harvest_deadline
+        if target is None:
+            return None
+        return max(0.0, target - time.monotonic())
+
+    def _harvest_timeout(self, deadline: Optional[float] = None, default: Optional[float] = None) -> float:
+        left = self._harvest_time_left(deadline)
+        base = float(default if default is not None else self._http_timeout)
+        if left is None:
+            return max(1.0, base)
+        return max(1.0, min(base, left))
+
+    @staticmethod
     def _normalize_daily_time(value: Any, default: str = "09:00") -> str:
         matched = re.fullmatch(r"\s*(\d{1,2}):(\d{1,2})\s*", str(value or ""))
         if not matched:
@@ -1408,18 +1452,21 @@ class VueFarm(_PluginBase):
             "onlyonce": False,
             "enable_sell": True,
             "enable_plant": True,
-            "enable_ocr_harvest": False,
+            "enable_ocr_harvest": True,
+            "ocr_provider": "moviepilot",
             "use_proxy": False,
             "force_ipv4": True,
             "cookie": "",
-            "ocr_api_url": "http://ip:8089/api/tr-run/",
+            "ocr_api_url": "",
             "prefer_seed": "西红柿",
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 5,
             "http_timeout": 12,
             "http_retry_times": self.MAX_NETWORK_RETRY_TIMES,
             "http_retry_delay": 1500,
-            "ocr_retry_times": 2,
+            "ocr_retry_times": 3,
+            "use_ai_captcha": False,
+            "harvest_time_budget_seconds": 45,
             "auto_steal": False,
             "auto_like": False,
             "steal_crop": ["全部作物"],
@@ -1438,6 +1485,7 @@ class VueFarm(_PluginBase):
         self._enable_sell = self._to_bool(config.get("enable_sell", True))
         self._enable_plant = self._to_bool(config.get("enable_plant", True))
         self._enable_ocr_harvest = self._to_bool(config.get("enable_ocr_harvest", False))
+        self._ocr_provider = self._normalize_ocr_provider(config.get("ocr_provider"), "moviepilot")
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cron = self.DEFAULT_CRON
@@ -1450,7 +1498,9 @@ class VueFarm(_PluginBase):
         self._http_timeout = self._safe_int(config.get("http_timeout"), 12)
         self._http_retry_times = max(1, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
         self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
-        self._ocr_retry_times = max(1, self._safe_int(config.get("ocr_retry_times"), 2))
+        self._ocr_retry_times = max(1, min(3, self._safe_int(config.get("ocr_retry_times"), 3)))
+        self._use_ai_captcha = self._to_bool(config.get("use_ai_captcha", False))
+        self._harvest_time_budget_seconds = max(20, min(55, self._safe_int(config.get("harvest_time_budget_seconds"), 45)))
         self._auto_steal = self._to_bool(config.get("auto_steal", False))
         self._auto_like = self._to_bool(config.get("auto_like", False))
         self._steal_crop = self._normalize_crop_selection(config.get("steal_crop"))
@@ -1786,16 +1836,26 @@ class VueFarm(_PluginBase):
                 stats[key] = value
         return stats
 
-    def _post_action(self, session: requests.Session, action: str, payload: Optional[dict] = None, retry_network: bool = False) -> dict:
+    def _post_action(
+        self,
+        session: requests.Session,
+        action: str,
+        payload: Optional[dict] = None,
+        retry_network: bool = False,
+        timeout_seconds: Optional[float] = None,
+    ) -> dict:
         body = dict(payload or {})
         body["action"] = action
+        if timeout_seconds is None and action == "harvest" and self._harvest_deadline is not None:
+            timeout_seconds = self._harvest_timeout(self._harvest_deadline, min(self._http_timeout, 4))
+        request_timeout = max(1.0, float(timeout_seconds or self._http_timeout))
 
         def run():
             response = session.post(
                 f"{self._site_url}/plant_game.php",
                 data=body,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=(self._http_timeout, self._http_timeout),
+                timeout=(request_timeout, request_timeout),
             )
             response.raise_for_status()
             return response
@@ -1844,41 +1904,100 @@ class VueFarm(_PluginBase):
         )
 
     def _recognize_captcha(self, session: requests.Session, image_content: bytes) -> str:
-        if not self._ocr_api_url:
-            raise ValueError("未配置 OCR API 地址")
-
-        best_text = ""
-        best_confidence = 0.0
-        for idx in range(1, self._ocr_retry_times + 1):
+        if self._ocr_provider == "moviepilot":
+            ocr_host = str(getattr(settings, "OCR_HOST", "") or "").strip()
+            if not ocr_host:
+                logger.warning("%s MoviePilot OCR_HOST 未配置", self.plugin_name)
+                return ""
             try:
-                response = session.post(self._ocr_api_url, files={"file": ("cap.jpg", image_content, "image/jpeg")}, timeout=(10, 30))
+                response = requests.post(
+                    f"{ocr_host.rstrip('/')}/captcha/base64",
+                    json={"base64_img": base64.b64encode(image_content).decode("utf-8")},
+                    timeout=self._harvest_timeout(self._harvest_batch_deadline, 6),
+                )
                 response.raise_for_status()
-                data = response.json()
-                raw_lines = ((data or {}).get("data") or {}).get("raw_out") or []
-                text = ""
-                confidence = 0.0
-                for line in raw_lines:
-                    if isinstance(line, list) and len(line) >= 2:
-                        if isinstance(line[1], str):
-                            text += line[1]
-                        if len(line) >= 3 and isinstance(line[2], (int, float)):
-                            confidence = max(confidence, float(line[2]))
-                text = "".join(ch for ch in text.upper() if ch.isalnum())
-                if 4 <= len(text) <= 8 and confidence > best_confidence:
-                    best_text = text
-                    best_confidence = confidence
+                text = self._normalize_captcha_text((response.json() or {}).get("result"))
+                logger.info("INFO MoviePilot OCR 识别结果: %s", text or "EMPTY")
+                return text
             except Exception as err:
-                logger.warning("OCR 第 %s 次尝试异常: %s", idx, err)
-        logger.info("INFO OCR 最终结果: %s (置信度: %s)", best_text or "EMPTY", best_confidence)
-        return best_text
+                logger.warning("%s MoviePilot OCR 识别异常: %s", self.plugin_name, err)
+                return ""
+
+        if not self._ocr_api_url:
+            logger.warning("%s TRWebOCR API 地址未配置", self.plugin_name)
+            return ""
+        try:
+            response = session.post(
+                self._ocr_api_url,
+                files={"file": ("cap.jpg", image_content, "image/jpeg")},
+                timeout=self._harvest_timeout(self._harvest_batch_deadline, 6),
+            )
+            response.raise_for_status()
+            data = response.json()
+            raw_lines = ((data or {}).get("data") or {}).get("raw_out") or []
+            text = ""
+            confidence = 0.0
+            for line in raw_lines:
+                if isinstance(line, list) and len(line) >= 2:
+                    if isinstance(line[1], str):
+                        text += line[1]
+                    if len(line) >= 3 and isinstance(line[2], (int, float)):
+                        confidence = max(confidence, float(line[2]))
+            text = self._normalize_captcha_text(text)
+            logger.info("INFO TRWebOCR 识别结果: %s (置信度: %s)", text or "EMPTY", confidence)
+            return text
+        except Exception as err:
+            logger.warning("%s TRWebOCR 识别异常: %s", self.plugin_name, err)
+            return ""
+
+    def _ai_recognize_captcha(self, image_url: str) -> str:
+        if not self._use_ai_captcha or not self._ai_agent_available():
+            return ""
+        full_url = urljoin(f"{self._site_url}/", str(image_url or ""))
+        timeout_seconds = self._harvest_timeout(self._harvest_batch_deadline, 10)
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        try:
+            tool = RecognizeCaptchaTool(session_id="vuefarm", user_id="plugin")
+
+            async def recognize():
+                raw = await tool.run(
+                    image_url=full_url,
+                    cookie=self._cookie or "",
+                    user_agent=self._user_agent,
+                    allow_private_network=False,
+                )
+                return json.loads(raw) if isinstance(raw, str) else raw
+
+            future = executor.submit(asyncio.run, recognize())
+            result = future.result(timeout=timeout_seconds)
+            text = self._normalize_captcha_text((result or {}).get("captcha_text") if isinstance(result, dict) else "")
+            logger.info("INFO AI 验证码识别结果: %s", text or "EMPTY")
+            return text
+        except concurrent.futures.TimeoutError:
+            logger.warning("%s AI 验证码识别超时 %.1f 秒", self.plugin_name, timeout_seconds)
+            return ""
+        except Exception as err:
+            logger.warning("%s AI 验证码识别异常: %s", self.plugin_name, err)
+            return ""
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     def _harvest_all(self, session: requests.Session) -> Dict[str, Any]:
         logger.info("INFO 开始收获...")
         last_detail = "未知原因"
-        for idx in range(1, self.BATCH_HARVEST_ATTEMPTS + 1):
-            logger.info("Harvest attempt %s/%s", idx, self.BATCH_HARVEST_ATTEMPTS)
+        attempt_limit = min(self.BATCH_HARVEST_ATTEMPTS, max(1, self._ocr_retry_times))
+        for idx in range(1, attempt_limit + 1):
+            if self._harvest_time_left(self._harvest_batch_deadline) == 0:
+                last_detail = "OCR 批量识别已达到时间上限"
+                break
+            logger.info("Harvest attempt %s/%s", idx, attempt_limit)
             try:
-                cap_res = self._post_action(session, "get_harvest_all_captcha", {}, retry_network=True)
+                cap_res = self._post_action(
+                    session,
+                    "get_harvest_all_captcha",
+                    {},
+                    retry_network=self._harvest_batch_deadline is None,
+                )
                 if not cap_res or not cap_res.get("success") or not cap_res.get("captcha"):
                     last_detail = f"验证码接口失败：{(cap_res or {}).get('msg', 'UNKNOWN')}"
                     logger.warning("get_harvest_all_captcha failed: %s", (cap_res or {}).get("msg", "UNKNOWN"))
@@ -1890,7 +2009,14 @@ class VueFarm(_PluginBase):
                     last_detail = "验证码图片地址为空"
                     continue
                 image_url = urljoin(f"{self._site_url}/", str(image_url))
-                img_response = self._request_with_retry("captchaImage", lambda: session.get(image_url, timeout=(self._http_timeout, self._http_timeout)))
+                image_timeout = self._harvest_timeout(self._harvest_batch_deadline, 6)
+                if self._harvest_batch_deadline is None:
+                    img_response = self._request_with_retry(
+                        "captchaImage",
+                        lambda: session.get(image_url, timeout=(image_timeout, image_timeout)),
+                    )
+                else:
+                    img_response = session.get(image_url, timeout=(image_timeout, image_timeout))
                 img_response.raise_for_status()
                 code = self._recognize_captcha(session, img_response.content)
                 if not code:
@@ -1920,8 +2046,60 @@ class VueFarm(_PluginBase):
         logger.warning("harvest not completed after retries")
         return {"success": False, "detail": last_detail, "reward": 0, "items": []}
 
+    def _harvest_ai(self, session: requests.Session) -> Dict[str, Any]:
+        if not self._use_ai_captcha:
+            return {"success": False, "detail": "AI 辅助识别未开启", "reward": 0, "items": []}
+        if not self._ai_agent_available():
+            return {"success": False, "detail": "MoviePilot AI 不可用", "reward": 0, "items": []}
+
+        last_detail = "AI 未识别出有效验证码"
+        for idx in range(1, min(self.BATCH_HARVEST_ATTEMPTS, max(1, self._ocr_retry_times)) + 1):
+            time_left = self._harvest_time_left(self._harvest_batch_deadline)
+            if time_left is not None and time_left < 3:
+                last_detail = "AI 辅助识别已达到时间上限"
+                break
+            try:
+                cap_res = self._post_action(session, "get_harvest_all_captcha", {}, retry_network=False)
+                captcha = (cap_res or {}).get("captcha") or {}
+                image_url = captcha.get("image_url")
+                imagehash = captcha.get("imagehash")
+                if not cap_res.get("success") or not image_url or not imagehash:
+                    last_detail = f"AI 验证码接口失败：{(cap_res or {}).get('msg', 'UNKNOWN')}"
+                    continue
+
+                code = self._ai_recognize_captcha(str(image_url))
+                if not code:
+                    last_detail = f"AI 第 {idx} 次未识别出有效验证码"
+                    continue
+
+                harvest_res = self._post_action(
+                    session,
+                    "harvest_all",
+                    {"imagehash": imagehash, "imagestring": code},
+                    retry_network=False,
+                )
+                if harvest_res and harvest_res.get("success"):
+                    logger.info("INFO AI 验证码批量收菜完成")
+                    return {
+                        "success": True,
+                        "detail": "",
+                        "reward": self._safe_int(harvest_res.get("reward"), 0),
+                        "items": self._normalize_harvest_items(harvest_res.get("inventory")),
+                    }
+                last_detail = f"AI 提交收菜失败：{(harvest_res or {}).get('msg', 'UNKNOWN')}"
+                if not (harvest_res or {}).get("captcha_required"):
+                    break
+            except Exception as err:
+                last_detail = self._get_error_detail(err)
+                logger.warning("%s AI 批量收菜异常: %s", self.plugin_name, err)
+        return {"success": False, "detail": last_detail, "reward": 0, "items": []}
+
     def _should_use_ocr_batch_harvest(self) -> bool:
-        return bool(self._enable_ocr_harvest and self._ocr_api_url)
+        if not self._enable_ocr_harvest:
+            return False
+        if self._ocr_provider == "moviepilot":
+            return bool(getattr(settings, "OCR_HOST", None))
+        return bool(self._ocr_api_url)
 
     def _collect_ready_plots(self, data: dict) -> List[dict]:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -1958,6 +2136,9 @@ class VueFarm(_PluginBase):
         return latest
 
     def _harvest_single_plot(self, session: requests.Session, land_id: int, plot_index: int) -> Dict[str, Any]:
+        time_left = self._harvest_time_left()
+        if time_left is not None and time_left <= 0:
+            return {"success": False, "detail": "收菜保护时间已到", "result": {}}
         result = self._post_action(
             session,
             "harvest",
@@ -2015,6 +2196,24 @@ class VueFarm(_PluginBase):
         if not ready_before:
             return {"success": False, "detail": "当前没有可收获田块", "note": "", "data": data, "harvested_count": 0, "harvest_items": []}
 
+        harvest_started = time.monotonic()
+        self._harvest_deadline = harvest_started + self._harvest_time_budget_seconds
+        fallback_reserve = min(20, max(12, int(self._harvest_time_budget_seconds * 0.45)))
+        self._harvest_batch_deadline = harvest_started + max(5, self._harvest_time_budget_seconds - fallback_reserve)
+
+        try:
+            return self._harvest_ready_plots_with_deadline(session, data, ready_before)
+        finally:
+            self._harvest_deadline = None
+            self._harvest_batch_deadline = None
+
+    def _harvest_ready_plots_with_deadline(
+        self,
+        session: requests.Session,
+        data: dict,
+        ready_before: List[dict],
+    ) -> Dict[str, Any]:
+
         batch_attempted = False
         batch_result: Dict[str, Any] = {"success": False, "detail": "", "items": []}
         latest_data = data
@@ -2022,17 +2221,36 @@ class VueFarm(_PluginBase):
         harvested_items: List[Dict[str, Any]] = []
         note_prefix = "OCR批量收菜未开启，已使用逐坑位收菜"
 
-        if self._should_use_ocr_batch_harvest():
+        if self._enable_ocr_harvest:
             batch_attempted = True
             note_prefix = "批量收菜失败，已自动切换逐坑位收菜"
-            batch_result = self._harvest_all(session)
-            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
-            remaining_ready = self._collect_ready_plots(latest_data)
+            if self._should_use_ocr_batch_harvest():
+                batch_result = self._harvest_all(session)
+            elif self._ocr_provider == "moviepilot":
+                batch_result = {"success": False, "detail": "MoviePilot OCR_HOST 未配置", "items": []}
+                note_prefix = "MoviePilot OCR 未配置，已自动切换逐坑位收菜"
+            else:
+                batch_result = {"success": False, "detail": "TRWebOCR API 地址未配置", "items": []}
+                note_prefix = "TRWebOCR API 未配置，已自动切换逐坑位收菜"
+
+            if not batch_result.get("success") and self._use_ai_captcha:
+                ai_result = self._harvest_ai(session)
+                if ai_result.get("success"):
+                    batch_result = ai_result
+                    note_prefix = "AI 批量收菜后检测到漏收，已自动切换逐坑位补收"
+                elif ai_result.get("detail"):
+                    batch_detail = batch_result.get("detail") or "OCR 识别失败"
+                    batch_result["detail"] = f"{batch_detail}；{ai_result.get('detail')}"
+
             harvested_items = list(batch_result.get("items") or [])
-            if batch_result.get("success") and remaining_ready:
-                note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
-        elif self._enable_ocr_harvest and not self._ocr_api_url:
-            note_prefix = "OCR批量收菜已开启但未配置 OCR API，已使用逐坑位收菜"
+            if batch_result.get("success"):
+                latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
+                remaining_ready = self._collect_ready_plots(latest_data)
+                if remaining_ready and not note_prefix.startswith("AI"):
+                    note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
+            else:
+                latest_data = data
+                remaining_ready = ready_before
 
         if batch_result.get("success") and not remaining_ready:
             return {

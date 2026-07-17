@@ -416,7 +416,92 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(2, result["harvested_count"])
         self.assertEqual([(1, 0), (1, 1)], harvest_calls)
-        self.assertIn("未配置 OCR API", result["note"])
+        self.assertIn("未配置", result["note"])
+
+    def test_ocr_defaults_to_moviepilot_provider_and_batch_harvest(self):
+        config = self.plugin._default_config()
+
+        self.assertTrue(config["enable_ocr_harvest"])
+        self.assertEqual("moviepilot", config["ocr_provider"])
+        self.assertEqual(45, config["harvest_time_budget_seconds"])
+
+    def test_ocr_provider_can_switch_to_trwebocr(self):
+        config = self.plugin._default_config()
+        config.update({"ocr_provider": "trwebocr", "ocr_api_url": "http://ocr:8089/api/tr-run/"})
+
+        self.plugin._apply_config(config)
+
+        self.assertEqual("trwebocr", self.plugin._ocr_provider)
+        self.assertEqual("http://ocr:8089/api/tr-run/", self.plugin._ocr_api_url)
+
+    def test_moviepilot_ocr_uses_captcha_base64_endpoint(self):
+        captured = {}
+
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"result": " aB-12 "}
+
+        def post(url, json=None, timeout=None):
+            captured.update({"url": url, "json": json, "timeout": timeout})
+            return FakeResponse()
+
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000/"
+        self.module.requests.post = post
+        self.plugin._ocr_provider = "moviepilot"
+
+        result = self.plugin._recognize_captcha(object(), b"captcha-image")
+
+        self.assertEqual("AB12", result)
+        self.assertEqual("http://moviepilot-ocr:3000/captcha/base64", captured["url"])
+        self.assertIn("base64_img", captured["json"])
+
+    def test_ai_captcha_receives_absolute_image_url(self):
+        captured = {}
+
+        class FakeTool:
+            def __init__(self, session_id, user_id):
+                return None
+
+            async def run(self, **kwargs):
+                captured.update(kwargs)
+                return {"success": True, "captcha_text": "xy-789"}
+
+        self.module.settings.AI_AGENT_ENABLE = True
+        self.module.RecognizeCaptchaTool = FakeTool
+        self.plugin._use_ai_captcha = True
+        self.plugin._site_url = "https://si-qi.xyz"
+
+        result = self.plugin._ai_recognize_captcha("/captcha/code.png")
+
+        self.assertEqual("XY789", result)
+        self.assertEqual("https://si-qi.xyz/captcha/code.png", captured["image_url"])
+
+    def test_ocr_failure_falls_back_to_ai_before_single_plot_harvest(self):
+        ready_data = _ready_farm_data(1)
+        calls = []
+        self.plugin._enable_ocr_harvest = True
+        self.plugin._ocr_provider = "moviepilot"
+        self.plugin._use_ai_captcha = True
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
+        self.plugin._ai_agent_available = lambda: True
+        self.plugin._harvest_all = lambda session: calls.append("ocr") or {"success": False, "detail": "OCR 识别失败", "items": []}
+        self.plugin._harvest_ai = lambda session: calls.append("ai") or {"success": False, "detail": "AI 识别失败", "items": []}
+        self.plugin._refetch_state_until = lambda *args, **kwargs: {**ready_data, "user_lands": []}
+        self.plugin._harvest_single_plot = lambda session, land_id, plot_index: calls.append("single") or {
+            "success": True,
+            "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
+        }
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(["ocr", "ai", "single"], calls)
+        self.assertIn("逐坑位收菜", result["note"])
+        self.assertIsNone(self.plugin._harvest_deadline)
+        self.assertIsNone(self.plugin._harvest_batch_deadline)
 
     def test_batch_harvest_stops_after_three_failed_captcha_attempts(self):
         class FakeResponse:

@@ -55,7 +55,7 @@
             <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" />
           </div>
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enable_ocr_harvest}" style="--siqi-accent:245,158,11">
-            <div class="siqi-switch-main"><v-icon icon="mdi-image-search-outline" size="18" /><div><div class="siqi-switch-label">OCR 批量收菜</div><div class="siqi-switch-desc">关闭时直接快速逐坑位收菜并复查漏收</div></div></div>
+            <div class="siqi-switch-main"><v-icon icon="mdi-image-search-outline" size="18" /><div><div class="siqi-switch-label">验证码批量收菜</div><div class="siqi-switch-desc">默认开启；失败后立即逐坑位收菜并复查</div></div></div>
             <v-switch v-model="config.enable_ocr_harvest" color="orange" hide-details density="compact" />
           </div>
         </div>
@@ -124,10 +124,18 @@
           </span>
         </div>
         <div class="siqi-form-grid">
-          <v-text-field v-model="config.ocr_api_url" label="OCR API 地址" density="compact" variant="outlined" hide-details class="siqi-input siqi-wide-field" prepend-inner-icon="mdi-link-variant" :disabled="!config.enable_ocr_harvest" />
+          <v-select v-model="config.ocr_provider" :items="ocrProviderOptions" label="OCR 识别来源" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-image-search-outline" :disabled="!config.enable_ocr_harvest" />
           <v-text-field v-model.number="config.ocr_retry_times" label="验证码识别次数" type="number" min="1" max="3" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-restore" :disabled="!config.enable_ocr_harvest" />
+          <v-text-field v-model.number="config.harvest_time_budget_seconds" label="收菜保护时限（秒）" type="number" min="20" max="55" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
+          <v-text-field v-if="config.ocr_provider === 'trwebocr'" v-model="config.ocr_api_url" label="TRWebOCR API 地址" density="compact" variant="outlined" hide-details class="siqi-input siqi-wide-field" prepend-inner-icon="mdi-link-variant" :disabled="!config.enable_ocr_harvest" />
         </div>
-        <div class="siqi-field-hint">默认关闭。开启并填写 OCR 地址后才会批量收菜；失败后会立刻切换逐坑位收菜，并再次检查是否漏收。</div>
+        <div class="siqi-switch-grid">
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.use_ai_captcha && config.ai_available}" style="--siqi-accent:99,102,241">
+            <div class="siqi-switch-main"><v-icon icon="mdi-robot" size="18" /><div><div class="siqi-switch-label">AI 辅助验证码识别</div><div class="siqi-switch-desc">{{ config.ai_available ? 'OCR 失败后调用 MoviePilot AI，再失败则逐坑位' : 'MoviePilot AI 当前不可用' }}</div></div></div>
+            <v-switch v-model="config.use_ai_captcha" color="indigo" hide-details density="compact" :disabled="!config.ai_available || !config.enable_ocr_harvest" />
+          </div>
+        </div>
+        <div class="siqi-field-hint">默认使用 MoviePilot OCR。批量识别会预留逐坑位收菜时间，整次收菜默认最多 45 秒；结束后会复查漏收。</div>
       </div>
 
       <div class="siqi-card">
@@ -198,11 +206,12 @@ const config = reactive({
   onlyonce: false,
   enable_sell: true,
   enable_plant: true,
-  enable_ocr_harvest: false,
+  enable_ocr_harvest: true,
+  ocr_provider: 'moviepilot',
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
-  ocr_api_url: 'http://ip:8089/api/tr-run/',
+  ocr_api_url: '',
   prefer_seed: '西红柿',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
@@ -210,6 +219,10 @@ const config = reactive({
   http_retry_times: 5,
   http_retry_delay: 1500,
   ocr_retry_times: 3,
+  use_ai_captcha: false,
+  harvest_time_budget_seconds: 45,
+  moviepilot_ocr_available: false,
+  ai_available: false,
   auto_steal: false,
   auto_like: false,
   steal_crop: ['全部作物'],
@@ -229,6 +242,10 @@ const seedLoading = ref(false)
 const showCookie = ref(false)
 const seedOptions = ref([{ title: '🍅 西红柿', value: '西红柿', locked: false, unlockHarvest: 0 }])
 const stealCropOptions = ref(['全部作物', '西红柿'])
+const ocrProviderOptions = [
+  { title: 'MoviePilot 内置 OCR（默认）', value: 'moviepilot' },
+  { title: 'TRWebOCR 容器', value: 'trwebocr' }
+]
 const socialCronOptions = [
   { title: '每 5 分钟', value: '*/5 * * * *' },
   { title: '每 10 分钟', value: '*/10 * * * *' },
