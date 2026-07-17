@@ -894,6 +894,32 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual([True], social_calls)
         self.assertEqual("偷菜和点赞完成", result["social"]["message"])
 
+    def test_social_worker_does_not_auto_like_before_daily_time(self):
+        self.plugin._auto_steal = False
+        self.plugin._auto_like = True
+        self.plugin._like_time = "09:00"
+        timezone = self.module.pytz.timezone("Asia/Shanghai")
+        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 8, 59))
+        calls = []
+        self.plugin._run_like_cycle = lambda force=False, payload=None: calls.append(force) or {"success": True}
+
+        self.plugin._social_worker(force=False)
+
+        self.assertEqual([], calls)
+
+    def test_social_worker_catches_up_auto_like_after_daily_time(self):
+        self.plugin._auto_steal = False
+        self.plugin._auto_like = True
+        self.plugin._like_time = "09:00"
+        timezone = self.module.pytz.timezone("Asia/Shanghai")
+        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 12, 0))
+        calls = []
+        self.plugin._run_like_cycle = lambda force=False, payload=None: calls.append(force) or {"success": True}
+
+        self.plugin._social_worker(force=False)
+
+        self.assertEqual([False], calls)
+
     def test_cookie_auto_sync_cannot_be_disabled_by_legacy_config(self):
         config = self.plugin._default_config()
         config["auto_cookie"] = False

@@ -994,7 +994,11 @@ class VueFarm(_PluginBase):
                     # 本轮没有目标作物时等下一个时段；偷到但仍有额度则在当前时段继续检查。
                     if window_key:
                         self.save_data("auto_steal_window_key", window_key)
-        if self._auto_like and self.get_data("auto_like_date") != self._today_key():
+        if (
+            self._auto_like
+            and self.get_data("auto_like_date") != self._today_key()
+            and (force or self._is_auto_like_due())
+        ):
             like_result = self._run_like_cycle(force=force)
         results = [result for result in (steal_result, like_result) if result is not None]
         return {
@@ -1364,6 +1368,12 @@ class VueFarm(_PluginBase):
 
     def _today_key(self) -> str:
         return self._aware_now().strftime("%Y-%m-%d")
+
+    def _is_auto_like_due(self, now: Optional[datetime] = None) -> bool:
+        current = now or self._aware_now()
+        hour, minute = (int(part) for part in self._like_time.split(":"))
+        scheduled = current.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        return current >= scheduled and self.get_data("auto_like_date") != current.strftime("%Y-%m-%d")
 
     def _default_config(self) -> Dict[str, Any]:
         return {
