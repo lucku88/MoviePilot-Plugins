@@ -478,6 +478,81 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual([(next_run_ts, "scheduled-refresh-final", True)], schedule_calls)
 
+    def test_refresh_schedule_prioritizes_ready_plot_over_future_crop(self):
+        now = int(time.time())
+        data = {
+            "success": True,
+            "seeds": [
+                {"id": 1, "name": "萝卜", "grow_time": 14400},
+                {"id": 5, "name": "蘑菇", "grow_time": 604800},
+            ],
+            "user_lands": [
+                {"land_id": 1, "plot_index": 7, "seed_id": 1, "harvest_time": now - 10, "is_ready": 0},
+                {"land_id": 1, "plot_index": 0, "seed_id": 5, "harvest_time": now + 432000, "is_ready": 0},
+            ],
+        }
+
+        future_run = self.plugin._compute_next_run(data)
+        schedule_run = self.plugin._normalize_refresh_schedule_run(data, future_run)
+
+        self.assertEqual(now, schedule_run)
+
+    def test_run_now_planting_uses_new_crop_time_instead_of_old_future_crop(self):
+        now = int(time.time())
+        radish = {"id": 1, "name": "萝卜", "cost": 200, "grow_time": 14400, "base_reward": 220, "unlocked": 1}
+        mushroom = {"id": 5, "name": "蘑菇", "cost": 8400, "grow_time": 604800, "base_reward": 10080, "unlocked": 1}
+        old_data = {
+            "success": True,
+            "user_bonus": 100000,
+            "user_stats": {"total_harvest": 6000000, "unlocked_land_count": 1},
+            "seeds": [radish, mushroom],
+            "lands": [{"id": 1, "name": "新手农场", "plot_count": 2, "unlock_harvest": 0}],
+            "plot_slot": {"effective_plot_counts": {"1": 2}},
+            "user_lands": [
+                {"land_id": 1, "plot_index": 0, "seed_id": 5, "harvest_time": now + 432000, "is_ready": 0},
+            ],
+            "inventory": [],
+            "user_logs": [],
+        }
+        new_data = {
+            **old_data,
+            "user_lands": [
+                *old_data["user_lands"],
+                {"land_id": 1, "plot_index": 1, "seed_id": 1, "plant_time": now, "harvest_time": now + 14400, "is_ready": 0},
+            ],
+        }
+        fetch_results = [old_data, old_data, new_data]
+        fetch_calls = []
+        schedule_calls = []
+
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+
+        def fetch_state(session):
+            fetch_calls.append(1)
+            return fetch_results[min(len(fetch_calls) - 1, len(fetch_results) - 1)]
+
+        self.plugin._fetch_state = fetch_state
+        self.plugin._pick_seed = lambda data: radish
+        self.plugin._post_action = lambda session, action, payload=None, retry_network=False: {
+            "success": True,
+            "planted": 1,
+            "total_cost": 200,
+        }
+        self.plugin._schedule_next_run = lambda next_run, reason="", force_run=False: schedule_calls.append(next_run)
+        self.plugin._parse_logs = lambda *args, **kwargs: {}
+        self.plugin._build_result_lines = lambda *args, **kwargs: []
+        self.plugin._build_state_record = lambda *args, **kwargs: {}
+        self.plugin._build_ui_state = lambda *args, **kwargs: {}
+        self.plugin._build_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda *args, **kwargs: None
+
+        result = self.plugin.run_job(force=True, reason="manual-api")
+
+        self.assertTrue(result["success"])
+        self.assertGreaterEqual(len(fetch_calls), 3)
+        self.assertEqual(now + 14400, schedule_calls[-1])
+
     def test_save_config_runs_full_job_after_refresh_when_ready(self):
         run_calls = []
         self.plugin._enabled = True

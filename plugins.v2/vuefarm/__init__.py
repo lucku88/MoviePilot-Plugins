@@ -28,7 +28,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.5"
+    plugin_version = "0.2.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -321,6 +321,7 @@ class VueFarm(_PluginBase):
             if self._enable_plant and empty_count > 0:
                 best_seed = self._pick_seed(data)
                 if best_seed:
+                    planted_seed_before = self._count_seed_plots(data, best_seed.get("id"))
                     logger.info("INFO 准备种植：%s", best_seed.get("name"))
                     try:
                         result = self._post_action(session, "plant_fill_empty", {"seed_id": best_seed.get("id")}, retry_network=False)
@@ -338,7 +339,7 @@ class VueFarm(_PluginBase):
                             logger.info("INFO 种植完成：%s", best_seed.get("name"))
                         data = self._refetch_state_until(
                             session,
-                            predicate=lambda latest: bool(self._compute_next_run(latest)),
+                            predicate=lambda latest: self._count_seed_plots(latest, best_seed.get("id")) > planted_seed_before,
                             attempts=3,
                             delay_seconds=1.0,
                             default=data,
@@ -347,8 +348,8 @@ class VueFarm(_PluginBase):
                         logger.warning("plant_fill_empty failed: %s", err)
 
             next_run = self._compute_next_run(data)
-            if action_plant and plant_next_run_fallback and not next_run:
-                next_run = plant_next_run_fallback
+            if action_plant and plant_next_run_fallback:
+                next_run = min(next_run, plant_next_run_fallback) if next_run else plant_next_run_fallback
             remaining_ready_plots = self._collect_ready_plots(data)
             if remaining_ready_plots:
                 retry_at = int(time.time()) + max(30, self._ready_retry_seconds)
@@ -2097,6 +2098,16 @@ class VueFarm(_PluginBase):
             empty += max(0, int(meta.get("available_slots") or 0) - planted)
         return empty
 
+    def _count_seed_plots(self, data: dict, seed_id: Any) -> int:
+        expected_seed_id = self._safe_int(seed_id, 0)
+        if expected_seed_id <= 0:
+            return 0
+        return sum(
+            1
+            for plot in (data.get("user_lands") or [])
+            if self._safe_int(plot.get("seed_id"), 0) == expected_seed_id
+        )
+
     def _pick_seed(self, data: dict) -> Optional[dict]:
         unlocked = self._get_unlocked_seeds(data)
         if not unlocked:
@@ -2164,8 +2175,16 @@ class VueFarm(_PluginBase):
             }
         return {}
 
-    def _refresh_and_store_farm_state(self, data: dict, reason: str, summary_lines: Optional[List[str]] = None) -> Dict[str, Any]:
+    def _refresh_and_store_farm_state(
+        self,
+        data: dict,
+        reason: str,
+        summary_lines: Optional[List[str]] = None,
+        next_run_hint: Optional[int] = None,
+    ) -> Dict[str, Any]:
         next_run = self._compute_next_run(data)
+        if next_run_hint:
+            next_run = min(next_run, next_run_hint) if next_run else next_run_hint
         self._schedule_next_run(next_run, reason)
         lines = list(summary_lines or [])
         self.save_data("state", self._build_state_record(data, next_run, lines))
@@ -2260,9 +2279,14 @@ class VueFarm(_PluginBase):
         if result and not result.get("success", True):
             raise ValueError(result.get("msg") or "种植失败")
 
+        planted_at = int(time.time())
+        next_run_hint = planted_at + self._safe_int(seed.get("grow_time"), 0)
         data = self._refetch_state_until(
             session,
-            predicate=lambda latest: bool(self._compute_next_run(latest)),
+            predicate=lambda latest: self._safe_int(
+                ((self._find_slot_context(latest, land_id, slot_index).get("plot") or {}).get("seed_id")),
+                0,
+            ) == self._safe_int(seed.get("id"), 0),
             attempts=3,
             delay_seconds=1.0,
             default=data,
@@ -2270,7 +2294,7 @@ class VueFarm(_PluginBase):
         lines = [
             f"🌱 手动种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} -> {slot.get('land_name')} #{slot_index}",
         ]
-        farm_status = self._refresh_and_store_farm_state(data, "manual-plot-plant", lines)
+        farm_status = self._refresh_and_store_farm_state(data, "manual-plot-plant", lines, next_run_hint=next_run_hint)
         self._append_history("🖱️ 手动种植", lines)
         return {"farm_status": farm_status, "lines": lines}
 
@@ -2316,13 +2340,16 @@ class VueFarm(_PluginBase):
         if not seed:
             raise ValueError("未找到可用种子")
 
+        planted_seed_before = self._count_seed_plots(data, seed.get("id"))
         result = self._post_action(session, "plant_fill_empty", {"seed_id": seed.get("id")}, retry_network=False)
         if result and not result.get("success", True):
             raise ValueError(result.get("msg") or "种植失败")
 
+        planted_at = int(time.time())
+        next_run_hint = planted_at + self._safe_int(seed.get("grow_time"), 0)
         data = self._refetch_state_until(
             session,
-            predicate=lambda latest: bool(self._compute_next_run(latest)),
+            predicate=lambda latest: self._count_seed_plots(latest, seed.get("id")) > planted_seed_before,
             attempts=3,
             delay_seconds=1.0,
             default=data,
@@ -2331,7 +2358,7 @@ class VueFarm(_PluginBase):
         lines = [
             f"🌱 一键种植：{self._crop_icon.get(seed.get('name'), '🌱')}{seed.get('name')} ×{planted_count}",
         ]
-        farm_status = self._refresh_and_store_farm_state(data, "manual-plant-empty", lines)
+        farm_status = self._refresh_and_store_farm_state(data, "manual-plant-empty", lines, next_run_hint=next_run_hint)
         self._append_history("🌱 一键种植", lines)
         return {"farm_status": farm_status, "lines": lines}
 
@@ -2397,11 +2424,9 @@ class VueFarm(_PluginBase):
         return min(future_times) if future_times else None
 
     def _normalize_refresh_schedule_run(self, data: dict, next_run: Optional[int]) -> Optional[int]:
-        if next_run:
-            return next_run
         if self._collect_ready_plots(data):
             return int(time.time())
-        return None
+        return next_run
 
     def _build_state_record(self, data: dict, next_run: Optional[int], summary_lines: List[str]) -> dict:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
