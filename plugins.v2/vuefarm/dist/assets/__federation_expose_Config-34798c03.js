@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_c940823f_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_7c7315c2_lang = '';
 
-const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
+const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-c940823f"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-7c7315c2"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -99,11 +99,13 @@ const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 const _hoisted_51 = { class: "siqi-card" };
 const _hoisted_52 = { class: "siqi-card__header" };
 const _hoisted_53 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_54 = { class: "siqi-form-grid" };
-const _hoisted_55 = { class: "siqi-card" };
-const _hoisted_56 = { class: "siqi-card__header" };
-const _hoisted_57 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。", -1));
+const _hoisted_54 = { class: "siqi-form-grid steal-interaction-grid" };
+const _hoisted_55 = { class: "siqi-form-grid like-target-grid" };
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "固定目标不足 3 个时会用随机目标补齐；每天到达设定时间后执行一次。", -1));
+const _hoisted_57 = { class: "siqi-card" };
+const _hoisted_58 = { class: "siqi-card__header" };
+const _hoisted_59 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。", -1));
 
 const {computed,reactive,ref,onMounted} = await importShared('vue');
 
@@ -144,8 +146,12 @@ const config = reactive({
   steal_visit_count: 5,
   steal_time_windows: '07:00-09:00,12:00-14:00,18:00-23:00',
   social_cron: '*/5 * * * *',
+  like_targets: ['', '', ''],
+  like_time: '09:00',
   ...props.initialConfig
 });
+config.like_targets = normalizeLikeTargetFields(config.like_targets);
+config.like_time = normalizeLikeTime(config.like_time);
 const loading = ref(false);
 const saving = ref(false);
 const syncingCookie = ref(false);
@@ -201,6 +207,23 @@ function normalizeStealCropValues(value) {
   return unique
 }
 
+function normalizeLikeTargetFields(value) {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || '').split(/[,，;；\n\r]+/);
+  const unique = [...new Set(source.map(item => String(item || '').trim()).filter(Boolean))].slice(0, 3);
+  return [...unique, '', '', ''].slice(0, 3)
+}
+
+function normalizeLikeTime(value) {
+  const matched = String(value || '').match(/^\s*(\d{1,2}):(\d{1,2})\s*$/);
+  if (!matched) return '09:00'
+  const hour = Number(matched[1]);
+  const minute = Number(matched[2]);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return '09:00'
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
 function onStealCropChange(value) {
   config.steal_crop = normalizeStealCropValues(value);
 }
@@ -221,6 +244,8 @@ async function loadConfig() {
     const res = await apiGet('/config');
     Object.assign(config, res);
     config.steal_crop = normalizeStealCropValues(res.steal_crop);
+    config.like_targets = normalizeLikeTargetFields(res.like_targets);
+    config.like_time = normalizeLikeTime(res.like_time);
   } catch (e) {
     show(`加载失败：${e.message}`, 'error');
   } finally {
@@ -261,6 +286,8 @@ async function syncCookie() {
     if (res.config) {
       Object.assign(config, res.config);
       config.steal_crop = normalizeStealCropValues(config.steal_crop);
+      config.like_targets = normalizeLikeTargetFields(config.like_targets);
+      config.like_time = normalizeLikeTime(config.like_time);
     }
     show(res.message || (res.success ? 'Cookie 同步成功' : 'Cookie 同步失败'), res.success ? 'success' : 'error');
   } catch (e) {
@@ -273,12 +300,18 @@ async function syncCookie() {
 async function saveConfig() {
   saving.value = true;
   try {
+    const likeTargets = normalizeLikeTargetFields(config.like_targets);
+    const likeTime = normalizeLikeTime(config.like_time);
     const res = await apiPost('/config', {
       ...config,
-      steal_crop: normalizeStealCropValues(config.steal_crop)
+      steal_crop: normalizeStealCropValues(config.steal_crop),
+      like_targets: likeTargets,
+      like_time: likeTime
     });
     if (res.config) Object.assign(config, res.config);
     config.steal_crop = normalizeStealCropValues(config.steal_crop);
+    config.like_targets = normalizeLikeTargetFields(config.like_targets);
+    config.like_time = normalizeLikeTime(config.like_time);
     show(res.message || (res.success ? '保存成功' : '保存失败'), res.success ? 'success' : 'error');
   } catch (e) {
     show(`保存失败：${e.message}`, 'error');
@@ -831,11 +864,38 @@ return (_ctx, _cache) => {
           "prepend-inner-icon": "mdi-clock-outline",
           hint: "多个时间段用逗号分隔，例如：07:00-09:00,12:00-14:00,18:00-23:00",
           "persistent-hint": ""
-        }, null, 8, ["modelValue"])
+        }, null, 8, ["modelValue"]),
+        _createElementVNode("div", _hoisted_55, [
+          (_openBlock(), _createElementBlock(_Fragment, null, _renderList(3, (index) => {
+            return _createVNode(_component_v_text_field, {
+              key: index,
+              modelValue: config.like_targets[index - 1],
+              "onUpdate:modelValue": $event => ((config.like_targets[index - 1]) = $event),
+              label: `固定点赞目标 ${index}`,
+              density: "compact",
+              variant: "outlined",
+              "hide-details": "",
+              class: "siqi-input",
+              "prepend-inner-icon": "mdi-account-heart-outline"
+            }, null, 8, ["modelValue", "onUpdate:modelValue", "label"])
+          }), 64)),
+          _createVNode(_component_v_text_field, {
+            modelValue: config.like_time,
+            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => ((config.like_time) = $event)),
+            label: "每日点赞时间",
+            type: "time",
+            density: "compact",
+            variant: "outlined",
+            "hide-details": "",
+            class: "siqi-input like-time-field",
+            "prepend-inner-icon": "mdi-clock-check-outline"
+          }, null, 8, ["modelValue"])
+        ]),
+        _hoisted_56
       ]),
-      _createElementVNode("div", _hoisted_55, [
-        _createElementVNode("div", _hoisted_56, [
-          _createElementVNode("span", _hoisted_57, [
+      _createElementVNode("div", _hoisted_57, [
+        _createElementVNode("div", _hoisted_58, [
+          _createElementVNode("span", _hoisted_59, [
             _createVNode(_component_v_icon, {
               icon: "mdi-cookie",
               size: "18",
@@ -864,7 +924,7 @@ return (_ctx, _cache) => {
         ]),
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => ((config.cookie) = $event)),
+          "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => ((config.cookie) = $event)),
           label: "站点 Cookie（自动同步）",
           rows: "2",
           "auto-grow": "",
@@ -880,7 +940,7 @@ return (_ctx, _cache) => {
               size: "x-small",
               icon: "",
               class: "siqi-secret-toggle",
-              onClick: _cache[25] || (_cache[25] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
+              onClick: _cache[26] || (_cache[26] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, {
@@ -893,7 +953,7 @@ return (_ctx, _cache) => {
           ]),
           _: 1
         }, 8, ["modelValue", "class"]),
-        _hoisted_58
+        _hoisted_60
       ])
     ])
   ]))
@@ -901,6 +961,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c940823f"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-7c7315c2"]]);
 
 export { ConfigView as default };
