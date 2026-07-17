@@ -862,6 +862,17 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(["萝卜", "玉米", "蘑菇"], self.plugin._steal_crop)
         self.assertEqual(["萝卜", "玉米", "蘑菇"], self.plugin._get_config()["steal_crop"])
 
+    def test_like_targets_config_normalizes_blank_duplicate_and_extra_names(self):
+        config = self.plugin._default_config()
+        config["like_targets"] = [" 用户甲 ", "", "用户甲", "用户乙", "用户丙", "用户丁"]
+        config["like_time"] = "9:5"
+
+        self.plugin._apply_config(config)
+
+        self.assertEqual(["用户甲", "用户乙", "用户丙"], self.plugin._like_targets)
+        self.assertEqual("09:05", self.plugin._like_time)
+        self.assertEqual(["用户甲", "用户乙", "用户丙"], self.plugin._get_config()["like_targets"])
+
     def test_one_time_worker_also_runs_enabled_social_tasks(self):
         main_calls = []
         social_calls = []

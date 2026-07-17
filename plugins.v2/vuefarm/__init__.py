@@ -82,6 +82,8 @@ class VueFarm(_PluginBase):
     _steal_visit_count: int = 5
     _steal_time_windows: str = "07:00-09:00,12:00-14:00,18:00-23:00"
     _social_cron: str = "*/5 * * * *"
+    _like_targets: List[str] = []
+    _like_time: str = "09:00"
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -849,6 +851,8 @@ class VueFarm(_PluginBase):
             "steal_visit_count": self._steal_visit_count,
             "steal_time_windows": self._steal_time_windows,
             "social_cron": self._social_cron,
+            "like_targets": list(self._like_targets),
+            "like_time": self._like_time,
         }
         if include_options:
             config["seed_options"] = self._get_seed_options()
@@ -1275,6 +1279,34 @@ class VueFarm(_PluginBase):
         return "\n".join(usernames)
 
     @staticmethod
+    def _normalize_like_targets(value: Any, limit: int = 3) -> List[str]:
+        if isinstance(value, str):
+            raw_items = re.split(r"[,，;；\n\r]+", value)
+        elif isinstance(value, (list, tuple, set)):
+            raw_items = value
+        else:
+            raw_items = []
+        usernames: List[str] = []
+        for item in raw_items:
+            username = str(item or "").strip()
+            if not username or username in usernames:
+                continue
+            usernames.append(username)
+            if len(usernames) >= max(1, limit):
+                break
+        return usernames
+
+    @staticmethod
+    def _normalize_daily_time(value: Any, default: str = "09:00") -> str:
+        matched = re.fullmatch(r"\s*(\d{1,2}):(\d{1,2})\s*", str(value or ""))
+        if not matched:
+            return default
+        hour, minute = int(matched.group(1)), int(matched.group(2))
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            return default
+        return f"{hour:02d}:{minute:02d}"
+
+    @staticmethod
     def _is_daily_action_exhausted(result: Dict[str, Any]) -> bool:
         message = str(result.get("msg") or result.get("message") or "")
         return any(keyword in message for keyword in (
@@ -1342,6 +1374,8 @@ class VueFarm(_PluginBase):
             "steal_visit_count": 5,
             "steal_time_windows": "07:00-09:00,12:00-14:00,18:00-23:00",
             "social_cron": "*/5 * * * *",
+            "like_targets": [],
+            "like_time": "09:00",
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -1371,6 +1405,8 @@ class VueFarm(_PluginBase):
         self._steal_visit_count = max(1, min(30, self._safe_int(config.get("steal_visit_count"), 5)))
         self._steal_time_windows = str(config.get("steal_time_windows") or "").strip()
         self._social_cron = str(config.get("social_cron") or "*/5 * * * *").strip() or "*/5 * * * *"
+        self._like_targets = self._normalize_like_targets(config.get("like_targets"))
+        self._like_time = self._normalize_daily_time(config.get("like_time"), "09:00")
 
     def _normalize_seed_name(self, value: Any) -> str:
         text = re.sub(r"\s+", "", str(value or "").strip())
