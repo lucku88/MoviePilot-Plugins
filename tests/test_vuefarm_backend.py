@@ -929,6 +929,44 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_like_date"))
 
+    def test_auto_like_fills_missing_fixed_slots_with_unique_random_targets(self):
+        self.plugin._like_targets = ["固定甲"]
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload))
+            if action == "random_like_targets":
+                return {"success": True, "usernames": ["固定甲", "随机乙", "随机乙", "随机丙", "随机丁"]}
+            if action == "like_farm_batch":
+                return {"success": True, "message": "点赞完成"}
+            self.fail(f"未预期动作：{action}")
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._run_like_cycle(force=False)
+
+        self.assertTrue(result["success"])
+        self.assertIn(("like_farm_batch", {"usernames": "固定甲\n随机乙\n随机丙"}), calls)
+
+    def test_auto_like_with_three_fixed_targets_skips_random_target_request(self):
+        self.plugin._like_targets = ["固定甲", "固定乙", "固定丙"]
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        actions = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            actions.append(action)
+            return {"success": True, "message": "点赞完成"}
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._run_like_cycle(force=False)
+
+        self.assertTrue(result["success"])
+        self.assertNotIn("random_like_targets", actions)
+
     def test_active_steal_window_supports_cross_midnight_ranges(self):
         self.plugin._steal_time_windows = "22:00-01:00,07:00-09:00"
         current = datetime(2026, 7, 16, 0, 30)

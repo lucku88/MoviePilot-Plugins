@@ -1129,14 +1129,14 @@ class VueFarm(_PluginBase):
         try:
             self._ensure_cookie()
             session = self._build_session()
-            usernames = str((payload or {}).get("usernames") or "").strip()
+            usernames = self._normalize_usernames((payload or {}).get("usernames"))
             if not usernames:
-                targets = self._post_action(session, "random_like_targets", {}, retry_network=True)
-                if not targets.get("success"):
-                    if not force and self._is_daily_action_exhausted(targets):
+                auto_targets, random_result = self._build_auto_like_targets(session)
+                usernames = self._normalize_usernames(auto_targets)
+                if not usernames and random_result and not random_result.get("success"):
+                    if not force and self._is_daily_action_exhausted(random_result):
                         self.save_data("auto_like_date", self._today_key())
-                    return targets
-                usernames = self._normalize_usernames(targets.get("usernames") or [])
+                    return random_result
             if not usernames:
                 if not force:
                     self.save_data("auto_like_date", self._today_key())
@@ -1159,6 +1159,22 @@ class VueFarm(_PluginBase):
         except Exception as err:
             logger.error("%s 点赞失败：%s", self.plugin_name, err)
             return {"success": False, "message": f"点赞失败：{err}"}
+
+    def _build_auto_like_targets(self, session: requests.Session) -> Tuple[List[str], Optional[dict]]:
+        usernames = self._normalize_like_targets(self._like_targets)
+        if len(usernames) >= 3:
+            return usernames[:3], None
+
+        random_result = self._post_action(session, "random_like_targets", {}, retry_network=True)
+        if not random_result.get("success"):
+            return usernames, random_result
+
+        for username in self._normalize_like_targets(random_result.get("usernames"), limit=30):
+            if username not in usernames:
+                usernames.append(username)
+            if len(usernames) >= 3:
+                break
+        return usernames, random_result
 
     def _victim_stealable_plots(self, victim: Dict[str, Any], requested_crop: Any) -> List[Tuple[Any, Any, str]]:
         requested_crops = self._normalize_crop_selection(requested_crop)
