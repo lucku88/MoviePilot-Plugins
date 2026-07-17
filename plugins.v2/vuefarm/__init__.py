@@ -28,7 +28,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.7"
+    plugin_version = "0.2.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -83,7 +83,7 @@ class VueFarm(_PluginBase):
     _steal_time_windows: str = "07:00-09:00,12:00-14:00,18:00-23:00"
     _social_cron: str = "*/5 * * * *"
     _like_targets: List[str] = []
-    _like_time: str = "09:00"
+    _like_cron: str = "0 9 * * *"
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -852,7 +852,7 @@ class VueFarm(_PluginBase):
             "steal_time_windows": self._steal_time_windows,
             "social_cron": self._social_cron,
             "like_targets": list(self._like_targets),
-            "like_time": self._like_time,
+            "like_cron": self._like_cron,
         }
         if include_options:
             config["seed_options"] = self._get_seed_options()
@@ -1327,6 +1327,19 @@ class VueFarm(_PluginBase):
         return f"{hour:02d}:{minute:02d}"
 
     @staticmethod
+    def _normalize_like_cron(value: Any, default: str = "0 9 * * *") -> str:
+        expression = " ".join(str(value or "").split())
+        if len(expression.split()) != 5:
+            return default
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+
+            CronTrigger.from_crontab(expression, timezone=settings.TZ)
+        except Exception:
+            return default
+        return expression
+
+    @staticmethod
     def _is_daily_action_exhausted(result: Dict[str, Any]) -> bool:
         message = str(result.get("msg") or result.get("message") or "")
         return any(keyword in message for keyword in (
@@ -1371,9 +1384,22 @@ class VueFarm(_PluginBase):
 
     def _is_auto_like_due(self, now: Optional[datetime] = None) -> bool:
         current = now or self._aware_now()
-        hour, minute = (int(part) for part in self._like_time.split(":"))
-        scheduled = current.replace(hour=hour, minute=minute, second=0, microsecond=0)
-        return current >= scheduled and self.get_data("auto_like_date") != current.strftime("%Y-%m-%d")
+        if self.get_data("auto_like_date") == current.strftime("%Y-%m-%d"):
+            return False
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+
+            trigger = CronTrigger.from_crontab(self._like_cron, timezone=settings.TZ)
+            day_start = current.replace(hour=0, minute=0, second=0, microsecond=0)
+            fire_time = trigger.get_next_fire_time(None, day_start - timedelta(seconds=1))
+            while fire_time and fire_time <= current:
+                if fire_time.date() == current.date():
+                    return True
+                fire_time = trigger.get_next_fire_time(fire_time, fire_time)
+            return False
+        except Exception as err:
+            logger.warning("%s 自动点赞 Cron 无效：%s", self.plugin_name, err)
+            return False
 
     def _default_config(self) -> Dict[str, Any]:
         return {
@@ -1401,7 +1427,7 @@ class VueFarm(_PluginBase):
             "steal_time_windows": "07:00-09:00,12:00-14:00,18:00-23:00",
             "social_cron": "*/5 * * * *",
             "like_targets": [],
-            "like_time": "09:00",
+            "like_cron": "0 9 * * *",
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -1432,7 +1458,11 @@ class VueFarm(_PluginBase):
         self._steal_time_windows = str(config.get("steal_time_windows") or "").strip()
         self._social_cron = str(config.get("social_cron") or "*/5 * * * *").strip() or "*/5 * * * *"
         self._like_targets = self._normalize_like_targets(config.get("like_targets"))
-        self._like_time = self._normalize_daily_time(config.get("like_time"), "09:00")
+        legacy_like_time = self._normalize_daily_time(config.get("like_time"), "09:00")
+        configured_like_cron = config.get("like_cron")
+        if config.get("like_time") not in (None, "") and configured_like_cron in (None, "", "0 9 * * *"):
+            configured_like_cron = f"{int(legacy_like_time[3:])} {int(legacy_like_time[:2])} * * *"
+        self._like_cron = self._normalize_like_cron(configured_like_cron)
 
     def _normalize_seed_name(self, value: Any) -> str:
         text = re.sub(r"\s+", "", str(value or "").strip())

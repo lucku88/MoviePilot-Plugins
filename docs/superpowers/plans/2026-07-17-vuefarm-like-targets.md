@@ -8,6 +8,8 @@
 
 **技术栈：** Python、MoviePilot 插件 API、Vue 3、Vuetify 3、CSS Grid、`unittest`、Vite。
 
+**后续调整：** 用户在 `0.2.7` 完成后要求改用思齐农场同款 Cron 设置；`0.2.8` 将 `like_time` 替换为 `like_cron`，默认 `0 9 * * *`，并保留旧时间配置迁移。
+
 ---
 
 ## 文件结构

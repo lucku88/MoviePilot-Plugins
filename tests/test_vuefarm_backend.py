@@ -3,7 +3,7 @@ import sys
 import time
 import types
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -148,6 +148,43 @@ def _install_moviepilot_stubs():
             self.running = True
 
     background_module.BackgroundScheduler = BackgroundScheduler
+
+    triggers_module = types.ModuleType("apscheduler.triggers")
+    sys.modules["apscheduler.triggers"] = triggers_module
+    cron_module = types.ModuleType("apscheduler.triggers.cron")
+
+    class CronTrigger:
+        def __init__(self, expression, timezone=None):
+            self.expression = expression
+
+        @classmethod
+        def from_crontab(cls, expression, timezone=None):
+            fields = str(expression).split()
+            if len(fields) != 5:
+                raise ValueError("Cron 必须包含 5 个字段")
+            return cls(expression, timezone=timezone)
+
+        @staticmethod
+        def _matches(value, expression):
+            if expression == "*":
+                return True
+            if expression.startswith("*/"):
+                return value % int(expression[2:]) == 0
+            return value == int(expression)
+
+        def get_next_fire_time(self, previous_fire_time, start_date):
+            minute_expr, hour_expr, _, _, _ = self.expression.split()
+            candidate = start_date.replace(second=0, microsecond=0)
+            if candidate < start_date:
+                candidate += timedelta(minutes=1)
+            for _ in range(7 * 24 * 60):
+                if self._matches(candidate.minute, minute_expr) and self._matches(candidate.hour, hour_expr):
+                    return candidate
+                candidate += timedelta(minutes=1)
+            return None
+
+    cron_module.CronTrigger = CronTrigger
+    sys.modules["apscheduler.triggers.cron"] = cron_module
     sys.modules["apscheduler.schedulers.background"] = background_module
 
 
@@ -865,13 +902,22 @@ class VueFarmBackendTests(unittest.TestCase):
     def test_like_targets_config_normalizes_blank_duplicate_and_extra_names(self):
         config = self.plugin._default_config()
         config["like_targets"] = [" 用户甲 ", "", "用户甲", "用户乙", "用户丙", "用户丁"]
-        config["like_time"] = "9:5"
+        config["like_cron"] = "5 */4 * * *"
 
         self.plugin._apply_config(config)
 
         self.assertEqual(["用户甲", "用户乙", "用户丙"], self.plugin._like_targets)
-        self.assertEqual("09:05", self.plugin._like_time)
+        self.assertEqual("5 */4 * * *", self.plugin._like_cron)
         self.assertEqual(["用户甲", "用户乙", "用户丙"], self.plugin._get_config()["like_targets"])
+        self.assertEqual("5 */4 * * *", self.plugin._get_config()["like_cron"])
+
+    def test_old_like_time_config_is_migrated_to_cron(self):
+        config = self.plugin._default_config()
+        config["like_time"] = "9:5"
+
+        self.plugin._apply_config(config)
+
+        self.assertEqual("5 9 * * *", self.plugin._like_cron)
 
     def test_one_time_worker_also_runs_enabled_social_tasks(self):
         main_calls = []
@@ -897,9 +943,9 @@ class VueFarmBackendTests(unittest.TestCase):
     def test_social_worker_does_not_auto_like_before_daily_time(self):
         self.plugin._auto_steal = False
         self.plugin._auto_like = True
-        self.plugin._like_time = "09:00"
+        self.plugin._like_cron = "30 10 * * *"
         timezone = self.module.pytz.timezone("Asia/Shanghai")
-        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 8, 59))
+        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 10, 0))
         calls = []
         self.plugin._run_like_cycle = lambda force=False, payload=None: calls.append(force) or {"success": True}
 
@@ -910,9 +956,9 @@ class VueFarmBackendTests(unittest.TestCase):
     def test_social_worker_catches_up_auto_like_after_daily_time(self):
         self.plugin._auto_steal = False
         self.plugin._auto_like = True
-        self.plugin._like_time = "09:00"
+        self.plugin._like_cron = "30 10 * * *"
         timezone = self.module.pytz.timezone("Asia/Shanghai")
-        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 12, 0))
+        self.plugin._aware_now = lambda: timezone.localize(datetime(2026, 7, 17, 11, 0))
         calls = []
         self.plugin._run_like_cycle = lambda force=False, payload=None: calls.append(force) or {"success": True}
 

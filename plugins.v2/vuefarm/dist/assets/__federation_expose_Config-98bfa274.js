@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_7c7315c2_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_b55327ea_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-7c7315c2"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-b55327ea"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -101,7 +101,7 @@ const _hoisted_52 = { class: "siqi-card__header" };
 const _hoisted_53 = { class: "siqi-card__title d-flex align-center" };
 const _hoisted_54 = { class: "siqi-form-grid steal-interaction-grid" };
 const _hoisted_55 = { class: "siqi-form-grid like-target-grid" };
-const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "固定目标不足 3 个时会用随机目标补齐；每天到达设定时间后执行一次。", -1));
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "固定目标不足 3 个时会用随机目标补齐；默认每天 09:00 执行一次。", -1));
 const _hoisted_57 = { class: "siqi-card" };
 const _hoisted_58 = { class: "siqi-card__header" };
 const _hoisted_59 = { class: "siqi-card__title d-flex align-center" };
@@ -147,11 +147,11 @@ const config = reactive({
   steal_time_windows: '07:00-09:00,12:00-14:00,18:00-23:00',
   social_cron: '*/5 * * * *',
   like_targets: ['', '', ''],
-  like_time: '09:00',
+  like_cron: '0 9 * * *',
   ...props.initialConfig
 });
 config.like_targets = normalizeLikeTargetFields(config.like_targets);
-config.like_time = normalizeLikeTime(config.like_time);
+config.like_cron = normalizeLikeCron(config.like_cron);
 const loading = ref(false);
 const saving = ref(false);
 const syncingCookie = ref(false);
@@ -215,13 +215,9 @@ function normalizeLikeTargetFields(value) {
   return [...unique, '', '', ''].slice(0, 3)
 }
 
-function normalizeLikeTime(value) {
-  const matched = String(value || '').match(/^\s*(\d{1,2}):(\d{1,2})\s*$/);
-  if (!matched) return '09:00'
-  const hour = Number(matched[1]);
-  const minute = Number(matched[2]);
-  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return '09:00'
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+function normalizeLikeCron(value) {
+  const expression = String(value || '').trim().replace(/\s+/g, ' ');
+  return expression.split(' ').length === 5 ? expression : '0 9 * * *'
 }
 
 function onStealCropChange(value) {
@@ -245,7 +241,7 @@ async function loadConfig() {
     Object.assign(config, res);
     config.steal_crop = normalizeStealCropValues(res.steal_crop);
     config.like_targets = normalizeLikeTargetFields(res.like_targets);
-    config.like_time = normalizeLikeTime(res.like_time);
+    config.like_cron = normalizeLikeCron(res.like_cron);
   } catch (e) {
     show(`加载失败：${e.message}`, 'error');
   } finally {
@@ -287,7 +283,7 @@ async function syncCookie() {
       Object.assign(config, res.config);
       config.steal_crop = normalizeStealCropValues(config.steal_crop);
       config.like_targets = normalizeLikeTargetFields(config.like_targets);
-      config.like_time = normalizeLikeTime(config.like_time);
+      config.like_cron = normalizeLikeCron(config.like_cron);
     }
     show(res.message || (res.success ? 'Cookie 同步成功' : 'Cookie 同步失败'), res.success ? 'success' : 'error');
   } catch (e) {
@@ -301,17 +297,17 @@ async function saveConfig() {
   saving.value = true;
   try {
     const likeTargets = normalizeLikeTargetFields(config.like_targets);
-    const likeTime = normalizeLikeTime(config.like_time);
+    const likeCron = normalizeLikeCron(config.like_cron);
     const res = await apiPost('/config', {
       ...config,
       steal_crop: normalizeStealCropValues(config.steal_crop),
       like_targets: likeTargets,
-      like_time: likeTime
+      like_cron: likeCron
     });
     if (res.config) Object.assign(config, res.config);
     config.steal_crop = normalizeStealCropValues(config.steal_crop);
     config.like_targets = normalizeLikeTargetFields(config.like_targets);
-    config.like_time = normalizeLikeTime(config.like_time);
+    config.like_cron = normalizeLikeCron(config.like_cron);
     show(res.message || (res.success ? '保存成功' : '保存失败'), res.success ? 'success' : 'error');
   } catch (e) {
     show(`保存失败：${e.message}`, 'error');
@@ -335,6 +331,7 @@ return (_ctx, _cache) => {
   const _component_v_select = _resolveComponent("v-select");
   const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_textarea = _resolveComponent("v-textarea");
+  const _component_VCronField = _resolveComponent("VCronField");
 
   return (_openBlock(), _createElementBlock("div", _hoisted_1, [
     _createElementVNode("div", _hoisted_2, [
@@ -879,16 +876,12 @@ return (_ctx, _cache) => {
               "prepend-inner-icon": "mdi-account-heart-outline"
             }, null, 8, ["modelValue", "onUpdate:modelValue", "label"])
           }), 64)),
-          _createVNode(_component_v_text_field, {
-            modelValue: config.like_time,
-            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => ((config.like_time) = $event)),
-            label: "每日点赞时间",
-            type: "time",
+          _createVNode(_component_VCronField, {
+            modelValue: config.like_cron,
+            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => ((config.like_cron) = $event)),
+            label: "点赞执行周期（Cron）",
             density: "compact",
-            variant: "outlined",
-            "hide-details": "",
-            class: "siqi-input like-time-field",
-            "prepend-inner-icon": "mdi-clock-check-outline"
+            class: "siqi-input like-cron-field"
           }, null, 8, ["modelValue"])
         ]),
         _hoisted_56
@@ -961,6 +954,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-7c7315c2"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b55327ea"]]);
 
 export { ConfigView as default };
