@@ -54,10 +54,6 @@
             <div class="siqi-switch-main"><v-icon icon="mdi-ip-network-outline" size="18" /><div><div class="siqi-switch-label">强制 IPv4</div><div class="siqi-switch-desc">避免部分环境 IPv6 请求不稳定</div></div></div>
             <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" />
           </div>
-          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enable_ocr_harvest}" style="--siqi-accent:245,158,11">
-            <div class="siqi-switch-main"><v-icon icon="mdi-image-search-outline" size="18" /><div><div class="siqi-switch-label">OCR 批量收菜</div><div class="siqi-switch-desc">使用内置 OCR；失败后立即逐坑位收菜并复查</div></div></div>
-            <v-switch v-model="config.enable_ocr_harvest" color="orange" hide-details density="compact" />
-          </div>
         </div>
       </div>
 
@@ -113,16 +109,16 @@
           <v-text-field v-model.number="config.http_timeout" label="请求超时（秒）" type="number" min="3" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
           <v-text-field v-model.number="config.http_retry_times" label="网络重试次数" type="number" min="1" max="5" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-reload" />
           <v-text-field v-model.number="retryDelaySeconds" label="重试间隔（秒）" type="number" min="0.2" step="0.1" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-outline" />
-          <v-text-field v-model.number="config.ocr_retry_times" label="验证码识别次数" type="number" min="1" max="3" density="compact" variant="outlined" hide-details class="siqi-input" :disabled="!config.enable_ocr_harvest" prepend-inner-icon="mdi-restore" />
-          <v-text-field v-model.number="config.harvest_time_budget_seconds" label="收菜保护时限（秒）" type="number" min="20" max="55" density="compact" variant="outlined" hide-details class="siqi-input" :disabled="!config.enable_ocr_harvest" prepend-inner-icon="mdi-timer-alert-outline" />
+          <v-text-field v-model.number="config.ocr_retry_times" label="验证码识别次数" type="number" min="1" max="3" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-restore" />
+          <v-text-field v-model.number="config.harvest_time_budget_seconds" label="收菜保护时限（秒）" type="number" min="20" max="55" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
         </div>
         <div class="siqi-switch-grid">
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.use_ai_captcha && config.ai_available}" style="--siqi-accent:99,102,241">
             <div class="siqi-switch-main"><v-icon icon="mdi-robot" size="18" /><div><div class="siqi-switch-label">AI 辅助验证码识别</div><div class="siqi-switch-desc">{{ config.ai_available ? 'OCR 失败后调用 MoviePilot AI，再失败则逐坑位' : 'MoviePilot AI 当前不可用' }}</div></div></div>
-            <v-switch v-model="config.use_ai_captcha" color="indigo" hide-details density="compact" :disabled="!config.ai_available || !config.enable_ocr_harvest" />
+            <v-switch v-model="config.use_ai_captcha" color="indigo" hide-details density="compact" :disabled="!config.ai_available" />
           </div>
         </div>
-        <div class="siqi-field-hint">收菜使用 MoviePilot 内置 OCR；识别失败后可调用 AI 辅助，仍失败就立即逐坑位收菜并复查漏收。整次收菜默认最多 45 秒。</div>
+        <div class="siqi-field-hint">收菜固定优先使用 MoviePilot 内置 OCR 批量处理；识别失败后可调用 AI 辅助，仍失败就立即逐坑位收菜并复查漏收。整次收菜默认最多 45 秒。</div>
       </div>
 
       <div class="siqi-card">
@@ -193,7 +189,6 @@ const config = reactive({
   onlyonce: false,
   enable_sell: true,
   enable_plant: true,
-  enable_ocr_harvest: true,
   use_proxy: false,
   force_ipv4: true,
   cookie: '',

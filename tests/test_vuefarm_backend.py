@@ -246,7 +246,6 @@ class VueFarmBackendTests(unittest.TestCase):
         ready_data = _ready_farm_data(20)
         empty_data = {**ready_data, "user_lands": []}
 
-        self.plugin._enable_ocr_harvest = True
         self.plugin._harvest_all = lambda session: {
             "success": False,
             "detail": "OCR 未识别出有效验证码",
@@ -366,44 +365,34 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual("蘑菇", picked["name"])
         self.assertTrue(next(seed for seed in seed_shop if seed["name"] == "蘑菇")["unlocked"])
 
-    def test_ocr_batch_disabled_harvests_individually_and_rechecks_remaining(self):
+    def test_legacy_disabled_ocr_setting_is_ignored_and_batch_still_runs(self):
         ready_data = _ready_farm_data(3)
-        remaining_one = {**ready_data, "user_lands": [ready_data["user_lands"][-1]]}
         empty_data = {**ready_data, "user_lands": []}
-        refetches = iter([remaining_one, empty_data])
-        harvest_calls = []
-
-        self.plugin._enable_ocr_harvest = False
-        self.plugin._harvest_all = lambda session: self.fail("OCR 批量收菜关闭时不应调用批量接口")
-        self.plugin._refetch_state_until = lambda *args, **kwargs: next(refetches)
-
-        def harvest_single(session, land_id, plot_index):
-            harvest_calls.append((land_id, plot_index))
-            return {
-                "success": True,
-                "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
-            }
-
-        self.plugin._harvest_single_plot = harvest_single
+        calls = []
+        config = self.plugin._default_config()
+        config["enable_ocr_harvest"] = False
+        self.plugin._apply_config(config)
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
+        self.plugin._harvest_all = lambda session: calls.append("batch") or {
+            "success": True,
+            "detail": "",
+            "items": [{"name": "茄子", "qty": 3, "unit": 4230, "icon": "🍆"}],
+        }
+        self.plugin._refetch_state_until = lambda *args, **kwargs: empty_data
+        self.plugin._harvest_single_plot = lambda *args, **kwargs: self.fail("批量成功后不应逐坑位收菜")
 
         result = self.plugin._harvest_ready_plots(object(), ready_data)
 
         self.assertTrue(result["success"])
         self.assertEqual(3, result["harvested_count"])
-        self.assertEqual(
-            [(1, 0), (1, 1), (1, 2), (1, 2)],
-            harvest_calls,
-        )
-        self.assertIn("逐坑位收菜", result["note"])
-        self.assertIn("成功 3 块", result["note"])
+        self.assertEqual(["batch"], calls)
+        self.assertNotIn("enable_ocr_harvest", self.plugin._get_config(include_options=False))
 
-    def test_ocr_batch_enabled_without_api_harvests_individually(self):
+    def test_missing_moviepilot_ocr_falls_back_to_individual_harvest(self):
         ready_data = _ready_farm_data(2)
         empty_data = {**ready_data, "user_lands": []}
         harvest_calls = []
 
-        self.plugin._enable_ocr_harvest = True
-        self.plugin._ocr_api_url = ""
         self.plugin._harvest_all = lambda session: self.fail("未配置 OCR API 时不应调用批量接口")
         self.plugin._refetch_state_until = lambda *args, **kwargs: empty_data
         self.plugin._harvest_single_plot = lambda session, land_id, plot_index: harvest_calls.append((land_id, plot_index)) or {
@@ -418,10 +407,10 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual([(1, 0), (1, 1)], harvest_calls)
         self.assertIn("未配置", result["note"])
 
-    def test_ocr_defaults_to_moviepilot_provider_and_batch_harvest(self):
+    def test_ocr_batch_is_builtin_without_config_switch(self):
         config = self.plugin._default_config()
 
-        self.assertTrue(config["enable_ocr_harvest"])
+        self.assertNotIn("enable_ocr_harvest", config)
         self.assertEqual("moviepilot", config["ocr_provider"])
         self.assertEqual(45, config["harvest_time_budget_seconds"])
 
@@ -439,10 +428,11 @@ class VueFarmBackendTests(unittest.TestCase):
 
         self.assertNotIn("ocr_provider", config)
         self.assertNotIn("ocr_api_url", config)
+        self.assertNotIn("enable_ocr_harvest", config)
 
     def test_ocr_batch_uses_moviepilot_host_after_legacy_provider_migration(self):
         config = self.plugin._default_config()
-        config.update({"enable_ocr_harvest": True, "ocr_provider": "trwebocr", "ocr_api_url": ""})
+        config.update({"enable_ocr_harvest": False, "ocr_provider": "trwebocr", "ocr_api_url": ""})
         self.plugin._apply_config(config)
         self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
 
@@ -496,7 +486,6 @@ class VueFarmBackendTests(unittest.TestCase):
     def test_ocr_failure_falls_back_to_ai_before_single_plot_harvest(self):
         ready_data = _ready_farm_data(1)
         calls = []
-        self.plugin._enable_ocr_harvest = True
         self.plugin._ocr_provider = "moviepilot"
         self.plugin._use_ai_captcha = True
         self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"

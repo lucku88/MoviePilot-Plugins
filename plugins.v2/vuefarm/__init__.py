@@ -35,7 +35,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.10"
+    plugin_version = "0.2.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -65,7 +65,6 @@ class VueFarm(_PluginBase):
     _auto_cookie: bool = True
     _enable_sell: bool = True
     _enable_plant: bool = True
-    _enable_ocr_harvest: bool = False
     _ocr_provider: str = "moviepilot"
     _use_proxy: bool = False
     _force_ipv4: bool = True
@@ -827,7 +826,6 @@ class VueFarm(_PluginBase):
             "site_url": self._site_url,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
-            "enable_ocr_harvest": self._enable_ocr_harvest,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -845,7 +843,6 @@ class VueFarm(_PluginBase):
             "onlyonce": self._onlyonce,
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
-            "enable_ocr_harvest": self._enable_ocr_harvest,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
@@ -1451,7 +1448,6 @@ class VueFarm(_PluginBase):
             "onlyonce": False,
             "enable_sell": True,
             "enable_plant": True,
-            "enable_ocr_harvest": True,
             "ocr_provider": "moviepilot",
             "use_proxy": False,
             "force_ipv4": True,
@@ -1483,8 +1479,7 @@ class VueFarm(_PluginBase):
         self._auto_cookie = True
         self._enable_sell = self._to_bool(config.get("enable_sell", True))
         self._enable_plant = self._to_bool(config.get("enable_plant", True))
-        self._enable_ocr_harvest = self._to_bool(config.get("enable_ocr_harvest", False))
-        # 旧版可能保存过 TRWebOCR 配置，升级后统一迁移到内置 OCR。
+        # 批量收菜固定启用；旧版开关和 TRWebOCR 配置升级后统一忽略。
         self._ocr_provider = "moviepilot"
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
@@ -2068,7 +2063,7 @@ class VueFarm(_PluginBase):
         return {"success": False, "detail": last_detail, "reward": 0, "items": []}
 
     def _should_use_ocr_batch_harvest(self) -> bool:
-        return bool(self._enable_ocr_harvest and getattr(settings, "OCR_HOST", None))
+        return bool(getattr(settings, "OCR_HOST", None))
 
     def _collect_ready_plots(self, data: dict) -> List[dict]:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -2183,40 +2178,36 @@ class VueFarm(_PluginBase):
         ready_before: List[dict],
     ) -> Dict[str, Any]:
 
-        batch_attempted = False
         batch_result: Dict[str, Any] = {"success": False, "detail": "", "items": []}
         latest_data = data
         remaining_ready = ready_before
         harvested_items: List[Dict[str, Any]] = []
-        note_prefix = "OCR批量收菜未开启，已使用逐坑位收菜"
+        note_prefix = "批量收菜失败，已自动切换逐坑位收菜"
 
-        if self._enable_ocr_harvest:
-            batch_attempted = True
-            note_prefix = "批量收菜失败，已自动切换逐坑位收菜"
-            if self._should_use_ocr_batch_harvest():
-                batch_result = self._harvest_all(session)
-            else:
-                batch_result = {"success": False, "detail": "MoviePilot OCR_HOST 未配置", "items": []}
-                note_prefix = "MoviePilot OCR 未配置，已自动切换逐坑位收菜"
+        if self._should_use_ocr_batch_harvest():
+            batch_result = self._harvest_all(session)
+        else:
+            batch_result = {"success": False, "detail": "MoviePilot OCR_HOST 未配置", "items": []}
+            note_prefix = "MoviePilot OCR 未配置，已自动切换逐坑位收菜"
 
-            if not batch_result.get("success") and self._use_ai_captcha:
-                ai_result = self._harvest_ai(session)
-                if ai_result.get("success"):
-                    batch_result = ai_result
-                    note_prefix = "AI 批量收菜后检测到漏收，已自动切换逐坑位补收"
-                elif ai_result.get("detail"):
-                    batch_detail = batch_result.get("detail") or "OCR 识别失败"
-                    batch_result["detail"] = f"{batch_detail}；{ai_result.get('detail')}"
+        if not batch_result.get("success") and self._use_ai_captcha:
+            ai_result = self._harvest_ai(session)
+            if ai_result.get("success"):
+                batch_result = ai_result
+                note_prefix = "AI 批量收菜后检测到漏收，已自动切换逐坑位补收"
+            elif ai_result.get("detail"):
+                batch_detail = batch_result.get("detail") or "OCR 识别失败"
+                batch_result["detail"] = f"{batch_detail}；{ai_result.get('detail')}"
 
-            harvested_items = list(batch_result.get("items") or [])
-            if batch_result.get("success"):
-                latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
-                remaining_ready = self._collect_ready_plots(latest_data)
-                if remaining_ready and not note_prefix.startswith("AI"):
-                    note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
-            else:
-                latest_data = data
-                remaining_ready = ready_before
+        harvested_items = list(batch_result.get("items") or [])
+        if batch_result.get("success"):
+            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
+            remaining_ready = self._collect_ready_plots(latest_data)
+            if remaining_ready and not note_prefix.startswith("AI"):
+                note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
+        else:
+            latest_data = data
+            remaining_ready = ready_before
 
         if batch_result.get("success") and not remaining_ready:
             return {
@@ -2254,7 +2245,7 @@ class VueFarm(_PluginBase):
         note = ""
         if fallback_success > 0:
             note = f"{note_prefix}，成功 {fallback_success} 块。"
-        elif batch_attempted and batch_result.get("success"):
+        elif batch_result.get("success"):
             note = "批量收菜后复查仍有成熟田未收获。"
 
         detail = ""
