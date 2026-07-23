@@ -35,7 +35,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.9"
+    plugin_version = "0.2.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -828,7 +828,6 @@ class VueFarm(_PluginBase):
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
-            "ocr_provider": self._ocr_provider,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
@@ -847,11 +846,9 @@ class VueFarm(_PluginBase):
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "enable_ocr_harvest": self._enable_ocr_harvest,
-            "ocr_provider": self._ocr_provider,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
-            "ocr_api_url": self._ocr_api_url,
             "prefer_seed": self._prefer_seed,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -1000,7 +997,10 @@ class VueFarm(_PluginBase):
         steal_done_today = self.get_data("auto_steal_done_date") == self._today_key()
         steal_result = None
         like_result = None
-        steal_allowed = force or (window_key and self.get_data("auto_steal_window_key") != window_key)
+        # 时间段只限制“什么时候可以检查”，不把整段时间锁成只检查一次。
+        # 没找到目标作物时，下一次社会任务仍应继续尝试；只有网站额度耗尽
+        # 才记录当天完成，避免全天窗口在第一次无目标后永久跳过后续检查。
+        steal_allowed = force or bool(window_key)
         if self._auto_steal and not steal_done_today and steal_allowed:
             steal_result = self._run_steal_cycle(force=force)
             if steal_result.get("success"):
@@ -1009,9 +1009,8 @@ class VueFarm(_PluginBase):
                         self.save_data("auto_steal_window_key", window_key)
                     self.save_data("auto_steal_done_date", self._today_key())
                 elif self._safe_int(steal_result.get("stolen"), 0) <= 0:
-                    # 本轮没有目标作物时等下一个时段；偷到但仍有额度则在当前时段继续检查。
-                    if window_key:
-                        self.save_data("auto_steal_window_key", window_key)
+                    # 没找到目标时不写入窗口完成标记，交给下一次 Cron 继续检查。
+                    logger.info("%s 本轮没有目标作物，等待下一次互动检查", self.plugin_name)
         if (
             self._auto_like
             and self.get_data("auto_like_date") != self._today_key()
@@ -1336,8 +1335,8 @@ class VueFarm(_PluginBase):
 
     @staticmethod
     def _normalize_ocr_provider(value: Any, default: str = "moviepilot") -> str:
-        provider = str(value or "").strip().lower()
-        return provider if provider in {"moviepilot", "trwebocr"} else default
+        # 保留这个方法兼容旧配置，但从现在起统一使用 MoviePilot 内置 OCR。
+        return "moviepilot"
 
     @staticmethod
     def _normalize_captcha_text(value: Any) -> str:
@@ -1485,13 +1484,14 @@ class VueFarm(_PluginBase):
         self._enable_sell = self._to_bool(config.get("enable_sell", True))
         self._enable_plant = self._to_bool(config.get("enable_plant", True))
         self._enable_ocr_harvest = self._to_bool(config.get("enable_ocr_harvest", False))
-        self._ocr_provider = self._normalize_ocr_provider(config.get("ocr_provider"), "moviepilot")
+        # 旧版可能保存过 TRWebOCR 配置，升级后统一迁移到内置 OCR。
+        self._ocr_provider = "moviepilot"
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cron = self.DEFAULT_CRON
         self._site_domain = self.DEFAULT_SITE_DOMAIN
         self._cookie = (config.get("cookie") or "").strip()
-        self._ocr_api_url = (config.get("ocr_api_url") or "").strip()
+        self._ocr_api_url = ""
         self._prefer_seed = (config.get("prefer_seed") or "西红柿").strip() or "西红柿"
         self._schedule_buffer_seconds = self._safe_int(config.get("schedule_buffer_seconds"), 5)
         self._random_delay_max_seconds = self._safe_int(config.get("random_delay_max_seconds"), 5)
@@ -1904,50 +1904,23 @@ class VueFarm(_PluginBase):
         )
 
     def _recognize_captcha(self, session: requests.Session, image_content: bytes) -> str:
-        if self._ocr_provider == "moviepilot":
-            ocr_host = str(getattr(settings, "OCR_HOST", "") or "").strip()
-            if not ocr_host:
-                logger.warning("%s MoviePilot OCR_HOST 未配置", self.plugin_name)
-                return ""
-            try:
-                response = requests.post(
-                    f"{ocr_host.rstrip('/')}/captcha/base64",
-                    json={"base64_img": base64.b64encode(image_content).decode("utf-8")},
-                    timeout=self._harvest_timeout(self._harvest_batch_deadline, 6),
-                )
-                response.raise_for_status()
-                text = self._normalize_captcha_text((response.json() or {}).get("result"))
-                logger.info("INFO MoviePilot OCR 识别结果: %s", text or "EMPTY")
-                return text
-            except Exception as err:
-                logger.warning("%s MoviePilot OCR 识别异常: %s", self.plugin_name, err)
-                return ""
-
-        if not self._ocr_api_url:
-            logger.warning("%s TRWebOCR API 地址未配置", self.plugin_name)
+        # 验证码识别统一调用 MoviePilot 内置 OCR，不再根据旧配置切换外部 OCR。
+        ocr_host = str(getattr(settings, "OCR_HOST", "") or "").strip()
+        if not ocr_host:
+            logger.warning("%s MoviePilot OCR_HOST 未配置", self.plugin_name)
             return ""
         try:
-            response = session.post(
-                self._ocr_api_url,
-                files={"file": ("cap.jpg", image_content, "image/jpeg")},
+            response = requests.post(
+                f"{ocr_host.rstrip('/')}/captcha/base64",
+                json={"base64_img": base64.b64encode(image_content).decode("utf-8")},
                 timeout=self._harvest_timeout(self._harvest_batch_deadline, 6),
             )
             response.raise_for_status()
-            data = response.json()
-            raw_lines = ((data or {}).get("data") or {}).get("raw_out") or []
-            text = ""
-            confidence = 0.0
-            for line in raw_lines:
-                if isinstance(line, list) and len(line) >= 2:
-                    if isinstance(line[1], str):
-                        text += line[1]
-                    if len(line) >= 3 and isinstance(line[2], (int, float)):
-                        confidence = max(confidence, float(line[2]))
-            text = self._normalize_captcha_text(text)
-            logger.info("INFO TRWebOCR 识别结果: %s (置信度: %s)", text or "EMPTY", confidence)
+            text = self._normalize_captcha_text((response.json() or {}).get("result"))
+            logger.info("INFO MoviePilot OCR 识别结果: %s", text or "EMPTY")
             return text
         except Exception as err:
-            logger.warning("%s TRWebOCR 识别异常: %s", self.plugin_name, err)
+            logger.warning("%s MoviePilot OCR 识别异常: %s", self.plugin_name, err)
             return ""
 
     def _ai_recognize_captcha(self, image_url: str) -> str:
@@ -2095,11 +2068,7 @@ class VueFarm(_PluginBase):
         return {"success": False, "detail": last_detail, "reward": 0, "items": []}
 
     def _should_use_ocr_batch_harvest(self) -> bool:
-        if not self._enable_ocr_harvest:
-            return False
-        if self._ocr_provider == "moviepilot":
-            return bool(getattr(settings, "OCR_HOST", None))
-        return bool(self._ocr_api_url)
+        return bool(self._enable_ocr_harvest and getattr(settings, "OCR_HOST", None))
 
     def _collect_ready_plots(self, data: dict) -> List[dict]:
         seed_map = {str(seed.get("id")): seed for seed in (data.get("seeds") or [])}
@@ -2226,12 +2195,9 @@ class VueFarm(_PluginBase):
             note_prefix = "批量收菜失败，已自动切换逐坑位收菜"
             if self._should_use_ocr_batch_harvest():
                 batch_result = self._harvest_all(session)
-            elif self._ocr_provider == "moviepilot":
+            else:
                 batch_result = {"success": False, "detail": "MoviePilot OCR_HOST 未配置", "items": []}
                 note_prefix = "MoviePilot OCR 未配置，已自动切换逐坑位收菜"
-            else:
-                batch_result = {"success": False, "detail": "TRWebOCR API 地址未配置", "items": []}
-                note_prefix = "TRWebOCR API 未配置，已自动切换逐坑位收菜"
 
             if not batch_result.get("success") and self._use_ai_captcha:
                 ai_result = self._harvest_ai(session)

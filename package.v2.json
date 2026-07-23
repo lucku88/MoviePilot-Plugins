@@ -3,11 +3,12 @@
     "name": "Vue-农场",
     "description": "动态收菜、种植、出售、分时偷菜、批量点赞与农场可视化操作。",
     "labels": "工具,自动化,农场,Vue",
-    "version": "0.2.9",
+    "version": "0.2.10",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.2.10": "修复全天偷菜首次没有目标作物后不再重试的问题；固定使用 MoviePilot 内置 OCR，移除 OCR 来源和外部地址配置，并将 AI 辅助识别与收菜保护参数移到参数设置。",
       "v0.2.9": "验证码批量收菜默认开启并默认调用 MoviePilot OCR_HOST/captcha/base64，可切换 TRWebOCR；OCR 失败后可选 AI 辅助识别，全部失败立即逐坑位，并增加 45 秒收菜保护时限、漏收复查和 30 秒短重试。",
       "v0.2.8": "将每日点赞时间改为思齐农场同款 Cron 表达式组件和可读解释，默认 0 9 * * *；旧版时间配置自动迁移为 Cron，自动点赞仍保持每天最多一次。",
       "v0.2.7": "微调偷菜多选换行后的输入框垂直对齐；新增三个固定点赞目标，空位自动用不重复的随机目标补齐，并支持每天固定时间执行，默认 09:00、错过后当天补跑。",

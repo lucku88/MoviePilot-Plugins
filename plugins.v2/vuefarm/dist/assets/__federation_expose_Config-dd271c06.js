@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_924fcf17_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_3323073b_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-924fcf17"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3323073b"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -46,8 +46,8 @@ const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 ], -1));
 const _hoisted_23 = { class: "siqi-switch-main" };
 const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "验证码批量收菜"),
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "默认开启；失败后立即逐坑位收菜并复查")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "OCR 批量收菜"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "使用内置 OCR；失败后立即逐坑位收菜并复查")
 ], -1));
 const _hoisted_25 = { class: "siqi-card" };
 const _hoisted_26 = { class: "siqi-card__header" };
@@ -90,26 +90,21 @@ const _hoisted_44 = {
   key: 1,
   class: "text-medium-emphasis"
 };
-const _hoisted_45 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件按最早真实成熟时间自动运行；优先种子来自站点种子商店，并会自动识别是否已解锁。", -1));
-const _hoisted_46 = { class: "siqi-card" };
-const _hoisted_47 = { class: "siqi-card__header" };
-const _hoisted_48 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_49 = { class: "siqi-form-grid" };
-const _hoisted_50 = { class: "siqi-switch-grid" };
-const _hoisted_51 = { class: "siqi-switch-main" };
-const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "AI 辅助验证码识别", -1));
-const _hoisted_53 = { class: "siqi-switch-desc" };
-const _hoisted_54 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认使用 MoviePilot OCR。批量识别会预留逐坑位收菜时间，整次收菜默认最多 45 秒；结束后会复查漏收。", -1));
-const _hoisted_55 = { class: "siqi-card" };
-const _hoisted_56 = { class: "siqi-card__header" };
-const _hoisted_57 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_58 = { class: "siqi-form-grid steal-interaction-grid" };
-const _hoisted_59 = { class: "siqi-form-grid like-target-grid" };
-const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "固定目标不足 3 个时会用随机目标补齐；默认每天 09:00 执行一次。", -1));
-const _hoisted_61 = { class: "siqi-card" };
-const _hoisted_62 = { class: "siqi-card__header" };
-const _hoisted_63 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_64 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。", -1));
+const _hoisted_45 = { class: "siqi-switch-grid" };
+const _hoisted_46 = { class: "siqi-switch-main" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "AI 辅助验证码识别", -1));
+const _hoisted_48 = { class: "siqi-switch-desc" };
+const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "收菜使用 MoviePilot 内置 OCR；识别失败后可调用 AI 辅助，仍失败就立即逐坑位收菜并复查漏收。整次收菜默认最多 45 秒。", -1));
+const _hoisted_50 = { class: "siqi-card" };
+const _hoisted_51 = { class: "siqi-card__header" };
+const _hoisted_52 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_53 = { class: "siqi-form-grid steal-interaction-grid" };
+const _hoisted_54 = { class: "siqi-form-grid like-target-grid" };
+const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "固定目标不足 3 个时会用随机目标补齐；默认每天 09:00 执行一次。", -1));
+const _hoisted_56 = { class: "siqi-card" };
+const _hoisted_57 = { class: "siqi-card__header" };
+const _hoisted_58 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。", -1));
 
 const {computed,reactive,ref,onMounted} = await importShared('vue');
 
@@ -133,11 +128,9 @@ const config = reactive({
   enable_sell: true,
   enable_plant: true,
   enable_ocr_harvest: true,
-  ocr_provider: 'moviepilot',
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
-  ocr_api_url: '',
   prefer_seed: '西红柿',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
@@ -168,10 +161,6 @@ const seedLoading = ref(false);
 const showCookie = ref(false);
 const seedOptions = ref([{ title: '🍅 西红柿', value: '西红柿', locked: false, unlockHarvest: 0 }]);
 const stealCropOptions = ref(['全部作物', '西红柿']);
-const ocrProviderOptions = [
-  { title: 'MoviePilot 内置 OCR（默认）', value: 'moviepilot' },
-  { title: 'TRWebOCR 容器', value: 'trwebocr' }
-];
 const socialCronOptions = [
   { title: '每 5 分钟', value: '*/5 * * * *' },
   { title: '每 10 分钟', value: '*/10 * * * *' },
@@ -760,38 +749,10 @@ return (_ctx, _cache) => {
             "hide-details": "",
             class: "siqi-input",
             "prepend-inner-icon": "mdi-timer-outline"
-          }, null, 8, ["modelValue"])
-        ]),
-        _hoisted_45
-      ]),
-      _createElementVNode("div", _hoisted_46, [
-        _createElementVNode("div", _hoisted_47, [
-          _createElementVNode("span", _hoisted_48, [
-            _createVNode(_component_v_icon, {
-              icon: "mdi-image-search-outline",
-              size: "18",
-              color: "#f59e0b",
-              class: "mr-1"
-            }),
-            _createTextVNode("OCR 批量收菜 ")
-          ])
-        ]),
-        _createElementVNode("div", _hoisted_49, [
-          _createVNode(_component_v_select, {
-            modelValue: config.ocr_provider,
-            "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.ocr_provider) = $event)),
-            items: ocrProviderOptions,
-            label: "OCR 识别来源",
-            density: "compact",
-            variant: "outlined",
-            "hide-details": "",
-            class: "siqi-input",
-            "prepend-inner-icon": "mdi-image-search-outline",
-            disabled: !config.enable_ocr_harvest
-          }, null, 8, ["modelValue", "disabled"]),
+          }, null, 8, ["modelValue"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.ocr_retry_times,
-            "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((config.ocr_retry_times) = $event)),
+            "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.ocr_retry_times) = $event)),
             modelModifiers: { number: true },
             label: "验证码识别次数",
             type: "number",
@@ -801,12 +762,12 @@ return (_ctx, _cache) => {
             variant: "outlined",
             "hide-details": "",
             class: "siqi-input",
-            "prepend-inner-icon": "mdi-restore",
-            disabled: !config.enable_ocr_harvest
+            disabled: !config.enable_ocr_harvest,
+            "prepend-inner-icon": "mdi-restore"
           }, null, 8, ["modelValue", "disabled"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.harvest_time_budget_seconds,
-            "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.harvest_time_budget_seconds) = $event)),
+            "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => ((config.harvest_time_budget_seconds) = $event)),
             modelModifiers: { number: true },
             label: "收菜保护时限（秒）",
             type: "number",
@@ -816,41 +777,28 @@ return (_ctx, _cache) => {
             variant: "outlined",
             "hide-details": "",
             class: "siqi-input",
+            disabled: !config.enable_ocr_harvest,
             "prepend-inner-icon": "mdi-timer-alert-outline"
-          }, null, 8, ["modelValue"]),
-          (config.ocr_provider === 'trwebocr')
-            ? (_openBlock(), _createBlock(_component_v_text_field, {
-                key: 0,
-                modelValue: config.ocr_api_url,
-                "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => ((config.ocr_api_url) = $event)),
-                label: "TRWebOCR API 地址",
-                density: "compact",
-                variant: "outlined",
-                "hide-details": "",
-                class: "siqi-input siqi-wide-field",
-                "prepend-inner-icon": "mdi-link-variant",
-                disabled: !config.enable_ocr_harvest
-              }, null, 8, ["modelValue", "disabled"]))
-            : _createCommentVNode("", true)
+          }, null, 8, ["modelValue", "disabled"])
         ]),
-        _createElementVNode("div", _hoisted_50, [
+        _createElementVNode("div", _hoisted_45, [
           _createElementVNode("div", {
             class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.use_ai_captcha && config.ai_available}]),
             style: {"--siqi-accent":"99,102,241"}
           }, [
-            _createElementVNode("div", _hoisted_51, [
+            _createElementVNode("div", _hoisted_46, [
               _createVNode(_component_v_icon, {
                 icon: "mdi-robot",
                 size: "18"
               }),
               _createElementVNode("div", null, [
-                _hoisted_52,
-                _createElementVNode("div", _hoisted_53, _toDisplayString(config.ai_available ? 'OCR 失败后调用 MoviePilot AI，再失败则逐坑位' : 'MoviePilot AI 当前不可用'), 1)
+                _hoisted_47,
+                _createElementVNode("div", _hoisted_48, _toDisplayString(config.ai_available ? 'OCR 失败后调用 MoviePilot AI，再失败则逐坑位' : 'MoviePilot AI 当前不可用'), 1)
               ])
             ]),
             _createVNode(_component_v_switch, {
               modelValue: config.use_ai_captcha,
-              "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => ((config.use_ai_captcha) = $event)),
+              "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => ((config.use_ai_captcha) = $event)),
               color: "indigo",
               "hide-details": "",
               density: "compact",
@@ -858,11 +806,11 @@ return (_ctx, _cache) => {
             }, null, 8, ["modelValue", "disabled"])
           ], 2)
         ]),
-        _hoisted_54
+        _hoisted_49
       ]),
-      _createElementVNode("div", _hoisted_55, [
-        _createElementVNode("div", _hoisted_56, [
-          _createElementVNode("span", _hoisted_57, [
+      _createElementVNode("div", _hoisted_50, [
+        _createElementVNode("div", _hoisted_51, [
+          _createElementVNode("span", _hoisted_52, [
             _createVNode(_component_v_icon, {
               icon: "mdi-incognito",
               size: "18",
@@ -872,11 +820,11 @@ return (_ctx, _cache) => {
             _createTextVNode("偷菜与互动 ")
           ])
         ]),
-        _createElementVNode("div", _hoisted_58, [
+        _createElementVNode("div", _hoisted_53, [
           _createVNode(_component_v_select, {
             modelValue: config.steal_crop,
             "onUpdate:modelValue": [
-              _cache[24] || (_cache[24] = $event => ((config.steal_crop) = $event)),
+              _cache[22] || (_cache[22] = $event => ((config.steal_crop) = $event)),
               onStealCropChange
             ],
             items: stealCropOptions.value,
@@ -893,7 +841,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue", "items"]),
           _createVNode(_component_v_text_field, {
             modelValue: config.steal_visit_count,
-            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => ((config.steal_visit_count) = $event)),
+            "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => ((config.steal_visit_count) = $event)),
             modelModifiers: { number: true },
             label: "每轮随机访问人数",
             type: "number",
@@ -907,7 +855,7 @@ return (_ctx, _cache) => {
           }, null, 8, ["modelValue"]),
           _createVNode(_component_v_select, {
             modelValue: config.social_cron,
-            "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => ((config.social_cron) = $event)),
+            "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => ((config.social_cron) = $event)),
             items: socialCronOptions,
             label: "互动检查间隔",
             density: "compact",
@@ -919,7 +867,7 @@ return (_ctx, _cache) => {
         ]),
         _createVNode(_component_v_textarea, {
           modelValue: config.steal_time_windows,
-          "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => ((config.steal_time_windows) = $event)),
+          "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => ((config.steal_time_windows) = $event)),
           label: "偷菜时间段",
           rows: "2",
           "auto-grow": "",
@@ -929,7 +877,7 @@ return (_ctx, _cache) => {
           hint: "多个时间段用逗号分隔，例如：07:00-09:00,12:00-14:00,18:00-23:00",
           "persistent-hint": ""
         }, null, 8, ["modelValue"]),
-        _createElementVNode("div", _hoisted_59, [
+        _createElementVNode("div", _hoisted_54, [
           (_openBlock(), _createElementBlock(_Fragment, null, _renderList(3, (index) => {
             return _createVNode(_component_v_text_field, {
               key: index,
@@ -945,17 +893,17 @@ return (_ctx, _cache) => {
           }), 64)),
           _createVNode(_component_VCronField, {
             modelValue: config.like_cron,
-            "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => ((config.like_cron) = $event)),
+            "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => ((config.like_cron) = $event)),
             label: "点赞执行周期（Cron）",
             density: "compact",
             class: "siqi-input like-cron-field"
           }, null, 8, ["modelValue"])
         ]),
-        _hoisted_60
+        _hoisted_55
       ]),
-      _createElementVNode("div", _hoisted_61, [
-        _createElementVNode("div", _hoisted_62, [
-          _createElementVNode("span", _hoisted_63, [
+      _createElementVNode("div", _hoisted_56, [
+        _createElementVNode("div", _hoisted_57, [
+          _createElementVNode("span", _hoisted_58, [
             _createVNode(_component_v_icon, {
               icon: "mdi-cookie",
               size: "18",
@@ -984,7 +932,7 @@ return (_ctx, _cache) => {
         ]),
         _createVNode(_component_v_textarea, {
           modelValue: config.cookie,
-          "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => ((config.cookie) = $event)),
+          "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => ((config.cookie) = $event)),
           label: "站点 Cookie（自动同步）",
           rows: "2",
           "auto-grow": "",
@@ -1000,7 +948,7 @@ return (_ctx, _cache) => {
               size: "x-small",
               icon: "",
               class: "siqi-secret-toggle",
-              onClick: _cache[29] || (_cache[29] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
+              onClick: _cache[27] || (_cache[27] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, {
@@ -1013,7 +961,7 @@ return (_ctx, _cache) => {
           ]),
           _: 1
         }, 8, ["modelValue", "class"]),
-        _hoisted_64
+        _hoisted_59
       ])
     ])
   ]))
@@ -1021,6 +969,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-924fcf17"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3323073b"]]);
 
 export { ConfigView as default };

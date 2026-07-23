@@ -55,7 +55,7 @@
             <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" />
           </div>
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enable_ocr_harvest}" style="--siqi-accent:245,158,11">
-            <div class="siqi-switch-main"><v-icon icon="mdi-image-search-outline" size="18" /><div><div class="siqi-switch-label">验证码批量收菜</div><div class="siqi-switch-desc">默认开启；失败后立即逐坑位收菜并复查</div></div></div>
+            <div class="siqi-switch-main"><v-icon icon="mdi-image-search-outline" size="18" /><div><div class="siqi-switch-label">OCR 批量收菜</div><div class="siqi-switch-desc">使用内置 OCR；失败后立即逐坑位收菜并复查</div></div></div>
             <v-switch v-model="config.enable_ocr_harvest" color="orange" hide-details density="compact" />
           </div>
         </div>
@@ -113,21 +113,8 @@
           <v-text-field v-model.number="config.http_timeout" label="请求超时（秒）" type="number" min="3" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
           <v-text-field v-model.number="config.http_retry_times" label="网络重试次数" type="number" min="1" max="5" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-reload" />
           <v-text-field v-model.number="retryDelaySeconds" label="重试间隔（秒）" type="number" min="0.2" step="0.1" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-outline" />
-        </div>
-        <div class="siqi-field-hint">插件按最早真实成熟时间自动运行；优先种子来自站点种子商店，并会自动识别是否已解锁。</div>
-      </div>
-
-      <div class="siqi-card">
-        <div class="siqi-card__header">
-          <span class="siqi-card__title d-flex align-center">
-            <v-icon icon="mdi-image-search-outline" size="18" color="#f59e0b" class="mr-1" />OCR 批量收菜
-          </span>
-        </div>
-        <div class="siqi-form-grid">
-          <v-select v-model="config.ocr_provider" :items="ocrProviderOptions" label="OCR 识别来源" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-image-search-outline" :disabled="!config.enable_ocr_harvest" />
-          <v-text-field v-model.number="config.ocr_retry_times" label="验证码识别次数" type="number" min="1" max="3" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-restore" :disabled="!config.enable_ocr_harvest" />
-          <v-text-field v-model.number="config.harvest_time_budget_seconds" label="收菜保护时限（秒）" type="number" min="20" max="55" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
-          <v-text-field v-if="config.ocr_provider === 'trwebocr'" v-model="config.ocr_api_url" label="TRWebOCR API 地址" density="compact" variant="outlined" hide-details class="siqi-input siqi-wide-field" prepend-inner-icon="mdi-link-variant" :disabled="!config.enable_ocr_harvest" />
+          <v-text-field v-model.number="config.ocr_retry_times" label="验证码识别次数" type="number" min="1" max="3" density="compact" variant="outlined" hide-details class="siqi-input" :disabled="!config.enable_ocr_harvest" prepend-inner-icon="mdi-restore" />
+          <v-text-field v-model.number="config.harvest_time_budget_seconds" label="收菜保护时限（秒）" type="number" min="20" max="55" density="compact" variant="outlined" hide-details class="siqi-input" :disabled="!config.enable_ocr_harvest" prepend-inner-icon="mdi-timer-alert-outline" />
         </div>
         <div class="siqi-switch-grid">
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.use_ai_captcha && config.ai_available}" style="--siqi-accent:99,102,241">
@@ -135,7 +122,7 @@
             <v-switch v-model="config.use_ai_captcha" color="indigo" hide-details density="compact" :disabled="!config.ai_available || !config.enable_ocr_harvest" />
           </div>
         </div>
-        <div class="siqi-field-hint">默认使用 MoviePilot OCR。批量识别会预留逐坑位收菜时间，整次收菜默认最多 45 秒；结束后会复查漏收。</div>
+        <div class="siqi-field-hint">收菜使用 MoviePilot 内置 OCR；识别失败后可调用 AI 辅助，仍失败就立即逐坑位收菜并复查漏收。整次收菜默认最多 45 秒。</div>
       </div>
 
       <div class="siqi-card">
@@ -207,11 +194,9 @@ const config = reactive({
   enable_sell: true,
   enable_plant: true,
   enable_ocr_harvest: true,
-  ocr_provider: 'moviepilot',
   use_proxy: false,
   force_ipv4: true,
   cookie: '',
-  ocr_api_url: '',
   prefer_seed: '西红柿',
   schedule_buffer_seconds: 5,
   random_delay_max_seconds: 5,
@@ -242,10 +227,6 @@ const seedLoading = ref(false)
 const showCookie = ref(false)
 const seedOptions = ref([{ title: '🍅 西红柿', value: '西红柿', locked: false, unlockHarvest: 0 }])
 const stealCropOptions = ref(['全部作物', '西红柿'])
-const ocrProviderOptions = [
-  { title: 'MoviePilot 内置 OCR（默认）', value: 'moviepilot' },
-  { title: 'TRWebOCR 容器', value: 'trwebocr' }
-]
 const socialCronOptions = [
   { title: '每 5 分钟', value: '*/5 * * * *' },
   { title: '每 10 分钟', value: '*/10 * * * *' },

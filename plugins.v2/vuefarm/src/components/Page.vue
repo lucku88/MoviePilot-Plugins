@@ -220,7 +220,7 @@
           <div class="dynamic-schedule-title">
             <span class="dynamic-schedule-icon"><v-icon icon="mdi-clock-check-outline" size="20" /></span>
             <div>
-              <strong>动态收菜</strong>
+              <strong>收菜时间</strong>
               <small>按作物真实成熟时间运行，不使用固定周期</small>
             </div>
           </div>

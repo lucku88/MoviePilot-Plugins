@@ -425,14 +425,28 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual("moviepilot", config["ocr_provider"])
         self.assertEqual(45, config["harvest_time_budget_seconds"])
 
-    def test_ocr_provider_can_switch_to_trwebocr(self):
+    def test_legacy_trwebocr_config_is_forced_to_moviepilot_ocr(self):
         config = self.plugin._default_config()
         config.update({"ocr_provider": "trwebocr", "ocr_api_url": "http://ocr:8089/api/tr-run/"})
 
         self.plugin._apply_config(config)
 
-        self.assertEqual("trwebocr", self.plugin._ocr_provider)
-        self.assertEqual("http://ocr:8089/api/tr-run/", self.plugin._ocr_api_url)
+        self.assertEqual("moviepilot", self.plugin._ocr_provider)
+        self.assertEqual("", self.plugin._ocr_api_url)
+
+    def test_ocr_source_fields_are_not_exposed_in_plugin_config(self):
+        config = self.plugin._get_config(include_options=False)
+
+        self.assertNotIn("ocr_provider", config)
+        self.assertNotIn("ocr_api_url", config)
+
+    def test_ocr_batch_uses_moviepilot_host_after_legacy_provider_migration(self):
+        config = self.plugin._default_config()
+        config.update({"enable_ocr_harvest": True, "ocr_provider": "trwebocr", "ocr_api_url": ""})
+        self.plugin._apply_config(config)
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
+
+        self.assertTrue(self.plugin._should_use_ocr_batch_harvest())
 
     def test_moviepilot_ocr_uses_captcha_base64_endpoint(self):
         captured = {}
@@ -748,14 +762,15 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual([], run_calls)
         self.assertEqual("农场状态已预刷新", result["message"])
 
-    def test_social_worker_runs_steal_only_once_in_same_time_window(self):
+    def test_social_worker_stops_same_window_only_after_quota_is_exhausted(self):
         self.plugin._auto_steal = True
         self.plugin._auto_like = False
         self.plugin._active_steal_window = lambda now=None: "2026-07-16|07:00-09:00"
         calls = []
         self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or {
             "success": True,
-            "message": "本时段已检查",
+            "message": "今日次数已用完",
+            "exhausted": True,
         }
 
         self.plugin._social_worker()
@@ -763,6 +778,42 @@ class VueFarmBackendTests(unittest.TestCase):
 
         self.assertEqual(["steal"], calls)
         self.assertEqual("2026-07-16|07:00-09:00", self.plugin.get_data("auto_steal_window_key"))
+        self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_steal_done_date"))
+
+    def test_social_worker_retries_same_window_after_no_target(self):
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = False
+        self.plugin._active_steal_window = lambda now=None: "2026-07-16|00:00-23:59"
+        results = iter([
+            {"success": True, "message": "没有找到目标作物", "stolen": 0, "exhausted": False},
+            {"success": True, "message": "偷到 1 份", "stolen": 1, "remaining": 0, "exhausted": True},
+        ])
+        calls = []
+        self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or next(results)
+
+        self.plugin._social_worker()
+        self.plugin._social_worker()
+
+        self.assertEqual(["steal", "steal"], calls)
+        self.assertEqual(self.plugin._today_key(), self.plugin.get_data("auto_steal_done_date"))
+
+    def test_social_worker_ignores_legacy_no_target_window_marker(self):
+        self.plugin._auto_steal = True
+        self.plugin._auto_like = False
+        window_key = "2026-07-16|00:00-23:59"
+        self.plugin._active_steal_window = lambda now=None: window_key
+        self.plugin.save_data("auto_steal_window_key", window_key)
+        calls = []
+        self.plugin._run_steal_cycle = lambda force=False, payload=None: calls.append("steal") or {
+            "success": True,
+            "message": "没有找到目标作物",
+            "stolen": 0,
+            "exhausted": False,
+        }
+
+        self.plugin._social_worker()
+
+        self.assertEqual(["steal"], calls)
 
     def test_social_worker_stops_later_windows_after_daily_steal_is_exhausted(self):
         self.plugin._auto_steal = True
