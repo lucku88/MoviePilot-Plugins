@@ -29,20 +29,21 @@ _CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
 _CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
 _COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
 _BRICK_READY_WORDS = ("可以搬砖", "可搬砖", "立即搬砖", "立即搬")
-_BRICK_BLOCKED_WORDS = (
-    "倒计时",
+_BRICK_BLOCKED_WORDS = ("倒计时", "上限", "明日", "明天")
+_CONSERVATIVE_NEGATIVE_SIGNALS = (
+    "暂无",
+    "没有",
+    "尚未",
+    "不能",
+    "不可",
+    "无法",
+    "未到",
     "冷却",
     "等待",
-    "上限",
-    "明日可搬",
-    "尚未可搬",
-    "尚未可以搬",
-    "未可搬",
-    "时间未到",
-    "不可以搬",
-    "不可搬",
-    "不能搬",
-    "无法搬",
+    "稍后",
+    "无",
+    "不",
+    "未",
 )
 _TRASH_WORDS = (
     "待收垃圾",
@@ -54,20 +55,6 @@ _TRASH_WORDS = (
     "垃圾可收集",
 )
 _NO_TRASH_WORDS = (
-    "尚未可收集",
-    "未可收集",
-    "尚未可以收集",
-    "不可以收集",
-    "当前不可收集",
-    "不可收集",
-    "不能收集",
-    "无法收集",
-    "还不能收集",
-    "暂无待收垃圾",
-    "暂无待收集垃圾",
-    "暂无垃圾",
-    "没有垃圾",
-    "无垃圾",
     "垃圾已清理",
     "已清理",
     "已收集",
@@ -692,6 +679,11 @@ def _has_countdown(node: Optional[_Node], text: str) -> bool:
     )
 
 
+def _has_conservative_negative_signal(text: str) -> bool:
+    source = " ".join(_coerce_html(text).split())
+    return any(signal in source for signal in _CONSERVATIVE_NEGATIVE_SIGNALS)
+
+
 def _beach_has_trash(
     beach_area: Optional[_Node],
     status_text: str,
@@ -717,6 +709,10 @@ def _beach_has_trash(
             ):
                 return True
 
+    if _has_conservative_negative_signal(status_text):
+        return False
+    if _has_conservative_negative_signal(area_text):
+        return False
     if any(word in status_text for word in _NO_TRASH_WORDS):
         return False
     if any(word in area_text for word in _NO_TRASH_WORDS):
@@ -1197,8 +1193,11 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             else 0
         )
         bag_count = max(0, safe_int(bag_text, 0))
-        brick_status_blocked = any(
-            word in brick_status_text for word in _BRICK_BLOCKED_WORDS
+        brick_status_blocked = bool(
+            _has_conservative_negative_signal(brick_status_text)
+            or any(
+                word in brick_status_text for word in _BRICK_BLOCKED_WORDS
+            )
         )
         brick_status_ready = any(
             word in brick_status_text for word in _BRICK_READY_WORDS
@@ -1283,6 +1282,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         exchange_enabled = bool(
             exchange_state_complete
             and not invalid_exchange_values
+            and not _is_pointer_disabled(exchange_input_node)
             and not _is_pointer_disabled(exchange_button_node)
         )
         result["exchange"].update(
