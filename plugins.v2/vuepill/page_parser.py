@@ -341,13 +341,11 @@ def _normalise_timestamp(value: Any, default: int = 0) -> int:
 def _normalise_duration(
     value: Any,
     default: int = DEFAULT_BEACH_INTERVAL,
-    *,
-    milliseconds_hint: bool = False,
 ) -> int:
     parsed = safe_int(value, default)
     if parsed <= 0:
         return default
-    if (milliseconds_hint and parsed >= 1000) or parsed >= 1_000_000:
+    if parsed >= 1_000_000:
         parsed //= 1000
     return max(1, parsed)
 
@@ -906,16 +904,10 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             source,
             ("next_brick_reset_ts", "nextBrickResetTs"),
         )
-        timestamps_use_milliseconds = any(
-            abs(value) > 10_000_000_000
-            for value in (raw_server_now, raw_last_beach, raw_brick_reset)
-            if value is not None
-        )
         last_beach_time = _normalise_timestamp(raw_last_beach, 0)
         beach_interval = _normalise_duration(
             raw_beach_interval,
             DEFAULT_BEACH_INTERVAL,
-            milliseconds_hint=timestamps_use_milliseconds,
         )
         next_brick_reset_ts = _normalise_timestamp(raw_brick_reset, 0)
 
@@ -1014,7 +1006,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         beach_button_node = _find_by_id(root, "beachBtn")
         collect_button_node = _find_by_id(root, "collectAllTrashBtn")
         beach_status_text = _node_text(beach_status_node)
-        can_enter = beach_button_node is not None and not _is_disabled(
+        entry_button_enabled = beach_button_node is not None and not _is_disabled(
             beach_button_node
         )
         collect_enabled = (
@@ -1043,10 +1035,13 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         timestamp_expired = (
             calculated_beach_ts <= 0 or calculated_beach_ts <= server_now
         )
-        beach_ready = bool(
-            can_enter
+        can_enter = bool(
+            entry_button_enabled
             and timestamp_expired
             and not countdown_active
+        )
+        beach_ready = bool(
+            can_enter
             and not has_trash
         )
         result["beach"].update(

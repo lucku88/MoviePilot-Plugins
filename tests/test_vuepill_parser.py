@@ -52,6 +52,46 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["beach"]["collect_enabled"], False)
         self.assertEqual(1785100375, data["beach"]["next_ready_ts"])
 
+    def test_enabled_beach_with_countdown_cannot_enter(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+
+    def test_millisecond_timestamps_keep_second_beach_interval(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace(
+            '"server_now": 1785100000',
+            '"server_now": 1785100000000',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785096400000',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertEqual(1785100000, data["server_now"])
+        self.assertEqual(1785103600, data["beach"]["next_ready_ts"])
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+
     def test_existing_trash_keeps_collect_action_available(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
