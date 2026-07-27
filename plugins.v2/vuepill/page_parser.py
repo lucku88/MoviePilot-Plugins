@@ -670,22 +670,73 @@ def parse_inventory(container_html: str) -> List[Dict[str, Any]]:
         return []
 
 
+def _compatibility_recipes(inventory: Any) -> List[Dict[str, Any]]:
+    inventory_counts = _inventory_count_map(inventory)
+    recipes: List[Dict[str, Any]] = []
+    for craft_id in sorted(_RECIPE_DEFINITIONS):
+        definition = _RECIPE_DEFINITIONS[craft_id]
+        output_item = str(definition.get("output_item") or definition["name"])
+        icon = _ICON_BY_NAME.get(output_item, DEFAULT_ICON)
+        ingredients = {
+            str(name): max(0, safe_int(required, 0))
+            for name, required in (definition.get("ingredients") or {}).items()
+        }
+        limits = [
+            inventory_counts[name] // max(1, required)
+            for name, required in ingredients.items()
+            if name in inventory_counts and required > 0
+        ]
+        max_count = (
+            min(limits, default=0) if len(limits) == len(ingredients) else 0
+        )
+        recipes.append(
+            {
+                "title": "%s %s" % (icon, output_item),
+                "name": output_item,
+                "output_item": output_item,
+                "icon": icon,
+                "status": "",
+                "materials": [],
+                "ingredients": ingredients,
+                "ingredient_details": [
+                    {
+                        "name": name,
+                        "available": inventory_counts.get(name),
+                        "required": required,
+                        "text": "",
+                    }
+                    for name, required in ingredients.items()
+                ],
+                "can_craft": False,
+                "max_count": max_count,
+                "max": max_count,
+                "craft_id": craft_id,
+                "disabled": True,
+                "enabled": False,
+                "supported": True,
+            }
+        )
+    return recipes
+
+
 def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
     """Parse balanced recipe cards and keep page values ahead of fallbacks."""
 
     try:
         source = _coerce_html(container_html)
         if not source:
-            return []
+            return _compatibility_recipes(inventory)
         root = _parse_tree(source)
         scope = _find_by_id(root, "recipeGrid") or root
         inventory_counts = _inventory_count_map(inventory)
         recipes: List[Dict[str, Any]] = []
         seen_ids = set()
+        found_recipe_card = False
 
         for recipe_node in _walk_inclusive(scope):
             if not _has_class(recipe_node, "recipe"):
                 continue
+            found_recipe_card = True
             craft_id = _recipe_craft_id(recipe_node)
             if craft_id <= 0 or craft_id in seen_ids:
                 continue
@@ -791,6 +842,8 @@ def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
                     "supported": bool(recipe_definition),
                 }
             )
+        if not found_recipe_card:
+            return _compatibility_recipes(inventory)
         return recipes
     except Exception:
         return []
@@ -980,11 +1033,13 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         calculated_beach_ts = (
             last_beach_time + beach_interval if last_beach_time > 0 else 0
         )
-        if calculated_beach_ts > 0:
+        countdown = _countdown_seconds(beach_status_text)
+        if calculated_beach_ts > server_now:
             next_ready_ts = calculated_beach_ts
+        elif countdown_active and countdown > 0:
+            next_ready_ts = server_now + countdown
         else:
-            countdown = _countdown_seconds(beach_status_text)
-            next_ready_ts = server_now + countdown if countdown > 0 else 0
+            next_ready_ts = calculated_beach_ts
         timestamp_expired = (
             calculated_beach_ts <= 0 or calculated_beach_ts <= server_now
         )
@@ -998,7 +1053,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             {
                 "ready": beach_ready,
                 "can_enter": bool(can_enter),
-                "can_collect": bool(collect_enabled),
+                "can_collect": bool(collect_enabled or has_trash),
                 "has_trash": bool(has_trash),
                 "status_text": beach_status_text
                 or ("可以进入清理" if beach_ready else "沙滩冷却中"),
@@ -1021,4 +1076,4 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
     return result
 
 
-__all__ = ["safe_int", "parse_page", "parse_inventory", "parse_recipes"]
+__all__ = ["parse_page", "parse_inventory", "parse_recipes"]

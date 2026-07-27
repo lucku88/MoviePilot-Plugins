@@ -9,7 +9,7 @@ FIXTURE = REPO_ROOT / "tests" / "fixtures" / "vuepill_page.html"
 PARSER_PATH = REPO_ROOT / "plugins.v2" / "vuepill" / "page_parser.py"
 
 
-def _load_parse_page():
+def _load_parser_module():
     module_name = "vuepill_page_parser_under_test"
     sys.modules.pop(module_name, None)
     spec = importlib.util.spec_from_file_location(module_name, PARSER_PATH)
@@ -18,7 +18,11 @@ def _load_parse_page():
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
-    return module.parse_page
+    return module
+
+
+def _load_parse_page():
+    return _load_parser_module().parse_page
 
 
 class VuePillParserTests(unittest.TestCase):
@@ -46,7 +50,22 @@ class VuePillParserTests(unittest.TestCase):
 
         self.assertIs(data["beach"]["ready"], False)
         self.assertIs(data["beach"]["collect_enabled"], False)
-        self.assertLessEqual(data["beach"]["next_ready_ts"], 1785100000)
+        self.assertEqual(1785100375, data["beach"]["next_ready_ts"])
+
+    def test_existing_trash_keeps_collect_action_available(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<div class="beach-area" id="beachArea"></div>',
+            '<div class="beach-area" id="beachArea">'
+            '<span class="trash-item">待收瓶子</span></div>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["collect_enabled"], False)
+        self.assertIs(data["beach"]["has_trash"], True)
+        self.assertIs(data["beach"]["can_collect"], True)
 
     def test_enabled_beach_without_countdown_is_ready(self):
         html = FIXTURE.read_text(encoding="utf-8")
@@ -81,6 +100,30 @@ class VuePillParserTests(unittest.TestCase):
         self.assertEqual({1, 2, 3, 4, 5, 6}, set(recipes))
         self.assertEqual(8, recipes[1]["max_count"])
         self.assertEqual(2, recipes[6]["ingredients"]["魔丸胚胎"])
+
+    def test_missing_recipe_cards_use_all_compatibility_definitions(self):
+        module = _load_parser_module()
+
+        recipes = {
+            row["craft_id"]: row
+            for row in module.parse_recipes('<div id="recipeGrid"></div>', [])
+        }
+
+        self.assertEqual({1, 2, 3, 4, 5, 6}, set(recipes))
+        self.assertEqual(
+            {"砖块": 5, "木材": 1, "塑料袋": 1},
+            recipes[1]["ingredients"],
+        )
+        self.assertEqual(2, recipes[6]["ingredients"]["魔丸胚胎"])
+
+    def test_public_exports_only_include_parser_entry_points(self):
+        module = _load_parser_module()
+
+        self.assertEqual(
+            {"parse_page", "parse_inventory", "parse_recipes"},
+            set(module.__all__),
+        )
+        self.assertNotIn("safe_int", module.__all__)
 
 
 if __name__ == "__main__":
