@@ -309,6 +309,47 @@ class VuePillParserTests(unittest.TestCase):
         self.assertEqual(8, recipes[1]["max_count"])
         self.assertEqual(2, recipes[6]["ingredients"]["魔丸胚胎"])
 
+    def test_recipe_without_matching_quantity_input_is_disabled(self):
+        module = _load_parser_module()
+        html = '''
+        <div id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                <span class="material-item">🧱砖块: 42/5</span>
+                <span class="material-item">🪵木材: 10/1</span>
+                <span class="material-item">🛍️塑料袋: 10/1</span>
+                <button onclick="craft(1)">炼造</button>
+            </div>
+        </div>
+        '''
+
+        recipe = module.parse_recipes(html, [])[0]
+
+        self.assertIs(recipe["enabled"], False)
+        self.assertIs(recipe["can_craft"], False)
+        self.assertIs(recipe["disabled"], True)
+
+    def test_recipe_with_wrong_quantity_input_id_is_disabled(self):
+        module = _load_parser_module()
+        html = '''
+        <div id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                <span class="material-item">🧱砖块: 42/5</span>
+                <span class="material-item">🪵木材: 10/1</span>
+                <span class="material-item">🛍️塑料袋: 10/1</span>
+                <input class="craft-input" max="8" id="craft-99">
+                <button onclick="craft(1)">炼造</button>
+            </div>
+        </div>
+        '''
+
+        recipe = module.parse_recipes(html, [])[0]
+
+        self.assertIs(recipe["enabled"], False)
+        self.assertIs(recipe["can_craft"], False)
+        self.assertIs(recipe["disabled"], True)
+
     def test_partial_known_recipe_is_disabled_without_material_fallback(self):
         module = _load_parser_module()
         html = '''

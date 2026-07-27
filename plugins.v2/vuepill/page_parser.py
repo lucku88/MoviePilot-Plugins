@@ -530,9 +530,7 @@ def _recipe_action_node(recipe_node: _Node, craft_id: int) -> Optional[_Node]:
 def _recipe_input_node(recipe_node: _Node, craft_id: int) -> Optional[_Node]:
     wanted_id = "craft-%s" % craft_id
     for node in _walk_inclusive(recipe_node):
-        if _has_class(node, "craft-input"):
-            return node
-        if node.attrs.get("id", "").lower() == wanted_id.lower():
+        if node.tag == "input" and node.attrs.get("id", "") == wanted_id:
             return node
     return None
 
@@ -910,6 +908,9 @@ def parse_recipes(
                 action_node is not None
                 and not _is_pointer_disabled(action_node)
                 and ingredients_complete
+                and input_node is not None
+                and max_is_explicit
+                and max_count > 0
             )
             can_craft = bool(
                 enabled
