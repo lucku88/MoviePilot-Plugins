@@ -241,6 +241,32 @@ class VuePillParserTests(unittest.TestCase):
 
                 self.assertIs(data["brick"]["ready"], True)
 
+    def test_prohibitive_status_roots_block_brick_ready(self):
+        parse_page = _load_parse_page()
+
+        for status_text in (
+            "请勿立即搬砖",
+            "禁止立即搬砖",
+            "严禁立即搬砖",
+            "暂停立即搬砖",
+            "停止立即搬砖",
+            "关闭立即搬砖",
+            "禁用立即搬砖",
+        ):
+            with self.subTest(status_text=status_text):
+                data = parse_page(
+                    self.movable_brick_html(brick_status=status_text),
+                    now_ts=1785100000,
+                )
+
+                self.assertIs(data["brick"]["ready"], False)
+
+        ready_data = parse_page(
+            self.movable_brick_html(brick_status="立即搬砖"),
+            now_ts=1785100000,
+        )
+        self.assertIs(ready_data["brick"]["ready"], True)
+
     def test_truncated_inventory_grid_is_fail_closed(self):
         html = FIXTURE.read_text(encoding="utf-8")
         marker = '<div class="inventory-grid" id="inventoryGrid">'
@@ -719,6 +745,58 @@ class VuePillParserTests(unittest.TestCase):
 
         self.assertIs(data["beach"]["has_trash"], True)
         self.assertIs(data["beach"]["can_collect"], True)
+
+    def test_zero_trash_counts_do_not_imply_trash(self):
+        parse_page = _load_parse_page()
+
+        for status_text in (
+            "可收集垃圾：0",
+            "待收垃圾 0件",
+            "零个可收集垃圾",
+        ):
+            with self.subTest(status_text=status_text):
+                html = FIXTURE.read_text(encoding="utf-8").replace(
+                    '<span class="countdown">下次清理: 0:06:15</span>',
+                    f'<span>{status_text}</span>',
+                )
+
+                data = parse_page(html, now_ts=1785100000)
+
+                self.assertIs(data["beach"]["collect_enabled"], False)
+                self.assertIs(data["beach"]["has_trash"], False)
+                self.assertIs(data["beach"]["can_collect"], False)
+
+        enabled_html = FIXTURE.read_text(encoding="utf-8")
+        enabled_html = enabled_html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>可收集垃圾：0</span>',
+        )
+        enabled_html = enabled_html.replace(
+            'id="collectAllTrashBtn" onclick="collectAllTrash()" disabled=""',
+            'id="collectAllTrashBtn" onclick="collectAllTrash()"',
+        )
+
+        enabled_data = parse_page(enabled_html, now_ts=1785100000)
+
+        self.assertIs(enabled_data["beach"]["collect_enabled"], True)
+        self.assertIs(enabled_data["beach"]["has_trash"], False)
+        self.assertIs(enabled_data["beach"]["can_collect"], True)
+
+        trash_html = FIXTURE.read_text(encoding="utf-8")
+        trash_html = trash_html.replace(
+            '<div class="beach-area" id="beachArea"></div>',
+            '<div class="beach-area" id="beachArea">'
+            '<span class="trash-item">待收瓶子</span></div>',
+        )
+        trash_html = trash_html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>可收集垃圾：0</span>',
+        )
+
+        trash_data = parse_page(trash_html, now_ts=1785100000)
+
+        self.assertIs(trash_data["beach"]["has_trash"], True)
+        self.assertIs(trash_data["beach"]["can_collect"], True)
 
     def test_no_trash_class_and_text_do_not_report_trash(self):
         html = FIXTURE.read_text(encoding="utf-8")

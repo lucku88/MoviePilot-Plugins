@@ -41,6 +41,10 @@ _CONSERVATIVE_NEGATIVE_SIGNALS = (
     "冷却",
     "等待",
     "稍后",
+    "勿",
+    "禁",
+    "停",
+    "关闭",
     "无",
     "不",
     "未",
@@ -60,6 +64,16 @@ _NO_TRASH_WORDS = (
     "已收集",
     "清理完成",
     "收集完成",
+)
+_TRASH_STATUS_PATTERN = "(?:%s)" % "|".join(
+    re.escape(word) for word in _TRASH_WORDS
+)
+_ZERO_TRASH_COUNT_RE = re.compile(
+    rf"(?:{_TRASH_STATUS_PATTERN}\s*(?:数量|数目|共|为)?\s*[:：]?\s*"
+    r"(?:(?<![\d.])0+(?![\d.])|零)\s*(?:个|件|条|份|项)?"
+    r"(?=$|[\s，,。；;！!）)])|"
+    r"(?:(?<![\d.])0+(?![\d.])|零)\s*(?:个|件|条|份|项)?\s*"
+    rf"{_TRASH_STATUS_PATTERN})"
 )
 _NO_TRASH_MARKERS = (
     "no-trash",
@@ -684,6 +698,11 @@ def _has_conservative_negative_signal(text: str) -> bool:
     return any(signal in source for signal in _CONSERVATIVE_NEGATIVE_SIGNALS)
 
 
+def _has_zero_trash_count(text: str) -> bool:
+    source = " ".join(_coerce_html(text).split())
+    return bool(_ZERO_TRASH_COUNT_RE.search(source))
+
+
 def _beach_has_trash(
     beach_area: Optional[_Node],
     status_text: str,
@@ -730,9 +749,13 @@ def _beach_has_trash(
             ).lower().replace("_", "-")
             if any(word in marker for word in _NO_TRASH_MARKERS):
                 return False
+        if _has_zero_trash_count(area_text):
+            return False
         if any(word in area_text for word in _TRASH_WORDS):
             return True
 
+    if _has_zero_trash_count(status_text):
+        return False
     if any(word in status_text for word in _TRASH_WORDS):
         return True
     return False
