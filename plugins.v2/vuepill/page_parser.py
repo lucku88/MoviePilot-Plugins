@@ -24,6 +24,17 @@ _CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
 _CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
 _COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
 _TRASH_WORDS = ("待收垃圾", "待收集", "可收集", "发现垃圾", "垃圾待收")
+_NO_TRASH_WORDS = (
+    "暂无待收垃圾",
+    "暂无垃圾",
+    "没有垃圾",
+    "无垃圾",
+    "垃圾已清理",
+    "已清理",
+    "已收集",
+    "清理完成",
+    "收集完成",
+)
 
 _UNIT_MULTIPLIERS = {
     "万": 10_000,
@@ -314,6 +325,36 @@ def _is_pointer_disabled(node: Optional[_Node]) -> bool:
     return "pointer-events:none" in style
 
 
+def _strip_script_comments(source: str) -> str:
+    without_blocks = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
+    return re.sub(r"(?m)(?<!:)//[^\r\n]*", "", without_blocks)
+
+
+def _script_candidates(source: str) -> List[str]:
+    scripts: List[str] = []
+    for match in re.finditer(
+        r"<script\b([^>]*)>(.*?)</script\s*>",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        attrs = match.group(1)
+        if re.search(r"\btype\s*=\s*[\"'][^\"']*template", attrs, re.IGNORECASE):
+            continue
+        scripts.append(_strip_script_comments(match.group(2)))
+
+    game_data_blocks: List[str] = []
+    for script in scripts:
+        game_data_blocks.extend(
+            match.group(1)
+            for match in re.finditer(
+                r"\bgameData\b\s*=\s*(\{.*?\})",
+                script,
+                re.IGNORECASE | re.DOTALL,
+            )
+        )
+    return game_data_blocks + scripts
+
+
 def _script_number(source: str, names: Iterable[str]) -> Optional[int]:
     aliases = "|".join(re.escape(name) for name in names if name)
     if not aliases:
@@ -323,10 +364,11 @@ def _script_number(source: str, names: Iterable[str]) -> Optional[int]:
         r"([-+]?\d[\d,]*)",
         re.IGNORECASE,
     )
-    match = pattern.search(source)
-    if not match:
-        return None
-    return safe_int(match.group(1), 0)
+    for candidate in _script_candidates(source):
+        match = pattern.search(candidate)
+        if match:
+            return safe_int(match.group(1), 0)
+    return None
 
 
 def _normalise_timestamp(value: Any, default: int = 0) -> int:
@@ -345,7 +387,7 @@ def _normalise_duration(
     parsed = safe_int(value, default)
     if parsed <= 0:
         return default
-    if parsed >= 1_000_000:
+    if parsed >= 1_000_000 or (parsed >= 60_000 and parsed % 1000 == 0):
         parsed //= 1000
     return max(1, parsed)
 
@@ -551,35 +593,39 @@ def _has_countdown(node: Optional[_Node], text: str) -> bool:
 def _beach_has_trash(
     beach_area: Optional[_Node],
     status_text: str,
-    collect_enabled: bool,
 ) -> bool:
-    if collect_enabled:
-        return True
-    combined_text = "%s %s" % (_node_text(beach_area), status_text)
-    if any(word in combined_text for word in _TRASH_WORDS):
-        return True
-    if "垃圾" in combined_text and not any(
-        word in combined_text for word in ("无垃圾", "没有垃圾", "垃圾已清理", "已收集")
-    ):
-        return True
-    if beach_area is None:
+    area_text = _node_text(beach_area)
+    if beach_area is not None:
+        for node in _walk_inclusive(beach_area):
+            marker = " ".join(
+                (
+                    node.attrs.get("id", ""),
+                    node.attrs.get("class", ""),
+                    node.attrs.get("onclick", ""),
+                    node.attrs.get("data-type", ""),
+                )
+            ).lower()
+            if any(word in marker for word in ("trash", "garbage", "litter")):
+                return True
+        if not any(word in area_text for word in _NO_TRASH_WORDS):
+            if any(word in area_text for word in _TRASH_WORDS):
+                return True
+            if "垃圾" in area_text:
+                return True
+
+    if any(word in status_text for word in _NO_TRASH_WORDS):
         return False
-    for node in _walk_inclusive(beach_area):
-        marker = " ".join(
-            (
-                node.attrs.get("id", ""),
-                node.attrs.get("class", ""),
-                node.attrs.get("onclick", ""),
-                node.attrs.get("data-type", ""),
-            )
-        ).lower()
-        if any(word in marker for word in ("trash", "garbage", "litter")):
-            return True
+    if any(word in status_text for word in _TRASH_WORDS):
+        return True
+    if "垃圾" in status_text:
+        return True
     return False
 
 
 def _default_page(server_now: int) -> Dict[str, Any]:
     return {
+        "parse_complete": False,
+        "parse_error": "",
         "title": DEFAULT_TITLE,
         "price_text": "",
         "stats": {
@@ -630,7 +676,34 @@ def _default_page(server_now: int) -> Dict[str, Any]:
     }
 
 
-def parse_inventory(container_html: str) -> List[Dict[str, Any]]:
+def _disable_actions(result: Dict[str, Any]) -> None:
+    result["parse_complete"] = False
+    brick = result.get("brick") or {}
+    brick["ready"] = False
+
+    beach = result.get("beach") or {}
+    beach["ready"] = False
+    beach["can_enter"] = False
+    beach["can_collect"] = False
+    beach["collect_enabled"] = False
+
+    exchange = result.get("exchange") or {}
+    exchange["enabled"] = False
+    exchange["action_ready"] = False
+
+    for recipe in result.get("recipes") or []:
+        if not isinstance(recipe, dict):
+            continue
+        recipe["enabled"] = False
+        recipe["can_craft"] = False
+        recipe["disabled"] = True
+
+
+def parse_inventory(
+    container_html: str,
+    *,
+    _raise_errors: bool = False,
+) -> List[Dict[str, Any]]:
     """Parse all inventory items from an inventory grid or its inner HTML."""
 
     try:
@@ -665,6 +738,8 @@ def parse_inventory(container_html: str) -> List[Dict[str, Any]]:
             )
         return items
     except Exception:
+        if _raise_errors:
+            raise
         return []
 
 
@@ -717,7 +792,12 @@ def _compatibility_recipes(inventory: Any) -> List[Dict[str, Any]]:
     return recipes
 
 
-def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
+def parse_recipes(
+    container_html: str,
+    inventory: Any,
+    *,
+    _raise_errors: bool = False,
+) -> List[Dict[str, Any]]:
     """Parse balanced recipe cards and keep page values ahead of fallbacks."""
 
     try:
@@ -774,14 +854,6 @@ def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
                 ingredient_details.append(detail)
                 ingredients[detail["name"]] = max(0, safe_int(detail["required"], 0))
 
-            if not materials and recipe_definition:
-                ingredients = {
-                    str(name): max(0, safe_int(required, 0))
-                    for name, required in (
-                        recipe_definition.get("ingredients") or {}
-                    ).items()
-                }
-
             input_node = _recipe_input_node(recipe_node, craft_id)
             max_count = 0
             max_is_explicit = input_node is not None and "max" in input_node.attrs
@@ -816,10 +888,33 @@ def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
                 if len(inventory_limits) == len(ingredients):
                     max_count = min(inventory_limits, default=0)
 
+            title_text = _node_text(title_node)
+            expected_output = str(recipe_definition.get("output_item") or "")
+            supported = bool(
+                recipe_definition
+                and title_text
+                and output_parts["output_item"] == expected_output
+            )
+            expected_ingredients = set(
+                (recipe_definition.get("ingredients") or {}).keys()
+            )
+            ingredients_complete = bool(
+                supported
+                and materials
+                and len(ingredient_details) == len(materials)
+                and expected_ingredients.issubset(ingredients)
+                and all(required > 0 for required in ingredients.values())
+            )
             action_node = _recipe_action_node(recipe_node, craft_id)
-            enabled = action_node is not None and not _is_disabled(action_node)
-            can_craft = enabled and (
-                _has_class(recipe_node, "can-craft") or max_count > 0
+            enabled = bool(
+                action_node is not None
+                and not _is_pointer_disabled(action_node)
+                and ingredients_complete
+            )
+            can_craft = bool(
+                enabled
+                and _has_class(recipe_node, "can-craft")
+                and max_count > 0
             )
             recipes.append(
                 {
@@ -831,19 +926,21 @@ def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
                     "materials": materials,
                     "ingredients": ingredients,
                     "ingredient_details": ingredient_details,
-                    "can_craft": bool(can_craft),
+                    "can_craft": can_craft,
                     "max_count": max_count,
                     "max": max_count,
                     "craft_id": craft_id,
                     "disabled": not enabled,
-                    "enabled": bool(enabled),
-                    "supported": bool(recipe_definition),
+                    "enabled": enabled,
+                    "supported": supported,
                 }
             )
         if not found_recipe_card:
             return _compatibility_recipes(inventory)
         return recipes
     except Exception:
+        if _raise_errors:
+            raise
         return []
 
 
@@ -853,6 +950,11 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
     source = _coerce_html(html)
     server_now = _server_now(source, now_ts)
     result = _default_page(server_now)
+    if not source.strip():
+        result["recipes"] = _compatibility_recipes([])
+        result["parse_error"] = "empty page"
+        _disable_actions(result)
+        return result
 
     try:
         root = _parse_tree(source)
@@ -918,23 +1020,25 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         factory_text = _node_text(factory_count_node)
         bag_text = _node_text(bag_count_node)
         brick_status_text = _node_text(brick_status_node)
-        available_count = max(
-            0,
-            safe_int(
-                factory_text,
-                max(0, daily_limit - stats["daily_bricks"]),
-            ),
+        brick_state_complete = all(
+            node is not None
+            for node in (
+                daily_node,
+                factory_node,
+                factory_count_node,
+                brick_status_node,
+            )
         )
+        available_count = max(0, safe_int(factory_text, 0))
         bag_count = max(0, safe_int(bag_text, 0))
         brick_status_blocked = any(
             word in brick_status_text
             for word in ("倒计时", "冷却", "上限", "明日可搬")
         )
-        factory_blocked = (
-            factory_node is not None and _is_pointer_disabled(factory_node)
-        )
+        factory_blocked = _is_pointer_disabled(factory_node)
         brick_ready = bool(
-            stats["daily_bricks"] < daily_limit
+            brick_state_complete
+            and stats["daily_bricks"] < daily_limit
             and available_count > 0
             and not brick_status_blocked
             and not factory_blocked
@@ -967,6 +1071,15 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             _node_text(exchange_pills_node),
             stats["magic_pills"],
         )
+        exchange_state_complete = all(
+            node is not None
+            for node in (
+                nodes_by_key["points"],
+                nodes_by_key["magic_pills"],
+                exchange_input_node,
+                exchange_button_node,
+            )
+        )
         pill_price = safe_int(result["price_text"], 0)
         if pill_price <= 0:
             price_match = re.search(
@@ -982,10 +1095,10 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
                 safe_int(exchange_input_node.attrs.get("max"), 0),
             )
         else:
-            exchange_max = max(0, exchange_pills)
-        exchange_enabled = (
-            exchange_button_node is not None
-            and not _is_disabled(exchange_button_node)
+            exchange_max = 0
+        exchange_enabled = bool(
+            exchange_state_complete
+            and not _is_pointer_disabled(exchange_button_node)
         )
         result["exchange"].update(
             {
@@ -1006,34 +1119,55 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         beach_button_node = _find_by_id(root, "beachBtn")
         collect_button_node = _find_by_id(root, "collectAllTrashBtn")
         beach_status_text = _node_text(beach_status_node)
-        entry_button_enabled = beach_button_node is not None and not _is_disabled(
-            beach_button_node
+        beach_state_complete = all(
+            node is not None
+            for node in (
+                beach_area_node,
+                beach_status_node,
+                beach_button_node,
+                collect_button_node,
+            )
         )
-        collect_enabled = (
-            collect_button_node is not None
-            and not _is_disabled(collect_button_node)
+        entry_button_enabled = bool(
+            beach_state_complete and not _is_pointer_disabled(beach_button_node)
+        )
+        collect_enabled = bool(
+            beach_state_complete and not _is_pointer_disabled(collect_button_node)
         )
         has_trash = _beach_has_trash(
             beach_area_node,
             beach_status_text,
-            collect_enabled,
         )
         countdown_active = _has_countdown(
             beach_status_node,
             beach_status_text,
         )
+        has_server_time = bool(
+            raw_server_now is not None
+            and _normalise_timestamp(raw_server_now, 0) > 0
+        )
+        has_last_beach_marker = raw_last_beach is not None
+        has_beach_time_basis = has_server_time and has_last_beach_marker
         calculated_beach_ts = (
-            last_beach_time + beach_interval if last_beach_time > 0 else 0
+            last_beach_time + beach_interval
+            if has_beach_time_basis and last_beach_time > 0
+            else 0
         )
         countdown = _countdown_seconds(beach_status_text)
-        if calculated_beach_ts > server_now:
+        if has_beach_time_basis and calculated_beach_ts > server_now:
             next_ready_ts = calculated_beach_ts
-        elif countdown_active and countdown > 0:
+        elif has_server_time and countdown_active and countdown > 0:
             next_ready_ts = server_now + countdown
-        else:
+        elif has_beach_time_basis:
             next_ready_ts = calculated_beach_ts
-        timestamp_expired = (
-            calculated_beach_ts <= 0 or calculated_beach_ts <= server_now
+        else:
+            next_ready_ts = 0
+        timestamp_expired = bool(
+            has_beach_time_basis
+            and (
+                last_beach_time <= 0
+                or calculated_beach_ts <= server_now
+            )
         )
         can_enter = bool(
             entry_button_enabled
@@ -1062,11 +1196,46 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             }
         )
 
-        result["inventory"] = parse_inventory(source)
-        result["recipes"] = parse_recipes(source, result["inventory"])
-    except Exception:
-        # Keep the already-created skeleton if a malformed page breaks parsing.
-        pass
+        result["inventory"] = parse_inventory(source, _raise_errors=True)
+        result["recipes"] = parse_recipes(
+            source,
+            result["inventory"],
+            _raise_errors=True,
+        )
+
+        inventory_grid_node = _find_by_id(root, "inventoryGrid")
+        required_nodes = {
+            "title": title_node,
+            "points": nodes_by_key["points"],
+            "bonusEarned": nodes_by_key["bonus_earned"],
+            "magicPills": nodes_by_key["magic_pills"],
+            "dailyBricks": daily_node,
+            "brickFactory": factory_node,
+            "factoryBrickCount": factory_count_node,
+            "bagBrickCount": bag_count_node,
+            "brickStatus": brick_status_node,
+            "exchangeCount": exchange_input_node,
+            "exchangeBtn": exchange_button_node,
+            "beachArea": beach_area_node,
+            "beachStatus": beach_status_node,
+            "beachBtn": beach_button_node,
+            "collectAllTrashBtn": collect_button_node,
+            "inventoryGrid": inventory_grid_node,
+        }
+        missing_nodes = [
+            name for name, node in required_nodes.items() if node is None
+        ]
+        if missing_nodes:
+            result["parse_error"] = "missing required nodes: %s" % ", ".join(
+                missing_nodes
+            )
+            _disable_actions(result)
+        else:
+            result["parse_complete"] = True
+            result["parse_error"] = ""
+    except Exception as err:
+        result["parse_error"] = "%s: %s" % (type(err).__name__, err)
+        _disable_actions(result)
 
     return result
 

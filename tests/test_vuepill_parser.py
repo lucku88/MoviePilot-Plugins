@@ -2,6 +2,7 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,19 @@ def _load_parse_page():
 
 
 class VuePillParserTests(unittest.TestCase):
+    def assert_actions_disabled(self, data):
+        self.assertIs(data["brick"]["ready"], False)
+        self.assertIs(data["beach"]["ready"], False)
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["can_collect"], False)
+        self.assertIs(data["beach"]["collect_enabled"], False)
+        self.assertIs(data["exchange"]["enabled"], False)
+        self.assertIs(data["exchange"]["action_ready"], False)
+        for recipe in data.get("recipes") or []:
+            self.assertIs(recipe["enabled"], False)
+            self.assertIs(recipe["can_craft"], False)
+            self.assertIs(recipe["disabled"], True)
+
     def parse_fixture(self):
         self.assertTrue(PARSER_PATH.exists(), "page_parser.py 尚未创建")
         parse_page = _load_parse_page()
@@ -34,6 +48,8 @@ class VuePillParserTests(unittest.TestCase):
     def test_parse_page_reads_stats_inventory_and_giftable_items(self):
         data = self.parse_fixture()
 
+        self.assertIs(data.get("parse_complete"), True)
+        self.assertEqual("", data.get("parse_error"))
         self.assertEqual(73037, data["stats"]["points"])
         self.assertEqual(331000, data["stats"]["bonus_earned"])
         self.assertEqual(57, data["stats"]["magic_pills"])
@@ -44,6 +60,60 @@ class VuePillParserTests(unittest.TestCase):
         magic_pill = next(item for item in data["inventory"] if item["name"] == "魔丸")
         self.assertEqual(57, magic_pill["count"])
         self.assertIs(magic_pill["giftable"], False)
+
+    def test_empty_page_is_fail_closed(self):
+        parse_page = _load_parse_page()
+
+        data = parse_page("", now_ts=1785100000)
+
+        self.assertIs(data.get("parse_complete"), False)
+        self.assertTrue(data.get("parse_error"))
+        self.assert_actions_disabled(data)
+
+    def test_missing_brick_factory_nodes_is_fail_closed(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="dailyBricks">50</span>/50',
+            'id="dailyBricks">1</span>/50',
+        )
+        html = html.replace('id="brickFactory"', 'id="missingBrickFactory"')
+        html = html.replace(
+            'id="factoryBrickCount"',
+            'id="missingFactoryBrickCount"',
+        )
+        html = html.replace(
+            '<span class="countdown">今日已达上限，明日可搬: 10:39:29</span>',
+            '<span>可以搬砖</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["brick"]["ready"], False)
+        self.assertIs(data.get("parse_complete"), False)
+        self.assert_actions_disabled(data)
+
+    def test_missing_beach_time_evidence_cannot_enter(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace('"server_now"', '"ignored_server_now"')
+        html = html.replace('"last_beach_time"', '"ignored_last_beach_time"')
+        html = html.replace('"beach_interval"', '"ignored_beach_interval"')
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data.get("parse_complete"), True)
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+        self.assertEqual(0, data["beach"]["next_ready_ts"])
 
     def test_disabled_beach_with_countdown_is_not_ready(self):
         data = self.parse_fixture()
@@ -92,6 +162,48 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["beach"]["can_enter"], False)
         self.assertIs(data["beach"]["ready"], False)
 
+    def test_small_millisecond_beach_interval_is_normalised(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785099700',
+        )
+        html = html.replace(
+            '"beach_interval": 7200',
+            '"beach_interval": 600000',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertEqual(1785100300, data["beach"]["next_ready_ts"])
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+
+    def test_script_time_ignores_comments_and_template_values(self):
+        html = (
+            '<script type="text/template">'
+            '{"server_now": 1, "last_beach_time": 1, "beach_interval": 1}'
+            '</script>'
+            '<script>// const gameData = {"server_now": 2, '
+            '"last_beach_time": 2, "beach_interval": 2};</script>'
+            + FIXTURE.read_text(encoding="utf-8")
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertEqual(1785100000, data["server_now"])
+        self.assertEqual(1785100375, data["beach"]["next_ready_ts"])
+
     def test_existing_trash_keeps_collect_action_available(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -106,6 +218,62 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["beach"]["collect_enabled"], False)
         self.assertIs(data["beach"]["has_trash"], True)
         self.assertIs(data["beach"]["can_collect"], True)
+
+    def test_negative_trash_status_does_not_report_trash(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>暂无待收垃圾</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["has_trash"], False)
+        self.assertIs(data["beach"]["can_collect"], False)
+
+    def test_enabled_collect_button_does_not_imply_trash(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>垃圾已清理</span>',
+        )
+        html = html.replace(
+            'id="collectAllTrashBtn" onclick="collectAllTrash()" disabled=""',
+            'id="collectAllTrashBtn" onclick="collectAllTrash()"',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["collect_enabled"], True)
+        self.assertIs(data["beach"]["has_trash"], False)
+        self.assertIs(data["beach"]["can_collect"], True)
+
+    def test_pointer_events_none_disables_beach_buttons(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()" '
+            'style="pointer-events: none"',
+        )
+        html = html.replace(
+            'id="collectAllTrashBtn" onclick="collectAllTrash()" disabled=""',
+            'id="collectAllTrashBtn" onclick="collectAllTrash()" '
+            'style="pointer-events: none"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+        self.assertIs(data["beach"]["collect_enabled"], False)
+        self.assertIs(data["beach"]["can_collect"], False)
 
     def test_enabled_beach_without_countdown_is_ready(self):
         html = FIXTURE.read_text(encoding="utf-8")
@@ -141,6 +309,67 @@ class VuePillParserTests(unittest.TestCase):
         self.assertEqual(8, recipes[1]["max_count"])
         self.assertEqual(2, recipes[6]["ingredients"]["魔丸胚胎"])
 
+    def test_partial_known_recipe_is_disabled_without_material_fallback(self):
+        module = _load_parser_module()
+        html = '''
+        <div id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                <span class="material-item">🧱砖块: 42/5</span>
+                <input class="craft-input" max="8" id="craft-1">
+                <button onclick="craft(1)">炼造</button>
+            </div>
+        </div>
+        '''
+
+        recipe = module.parse_recipes(html, [])[0]
+
+        self.assertEqual({"砖块": 5}, recipe["ingredients"])
+        self.assertIs(recipe["supported"], True)
+        self.assertIs(recipe["disabled"], True)
+        self.assertIs(recipe["enabled"], False)
+        self.assertIs(recipe["can_craft"], False)
+
+    def test_known_recipe_without_materials_does_not_use_compatibility_definition(self):
+        module = _load_parser_module()
+        html = '''
+        <div id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                <input class="craft-input" max="8" id="craft-1">
+                <button onclick="craft(1)">炼造</button>
+            </div>
+        </div>
+        '''
+
+        recipe = module.parse_recipes(html, [])[0]
+
+        self.assertEqual({}, recipe["ingredients"])
+        self.assertIs(recipe["disabled"], True)
+        self.assertIs(recipe["enabled"], False)
+        self.assertIs(recipe["can_craft"], False)
+
+    def test_unknown_recipe_is_never_craftable(self):
+        module = _load_parser_module()
+        html = '''
+        <div id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🧪 未知药剂 <span>(最多可制作 8)</span></div>
+                <span class="material-item">🧱砖块: 42/1</span>
+                <input class="craft-input" max="8" id="craft-99">
+                <button onclick="craft(99)">炼造</button>
+            </div>
+        </div>
+        '''
+
+        recipe = module.parse_recipes(html, [])[0]
+
+        self.assertEqual(99, recipe["craft_id"])
+        self.assertIs(recipe["supported"], False)
+        self.assertIs(recipe["disabled"], True)
+        self.assertIs(recipe["enabled"], False)
+        self.assertIs(recipe["can_craft"], False)
+
     def test_missing_recipe_cards_use_all_compatibility_definitions(self):
         module = _load_parser_module()
 
@@ -155,6 +384,22 @@ class VuePillParserTests(unittest.TestCase):
             recipes[1]["ingredients"],
         )
         self.assertEqual(2, recipes[6]["ingredients"]["魔丸胚胎"])
+
+    def test_component_parse_exception_disables_all_actions(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        for function_name in ("parse_inventory", "parse_recipes"):
+            with self.subTest(function_name=function_name):
+                module = _load_parser_module()
+                with mock.patch.object(
+                    module,
+                    function_name,
+                    side_effect=RuntimeError("parser exploded"),
+                ):
+                    data = module.parse_page(html, now_ts=1785100000)
+
+                self.assertIs(data.get("parse_complete"), False)
+                self.assertIn("parser exploded", data.get("parse_error") or "")
+                self.assert_actions_disabled(data)
 
     def test_public_exports_only_include_parser_entry_points(self):
         module = _load_parser_module()
