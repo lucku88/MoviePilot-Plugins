@@ -15,15 +15,15 @@ from typing import Any, Dict, Iterable, List, Optional
 
 DEFAULT_TITLE = "搬砖捡破烂炼魔丸"
 DEFAULT_DAILY_LIMIT = 50
+DEFAULT_BEACH_INTERVAL = 7200
 DEFAULT_ICON = "📦"
 
 _NUMBER_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
-_SERVER_NOW_RE = re.compile(
-    r"[\"']?(?:server_now|serverNow)[\"']?\s*[:=]\s*[\"']?"
-    r"([-+]?\d[\d,]*)",
-    re.IGNORECASE,
-)
 _DAILY_LIMIT_RE = re.compile(r"/\s*([-+]?\d[\d,]*)")
+_CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
+_CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
+_COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
+_TRASH_WORDS = ("待收垃圾", "待收集", "可收集", "发现垃圾", "垃圾待收")
 
 _UNIT_MULTIPLIERS = {
     "万": 10_000,
@@ -50,6 +50,39 @@ _ICON_BY_NAME = {
     "魔丸胚胎": "🥚",
     "魔丸": "⚗️",
     "蚯蚓": "🪱",
+}
+
+_RECIPE_DEFINITIONS = {
+    1: {
+        "name": "木工件",
+        "output_item": "木工件",
+        "ingredients": {"砖块": 5, "木材": 1, "塑料袋": 1},
+    },
+    2: {
+        "name": "塑料件",
+        "output_item": "塑料件",
+        "ingredients": {"砖块": 5, "塑料袋": 1, "瓶子": 1},
+    },
+    3: {
+        "name": "简易工具",
+        "output_item": "简易工具",
+        "ingredients": {"螺丝": 2, "木工件": 2},
+    },
+    4: {
+        "name": "能量碎片",
+        "output_item": "能量碎片",
+        "ingredients": {"旧电池": 1, "塑料件": 2},
+    },
+    5: {
+        "name": "魔丸胚胎",
+        "output_item": "魔丸胚胎",
+        "ingredients": {"破铜片": 1, "简易工具": 1, "能量碎片": 1},
+    },
+    6: {
+        "name": "魔丸",
+        "output_item": "魔丸",
+        "ingredients": {"砖块": 10, "魔丸胚胎": 2},
+    },
 }
 
 
@@ -262,6 +295,40 @@ def _find_descendant_tag(root: _Node, tag: str) -> Optional[_Node]:
     return None
 
 
+def _is_disabled(node: Optional[_Node]) -> bool:
+    if node is None:
+        return True
+    if "disabled" in node.attrs:
+        return True
+    if node.attrs.get("aria-disabled", "").strip().lower() in {"1", "true", "yes"}:
+        return True
+    return "disabled" in _class_tokens(node)
+
+
+def _is_pointer_disabled(node: Optional[_Node]) -> bool:
+    if _is_disabled(node):
+        return True
+    if node is None:
+        return True
+    style = re.sub(r"\s+", "", node.attrs.get("style", "").lower())
+    return "pointer-events:none" in style
+
+
+def _script_number(source: str, names: Iterable[str]) -> Optional[int]:
+    aliases = "|".join(re.escape(name) for name in names if name)
+    if not aliases:
+        return None
+    pattern = re.compile(
+        rf"(?<![\w$])[\"']?(?:{aliases})[\"']?\s*[:=]\s*[\"']?\s*"
+        r"([-+]?\d[\d,]*)",
+        re.IGNORECASE,
+    )
+    match = pattern.search(source)
+    if not match:
+        return None
+    return safe_int(match.group(1), 0)
+
+
 def _normalise_timestamp(value: Any, default: int = 0) -> int:
     parsed = safe_int(value, default)
     if parsed <= 0:
@@ -271,16 +338,246 @@ def _normalise_timestamp(value: Any, default: int = 0) -> int:
     return parsed
 
 
+def _normalise_duration(
+    value: Any,
+    default: int = DEFAULT_BEACH_INTERVAL,
+    *,
+    milliseconds_hint: bool = False,
+) -> int:
+    parsed = safe_int(value, default)
+    if parsed <= 0:
+        return default
+    if (milliseconds_hint and parsed >= 1000) or parsed >= 1_000_000:
+        parsed //= 1000
+    return max(1, parsed)
+
+
 def _server_now(source: str, now_ts: Optional[int]) -> int:
     fallback = (
         _normalise_timestamp(now_ts, 0)
         if now_ts is not None
         else int(time.time())
     )
-    match = _SERVER_NOW_RE.search(source)
-    if not match:
+    raw_value = _script_number(source, ("server_now", "serverNow"))
+    if raw_value is None:
         return fallback
-    return _normalise_timestamp(match.group(1), fallback)
+    return _normalise_timestamp(raw_value, fallback)
+
+
+def _format_timestamp(value: Any) -> str:
+    parsed = _normalise_timestamp(value, 0)
+    if parsed <= 0:
+        return ""
+    try:
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(parsed))
+    except (OverflowError, OSError, ValueError):
+        return ""
+
+
+def _countdown_seconds(text: str) -> int:
+    source = _coerce_html(text)
+    clock_match = re.search(
+        r"(?<!\d)(\d{1,4}):(\d{1,2})(?::(\d{1,2}))?(?!\d)",
+        source,
+    )
+    if clock_match:
+        first = safe_int(clock_match.group(1), 0)
+        second = safe_int(clock_match.group(2), 0)
+        third_text = clock_match.group(3)
+        if third_text is None:
+            return max(0, first * 60 + second)
+        return max(0, first * 3600 + second * 60 + safe_int(third_text, 0))
+
+    chinese_match = re.search(
+        r"(?:(\d+)\s*小时)?\s*(?:(\d+)\s*分(?:钟)?)?\s*(?:(\d+)\s*秒)?",
+        source,
+    )
+    if chinese_match and any(chinese_match.groups()):
+        return max(
+            0,
+            safe_int(chinese_match.group(1), 0) * 3600
+            + safe_int(chinese_match.group(2), 0) * 60
+            + safe_int(chinese_match.group(3), 0),
+        )
+    return 0
+
+
+def _current_value_text(source: str, label: str) -> str:
+    match = re.search(
+        rf"{re.escape(label)}.*?当前\s*[:：]\s*([^）)<\r\n]+)",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return ""
+    return " ".join(unescape(match.group(1)).split())
+
+
+def _inventory_count_map(inventory: Any) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    try:
+        if isinstance(inventory, dict):
+            for name, count in inventory.items():
+                counts[str(name)] = max(0, safe_int(count, 0))
+            return counts
+        if isinstance(inventory, (str, bytes)) or inventory is None:
+            return counts
+        for item in inventory:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if name:
+                counts[name] = max(0, safe_int(item.get("count"), 0))
+    except Exception:
+        return counts
+    return counts
+
+
+def _material_name(text: str) -> str:
+    source = " ".join(_coerce_html(text).split())
+    for name in sorted(_ICON_BY_NAME, key=len, reverse=True):
+        if name in source:
+            return name
+    return re.sub(r"^[^\w]+", "", source, flags=re.UNICODE).strip()
+
+
+def _parse_material_text(text: str) -> Optional[Dict[str, Any]]:
+    source = " ".join(_coerce_html(text).split())
+    match = re.match(r"^(.*?)\s*[:：]\s*(.*?)$", source)
+    if not match:
+        return None
+    name = _material_name(match.group(1))
+    amount_text = match.group(2)
+    if not name:
+        return None
+
+    available: Optional[int] = None
+    required_text = amount_text
+    if "/" in amount_text:
+        available_text, required_text = amount_text.rsplit("/", 1)
+        available = max(0, safe_int(available_text, 0))
+    required = safe_int(required_text, -1)
+    if required < 0:
+        return None
+    return {
+        "name": name,
+        "available": available,
+        "required": required,
+        "text": source,
+    }
+
+
+def _recipe_craft_id(recipe_node: _Node) -> int:
+    for node in _walk_inclusive(recipe_node):
+        match = _CRAFT_ID_RE.search(node.attrs.get("onclick", ""))
+        if match:
+            return safe_int(match.group(1), 0)
+    for node in _walk_inclusive(recipe_node):
+        match = _CRAFT_INPUT_ID_RE.match(node.attrs.get("id", ""))
+        if match:
+            return safe_int(match.group(1), 0)
+    return 0
+
+
+def _recipe_action_node(recipe_node: _Node, craft_id: int) -> Optional[_Node]:
+    for node in _walk_inclusive(recipe_node):
+        match = _CRAFT_ID_RE.search(node.attrs.get("onclick", ""))
+        if match and safe_int(match.group(1), 0) == craft_id:
+            return node
+    return None
+
+
+def _recipe_input_node(recipe_node: _Node, craft_id: int) -> Optional[_Node]:
+    wanted_id = "craft-%s" % craft_id
+    for node in _walk_inclusive(recipe_node):
+        if _has_class(node, "craft-input"):
+            return node
+        if node.attrs.get("id", "").lower() == wanted_id.lower():
+            return node
+    return None
+
+
+def _recipe_output_parts(
+    title_text: str,
+    status_text: str,
+    recipe_definition: Dict[str, Any],
+) -> Dict[str, str]:
+    clean_title = " ".join(title_text.split())
+    if status_text:
+        clean_title = clean_title.replace(status_text, "", 1).strip()
+    clean_title = re.sub(r"\s*[（(][^（）()]*[）)]\s*$", "", clean_title).strip()
+
+    output_item = ""
+    icon = ""
+    for name in sorted(_ICON_BY_NAME, key=len, reverse=True):
+        index = clean_title.find(name)
+        if index < 0:
+            continue
+        output_item = name
+        prefix = clean_title[:index].strip()
+        if prefix:
+            icon = prefix.split()[-1]
+        break
+
+    if not output_item:
+        tokens = clean_title.split(maxsplit=1)
+        if len(tokens) == 2 and not re.search(r"[\w\u4e00-\u9fff]", tokens[0]):
+            icon, output_item = tokens[0], tokens[1].strip()
+        else:
+            output_item = clean_title
+
+    if not output_item:
+        output_item = str(
+            recipe_definition.get("output_item")
+            or recipe_definition.get("name")
+            or ""
+        ).strip()
+    if not clean_title:
+        clean_title = output_item
+    if not icon:
+        icon = _ICON_BY_NAME.get(output_item, DEFAULT_ICON)
+    return {"title": clean_title, "output_item": output_item, "icon": icon}
+
+
+def _has_countdown(node: Optional[_Node], text: str) -> bool:
+    if any(word in text for word in _COOLDOWN_WORDS):
+        return True
+    if node is None:
+        return False
+    return any(
+        _has_class(descendant, "countdown")
+        for descendant in _walk_inclusive(node)
+    )
+
+
+def _beach_has_trash(
+    beach_area: Optional[_Node],
+    status_text: str,
+    collect_enabled: bool,
+) -> bool:
+    if collect_enabled:
+        return True
+    combined_text = "%s %s" % (_node_text(beach_area), status_text)
+    if any(word in combined_text for word in _TRASH_WORDS):
+        return True
+    if "垃圾" in combined_text and not any(
+        word in combined_text for word in ("无垃圾", "没有垃圾", "垃圾已清理", "已收集")
+    ):
+        return True
+    if beach_area is None:
+        return False
+    for node in _walk_inclusive(beach_area):
+        marker = " ".join(
+            (
+                node.attrs.get("id", ""),
+                node.attrs.get("class", ""),
+                node.attrs.get("onclick", ""),
+                node.attrs.get("data-type", ""),
+            )
+        ).lower()
+        if any(word in marker for word in ("trash", "garbage", "litter")):
+            return True
+    return False
 
 
 def _default_page(server_now: int) -> Dict[str, Any]:
@@ -308,6 +605,9 @@ def _default_page(server_now: int) -> Dict[str, Any]:
         },
         "beach": {
             "ready": False,
+            "can_enter": False,
+            "can_collect": False,
+            "has_trash": False,
             "status_text": "",
             "next_ready_ts": 0,
             "next_ready_time": "",
@@ -371,9 +671,129 @@ def parse_inventory(container_html: str) -> List[Dict[str, Any]]:
 
 
 def parse_recipes(container_html: str, inventory: Any) -> List[Dict[str, Any]]:
-    """Recipe parsing is intentionally deferred to a later parser step."""
+    """Parse balanced recipe cards and keep page values ahead of fallbacks."""
 
-    return []
+    try:
+        source = _coerce_html(container_html)
+        if not source:
+            return []
+        root = _parse_tree(source)
+        scope = _find_by_id(root, "recipeGrid") or root
+        inventory_counts = _inventory_count_map(inventory)
+        recipes: List[Dict[str, Any]] = []
+        seen_ids = set()
+
+        for recipe_node in _walk_inclusive(scope):
+            if not _has_class(recipe_node, "recipe"):
+                continue
+            craft_id = _recipe_craft_id(recipe_node)
+            if craft_id <= 0 or craft_id in seen_ids:
+                continue
+            seen_ids.add(craft_id)
+
+            recipe_definition = _RECIPE_DEFINITIONS.get(craft_id, {})
+            title_node = _find_descendant_class(recipe_node, "recipe-title")
+            status_node = (
+                _find_descendant_tag(title_node, "span")
+                if title_node is not None
+                else None
+            )
+            status_text = _node_text(status_node)
+            output_parts = _recipe_output_parts(
+                _node_text(title_node),
+                status_text,
+                recipe_definition,
+            )
+            icon_node = _find_descendant_class(recipe_node, "recipe-icon")
+            if icon_node is not None and _node_text(icon_node):
+                output_parts["icon"] = _node_text(icon_node)
+
+            material_nodes = [
+                node
+                for node in _walk_inclusive(recipe_node)
+                if _has_class(node, "material-item")
+            ]
+            materials = [
+                text for text in (_node_text(node) for node in material_nodes) if text
+            ]
+            ingredient_details = []
+            ingredients: Dict[str, int] = {}
+            for material_text in materials:
+                detail = _parse_material_text(material_text)
+                if detail is None:
+                    continue
+                ingredient_details.append(detail)
+                ingredients[detail["name"]] = max(0, safe_int(detail["required"], 0))
+
+            if not materials and recipe_definition:
+                ingredients = {
+                    str(name): max(0, safe_int(required, 0))
+                    for name, required in (
+                        recipe_definition.get("ingredients") or {}
+                    ).items()
+                }
+
+            input_node = _recipe_input_node(recipe_node, craft_id)
+            max_count = 0
+            max_is_explicit = input_node is not None and "max" in input_node.attrs
+            if max_is_explicit:
+                max_count = max(0, safe_int(input_node.attrs.get("max"), 0))
+            else:
+                status_match = re.search(
+                    r"最多(?:可)?制作\s*([\d,]+)",
+                    status_text,
+                    re.IGNORECASE,
+                )
+                if status_match:
+                    max_count = max(0, safe_int(status_match.group(1), 0))
+
+            if not max_is_explicit and max_count <= 0 and ingredient_details:
+                page_limits = [
+                    safe_int(detail.get("available"), 0)
+                    // max(1, safe_int(detail.get("required"), 1))
+                    for detail in ingredient_details
+                    if detail.get("available") is not None
+                    and safe_int(detail.get("required"), 0) > 0
+                ]
+                if len(page_limits) == len(ingredient_details):
+                    max_count = min(page_limits, default=0)
+
+            if not max_is_explicit and max_count <= 0 and ingredients:
+                inventory_limits = [
+                    inventory_counts[name] // max(1, required)
+                    for name, required in ingredients.items()
+                    if name in inventory_counts and required > 0
+                ]
+                if len(inventory_limits) == len(ingredients):
+                    max_count = min(inventory_limits, default=0)
+
+            action_node = _recipe_action_node(recipe_node, craft_id)
+            enabled = action_node is not None and not _is_disabled(action_node)
+            can_craft = enabled and (
+                _has_class(recipe_node, "can-craft") or max_count > 0
+            )
+            recipes.append(
+                {
+                    "title": output_parts["title"],
+                    "name": output_parts["output_item"],
+                    "output_item": output_parts["output_item"],
+                    "icon": output_parts["icon"],
+                    "status": status_text,
+                    "materials": materials,
+                    "ingredients": ingredients,
+                    "ingredient_details": ingredient_details,
+                    "can_craft": bool(can_craft),
+                    "max_count": max_count,
+                    "max": max_count,
+                    "craft_id": craft_id,
+                    "disabled": not enabled,
+                    "enabled": bool(enabled),
+                    "supported": bool(recipe_definition),
+                }
+            )
+        return recipes
+    except Exception:
+        return []
 
 
 def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
@@ -416,15 +836,184 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             match = _DAILY_LIMIT_RE.search(_node_text(daily_node.parent))
             if match:
                 daily_limit = safe_int(match.group(1), DEFAULT_DAILY_LIMIT)
+        if daily_limit <= 0:
+            daily_limit = DEFAULT_DAILY_LIMIT
         stats["daily_limit"] = daily_limit
 
-        result["brick"]["daily_bricks"] = stats["daily_bricks"]
-        result["brick"]["daily_limit"] = daily_limit
-        result["exchange"]["magic_pills"] = stats["magic_pills"]
-        result["exchange"]["points"] = stats["points"]
+        raw_server_now = _script_number(source, ("server_now", "serverNow"))
+        raw_last_beach = _script_number(
+            source,
+            ("last_beach_time", "lastBeachTime"),
+        )
+        raw_beach_interval = _script_number(
+            source,
+            ("beach_interval", "beachInterval"),
+        )
+        raw_brick_reset = _script_number(
+            source,
+            ("next_brick_reset_ts", "nextBrickResetTs"),
+        )
+        timestamps_use_milliseconds = any(
+            abs(value) > 10_000_000_000
+            for value in (raw_server_now, raw_last_beach, raw_brick_reset)
+            if value is not None
+        )
+        last_beach_time = _normalise_timestamp(raw_last_beach, 0)
+        beach_interval = _normalise_duration(
+            raw_beach_interval,
+            DEFAULT_BEACH_INTERVAL,
+            milliseconds_hint=timestamps_use_milliseconds,
+        )
+        next_brick_reset_ts = _normalise_timestamp(raw_brick_reset, 0)
+
+        factory_node = _find_by_id(root, "brickFactory")
+        factory_count_node = _find_by_id(root, "factoryBrickCount")
+        bag_count_node = _find_by_id(root, "bagBrickCount")
+        brick_status_node = _find_by_id(root, "brickStatus")
+        factory_text = _node_text(factory_count_node)
+        bag_text = _node_text(bag_count_node)
+        brick_status_text = _node_text(brick_status_node)
+        available_count = max(
+            0,
+            safe_int(
+                factory_text,
+                max(0, daily_limit - stats["daily_bricks"]),
+            ),
+        )
+        bag_count = max(0, safe_int(bag_text, 0))
+        brick_status_blocked = any(
+            word in brick_status_text
+            for word in ("倒计时", "冷却", "上限", "明日可搬")
+        )
+        factory_blocked = (
+            factory_node is not None and _is_pointer_disabled(factory_node)
+        )
+        brick_ready = bool(
+            stats["daily_bricks"] < daily_limit
+            and available_count > 0
+            and not brick_status_blocked
+            and not factory_blocked
+        )
+        result["brick"].update(
+            {
+                "ready": brick_ready,
+                "daily_bricks": stats["daily_bricks"],
+                "daily_limit": daily_limit,
+                "available_count": available_count,
+                "bag_count": bag_count,
+                "status_text": brick_status_text
+                or ("可以搬砖" if brick_ready else "今日搬砖已满"),
+                "next_reset_ts": next_brick_reset_ts,
+                "next_reset_time": _format_timestamp(next_brick_reset_ts),
+                "factory_text": factory_text,
+                "bag_text": bag_text,
+            }
+        )
+
+        exchange_points_node = _find_by_id(root, "points2")
+        exchange_pills_node = _find_by_id(root, "magicPills2")
+        exchange_input_node = _find_by_id(root, "exchangeCount")
+        exchange_button_node = _find_by_id(root, "exchangeBtn")
+        exchange_points = safe_int(
+            _node_text(exchange_points_node),
+            stats["points"],
+        )
+        exchange_pills = safe_int(
+            _node_text(exchange_pills_node),
+            stats["magic_pills"],
+        )
+        pill_price = safe_int(result["price_text"], 0)
+        if pill_price <= 0:
+            price_match = re.search(
+                r"1\s*魔丸\s*=\s*([\d,]+)\s*魔力",
+                source,
+                re.IGNORECASE,
+            )
+            if price_match:
+                pill_price = max(0, safe_int(price_match.group(1), 0))
+        if exchange_input_node is not None and "max" in exchange_input_node.attrs:
+            exchange_max = max(
+                0,
+                safe_int(exchange_input_node.attrs.get("max"), 0),
+            )
+        else:
+            exchange_max = max(0, exchange_pills)
+        exchange_enabled = (
+            exchange_button_node is not None
+            and not _is_disabled(exchange_button_node)
+        )
+        result["exchange"].update(
+            {
+                "pill_price": pill_price,
+                "magic_pills": exchange_pills,
+                "points": exchange_points,
+                "max_count": exchange_max,
+                "enabled": bool(exchange_enabled),
+                "action_ready": bool(
+                    exchange_enabled and exchange_pills > 0 and exchange_max > 0
+                ),
+                "note": "支持手动兑换魔力；一键炼造魔丸已整合到物品栏。",
+            }
+        )
+
+        beach_area_node = _find_by_id(root, "beachArea")
+        beach_status_node = _find_by_id(root, "beachStatus")
+        beach_button_node = _find_by_id(root, "beachBtn")
+        collect_button_node = _find_by_id(root, "collectAllTrashBtn")
+        beach_status_text = _node_text(beach_status_node)
+        can_enter = beach_button_node is not None and not _is_disabled(
+            beach_button_node
+        )
+        collect_enabled = (
+            collect_button_node is not None
+            and not _is_disabled(collect_button_node)
+        )
+        has_trash = _beach_has_trash(
+            beach_area_node,
+            beach_status_text,
+            collect_enabled,
+        )
+        countdown_active = _has_countdown(
+            beach_status_node,
+            beach_status_text,
+        )
+        calculated_beach_ts = (
+            last_beach_time + beach_interval if last_beach_time > 0 else 0
+        )
+        if calculated_beach_ts > 0:
+            next_ready_ts = calculated_beach_ts
+        else:
+            countdown = _countdown_seconds(beach_status_text)
+            next_ready_ts = server_now + countdown if countdown > 0 else 0
+        timestamp_expired = (
+            calculated_beach_ts <= 0 or calculated_beach_ts <= server_now
+        )
+        beach_ready = bool(
+            can_enter
+            and timestamp_expired
+            and not countdown_active
+            and not has_trash
+        )
+        result["beach"].update(
+            {
+                "ready": beach_ready,
+                "can_enter": bool(can_enter),
+                "can_collect": bool(collect_enabled),
+                "has_trash": bool(has_trash),
+                "status_text": beach_status_text
+                or ("可以进入清理" if beach_ready else "沙滩冷却中"),
+                "next_ready_ts": next_ready_ts,
+                "next_ready_time": _format_timestamp(next_ready_ts),
+                "level_text": _current_value_text(source, "发种等级"),
+                "hnr_text": _current_value_text(source, "HNR值"),
+                "enter_button_text": _node_text(beach_button_node) or "清理沙滩",
+                "collect_button_text": _node_text(collect_button_node) or "一键收集",
+                "collect_enabled": bool(collect_enabled),
+            }
+        )
 
         result["inventory"] = parse_inventory(source)
-        result["recipes"] = parse_recipes("", result["inventory"])
+        result["recipes"] = parse_recipes(source, result["inventory"])
     except Exception:
         # Keep the already-created skeleton if a malformed page breaks parsing.
         pass
