@@ -117,13 +117,54 @@ def _empty_result(reason="", missing=None):
     }
 
 
+def _validate_recipe(output_item, rows_by_output, used_ids):
+    matching_rows = rows_by_output.get(output_item, ())
+    if not matching_rows:
+        return None, "缺少%s配方" % output_item
+    if len(matching_rows) != 1:
+        return None, "检测到重复产物"
+
+    raw_recipe = matching_rows[0]
+    if "supported" in raw_recipe and raw_recipe["supported"] is not True:
+        return None, "存在不受支持的配方"
+
+    craft_id = raw_recipe.get("craft_id")
+    if isinstance(craft_id, bool) or not isinstance(craft_id, int) or craft_id <= 0:
+        return None, "配方编号无效"
+    if craft_id in used_ids and used_ids[craft_id] != output_item:
+        return None, "检测到重复配方编号"
+
+    raw_ingredients = raw_recipe.get("ingredients")
+    if not isinstance(raw_ingredients, dict) or not raw_ingredients:
+        return None, "配方材料无效"
+    ingredients = {}
+    for raw_name, raw_quantity in raw_ingredients.items():
+        ingredient_name = _clean_name(raw_name)
+        if not ingredient_name or ingredient_name in ingredients:
+            return None, "配方材料无效"
+        if (
+            isinstance(raw_quantity, bool)
+            or not isinstance(raw_quantity, int)
+            or raw_quantity <= 0
+        ):
+            return None, "材料数量必须为正整数"
+        ingredients[ingredient_name] = raw_quantity
+
+    used_ids[craft_id] = output_item
+    return {
+        "craft_id": craft_id,
+        "output_item": output_item,
+        "ingredients": ingredients,
+    }, ""
+
+
 def _prepare_recipes(recipes):
     if recipes is None or isinstance(recipes, (dict, str, bytes)):
-        return None, "配方数据无效"
+        return None, None, "配方数据无效"
     try:
         recipe_rows = iter(recipes)
     except TypeError:
-        return None, "配方数据无效"
+        return None, None, "配方数据无效"
 
     rows_by_output = {}
     try:
@@ -135,87 +176,12 @@ def _prepare_recipes(recipes):
                 continue
             rows_by_output.setdefault(output_item, []).append(raw_recipe)
     except Exception:
-        return None, "配方数据读取失败"
+        return None, None, "配方数据读取失败"
 
-    if _MAGIC_PILL not in rows_by_output:
-        return None, "缺少魔丸配方"
-
-    by_output = {}
-    seen_ids = set()
-    pending_outputs = [_MAGIC_PILL]
-    while pending_outputs:
-        output_item = pending_outputs.pop()
-        if output_item in by_output:
-            continue
-
-        matching_rows = rows_by_output[output_item]
-        if len(matching_rows) != 1:
-            return None, "检测到重复产物"
-        raw_recipe = matching_rows[0]
-        if "supported" in raw_recipe and raw_recipe["supported"] is not True:
-            return None, "存在不受支持的配方"
-
-        craft_id = raw_recipe.get("craft_id")
-        if isinstance(craft_id, bool) or not isinstance(craft_id, int) or craft_id <= 0:
-            return None, "配方编号无效"
-        if craft_id in seen_ids:
-            return None, "检测到重复配方编号"
-
-        raw_ingredients = raw_recipe.get("ingredients")
-        if not isinstance(raw_ingredients, dict) or not raw_ingredients:
-            return None, "配方材料无效"
-        ingredients = {}
-        for raw_name, raw_quantity in raw_ingredients.items():
-            ingredient_name = _clean_name(raw_name)
-            if not ingredient_name or ingredient_name in ingredients:
-                return None, "配方材料无效"
-            if (
-                isinstance(raw_quantity, bool)
-                or not isinstance(raw_quantity, int)
-                or raw_quantity <= 0
-            ):
-                return None, "材料数量必须为正整数"
-            ingredients[ingredient_name] = raw_quantity
-
-        seen_ids.add(craft_id)
-        by_output[output_item] = {
-            "craft_id": craft_id,
-            "output_item": output_item,
-            "ingredients": ingredients,
-        }
-        pending_outputs.extend(
-            ingredient_name
-            for ingredient_name in ingredients
-            if ingredient_name in rows_by_output
-            and ingredient_name not in by_output
-        )
-
-    if _has_recipe_cycle(by_output):
-        return None, "检测到循环依赖"
-    return by_output, ""
-
-
-def _has_recipe_cycle(by_output):
-    states = {}
-
-    def visit(output_item):
-        state = states.get(output_item, 0)
-        if state == 1:
-            return True
-        if state == 2:
-            return False
-
-        states[output_item] = 1
-        for ingredient_name in by_output[output_item]["ingredients"]:
-            if ingredient_name in by_output and visit(ingredient_name):
-                return True
-        states[output_item] = 2
-        return False
-
-    try:
-        return any(visit(output_item) for output_item in by_output)
-    except RecursionError:
-        return True
+    root_recipe, error = _validate_recipe(_MAGIC_PILL, rows_by_output, {})
+    if root_recipe is None:
+        return None, None, error
+    return rows_by_output, root_recipe, ""
 
 
 def _topological_plan_order(plan, preferred_order, by_output):
@@ -254,20 +220,47 @@ def _topological_plan_order(plan, preferred_order, by_output):
     return ordered if len(ordered) == len(candidates) else None
 
 
-def _related_inventory_items(by_output):
+def _related_inventory_items(rows_by_output, root_recipe):
     related_items = set()
-    for output_item, recipe in by_output.items():
-        related_items.add(output_item)
-        related_items.update(recipe["ingredients"])
+    visited_outputs = {_MAGIC_PILL}
+    pending_items = list(root_recipe["ingredients"])
+    while pending_items:
+        item_name = pending_items.pop()
+        related_items.add(item_name)
+        if item_name in visited_outputs:
+            continue
+        visited_outputs.add(item_name)
+
+        for raw_recipe in rows_by_output.get(item_name, ()):
+            raw_ingredients = raw_recipe.get("ingredients")
+            if not isinstance(raw_ingredients, dict):
+                continue
+            pending_items.extend(
+                ingredient_name
+                for ingredient_name in (
+                    _clean_name(raw_name) for raw_name in raw_ingredients
+                )
+                if ingredient_name
+            )
     related_items.discard(_MAGIC_PILL)
     return related_items
 
 
-def _attempt_plan(inventory, by_output, target):
+def _attempt_plan(inventory, rows_by_output, root_recipe, target):
     stock = dict(inventory)
     plan = {}
     order = []
     missing = {}
+    validated_by_output = {_MAGIC_PILL: root_recipe}
+    used_ids = {root_recipe["craft_id"]: _MAGIC_PILL}
+    active_outputs = set()
+    failure_reason = ""
+
+    def fail(reason):
+        nonlocal failure_reason
+        if not failure_reason:
+            failure_reason = reason
+        return False
 
     def provide(item_name, quantity):
         available = stock.get(item_name, 0)
@@ -278,17 +271,33 @@ def _attempt_plan(inventory, by_output, target):
         if remaining <= 0:
             return True
 
-        recipe = by_output.get(item_name)
-        if recipe is None:
+        if item_name in active_outputs:
+            return fail("检测到循环依赖")
+
+        if item_name not in rows_by_output:
             missing[item_name] = missing.get(item_name, 0) + remaining
             return False
+        recipe = validated_by_output.get(item_name)
+        if recipe is None:
+            recipe, error = _validate_recipe(item_name, rows_by_output, used_ids)
+            if recipe is None:
+                return fail(error)
+            validated_by_output[item_name] = recipe
         return craft(recipe, remaining)
 
     def craft(recipe, quantity):
+        output_item = recipe["output_item"]
+        if output_item in active_outputs:
+            return fail("检测到循环依赖")
+
+        active_outputs.add(output_item)
         ingredients_ready = True
-        for ingredient_name, required in recipe["ingredients"].items():
-            if not provide(ingredient_name, required * quantity):
-                ingredients_ready = False
+        try:
+            for ingredient_name, required in recipe["ingredients"].items():
+                if not provide(ingredient_name, required * quantity):
+                    ingredients_ready = False
+        finally:
+            active_outputs.remove(output_item)
         if not ingredients_ready:
             return False
 
@@ -299,19 +308,20 @@ def _attempt_plan(inventory, by_output, target):
         plan[craft_id] += quantity
         return True
 
-    root_recipe = by_output[_MAGIC_PILL]
     if not craft(root_recipe, target):
         return _empty_result(
-            reason="库存不足或缺少前置配方",
+            reason=failure_reason or "库存不足或缺少前置配方",
             missing=missing,
         )
 
-    order = _topological_plan_order(plan, order, by_output)
+    order = _topological_plan_order(plan, order, validated_by_output)
     if order is None:
         return _empty_result(reason="炼造步骤依赖排序失败")
 
     plan = {craft_id: plan[craft_id] for craft_id in order}
-    recipes_by_id = {recipe["craft_id"]: recipe for recipe in by_output.values()}
+    recipes_by_id = {
+        recipe["craft_id"]: recipe for recipe in validated_by_output.values()
+    }
     steps = [
         {
             "craft_id": craft_id,
@@ -342,29 +352,34 @@ def compute_magic_pill_plan(inventory, recipes, target=None) -> dict:
         parsed_target = None
 
     try:
-        by_output, error = _prepare_recipes(recipes)
-        if by_output is None:
+        rows_by_output, root_recipe, error = _prepare_recipes(recipes)
+        if rows_by_output is None:
             return _empty_result(reason=error)
         stock = _inventory_map(inventory)
 
         if parsed_target is not None:
-            return _attempt_plan(stock, by_output, parsed_target)
+            return _attempt_plan(
+                stock,
+                rows_by_output,
+                root_recipe,
+                parsed_target,
+            )
 
-        related_items = _related_inventory_items(by_output)
+        related_items = _related_inventory_items(rows_by_output, root_recipe)
         upper_bound = sum(stock.get(item_name, 0) for item_name in related_items)
         low = 0
         high = upper_bound
         while low < high:
             middle = (low + high + 1) // 2
-            attempt = _attempt_plan(stock, by_output, middle)
+            attempt = _attempt_plan(stock, rows_by_output, root_recipe, middle)
             if attempt["max_count"] == middle:
                 low = middle
             else:
                 high = middle - 1
 
         if low <= 0:
-            return _attempt_plan(stock, by_output, 1)
-        return _attempt_plan(stock, by_output, low)
+            return _attempt_plan(stock, rows_by_output, root_recipe, 1)
+        return _attempt_plan(stock, rows_by_output, root_recipe, low)
     except Exception:
         return _empty_result(reason="炼造计划计算失败")
 

@@ -82,6 +82,41 @@ def _full_plan(ids, pill_count=1):
     }
 
 
+def _lazy_validation_recipes(case_name):
+    root_recipe = {
+        "craft_id": 800,
+        "output_item": "魔丸",
+        "ingredients": {"库存中间件": 1},
+    }
+    intermediate_recipe = {
+        "craft_id": 810,
+        "output_item": "库存中间件",
+        "ingredients": {"基础材料": 1},
+    }
+    extra_recipes = []
+
+    if case_name == "unsupported":
+        intermediate_recipe["supported"] = False
+    elif case_name == "damaged":
+        intermediate_recipe["ingredients"] = {"基础材料": 0}
+    elif case_name == "cycle":
+        intermediate_recipe["ingredients"] = {"库存中间件": 1}
+    elif case_name == "duplicate_output":
+        extra_recipes.append(
+            {
+                "craft_id": 811,
+                "output_item": "库存中间件",
+                "ingredients": {"基础材料": 1},
+            }
+        )
+    elif case_name == "duplicate_id":
+        intermediate_recipe["craft_id"] = root_recipe["craft_id"]
+    else:
+        raise ValueError(f"未知测试场景: {case_name}")
+
+    return [root_recipe, intermediate_recipe, *extra_recipes]
+
+
 class VuePillCraftingTests(unittest.TestCase):
     def setUp(self):
         self.assertTrue(CRAFTING_PATH.exists(), "crafting.py 尚未创建")
@@ -372,6 +407,71 @@ class VuePillCraftingTests(unittest.TestCase):
         self.assertEqual(0, result["max_count"])
         self.assertEqual({}, result["plan"])
         self.assertIn("不受支持", result["reason"])
+
+    def test_unused_invalid_intermediate_recipes_are_skipped_when_stock_is_enough(self):
+        cases = (
+            "unsupported",
+            "damaged",
+            "cycle",
+            "duplicate_output",
+            "duplicate_id",
+        )
+        for case_name in cases:
+            for target in (1, None):
+                with self.subTest(case_name=case_name, target=target):
+                    recipes = _lazy_validation_recipes(case_name)
+                    inventory = {"库存中间件": 1}
+                    original_inventory = copy.deepcopy(inventory)
+                    original_recipes = copy.deepcopy(recipes)
+
+                    result = self.module.compute_magic_pill_plan(
+                        inventory,
+                        recipes,
+                        target=target,
+                    )
+
+                    self.assertEqual(1, result["max_count"])
+                    self.assertEqual({800: 1}, result["plan"])
+                    self.assertEqual([800], [step["craft_id"] for step in result["steps"]])
+                    self.assertEqual(original_inventory, inventory)
+                    self.assertEqual(original_recipes, recipes)
+
+    def test_needed_invalid_intermediate_recipes_fail_closed_when_stock_is_short(self):
+        expected_reasons = {
+            "unsupported": "不受支持",
+            "damaged": "材料数量",
+            "cycle": "循环",
+            "duplicate_output": "重复产物",
+            "duplicate_id": "重复配方",
+        }
+        for case_name, expected_reason in expected_reasons.items():
+            for target in (1, None):
+                with self.subTest(case_name=case_name, target=target):
+                    result = self.module.compute_magic_pill_plan(
+                        {},
+                        _lazy_validation_recipes(case_name),
+                        target=target,
+                    )
+
+                    self.assertEqual(0, result["max_count"])
+                    self.assertEqual({}, result["plan"])
+                    self.assertIn(expected_reason, result["reason"])
+
+    def test_root_magic_pill_recipe_is_always_validated(self):
+        recipes = _lazy_validation_recipes("unsupported")
+        recipes[0]["supported"] = False
+
+        for target in (1, None):
+            with self.subTest(target=target):
+                result = self.module.compute_magic_pill_plan(
+                    {"库存中间件": 1},
+                    recipes,
+                    target=target,
+                )
+
+                self.assertEqual(0, result["max_count"])
+                self.assertEqual({}, result["plan"])
+                self.assertIn("不受支持", result["reason"])
 
     def test_shared_intermediate_steps_are_topologically_sorted(self):
         recipes = [
