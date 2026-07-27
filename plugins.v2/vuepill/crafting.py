@@ -13,6 +13,8 @@ __all__ = [
 
 
 _MAGIC_PILL = "魔丸"
+_MAX_EXCHANGE_BATCH = 100
+_MAX_GIFT_QUANTITY = 500
 _INTEGER_WITH_COMMAS = re.compile(r"\d{1,3}(?:,\d{3})+")
 
 
@@ -123,11 +125,33 @@ def _prepare_recipes(recipes):
     except TypeError:
         return None, "配方数据无效"
 
+    rows_by_output = {}
+    try:
+        for raw_recipe in recipe_rows:
+            if not isinstance(raw_recipe, dict):
+                continue
+            output_item = _clean_name(raw_recipe.get("output_item"))
+            if not output_item:
+                continue
+            rows_by_output.setdefault(output_item, []).append(raw_recipe)
+    except Exception:
+        return None, "配方数据读取失败"
+
+    if _MAGIC_PILL not in rows_by_output:
+        return None, "缺少魔丸配方"
+
     by_output = {}
     seen_ids = set()
-    for raw_recipe in recipe_rows:
-        if not isinstance(raw_recipe, dict):
-            return None, "配方数据无效"
+    pending_outputs = [_MAGIC_PILL]
+    while pending_outputs:
+        output_item = pending_outputs.pop()
+        if output_item in by_output:
+            continue
+
+        matching_rows = rows_by_output[output_item]
+        if len(matching_rows) != 1:
+            return None, "检测到重复产物"
+        raw_recipe = matching_rows[0]
         if "supported" in raw_recipe and raw_recipe["supported"] is not True:
             return None, "存在不受支持的配方"
 
@@ -136,12 +160,6 @@ def _prepare_recipes(recipes):
             return None, "配方编号无效"
         if craft_id in seen_ids:
             return None, "检测到重复配方编号"
-
-        output_item = _clean_name(raw_recipe.get("output_item"))
-        if not output_item:
-            return None, "配方产物无效"
-        if output_item in by_output:
-            return None, "检测到重复产物"
 
         raw_ingredients = raw_recipe.get("ingredients")
         if not isinstance(raw_ingredients, dict) or not raw_ingredients:
@@ -165,9 +183,13 @@ def _prepare_recipes(recipes):
             "output_item": output_item,
             "ingredients": ingredients,
         }
+        pending_outputs.extend(
+            ingredient_name
+            for ingredient_name in ingredients
+            if ingredient_name in rows_by_output
+            and ingredient_name not in by_output
+        )
 
-    if _MAGIC_PILL not in by_output:
-        return None, "缺少魔丸配方"
     if _has_recipe_cycle(by_output):
         return None, "检测到循环依赖"
     return by_output, ""
@@ -230,6 +252,15 @@ def _topological_plan_order(plan, preferred_order, by_output):
                 ready.append(dependent_id)
 
     return ordered if len(ordered) == len(candidates) else None
+
+
+def _related_inventory_items(by_output):
+    related_items = set()
+    for output_item, recipe in by_output.items():
+        related_items.add(output_item)
+        related_items.update(recipe["ingredients"])
+    related_items.discard(_MAGIC_PILL)
+    return related_items
 
 
 def _attempt_plan(inventory, by_output, target):
@@ -319,9 +350,8 @@ def compute_magic_pill_plan(inventory, recipes, target=None) -> dict:
         if parsed_target is not None:
             return _attempt_plan(stock, by_output, parsed_target)
 
-        upper_bound = sum(
-            count for item_name, count in stock.items() if item_name != _MAGIC_PILL
-        )
+        related_items = _related_inventory_items(by_output)
+        upper_bound = sum(stock.get(item_name, 0) for item_name in related_items)
         low = 0
         high = upper_bound
         while low < high:
@@ -356,6 +386,7 @@ def exchange_batches(current, reserve, max_per_request=100) -> list:
     ):
         return []
 
+    maximum = min(maximum, _MAX_EXCHANGE_BATCH)
     exchangeable = current_value - reserve_value
     full_batches, remainder = divmod(exchangeable, maximum)
     batches = [maximum] * full_batches
@@ -371,5 +402,6 @@ def max_gift_quantity(inventory, item_name, cap=500) -> int:
     cap_value = _integer_value(cap)
     if not name or cap_value is None or cap_value <= 0:
         return 0
+    cap_value = min(cap_value, _MAX_GIFT_QUANTITY)
     stock = _inventory_map(inventory).get(name, 0)
     return min(stock, cap_value)

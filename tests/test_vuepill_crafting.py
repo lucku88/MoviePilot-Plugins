@@ -1,8 +1,10 @@
+import ast
 import copy
 import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +99,24 @@ class VuePillCraftingTests(unittest.TestCase):
             set(self.module.__all__),
         )
 
+    def test_source_does_not_import_moviepilot_or_requests(self):
+        tree = ast.parse(CRAFTING_PATH.read_text(encoding="utf-8"))
+        imported_modules = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported_modules.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported_modules.add(node.module)
+
+        forbidden = [
+            module_name
+            for module_name in imported_modules
+            if module_name == "requests"
+            or module_name.startswith("requests.")
+            or "moviepilot" in module_name.lower()
+        ]
+        self.assertEqual([], forbidden)
+
     def test_inventory_to_map_sums_duplicates_and_applies_magic_pill_reserve(self):
         items = [
             {"name": "木材", "count": "3"},
@@ -139,6 +159,84 @@ class VuePillCraftingTests(unittest.TestCase):
             ),
         )
 
+    def test_inventory_to_map_accepts_generators(self):
+        items = (
+            item
+            for item in (
+                {"name": "木材", "count": 2},
+                {"name": "木材", "count": 3},
+                {"name": "魔丸", "count": 4},
+            )
+        )
+
+        self.assertEqual(
+            {"木材": 5, "魔丸": 3},
+            self.module.inventory_to_map(items, reserve_magic_pill_count=1),
+        )
+
+    def test_valid_comma_numbers_are_parsed(self):
+        inventory = self.module.inventory_to_map(
+            [
+                {"name": "木材", "count": "1,234"},
+                {"name": "魔丸", "count": "1,000"},
+            ],
+            reserve_magic_pill_count="10",
+        )
+
+        self.assertEqual({"木材": 1234, "魔丸": 990}, inventory)
+        self.assertEqual(
+            ([100] * 12) + [47],
+            self.module.exchange_batches("1,257", "10", "100"),
+        )
+        self.assertEqual(
+            500,
+            self.module.max_gift_quantity({"木材": "1,234"}, "木材"),
+        )
+
+    def test_malformed_comma_numbers_fail_closed(self):
+        inventory = self.module.inventory_to_map(
+            [
+                {"name": "木材", "count": "12,34"},
+                {"name": "螺丝", "count": "1,23,456"},
+                {"name": "旧电池", "count": ",100"},
+                {"name": "破铜片", "count": "100,"},
+            ]
+        )
+
+        self.assertEqual(
+            {"木材": 0, "螺丝": 0, "旧电池": 0, "破铜片": 0},
+            inventory,
+        )
+        self.assertEqual([], self.module.exchange_batches("1,25", 0, 100))
+        self.assertEqual(
+            0,
+            self.module.max_gift_quantity({"木材": "1,2"}, "木材"),
+        )
+
+    def test_integer_valued_floats_are_accepted_but_fractional_values_are_not(self):
+        inventory = self.module.inventory_to_map(
+            [
+                {"name": "木材", "count": 4.0},
+                {"name": "螺丝", "count": 4.5},
+            ]
+        )
+
+        self.assertEqual({"木材": 4, "螺丝": 0}, inventory)
+        self.assertEqual(
+            [100, 100, 47],
+            self.module.exchange_batches(257.0, 10.0, 100.0),
+        )
+        self.assertEqual(
+            100,
+            self.module.max_gift_quantity({"木材": 700.0}, "木材", cap=100.0),
+        )
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            self.recipes,
+            target=1.0,
+        )
+        self.assertEqual(1, result["max_count"])
+
     def test_dynamic_recipe_ids_follow_real_fixture_math_and_dependency_order(self):
         inventory = _base_inventory(1)
         original_inventory = copy.deepcopy(inventory)
@@ -167,6 +265,113 @@ class VuePillCraftingTests(unittest.TestCase):
         self.assertEqual("", result["reason"])
         self.assertEqual(original_inventory, inventory)
         self.assertEqual(original_recipes, self.recipes)
+
+    def test_steps_have_stable_public_field_contract(self):
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            self.recipes,
+            target=1,
+        )
+        output_by_id = {
+            recipe["craft_id"]: recipe["output_item"] for recipe in self.recipes
+        }
+
+        self.assertEqual(list(result["plan"]), [step["craft_id"] for step in result["steps"]])
+        for step in result["steps"]:
+            self.assertEqual({"craft_id", "output_item", "count"}, set(step))
+            self.assertEqual(result["plan"][step["craft_id"]], step["count"])
+            self.assertEqual(output_by_id[step["craft_id"]], step["output_item"])
+            self.assertIs(type(step["count"]), int)
+            self.assertGreater(step["count"], 0)
+
+    def test_irrelevant_unsupported_recipe_is_ignored(self):
+        recipes = copy.deepcopy(self.recipes)
+        recipes.append(
+            {
+                "craft_id": 7001,
+                "output_item": "未知纪念品",
+                "ingredients": {"未知材料": 1},
+                "supported": False,
+            }
+        )
+
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            recipes,
+            target=1,
+        )
+
+        self.assertEqual(1, result["max_count"])
+        self.assertEqual(_full_plan(self.ids, 1), result["plan"])
+
+    def test_irrelevant_damaged_and_duplicate_id_recipes_are_ignored(self):
+        recipes = copy.deepcopy(self.recipes)
+        recipes.extend(
+            [
+                {
+                    "craft_id": self.ids["魔丸"],
+                    "output_item": "重复编号的无关产物",
+                    "ingredients": {"无关材料": 1},
+                },
+                {
+                    "craft_id": 7002,
+                    "output_item": "损坏的无关产物",
+                    "ingredients": {"无关材料": 0},
+                },
+            ]
+        )
+
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            recipes,
+            target=1,
+        )
+
+        self.assertEqual(1, result["max_count"])
+        self.assertEqual(_full_plan(self.ids, 1), result["plan"])
+
+    def test_irrelevant_recipe_cycle_is_ignored(self):
+        recipes = copy.deepcopy(self.recipes)
+        recipes.extend(
+            [
+                {
+                    "craft_id": 7003,
+                    "output_item": "无关循环甲",
+                    "ingredients": {"无关循环乙": 1},
+                },
+                {
+                    "craft_id": 7004,
+                    "output_item": "无关循环乙",
+                    "ingredients": {"无关循环甲": 1},
+                },
+            ]
+        )
+
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            recipes,
+            target=1,
+        )
+
+        self.assertEqual(1, result["max_count"])
+        self.assertEqual(_full_plan(self.ids, 1), result["plan"])
+
+    def test_reachable_unsupported_recipe_fails_closed(self):
+        recipes = copy.deepcopy(self.recipes)
+        embryo_recipe = next(
+            recipe for recipe in recipes if recipe["output_item"] == "魔丸胚胎"
+        )
+        embryo_recipe["supported"] = False
+
+        result = self.module.compute_magic_pill_plan(
+            _base_inventory(1),
+            recipes,
+            target=1,
+        )
+
+        self.assertEqual(0, result["max_count"])
+        self.assertEqual({}, result["plan"])
+        self.assertIn("不受支持", result["reason"])
 
     def test_shared_intermediate_steps_are_topologically_sorted(self):
         recipes = [
@@ -310,6 +515,32 @@ class VuePillCraftingTests(unittest.TestCase):
 
         self.assertEqual(3, result["max_count"])
         self.assertEqual(_full_plan(self.ids, 3), result["plan"])
+
+    def test_target_none_with_zero_inventory_returns_empty_plan(self):
+        result = self.module.compute_magic_pill_plan(
+            {},
+            self.recipes,
+            target=None,
+        )
+
+        self.assertEqual(0, result["max_count"])
+        self.assertEqual({}, result["plan"])
+
+    def test_target_none_ignores_huge_irrelevant_inventory_in_upper_bound(self):
+        with mock.patch.object(
+            self.module,
+            "_attempt_plan",
+            wraps=self.module._attempt_plan,
+        ) as attempt_plan:
+            result = self.module.compute_magic_pill_plan(
+                {"完全无关的收藏品": 10 ** 200},
+                self.recipes,
+                target=None,
+            )
+
+        self.assertEqual(0, result["max_count"])
+        self.assertEqual({}, result["plan"])
+        self.assertEqual(1, attempt_plan.call_count)
 
     def test_non_positive_target_returns_empty_plan(self):
         for target in (0, -1):
@@ -460,6 +691,16 @@ class VuePillCraftingTests(unittest.TestCase):
         self.assertEqual([], self.module.exchange_batches(10, 10, 100))
         self.assertEqual([], self.module.exchange_batches(9, 10, 100))
 
+    def test_exchange_batches_never_exceeds_site_limit(self):
+        self.assertEqual(
+            [100, 100, 50],
+            self.module.exchange_batches(250, 0, max_per_request=1000),
+        )
+        self.assertEqual(
+            [80, 80, 80, 10],
+            self.module.exchange_batches(250, 0, max_per_request=80),
+        )
+
     def test_exchange_batches_invalid_values_fail_closed(self):
         invalid_cases = (
             (-1, 0, 100),
@@ -499,6 +740,18 @@ class VuePillCraftingTests(unittest.TestCase):
         self.assertEqual(
             0,
             self.module.max_gift_quantity(inventory, "不存在"),
+        )
+
+    def test_max_gift_quantity_never_exceeds_site_limit(self):
+        inventory = {"木材": 1000}
+
+        self.assertEqual(
+            500,
+            self.module.max_gift_quantity(inventory, "木材", cap=1000),
+        )
+        self.assertEqual(
+            100,
+            self.module.max_gift_quantity(inventory, "木材", cap=100),
         )
 
     def test_max_gift_quantity_invalid_values_fail_closed(self):
