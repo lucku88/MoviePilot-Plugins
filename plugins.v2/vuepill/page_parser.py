@@ -387,15 +387,18 @@ def _script_number(source: str, names: Iterable[str]) -> Optional[int]:
     aliases = "|".join(re.escape(name) for name in names if name)
     if not aliases:
         return None
+    number_pattern = r"[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)"
     pattern = re.compile(
-        rf"(?<![\w$])[\"']?(?:{aliases})[\"']?\s*[:=]\s*[\"']?\s*"
-        r"([-+]?\d[\d,]*)",
+        rf"(?<![\w$])(?:[\"'](?:{aliases})[\"']|(?:{aliases}))\s*"
+        rf"[:=]\s*(?:(?P<quote>[\"'])[ \t]*(?P<quoted>{number_pattern})"
+        rf"[ \t]*(?P=quote)|(?P<plain>{number_pattern}))"
+        r"(?=[ \t]*(?:[,;}\]]|\r?\n|$))",
         re.IGNORECASE,
     )
     for candidate in _script_candidates(source):
         match = pattern.search(candidate)
         if match:
-            return safe_int(match.group(1), 0)
+            return safe_int(match.group("quoted") or match.group("plain"), 0)
     return None
 
 
@@ -623,24 +626,7 @@ def _beach_has_trash(
     status_text: str,
 ) -> bool:
     area_text = _node_text(beach_area)
-    if any(word in status_text for word in _NO_TRASH_WORDS):
-        return False
-    if any(word in area_text for word in _NO_TRASH_WORDS):
-        return False
-
     if beach_area is not None:
-        for node in _walk_inclusive(beach_area):
-            marker = " ".join(
-                (
-                    node.attrs.get("id", ""),
-                    node.attrs.get("class", ""),
-                    node.attrs.get("onclick", ""),
-                    node.attrs.get("data-type", ""),
-                )
-            ).lower().replace("_", "-")
-            if any(word in marker for word in _NO_TRASH_MARKERS):
-                return False
-
         for node in _walk_inclusive(beach_area):
             marker = " ".join(
                 (
@@ -659,6 +645,24 @@ def _beach_has_trash(
                 if token
             ):
                 return True
+
+    if any(word in status_text for word in _NO_TRASH_WORDS):
+        return False
+    if any(word in area_text for word in _NO_TRASH_WORDS):
+        return False
+
+    if beach_area is not None:
+        for node in _walk_inclusive(beach_area):
+            marker = " ".join(
+                (
+                    node.attrs.get("id", ""),
+                    node.attrs.get("class", ""),
+                    node.attrs.get("onclick", ""),
+                    node.attrs.get("data-type", ""),
+                )
+            ).lower().replace("_", "-")
+            if any(word in marker for word in _NO_TRASH_MARKERS):
+                return False
         if any(word in area_text for word in _TRASH_WORDS):
             return True
 

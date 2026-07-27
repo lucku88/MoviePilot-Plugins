@@ -206,6 +206,46 @@ class VuePillParserTests(unittest.TestCase):
                 self.assertIs(data["beach"]["can_enter"], False)
                 self.assertIs(data["beach"]["ready"], False)
 
+    def test_script_number_rejects_garbage_after_numeric_prefix(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785090000',
+        )
+        parse_page = _load_parse_page()
+
+        for invalid_value in ('"7200broken"', '"7200abc"'):
+            with self.subTest(invalid_value=invalid_value):
+                case_html = html.replace(
+                    '"beach_interval": 7200',
+                    f'"beach_interval": {invalid_value}',
+                )
+
+                data = parse_page(case_html, now_ts=1785100000)
+
+                self.assertIs(data["beach"]["can_enter"], False)
+                self.assertIs(data["beach"]["ready"], False)
+
+        for valid_value in ("7200", '"7200"', '"7,200"'):
+            with self.subTest(valid_value=valid_value):
+                case_html = html.replace(
+                    '"beach_interval": 7200',
+                    f'"beach_interval": {valid_value}',
+                )
+
+                data = parse_page(case_html, now_ts=1785100000)
+
+                self.assertIs(data["beach"]["can_enter"], True)
+                self.assertIs(data["beach"]["ready"], True)
+
     def test_disabled_beach_with_countdown_is_not_ready(self):
         data = self.parse_fixture()
 
@@ -333,6 +373,24 @@ class VuePillParserTests(unittest.TestCase):
         data = parse_page(html, now_ts=1785100000)
 
         self.assertIs(data["beach"]["collect_enabled"], False)
+        self.assertIs(data["beach"]["has_trash"], True)
+        self.assertIs(data["beach"]["can_collect"], True)
+
+    def test_real_trash_node_overrides_stale_no_trash_status(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<div class="beach-area" id="beachArea"></div>',
+            '<div class="beach-area" id="beachArea">'
+            '<span class="trash-item">待收瓶子</span></div>',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>暂无待收垃圾</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
         self.assertIs(data["beach"]["has_trash"], True)
         self.assertIs(data["beach"]["can_collect"], True)
 
