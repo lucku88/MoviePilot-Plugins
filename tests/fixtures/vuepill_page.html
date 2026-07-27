@@ -1,0 +1,217 @@
+<div class="container">
+    <div class="header">
+        <h1>搬砖捡破烂炼魔丸</h1>
+        <div class="price-banner">
+            魔丸限时价格：<b>1000 魔力/颗</b>
+        </div>
+        <div class="stats">
+            <div class="stat-item">魔力: <span id="points">73037</span></div>
+            <div class="stat-item">已兑换魔力: <span id="bonusEarned">331000</span></div>
+            <div class="stat-item">当前魔丸数: <span id="magicPills">57</span></div>
+            <div class="stat-item">今日搬砖: <span id="dailyBricks">50</span>/50</div>
+        </div>
+    </div>
+
+    <div class="section" id="exchangeCenter">
+        <h2>魔力兑换中心</h2>
+        <p>将魔丸兑换为魔力值 (1 魔丸 = 1000 魔力值)</p>
+        <div class="exchange-controls">
+            <input type="number" id="exchangeCount" value="1" min="1" max="57">
+            <button id="exchangeBtn" onclick="exchangePoints()">兑换魔力</button>
+        </div>
+    </div>
+
+    <div class="section action-area">
+        <div class="action-box">
+            <h3>搬砖工坊</h3>
+            <div class="brick-factory" id="brickFactory" draggable="true" style="pointer-events:none;opacity:0.5;">
+                <div class="brick-count-display" id="factoryBrickCount">可搬: 0块</div>
+            </div>
+            <div class="brick-bag" id="brickBag">
+                <div class="brick-count-display" id="bagBrickCount">口袋: 42块</div>
+            </div>
+            <div class="status-text" id="brickStatus">
+                <span class="countdown">今日已达上限，明日可搬: 10:39:29</span>
+            </div>
+        </div>
+
+        <div class="action-box">
+            <h3>沙滩捡破烂</h3>
+            <div class="beach-area" id="beachArea"></div>
+            <div class="status-text" id="beachStatus">
+                <span class="countdown">下次清理: 0:06:15</span>
+            </div>
+            <button class="action-btn" id="beachBtn" onclick="enterBeach()" disabled="">清理沙滩</button>
+            <button class="action-btn" id="collectAllTrashBtn" onclick="collectAllTrash()" disabled="">一键收集</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>物品栏</h2>
+        <div class="inventory-grid" id="inventoryGrid">
+            <div class="inventory-item has-items">
+                <span class="item-icon">🧱</span>
+                <div class="item-name">砖块</div>
+                <div class="item-count">42</div>
+                <button class="gift-btn" onclick="openGiftDialog('砖块', 42)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🪵</span>
+                <div class="item-name">木材</div>
+                <div class="item-count">501</div>
+                <button class="gift-btn" onclick="openGiftDialog('木材', 501)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🛍️</span>
+                <div class="item-name">塑料袋</div>
+                <div class="item-count">487</div>
+                <button class="gift-btn" onclick="openGiftDialog('塑料袋', 487)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🧴</span>
+                <div class="item-name">瓶子</div>
+                <div class="item-count">530</div>
+                <button class="gift-btn" onclick="openGiftDialog('瓶子', 530)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🔩</span>
+                <div class="item-name">螺丝</div>
+                <div class="item-count">474</div>
+                <button class="gift-btn" onclick="openGiftDialog('螺丝', 474)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🔋</span>
+                <div class="item-name">旧电池</div>
+                <div class="item-count">247</div>
+                <button class="gift-btn" onclick="openGiftDialog('旧电池', 247)">赠送</button>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🪙</span>
+                <div class="item-name">破铜片</div>
+                <div class="item-count">256</div>
+                <button class="gift-btn" onclick="openGiftDialog('破铜片', 256)">赠送</button>
+            </div>
+            <div class="inventory-item">
+                <span class="item-icon">🪚</span>
+                <div class="item-name">木工件</div>
+                <div class="item-count">0</div>
+            </div>
+            <div class="inventory-item">
+                <span class="item-icon">🪣</span>
+                <div class="item-name">塑料件</div>
+                <div class="item-count">0</div>
+            </div>
+            <div class="inventory-item">
+                <span class="item-icon">🛠️</span>
+                <div class="item-name">简易工具</div>
+                <div class="item-count">0</div>
+            </div>
+            <div class="inventory-item">
+                <span class="item-icon">⚡</span>
+                <div class="item-name">能量碎片</div>
+                <div class="item-count">0</div>
+            </div>
+            <div class="inventory-item">
+                <span class="item-icon">🥚</span>
+                <div class="item-name">魔丸胚胎</div>
+                <div class="item-count">0</div>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">⚗️</span>
+                <div class="item-name">魔丸</div>
+                <div class="item-count">57</div>
+            </div>
+            <div class="inventory-item has-items">
+                <span class="item-icon">🪱</span>
+                <div class="item-name">蚯蚓</div>
+                <div class="item-count">17</div>
+                <button class="gift-btn" onclick="openGiftDialog('蚯蚓', 17)">赠送</button>
+            </div>
+        </div>
+        <button onclick="openGiftStats('out')">赠礼记录</button>
+        <button onclick="openGiftStats('in')">收礼记录</button>
+    </div>
+
+    <div class="section">
+        <h2>炼造工坊</h2>
+        <div class="recipe-grid" id="recipeGrid">
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🧱砖块: 42/5</span>
+                    <span class="material-item">🪵木材: 501/1</span>
+                    <span class="material-item">🛍️塑料袋: 487/1</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="8" id="craft-1">
+                    <button class="craft-btn" onclick="craft(1)">炼造</button>
+                </div>
+            </div>
+            <div class="recipe can-craft">
+                <div class="recipe-title">🪣 塑料件 <span>(最多可制作 8)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🧱砖块: 42/5</span>
+                    <span class="material-item">🛍️塑料袋: 487/1</span>
+                    <span class="material-item">🧴瓶子: 530/1</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="8" id="craft-2">
+                    <button class="craft-btn" onclick="craft(2)">炼造</button>
+                </div>
+            </div>
+            <div class="recipe">
+                <div class="recipe-title">🛠️ 简易工具 <span>(材料不足)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🔩螺丝: 474/2</span>
+                    <span class="material-item">🪚木工件: 0/2</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="0" id="craft-3">
+                    <button class="craft-btn" disabled="" onclick="craft(3)">炼造</button>
+                </div>
+            </div>
+            <div class="recipe">
+                <div class="recipe-title">⚡ 能量碎片 <span>(材料不足)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🔋旧电池: 247/1</span>
+                    <span class="material-item">🪣塑料件: 0/2</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="0" id="craft-4">
+                    <button class="craft-btn" disabled="" onclick="craft(4)">炼造</button>
+                </div>
+            </div>
+            <div class="recipe">
+                <div class="recipe-title">🥚 魔丸胚胎 <span>(材料不足)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🪙破铜片: 256/1</span>
+                    <span class="material-item">🛠️简易工具: 0/1</span>
+                    <span class="material-item">⚡能量碎片: 0/1</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="0" id="craft-5">
+                    <button class="craft-btn" disabled="" onclick="craft(5)">炼造</button>
+                </div>
+            </div>
+            <div class="recipe">
+                <div class="recipe-title">⚗️ 魔丸 <span>(材料不足)</span></div>
+                <div class="recipe-materials">
+                    <span class="material-item">🧱砖块: 42/10</span>
+                    <span class="material-item">🥚魔丸胚胎: 0/2</span>
+                </div>
+                <div class="craft-controls">
+                    <input type="number" class="craft-input" value="1" min="1" max="0" id="craft-6">
+                    <button class="craft-btn" disabled="" onclick="craft(6)">炼造</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const gameData = {
+        "server_now": 1785100000,
+        "last_beach_time": 1785096000,
+        "beach_interval": 7200
+    };
+</script>
