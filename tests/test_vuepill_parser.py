@@ -51,6 +51,7 @@ class VuePillParserTests(unittest.TestCase):
         daily_bricks="1",
         daily_limit="50",
         factory_count="49",
+        brick_status="可以搬砖",
     ):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -68,7 +69,7 @@ class VuePillParserTests(unittest.TestCase):
         )
         html = html.replace(
             '<span class="countdown">今日已达上限，明日可搬: 10:39:29</span>',
-            '<span>可以搬砖</span>',
+            f'<span>{brick_status}</span>',
         )
         return html
 
@@ -158,6 +159,25 @@ class VuePillParserTests(unittest.TestCase):
                 self.assertIs(data.get("parse_complete"), False)
                 self.assertTrue(data.get("parse_error"))
                 self.assert_actions_disabled(data)
+
+    def test_brick_requires_explicit_ready_status(self):
+        parse_page = _load_parse_page()
+
+        for status_text in ("", "工坊状态未知", "处理中"):
+            with self.subTest(status_text=status_text):
+                data = parse_page(
+                    self.movable_brick_html(brick_status=status_text),
+                    now_ts=1785100000,
+                )
+
+                self.assertIs(data.get("parse_complete"), True)
+                self.assertIs(data["brick"]["ready"], False)
+
+        ready_data = parse_page(
+            self.movable_brick_html(brick_status="立即搬"),
+            now_ts=1785100000,
+        )
+        self.assertIs(ready_data["brick"]["ready"], True)
 
     def test_truncated_inventory_grid_is_fail_closed(self):
         html = FIXTURE.read_text(encoding="utf-8")
@@ -427,6 +447,39 @@ class VuePillParserTests(unittest.TestCase):
         self.assertEqual(1785100000, data["server_now"])
         self.assertEqual(1785100375, data["beach"]["next_ready_ts"])
 
+    def test_invalid_exchange_magic_pills_is_fail_closed(self):
+        parse_page = _load_parse_page()
+
+        for invalid_value in ("", "-1", "57.5", "57broken"):
+            with self.subTest(invalid_value=invalid_value):
+                html = FIXTURE.read_text(encoding="utf-8").replace(
+                    'id="magicPills">57</span>',
+                    f'id="magicPills">{invalid_value}</span>',
+                )
+
+                data = parse_page(html, now_ts=1785100000)
+
+                self.assertIs(data.get("parse_complete"), False)
+                self.assertIn("magicPills", data.get("parse_error") or "")
+                self.assert_actions_disabled(data)
+
+    def test_invalid_exchange_max_is_fail_closed(self):
+        parse_page = _load_parse_page()
+
+        for invalid_value in ("", "-1", "1.5", "57broken"):
+            with self.subTest(invalid_value=invalid_value):
+                html = FIXTURE.read_text(encoding="utf-8").replace(
+                    'id="exchangeCount" value="1" min="1" max="57"',
+                    'id="exchangeCount" value="1" min="1" '
+                    f'max="{invalid_value}"',
+                )
+
+                data = parse_page(html, now_ts=1785100000)
+
+                self.assertIs(data.get("parse_complete"), False)
+                self.assertIn("exchangeCount.max", data.get("parse_error") or "")
+                self.assert_actions_disabled(data)
+
     def test_existing_trash_keeps_collect_action_available(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -472,6 +525,28 @@ class VuePillParserTests(unittest.TestCase):
 
         self.assertIs(data["beach"]["has_trash"], False)
         self.assertIs(data["beach"]["can_collect"], False)
+
+    def test_negative_collect_status_never_implies_trash(self):
+        parse_page = _load_parse_page()
+
+        for status_text in (
+            "当前不可收集",
+            "不可收集",
+            "暂无待收垃圾",
+            "没有垃圾",
+            "已清理",
+        ):
+            with self.subTest(status_text=status_text):
+                html = FIXTURE.read_text(encoding="utf-8").replace(
+                    '<span class="countdown">下次清理: 0:06:15</span>',
+                    f'<span>{status_text}</span>',
+                )
+
+                data = parse_page(html, now_ts=1785100000)
+
+                self.assertIs(data["beach"]["collect_enabled"], False)
+                self.assertIs(data["beach"]["has_trash"], False)
+                self.assertIs(data["beach"]["can_collect"], False)
 
     def test_no_trash_class_and_text_do_not_report_trash(self):
         html = FIXTURE.read_text(encoding="utf-8")
@@ -636,6 +711,40 @@ class VuePillParserTests(unittest.TestCase):
                         <span class="material-item">🪵木材: 10/1</span>
                         <span class="material-item">🛍️塑料袋: 10/1</span>
                         <input class="craft-input" max="8" id="craft-1" {attributes}>
+                        <button onclick="craft(1)">炼造</button>
+                    </div>
+                </div>
+                '''
+
+                recipe = module.parse_recipes(html, [])[0]
+
+                self.assertIs(recipe["enabled"], False)
+                self.assertIs(recipe["can_craft"], False)
+                self.assertIs(recipe["disabled"], True)
+
+    def test_recipe_rejects_invalid_max_and_material_numbers(self):
+        module = _load_parser_module()
+        cases = {
+            "max_suffix": {"max_value": "8broken"},
+            "max_decimal": {"max_value": "8.5"},
+            "available_suffix": {"brick_amount": "42broken/5"},
+            "available_decimal": {"brick_amount": "42.5/5"},
+            "required_suffix": {"brick_amount": "42/5broken"},
+            "required_decimal": {"brick_amount": "42/5.5"},
+        }
+
+        for case_name, values in cases.items():
+            with self.subTest(case_name=case_name):
+                max_value = values.get("max_value", "8")
+                brick_amount = values.get("brick_amount", "42/5")
+                html = f'''
+                <div id="recipeGrid">
+                    <div class="recipe can-craft">
+                        <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                        <span class="material-item">🧱砖块: {brick_amount}</span>
+                        <span class="material-item">🪵木材: 10/1</span>
+                        <span class="material-item">🛍️塑料袋: 10/1</span>
+                        <input class="craft-input" max="{max_value}" id="craft-1">
                         <button onclick="craft(1)">炼造</button>
                     </div>
                 </div>

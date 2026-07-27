@@ -28,8 +28,22 @@ _DAILY_LIMIT_RE = re.compile(
 _CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
 _CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
 _COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
+_BRICK_READY_WORDS = ("可以搬砖", "立即搬砖", "立即搬", "可搬")
+_BRICK_BLOCKED_WORDS = (
+    "倒计时",
+    "冷却",
+    "上限",
+    "明日可搬",
+    "不可搬",
+    "不能搬",
+    "无法搬",
+)
 _TRASH_WORDS = ("待收垃圾", "待收集", "可收集", "发现垃圾", "垃圾待收")
 _NO_TRASH_WORDS = (
+    "当前不可收集",
+    "不可收集",
+    "不能收集",
+    "无法收集",
     "暂无待收垃圾",
     "暂无垃圾",
     "没有垃圾",
@@ -563,9 +577,11 @@ def _parse_material_text(text: str) -> Optional[Dict[str, Any]]:
     required_text = amount_text
     if "/" in amount_text:
         available_text, required_text = amount_text.rsplit("/", 1)
-        available = max(0, safe_int(available_text, 0))
-    required = safe_int(required_text, -1)
-    if required < 0:
+        available = _strict_non_negative_int(available_text)
+        if available is None:
+            return None
+    required = _strict_non_negative_int(required_text)
+    if required is None:
         return None
     return {
         "name": name,
@@ -936,21 +952,28 @@ def parse_recipes(
                 if detail is None:
                     continue
                 ingredient_details.append(detail)
-                ingredients[detail["name"]] = max(0, safe_int(detail["required"], 0))
+                ingredients[detail["name"]] = detail["required"]
 
             input_node = _recipe_input_node(recipe_node, craft_id)
             max_count = 0
             max_is_explicit = input_node is not None and "max" in input_node.attrs
+            max_is_valid = False
             if max_is_explicit:
-                max_count = max(0, safe_int(input_node.attrs.get("max"), 0))
+                explicit_max = _strict_non_negative_int(
+                    input_node.attrs.get("max")
+                )
+                max_is_valid = explicit_max is not None
+                max_count = explicit_max if explicit_max is not None else 0
             else:
                 status_match = re.search(
-                    r"最多(?:可)?制作\s*([\d,]+)",
+                    rf"最多(?:可)?制作\s*({_NON_NEGATIVE_INT_PATTERN})"
+                    r"\s*[)）]?\s*$",
                     status_text,
                     re.IGNORECASE,
                 )
                 if status_match:
-                    max_count = max(0, safe_int(status_match.group(1), 0))
+                    status_max = _strict_non_negative_int(status_match.group(1))
+                    max_count = status_max if status_max is not None else 0
 
             if not max_is_explicit and max_count <= 0 and ingredient_details:
                 page_limits = [
@@ -997,6 +1020,7 @@ def parse_recipes(
                 and input_node is not None
                 and not _is_pointer_disabled(input_node)
                 and max_is_explicit
+                and max_is_valid
                 and max_count > 0
             )
             can_craft = bool(
@@ -1067,6 +1091,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         )
         nodes_by_key: Dict[str, Optional[_Node]] = {}
         daily_bricks_value: Optional[int] = None
+        magic_pills_value: Optional[int] = None
         for key, element_id in id_fields:
             node = _find_by_id(root, element_id)
             nodes_by_key[key] = node
@@ -1076,6 +1101,13 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
                 stats[key] = (
                     daily_bricks_value
                     if daily_bricks_value is not None
+                    else 0
+                )
+            elif key == "magic_pills":
+                magic_pills_value = _strict_non_negative_int(node_text)
+                stats[key] = (
+                    magic_pills_value
+                    if magic_pills_value is not None
                     else 0
                 )
             else:
@@ -1146,8 +1178,10 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         )
         bag_count = max(0, safe_int(bag_text, 0))
         brick_status_blocked = any(
-            word in brick_status_text
-            for word in ("倒计时", "冷却", "上限", "明日可搬")
+            word in brick_status_text for word in _BRICK_BLOCKED_WORDS
+        )
+        brick_status_ready = any(
+            word in brick_status_text for word in _BRICK_READY_WORDS
         )
         factory_blocked = _is_pointer_disabled(factory_node)
         brick_ready = bool(
@@ -1155,6 +1189,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             and brick_values_valid
             and stats["daily_bricks"] < daily_limit
             and available_count > 0
+            and brick_status_ready
             and not brick_status_blocked
             and not factory_blocked
         )
@@ -1182,9 +1217,20 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             _node_text(exchange_points_node),
             stats["points"],
         )
-        exchange_pills = safe_int(
-            _node_text(exchange_pills_node),
-            stats["magic_pills"],
+        exchange_pills_value = magic_pills_value
+        invalid_exchange_values = []
+        if nodes_by_key["magic_pills"] is not None and magic_pills_value is None:
+            invalid_exchange_values.append("magicPills")
+        if exchange_pills_node is not None:
+            exchange_pills_value = _strict_non_negative_int(
+                _node_text(exchange_pills_node)
+            )
+            if exchange_pills_value is None:
+                invalid_exchange_values.append("magicPills2")
+        exchange_pills = (
+            exchange_pills_value
+            if exchange_pills_value is not None
+            else 0
         )
         exchange_state_complete = all(
             node is not None
@@ -1204,15 +1250,19 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             )
             if price_match:
                 pill_price = max(0, safe_int(price_match.group(1), 0))
+        exchange_max_value: Optional[int] = None
         if exchange_input_node is not None and "max" in exchange_input_node.attrs:
-            exchange_max = max(
-                0,
-                safe_int(exchange_input_node.attrs.get("max"), 0),
+            exchange_max_value = _strict_non_negative_int(
+                exchange_input_node.attrs.get("max")
             )
-        else:
-            exchange_max = 0
+        if exchange_input_node is not None and exchange_max_value is None:
+            invalid_exchange_values.append("exchangeCount.max")
+        exchange_max = (
+            exchange_max_value if exchange_max_value is not None else 0
+        )
         exchange_enabled = bool(
             exchange_state_complete
+            and not invalid_exchange_values
             and not _is_pointer_disabled(exchange_button_node)
         )
         result["exchange"].update(
@@ -1356,6 +1406,11 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             validation_errors.append(
                 "invalid critical values: %s"
                 % ", ".join(invalid_brick_values)
+            )
+        if invalid_exchange_values:
+            validation_errors.append(
+                "invalid critical values: %s"
+                % ", ".join(invalid_exchange_values)
             )
         if validation_errors:
             result["parse_error"] = "; ".join(validation_errors)
