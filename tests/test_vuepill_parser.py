@@ -46,20 +46,25 @@ class VuePillParserTests(unittest.TestCase):
 
         self.assertIs(data["beach"]["ready"], False)
         self.assertIs(data["beach"]["collect_enabled"], False)
-        self.assertGreater(data["beach"]["next_ready_ts"], 1785100000)
+        self.assertLessEqual(data["beach"]["next_ready_ts"], 1785100000)
 
     def test_enabled_beach_without_countdown_is_ready(self):
         html = FIXTURE.read_text(encoding="utf-8")
+        disabled_button = 'id="beachBtn" onclick="enterBeach()" disabled=""'
+        countdown = '<span class="countdown">下次清理: 0:06:15</span>'
+        self.assertIn(disabled_button, html)
+        self.assertIn(countdown, html)
+        self.assertIn('"last_beach_time": 1785080000', html)
         html = html.replace(
-            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            disabled_button,
             'id="beachBtn" onclick="enterBeach()"',
         )
         html = html.replace(
-            '<span class="countdown">下次清理: 0:06:15</span>',
+            countdown,
             '<span>沙滩可以清理</span>',
         )
         html = html.replace(
-            '"last_beach_time": 1785096000',
+            '"last_beach_time": 1785080000',
             '"last_beach_time": 1785090000',
         )
         self.assertTrue(PARSER_PATH.exists(), "page_parser.py 尚未创建")
