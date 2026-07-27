@@ -196,6 +196,42 @@ def _has_recipe_cycle(by_output):
         return True
 
 
+def _topological_plan_order(plan, preferred_order, by_output):
+    planned_ids = set(plan)
+    recipes_by_id = {
+        recipe["craft_id"]: recipe for recipe in by_output.values()
+    }
+    candidates = [craft_id for craft_id in preferred_order if craft_id in planned_ids]
+    candidates.extend(craft_id for craft_id in plan if craft_id not in candidates)
+    ranks = {craft_id: index for index, craft_id in enumerate(candidates)}
+    indegrees = {craft_id: 0 for craft_id in candidates}
+    dependents = {craft_id: [] for craft_id in candidates}
+
+    for craft_id in candidates:
+        seen_dependencies = set()
+        for ingredient_name in recipes_by_id[craft_id]["ingredients"]:
+            dependency = by_output.get(ingredient_name)
+            dependency_id = dependency["craft_id"] if dependency else None
+            if dependency_id not in planned_ids or dependency_id in seen_dependencies:
+                continue
+            seen_dependencies.add(dependency_id)
+            indegrees[craft_id] += 1
+            dependents[dependency_id].append(craft_id)
+
+    ready = [craft_id for craft_id in candidates if indegrees[craft_id] == 0]
+    ordered = []
+    while ready:
+        ready.sort(key=ranks.__getitem__)
+        craft_id = ready.pop(0)
+        ordered.append(craft_id)
+        for dependent_id in dependents[craft_id]:
+            indegrees[dependent_id] -= 1
+            if indegrees[dependent_id] == 0:
+                ready.append(dependent_id)
+
+    return ordered if len(ordered) == len(candidates) else None
+
+
 def _attempt_plan(inventory, by_output, target):
     stock = dict(inventory)
     plan = {}
@@ -239,9 +275,12 @@ def _attempt_plan(inventory, by_output, target):
             missing=missing,
         )
 
-    recipes_by_id = {
-        recipe["craft_id"]: recipe for recipe in by_output.values()
-    }
+    order = _topological_plan_order(plan, order, by_output)
+    if order is None:
+        return _empty_result(reason="炼造步骤依赖排序失败")
+
+    plan = {craft_id: plan[craft_id] for craft_id in order}
+    recipes_by_id = {recipe["craft_id"]: recipe for recipe in by_output.values()}
     steps = [
         {
             "craft_id": craft_id,

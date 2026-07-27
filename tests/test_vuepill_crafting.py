@@ -168,6 +168,67 @@ class VuePillCraftingTests(unittest.TestCase):
         self.assertEqual(original_inventory, inventory)
         self.assertEqual(original_recipes, self.recipes)
 
+    def test_shared_intermediate_steps_are_topologically_sorted(self):
+        recipes = [
+            {
+                "craft_id": 50,
+                "output_item": "魔丸",
+                "ingredients": {"分支甲": 1, "分支乙": 1},
+            },
+            {
+                "craft_id": 20,
+                "output_item": "分支乙",
+                "ingredients": {"共享件": 1},
+            },
+            {
+                "craft_id": 40,
+                "output_item": "深层件",
+                "ingredients": {"基础材料": 1},
+            },
+            {
+                "craft_id": 10,
+                "output_item": "分支甲",
+                "ingredients": {"共享件": 1},
+            },
+            {
+                "craft_id": 30,
+                "output_item": "共享件",
+                "ingredients": {"深层件": 1},
+            },
+        ]
+        inventory = {"深层件": 1, "基础材料": 1}
+        original_inventory = copy.deepcopy(inventory)
+        original_recipes = copy.deepcopy(recipes)
+
+        result = self.module.compute_magic_pill_plan(
+            inventory,
+            recipes,
+            target=1,
+        )
+
+        expected_order = [40, 30, 10, 20, 50]
+        step_ids = [step["craft_id"] for step in result["steps"]]
+        self.assertEqual(expected_order, step_ids)
+        self.assertEqual(expected_order, list(result["plan"]))
+        self.assertEqual({30: 2, 10: 1, 40: 1, 20: 1, 50: 1}, result["plan"])
+
+        recipes_by_output = {recipe["output_item"]: recipe for recipe in recipes}
+        positions = {craft_id: index for index, craft_id in enumerate(step_ids)}
+        for recipe in recipes:
+            craft_id = recipe["craft_id"]
+            if craft_id not in result["plan"]:
+                continue
+            for ingredient_name in recipe["ingredients"]:
+                dependency = recipes_by_output.get(ingredient_name)
+                if dependency and dependency["craft_id"] in result["plan"]:
+                    self.assertLess(
+                        positions[dependency["craft_id"]],
+                        positions[craft_id],
+                    )
+
+        self.assertEqual(original_inventory, inventory)
+        self.assertEqual(original_recipes, recipes)
+
     def test_recipe_iterables_are_supported(self):
         recipe_iterator = (recipe for recipe in copy.deepcopy(self.recipes))
 
