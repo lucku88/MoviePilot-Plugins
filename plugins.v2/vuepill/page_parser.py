@@ -20,7 +20,11 @@ MAX_BEACH_INTERVAL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_ICON = "📦"
 
 _NUMBER_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
-_DAILY_LIMIT_RE = re.compile(r"/\s*([-+]?\d[\d,]*)")
+_NON_NEGATIVE_INT_PATTERN = r"(?:\d{1,3}(?:,\d{3})+|\d+)"
+_NON_NEGATIVE_INT_RE = re.compile(rf"^{_NON_NEGATIVE_INT_PATTERN}$")
+_DAILY_LIMIT_RE = re.compile(
+    rf"/\s*({_NON_NEGATIVE_INT_PATTERN})\s*$"
+)
 _CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
 _CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
 _COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
@@ -230,6 +234,37 @@ def safe_int(value: Any, default: int = 0) -> int:
         unit = suffix[0].lower()
         number *= _UNIT_MULTIPLIERS.get(unit, 1)
     return int(number)
+
+
+def _strict_non_negative_int(value: Any) -> Optional[int]:
+    """Return a complete non-negative integer, without prefix guessing."""
+
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    try:
+        text = str(value).strip()
+    except Exception:
+        return None
+    if not _NON_NEGATIVE_INT_RE.fullmatch(text):
+        return None
+    try:
+        return int(text.replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _strict_brick_count(value: Any, label: str) -> Optional[int]:
+    source = _coerce_html(value).strip()
+    match = re.fullmatch(
+        rf"(?:{re.escape(label)}\s*[:：]?\s*)?"
+        rf"({_NON_NEGATIVE_INT_PATTERN})\s*(?:块)?",
+        source,
+    )
+    if match is None:
+        return None
+    return _strict_non_negative_int(match.group(1))
 
 
 def _coerce_html(value: Any) -> str:
@@ -1031,19 +1066,32 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             ("daily_bricks", "dailyBricks"),
         )
         nodes_by_key: Dict[str, Optional[_Node]] = {}
+        daily_bricks_value: Optional[int] = None
         for key, element_id in id_fields:
             node = _find_by_id(root, element_id)
             nodes_by_key[key] = node
-            stats[key] = safe_int(_node_text(node), 0)
+            node_text = _node_text(node)
+            if key == "daily_bricks":
+                daily_bricks_value = _strict_non_negative_int(node_text)
+                stats[key] = (
+                    daily_bricks_value
+                    if daily_bricks_value is not None
+                    else 0
+                )
+            else:
+                stats[key] = safe_int(node_text, 0)
 
         daily_node = nodes_by_key["daily_bricks"]
-        daily_limit = DEFAULT_DAILY_LIMIT
+        daily_limit_value: Optional[int] = None
         if daily_node is not None and daily_node.parent is not None:
             match = _DAILY_LIMIT_RE.search(_node_text(daily_node.parent))
             if match:
-                daily_limit = safe_int(match.group(1), DEFAULT_DAILY_LIMIT)
-        if daily_limit <= 0:
-            daily_limit = DEFAULT_DAILY_LIMIT
+                daily_limit_value = _strict_non_negative_int(match.group(1))
+        daily_limit = (
+            daily_limit_value
+            if daily_limit_value is not None
+            else DEFAULT_DAILY_LIMIT
+        )
         stats["daily_limit"] = daily_limit
 
         raw_server_now = _script_number(source, ("server_now", "serverNow"))
@@ -1073,6 +1121,14 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         factory_text = _node_text(factory_count_node)
         bag_text = _node_text(bag_count_node)
         brick_status_text = _node_text(brick_status_node)
+        available_count_value = _strict_brick_count(factory_text, "可搬")
+        invalid_brick_values = []
+        if daily_node is not None and daily_bricks_value is None:
+            invalid_brick_values.append("dailyBricks")
+        if daily_node is not None and daily_limit_value is None:
+            invalid_brick_values.append("dailyLimit")
+        if factory_count_node is not None and available_count_value is None:
+            invalid_brick_values.append("factoryBrickCount")
         brick_state_complete = all(
             node is not None
             for node in (
@@ -1082,7 +1138,12 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
                 brick_status_node,
             )
         )
-        available_count = max(0, safe_int(factory_text, 0))
+        brick_values_valid = not invalid_brick_values
+        available_count = (
+            available_count_value
+            if available_count_value is not None
+            else 0
+        )
         bag_count = max(0, safe_int(bag_text, 0))
         brick_status_blocked = any(
             word in brick_status_text
@@ -1091,6 +1152,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         factory_blocked = _is_pointer_disabled(factory_node)
         brick_ready = bool(
             brick_state_complete
+            and brick_values_valid
             and stats["daily_bricks"] < daily_limit
             and available_count > 0
             and not brick_status_blocked
@@ -1285,10 +1347,18 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         missing_nodes = [
             name for name, node in required_nodes.items() if node is None
         ]
+        validation_errors = []
         if missing_nodes:
-            result["parse_error"] = "missing required nodes: %s" % ", ".join(
-                missing_nodes
+            validation_errors.append(
+                "missing required nodes: %s" % ", ".join(missing_nodes)
             )
+        if invalid_brick_values:
+            validation_errors.append(
+                "invalid critical values: %s"
+                % ", ".join(invalid_brick_values)
+            )
+        if validation_errors:
+            result["parse_error"] = "; ".join(validation_errors)
             _disable_actions(result)
         else:
             result["parse_complete"] = True

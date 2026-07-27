@@ -45,6 +45,33 @@ class VuePillParserTests(unittest.TestCase):
         parse_page = _load_parse_page()
         return parse_page(FIXTURE.read_text(encoding="utf-8"), now_ts=1785100000)
 
+    def movable_brick_html(
+        self,
+        *,
+        daily_bricks="1",
+        daily_limit="50",
+        factory_count="49",
+    ):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="dailyBricks">50</span>/50',
+            f'id="dailyBricks">{daily_bricks}</span>/{daily_limit}',
+        )
+        html = html.replace(
+            'id="brickFactory" draggable="true" '
+            'style="pointer-events:none;opacity:0.5;"',
+            'id="brickFactory" draggable="true"',
+        )
+        html = html.replace(
+            'id="factoryBrickCount">可搬: 0块',
+            f'id="factoryBrickCount">可搬: {factory_count}块',
+        )
+        html = html.replace(
+            '<span class="countdown">今日已达上限，明日可搬: 10:39:29</span>',
+            '<span>可以搬砖</span>',
+        )
+        return html
+
     def test_parse_page_reads_stats_inventory_and_giftable_items(self):
         data = self.parse_fixture()
 
@@ -92,6 +119,45 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["brick"]["ready"], False)
         self.assertIs(data.get("parse_complete"), False)
         self.assert_actions_disabled(data)
+
+    def test_invalid_daily_bricks_is_fail_closed(self):
+        parse_page = _load_parse_page()
+
+        valid_data = parse_page(self.movable_brick_html(), now_ts=1785100000)
+        self.assertIs(valid_data.get("parse_complete"), True)
+        self.assertIs(valid_data["brick"]["ready"], True)
+
+        for invalid_value in ("", "broken", "-1", "49broken"):
+            with self.subTest(invalid_value=invalid_value):
+                data = parse_page(
+                    self.movable_brick_html(daily_bricks=invalid_value),
+                    now_ts=1785100000,
+                )
+
+                self.assertIs(data.get("parse_complete"), False)
+                self.assertIn("dailyBricks", data.get("parse_error") or "")
+                self.assert_actions_disabled(data)
+
+    def test_invalid_brick_limit_or_factory_count_is_fail_closed(self):
+        parse_page = _load_parse_page()
+        cases = {
+            "empty_limit": {"daily_limit": ""},
+            "broken_limit": {"daily_limit": "broken"},
+            "negative_limit": {"daily_limit": "-1"},
+            "mixed_limit": {"daily_limit": "50broken"},
+            "mixed_factory_count": {"factory_count": "49broken"},
+        }
+
+        for case_name, values in cases.items():
+            with self.subTest(case_name=case_name):
+                data = parse_page(
+                    self.movable_brick_html(**values),
+                    now_ts=1785100000,
+                )
+
+                self.assertIs(data.get("parse_complete"), False)
+                self.assertTrue(data.get("parse_error"))
+                self.assert_actions_disabled(data)
 
     def test_truncated_inventory_grid_is_fail_closed(self):
         html = FIXTURE.read_text(encoding="utf-8")
