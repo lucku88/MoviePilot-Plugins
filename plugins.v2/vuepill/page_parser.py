@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional
 DEFAULT_TITLE = "搬砖捡破烂炼魔丸"
 DEFAULT_DAILY_LIMIT = 50
 DEFAULT_BEACH_INTERVAL = 7200
+MAX_BEACH_INTERVAL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_ICON = "📦"
 
 _NUMBER_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
@@ -35,6 +36,28 @@ _NO_TRASH_WORDS = (
     "清理完成",
     "收集完成",
 )
+_NO_TRASH_MARKERS = (
+    "no-trash",
+    "trash-empty",
+    "empty-trash",
+    "no-garbage",
+    "garbage-empty",
+    "empty-garbage",
+    "no-litter",
+    "litter-empty",
+    "empty-litter",
+)
+_TRASH_ITEM_MARKERS = {
+    "trash",
+    "trash-item",
+    "trashitem",
+    "garbage",
+    "garbage-item",
+    "garbageitem",
+    "litter",
+    "litter-item",
+    "litteritem",
+}
 
 _UNIT_MULTIPLIERS = {
     "万": 10_000,
@@ -141,6 +164,7 @@ class _TreeParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.root = _Node("__root__")
         self._stack: List[_Node] = [self.root]
+        self.errors: List[str] = []
 
     def _add_node(self, tag: str, attrs: Iterable[Any], push: bool) -> None:
         parent = self._stack[-1]
@@ -159,8 +183,11 @@ class _TreeParser(HTMLParser):
         wanted = tag.lower()
         for index in range(len(self._stack) - 1, 0, -1):
             if self._stack[index].tag == wanted:
+                if index != len(self._stack) - 1:
+                    self.errors.append("misnested closing tag: %s" % wanted)
                 del self._stack[index:]
                 return
+        self.errors.append("unexpected closing tag: %s" % wanted)
 
     def handle_data(self, data: str) -> None:
         self._stack[-1].content.append(data)
@@ -218,12 +245,13 @@ def _coerce_html(value: Any) -> str:
 
 def _parse_tree(source: str) -> _Node:
     parser = _TreeParser()
-    try:
-        parser.feed(source)
-        parser.close()
-    except Exception:
-        # HTMLParser is intentionally best-effort for partially rendered pages.
-        pass
+    parser.feed(source)
+    parser.close()
+    if parser.errors:
+        raise ValueError("malformed HTML: %s" % "; ".join(parser.errors[:3]))
+    if len(parser._stack) != 1:
+        unclosed = " > ".join(node.tag for node in parser._stack[1:])
+        raise ValueError("unclosed HTML tags: %s" % unclosed)
     return parser.root
 
 
@@ -387,8 +415,10 @@ def _normalise_duration(
     parsed = safe_int(value, default)
     if parsed <= 0:
         return default
-    if parsed >= 1_000_000 or (parsed >= 60_000 and parsed % 1000 == 0):
-        parsed //= 1000
+    if parsed > MAX_BEACH_INTERVAL_SECONDS and parsed % 1000 == 0:
+        milliseconds_candidate = parsed // 1000
+        if 0 < milliseconds_candidate <= MAX_BEACH_INTERVAL_SECONDS:
+            parsed = milliseconds_candidate
     return max(1, parsed)
 
 
@@ -593,6 +623,11 @@ def _beach_has_trash(
     status_text: str,
 ) -> bool:
     area_text = _node_text(beach_area)
+    if any(word in status_text for word in _NO_TRASH_WORDS):
+        return False
+    if any(word in area_text for word in _NO_TRASH_WORDS):
+        return False
+
     if beach_area is not None:
         for node in _walk_inclusive(beach_area):
             marker = " ".join(
@@ -602,20 +637,32 @@ def _beach_has_trash(
                     node.attrs.get("onclick", ""),
                     node.attrs.get("data-type", ""),
                 )
-            ).lower()
-            if any(word in marker for word in ("trash", "garbage", "litter")):
-                return True
-        if not any(word in area_text for word in _NO_TRASH_WORDS):
-            if any(word in area_text for word in _TRASH_WORDS):
-                return True
-            if "垃圾" in area_text:
-                return True
+            ).lower().replace("_", "-")
+            if any(word in marker for word in _NO_TRASH_MARKERS):
+                return False
 
-    if any(word in status_text for word in _NO_TRASH_WORDS):
-        return False
+        for node in _walk_inclusive(beach_area):
+            marker = " ".join(
+                (
+                    node.attrs.get("id", ""),
+                    node.attrs.get("class", ""),
+                    node.attrs.get("data-type", ""),
+                )
+            ).lower().replace("_", "-")
+            marker_tokens = set(re.split(r"[^a-z0-9-]+", marker))
+            if any(
+                token in _TRASH_ITEM_MARKERS
+                or token.endswith(
+                    ("-trash-item", "-garbage-item", "-litter-item")
+                )
+                for token in marker_tokens
+                if token
+            ):
+                return True
+        if any(word in area_text for word in _TRASH_WORDS):
+            return True
+
     if any(word in status_text for word in _TRASH_WORDS):
-        return True
-    if "垃圾" in status_text:
         return True
     return False
 
@@ -909,6 +956,7 @@ def parse_recipes(
                 and not _is_pointer_disabled(action_node)
                 and ingredients_complete
                 and input_node is not None
+                and not _is_pointer_disabled(input_node)
                 and max_is_explicit
                 and max_count > 0
             )
@@ -1147,11 +1195,21 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             raw_server_now is not None
             and _normalise_timestamp(raw_server_now, 0) > 0
         )
-        has_last_beach_marker = raw_last_beach is not None
-        has_beach_time_basis = has_server_time and has_last_beach_marker
+        has_last_beach_time = bool(
+            raw_last_beach is not None and last_beach_time > 0
+        )
+        has_beach_interval = bool(
+            raw_beach_interval is not None
+            and _normalise_duration(raw_beach_interval, 0) > 0
+        )
+        has_beach_time_basis = bool(
+            has_server_time
+            and has_last_beach_time
+            and has_beach_interval
+        )
         calculated_beach_ts = (
             last_beach_time + beach_interval
-            if has_beach_time_basis and last_beach_time > 0
+            if has_beach_time_basis
             else 0
         )
         countdown = _countdown_seconds(beach_status_text)
@@ -1165,10 +1223,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             next_ready_ts = 0
         timestamp_expired = bool(
             has_beach_time_basis
-            and (
-                last_beach_time <= 0
-                or calculated_beach_ts <= server_now
-            )
+            and calculated_beach_ts <= server_now
         )
         can_enter = bool(
             entry_button_enabled

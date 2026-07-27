@@ -93,6 +93,34 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data.get("parse_complete"), False)
         self.assert_actions_disabled(data)
 
+    def test_truncated_inventory_grid_is_fail_closed(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        marker = '<div class="inventory-grid" id="inventoryGrid">'
+        self.assertIn(marker, html)
+        truncated_html = html[: html.index(marker) + len(marker)]
+        parse_page = _load_parse_page()
+
+        data = parse_page(truncated_html, now_ts=1785100000)
+
+        self.assertIs(data.get("parse_complete"), False)
+        self.assertIn("unclosed", (data.get("parse_error") or "").lower())
+        self.assert_actions_disabled(data)
+
+    def test_tree_parser_exception_is_fail_closed(self):
+        module = _load_parser_module()
+        html = FIXTURE.read_text(encoding="utf-8")
+
+        with mock.patch.object(
+            module._TreeParser,
+            "feed",
+            side_effect=RuntimeError("tree exploded"),
+        ):
+            data = module.parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data.get("parse_complete"), False)
+        self.assertIn("tree exploded", data.get("parse_error") or "")
+        self.assert_actions_disabled(data)
+
     def test_missing_beach_time_evidence_cannot_enter(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -114,6 +142,69 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["beach"]["can_enter"], False)
         self.assertIs(data["beach"]["ready"], False)
         self.assertEqual(0, data["beach"]["next_ready_ts"])
+
+    def test_invalid_beach_time_evidence_is_fail_closed(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785090000',
+        )
+        cases = {
+            "missing_server": (
+                '"server_now": 1785100000',
+                '"ignored_server_now": 1785100000',
+            ),
+            "missing_last": (
+                '"last_beach_time": 1785090000',
+                '"ignored_last_beach_time": 1785090000',
+            ),
+            "missing_interval": (
+                '"beach_interval": 7200',
+                '"ignored_beach_interval": 7200',
+            ),
+            "zero_server": ('"server_now": 1785100000', '"server_now": 0'),
+            "zero_last": (
+                '"last_beach_time": 1785090000',
+                '"last_beach_time": 0',
+            ),
+            "zero_interval": ('"beach_interval": 7200', '"beach_interval": 0'),
+            "negative_server": (
+                '"server_now": 1785100000',
+                '"server_now": -1',
+            ),
+            "negative_last": (
+                '"last_beach_time": 1785090000',
+                '"last_beach_time": -1',
+            ),
+            "negative_interval": (
+                '"beach_interval": 7200',
+                '"beach_interval": -1',
+            ),
+            "damaged_interval": (
+                '"beach_interval": 7200',
+                '"beach_interval": "broken"',
+            ),
+        }
+        parse_page = _load_parse_page()
+
+        for case_name, (original, replacement) in cases.items():
+            with self.subTest(case_name=case_name):
+                case_html = html.replace(original, replacement)
+                self.assertNotEqual(html, case_html)
+
+                data = parse_page(case_html, now_ts=1785100000)
+
+                self.assertIs(data.get("parse_complete"), True)
+                self.assertIs(data["beach"]["can_enter"], False)
+                self.assertIs(data["beach"]["ready"], False)
 
     def test_disabled_beach_with_countdown_is_not_ready(self):
         data = self.parse_fixture()
@@ -162,7 +253,7 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["beach"]["can_enter"], False)
         self.assertIs(data["beach"]["ready"], False)
 
-    def test_small_millisecond_beach_interval_is_normalised(self):
+    def test_millisecond_beach_interval_is_normalised(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
             'id="beachBtn" onclick="enterBeach()" disabled=""',
@@ -178,13 +269,39 @@ class VuePillParserTests(unittest.TestCase):
         )
         html = html.replace(
             '"beach_interval": 7200',
-            '"beach_interval": 600000',
+            '"beach_interval": 7200000',
         )
         parse_page = _load_parse_page()
 
         data = parse_page(html, now_ts=1785100000)
 
-        self.assertEqual(1785100300, data["beach"]["next_ready_ts"])
+        self.assertEqual(1785106900, data["beach"]["next_ready_ts"])
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+
+    def test_long_second_beach_interval_stays_in_seconds(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>沙滩可以清理</span>',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785090000',
+        )
+        html = html.replace(
+            '"beach_interval": 7200',
+            '"beach_interval": 60000',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertEqual(1785150000, data["beach"]["next_ready_ts"])
         self.assertIs(data["beach"]["can_enter"], False)
         self.assertIs(data["beach"]["ready"], False)
 
@@ -224,6 +341,33 @@ class VuePillParserTests(unittest.TestCase):
         html = html.replace(
             '<span class="countdown">下次清理: 0:06:15</span>',
             '<span>暂无待收垃圾</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["has_trash"], False)
+        self.assertIs(data["beach"]["can_collect"], False)
+
+    def test_no_trash_class_and_text_do_not_report_trash(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<div class="beach-area" id="beachArea"></div>',
+            '<div class="beach-area no-trash" id="beachArea">'
+            '暂无待收垃圾</div>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["has_trash"], False)
+        self.assertIs(data["beach"]["can_collect"], False)
+
+    def test_empty_trash_list_container_does_not_report_trash(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<div class="beach-area" id="beachArea"></div>',
+            '<div class="beach-area trash-list" id="beachArea"></div>',
         )
         parse_page = _load_parse_page()
 
@@ -349,6 +493,35 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(recipe["enabled"], False)
         self.assertIs(recipe["can_craft"], False)
         self.assertIs(recipe["disabled"], True)
+
+    def test_disabled_recipe_quantity_input_is_not_craftable(self):
+        module = _load_parser_module()
+        disabled_attributes = {
+            "disabled": 'disabled=""',
+            "aria_disabled": 'aria-disabled="true"',
+            "pointer_events": 'style="pointer-events: none"',
+        }
+
+        for case_name, attributes in disabled_attributes.items():
+            with self.subTest(case_name=case_name):
+                html = f'''
+                <div id="recipeGrid">
+                    <div class="recipe can-craft">
+                        <div class="recipe-title">🪚 木工件 <span>(最多可制作 8)</span></div>
+                        <span class="material-item">🧱砖块: 42/5</span>
+                        <span class="material-item">🪵木材: 10/1</span>
+                        <span class="material-item">🛍️塑料袋: 10/1</span>
+                        <input class="craft-input" max="8" id="craft-1" {attributes}>
+                        <button onclick="craft(1)">炼造</button>
+                    </div>
+                </div>
+                '''
+
+                recipe = module.parse_recipes(html, [])[0]
+
+                self.assertIs(recipe["enabled"], False)
+                self.assertIs(recipe["can_craft"], False)
+                self.assertIs(recipe["disabled"], True)
 
     def test_partial_known_recipe_is_disabled_without_material_fallback(self):
         module = _load_parser_module()
