@@ -23,6 +23,7 @@ class VuePillFrontendContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.page = PAGE_PATH.read_text(encoding="utf-8")
         cls.config = CONFIG_PATH.read_text(encoding="utf-8")
+        cls.config_validation = CONFIG_VALIDATION_PATH.read_text(encoding="utf-8")
         cls.app = APP_PATH.read_text(encoding="utf-8")
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
         cls.compact_page = re.sub(r"\s+", "", cls.page)
@@ -61,7 +62,6 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "notify",
             "onlyonce",
             "use_proxy",
-            "force_ipv4",
             "enable_brick",
             "enable_beach",
             "auto_craft",
@@ -90,7 +90,6 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "通知",
             "立即运行一次",
             "代理",
-            "强制 IPv4",
             "自动搬砖",
             "动态清沙滩",
             "自动炼造",
@@ -135,11 +134,6 @@ class VuePillFrontendContractTest(unittest.TestCase):
         )
 
     def test_config_uses_executable_validation_and_field_errors(self):
-        validation_source = (
-            CONFIG_VALIDATION_PATH.read_text(encoding="utf-8")
-            if CONFIG_VALIDATION_PATH.exists()
-            else ""
-        )
         self.assert_config_contains(
             "validateVuePillConfig",
             "const fieldErrors = reactive({})",
@@ -149,10 +143,17 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "data-config-field=\"brick_cron\"",
             "fieldErrors.brick_cron",
         )
-        self.assertIn("export function parseStrictInteger", validation_source)
-        self.assertIn("export function validateCronExpression", validation_source)
-        self.assertIn("export function validateVuePillConfig", validation_source)
+        self.assertIn("export function parseStrictInteger", self.config_validation)
+        self.assertIn("export function validateCronExpression", self.config_validation)
+        self.assertIn("export function validateVuePillConfig", self.config_validation)
         self.assertNotIn("v-model.number", self.config)
+
+    def test_config_removes_legacy_ipv4_field_and_migration_warning(self):
+        self.assertNotIn("force_ipv4", self.config)
+        self.assertNotIn("force_ipv4", self.config_validation)
+        self.assertNotIn("强制IPv4", self.config)
+        self.assertNotIn("v0.2.0 升级提示", self.config)
+        self.assertNotIn("siqi-migration-note", self.config)
 
     def test_config_validation_runtime_rejects_noncanonical_values(self):
         script = r"""
@@ -231,6 +232,7 @@ const source = {
   ...DEFAULT_CONFIG,
   enabled: true,
   notify: false,
+  force_ipv4: true,
   brick_cron: ' 5 0 * * * ',
   schedule_buffer_seconds: '12',
   reserve_magic_pill_count: '10',
@@ -248,11 +250,12 @@ for (const field of Object.keys(INTEGER_CONFIG_RULES)) {
   assert.equal(typeof validation.payload[field], 'number', field)
 }
 for (const field of [
-  'enabled', 'notify', 'onlyonce', 'use_proxy', 'force_ipv4',
+  'enabled', 'notify', 'onlyonce', 'use_proxy',
   'enable_brick', 'enable_beach', 'auto_craft', 'auto_exchange',
 ]) {
   assert.equal(typeof validation.payload[field], 'boolean', field)
 }
+assert.equal(Object.hasOwn(validation.payload, 'force_ipv4'), false)
 assert.equal(Object.hasOwn(validation.payload, 'cookie'), false)
 assert.equal(Object.hasOwn(validation.payload, 'unknown_secret'), false)
 """
@@ -291,7 +294,6 @@ const normalizedConfig = {
   notify: true,
   onlyonce: false,
   use_proxy: false,
-  force_ipv4: true,
   enable_brick: true,
   enable_beach: true,
   auto_craft: false,
@@ -340,7 +342,7 @@ try {
   const component = (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`)).default
   console.warn = () => {}
   const bindings = component.setup(
-    { api, initialConfig: {} },
+    { api, initialConfig: { force_ipv4: true } },
     { attrs: {}, slots: {}, emit() {}, expose() {} },
   )
   console.warn = originalWarn
@@ -356,6 +358,8 @@ try {
       }
     },
   }
+
+  assert.equal(Object.hasOwn(bindings.config, 'force_ipv4'), false)
 
   bindings.config.schedule_buffer_seconds = '1.5'
   await bindings.saveConfig()
@@ -389,6 +393,7 @@ try {
   assert.equal(posts[0].payload.onlyonce, true)
   assert.equal(posts[0].payload.brick_cron, '5 0 * * *')
   assert.equal(typeof posts[0].payload.schedule_buffer_seconds, 'number')
+  assert.equal(Object.hasOwn(posts[0].payload, 'force_ipv4'), false)
   assert.equal(Object.hasOwn(posts[0].payload, 'cookie'), false)
   assert.equal(bindings.config.onlyonce, false)
 
@@ -596,17 +601,6 @@ try {
             check=False,
         )
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
-
-    def test_config_shows_migration_warning_without_blocking_content(self):
-        self.assert_config_contains(
-            "v0.2.0 升级提示",
-            "首次迁移会保持插件关闭",
-            "升级后请先检查并保存新版设置，再手动启用任务。",
-        )
-        warning_position = self.config.find("v0.2.0 升级提示")
-        content_position = self.config.find("siqi-config-col")
-        self.assertGreaterEqual(warning_position, 0)
-        self.assertGreater(content_position, warning_position)
 
     def test_config_responsive_layout_prevents_horizontal_scroll(self):
         self.assert_config_contains(

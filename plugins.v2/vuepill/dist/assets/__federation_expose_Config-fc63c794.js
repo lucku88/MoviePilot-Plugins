@@ -6,7 +6,6 @@ const BOOLEAN_CONFIG_FIELDS = Object.freeze([
   'notify',
   'onlyonce',
   'use_proxy',
-  'force_ipv4',
   'enable_brick',
   'enable_beach',
   'auto_craft',
@@ -185,12 +184,12 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_5d297fe8_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_3c6ab4bd_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-5d297fe8"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3c6ab4bd"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -203,118 +202,112 @@ const _hoisted_6 = { class: "siqi-topbar__right" };
 const _hoisted_7 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "d-none d-sm-inline" }, "状态页", -1));
 const _hoisted_8 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "d-none d-sm-inline" }, "保存", -1));
 const _hoisted_9 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "d-none d-sm-inline" }, "关闭", -1));
-const _hoisted_10 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "v0.2.0 升级提示：", -1));
-const _hoisted_11 = {
+const _hoisted_10 = {
   key: 1,
   class: "siqi-loading-state",
   role: "status",
   "aria-live": "polite"
 };
-const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "正在加载配置，请稍候", -1));
-const _hoisted_13 = ["disabled", "inert", "aria-busy"];
-const _hoisted_14 = { class: "siqi-config-col" };
-const _hoisted_15 = { class: "siqi-card" };
-const _hoisted_16 = { class: "siqi-card__header" };
-const _hoisted_17 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_18 = { class: "siqi-switch-grid" };
-const _hoisted_19 = { class: "siqi-switch-main" };
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_11 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "正在加载配置，请稍候", -1));
+const _hoisted_12 = ["disabled", "inert", "aria-busy"];
+const _hoisted_13 = { class: "siqi-config-col" };
+const _hoisted_14 = { class: "siqi-card" };
+const _hoisted_15 = { class: "siqi-card__header" };
+const _hoisted_16 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_17 = { class: "siqi-switch-grid" };
+const _hoisted_18 = { class: "siqi-switch-main" };
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "启用插件"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "开启定时任务；升级后请确认设置再手动开启")
 ], -1));
-const _hoisted_21 = { class: "siqi-switch-main" };
-const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_20 = { class: "siqi-switch-main" };
+const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "通知"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "任务完成或异常时发送 MoviePilot 通知")
 ], -1));
-const _hoisted_23 = { class: "siqi-switch-main" };
-const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_22 = { class: "siqi-switch-main" };
+const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "代理"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "使用 MoviePilot 已配置的网络代理访问站点")
 ], -1));
-const _hoisted_25 = { class: "siqi-switch-main" };
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "强制IPv4"),
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "强制 IPv4 可减少部分 IPv6 环境连接不稳")
-], -1));
-const _hoisted_27 = { class: "siqi-card" };
-const _hoisted_28 = { class: "siqi-card__header" };
-const _hoisted_29 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_30 = { class: "siqi-switch-grid" };
-const _hoisted_31 = { class: "siqi-switch-main" };
-const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_24 = { class: "siqi-card" };
+const _hoisted_25 = { class: "siqi-card__header" };
+const _hoisted_26 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_27 = { class: "siqi-switch-grid" };
+const _hoisted_28 = { class: "siqi-switch-main" };
+const _hoisted_29 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "立即运行一次"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "保存后排队执行一轮，执行后自动关闭此开关")
 ], -1));
-const _hoisted_33 = { class: "siqi-switch-main" };
-const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_30 = { class: "siqi-switch-main" };
+const _hoisted_31 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动搬砖"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "按搬砖 Cron 定时执行搬砖")
 ], -1));
-const _hoisted_35 = { class: "siqi-switch-main" };
-const _hoisted_36 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_32 = { class: "siqi-switch-main" };
+const _hoisted_33 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "动态清沙滩"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "根据站点冷却时间动态安排清理")
 ], -1));
-const _hoisted_37 = { class: "siqi-switch-main" };
-const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_34 = { class: "siqi-switch-main" };
+const _hoisted_35 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动炼造"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "清沙滩后按可用材料自动炼造")
 ], -1));
-const _hoisted_39 = { class: "siqi-switch-main" };
-const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_36 = { class: "siqi-switch-main" };
+const _hoisted_37 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动兑换"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "保留指定魔丸后自动兑换魔力")
 ], -1));
-const _hoisted_41 = { class: "siqi-card" };
-const _hoisted_42 = { class: "siqi-card__header" };
-const _hoisted_43 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_44 = { class: "siqi-form-grid" };
-const _hoisted_45 = {
+const _hoisted_38 = { class: "siqi-card" };
+const _hoisted_39 = { class: "siqi-card__header" };
+const _hoisted_40 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_41 = { class: "siqi-form-grid" };
+const _hoisted_42 = {
   class: "siqi-field siqi-wide-field",
   "data-config-field": "brick_cron"
 };
-const _hoisted_46 = {
+const _hoisted_43 = {
   key: 0,
   class: "siqi-field-error",
   role: "alert"
 };
-const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "搬砖 Cron 是定时规则；默认每天 00:05 执行。", -1));
-const _hoisted_48 = {
+const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "搬砖 Cron 是定时规则；默认每天 00:05 执行。", -1));
+const _hoisted_45 = {
   class: "siqi-field",
   "data-config-field": "schedule_buffer_seconds"
 };
-const _hoisted_49 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 0 到 3600 的整数；站点显示可执行后再等待这段时间。", -1));
-const _hoisted_50 = {
+const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 0 到 3600 的整数；站点显示可执行后再等待这段时间。", -1));
+const _hoisted_47 = {
   class: "siqi-field",
   "data-config-field": "reserve_magic_pill_count"
 };
-const _hoisted_51 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写不小于 0 的整数；自动兑换前默认保留 10 个魔丸。", -1));
-const _hoisted_52 = {
+const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写不小于 0 的整数；自动兑换前默认保留 10 个魔丸。", -1));
+const _hoisted_49 = {
   class: "siqi-field",
   "data-config-field": "random_delay_max_seconds"
 };
-const _hoisted_53 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 0 到 300 的整数；0 表示不额外等待。", -1));
-const _hoisted_54 = {
+const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 0 到 300 的整数；0 表示不额外等待。", -1));
+const _hoisted_51 = {
   class: "siqi-field",
   "data-config-field": "http_timeout"
 };
-const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 5 到 120 的整数；表示单次网络请求最长等待秒数。", -1));
-const _hoisted_56 = {
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 5 到 120 的整数；表示单次网络请求最长等待秒数。", -1));
+const _hoisted_53 = {
   class: "siqi-field",
   "data-config-field": "http_retry_times"
 };
-const _hoisted_57 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 1 到 5 的整数；网络失败时最多按此次数重试。", -1));
-const _hoisted_58 = {
+const _hoisted_54 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 1 到 5 的整数；网络失败时最多按此次数重试。", -1));
+const _hoisted_55 = {
   class: "siqi-field",
   "data-config-field": "http_retry_delay"
 };
-const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 200 到 60000 的整数；默认 1500 毫秒（1.5 秒）。", -1));
-const _hoisted_60 = { class: "siqi-card" };
-const _hoisted_61 = { class: "siqi-card__header" };
-const _hoisted_62 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_63 = { class: "siqi-site-note" };
-const _hoisted_64 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "填写 200 到 60000 的整数；默认 1500 毫秒（1.5 秒）。", -1));
+const _hoisted_57 = { class: "siqi-card" };
+const _hoisted_58 = { class: "siqi-card__header" };
+const _hoisted_59 = { class: "siqi-card__title d-flex align-center" };
+const _hoisted_60 = { class: "siqi-site-note" };
+const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-site-note__title" }, "Cookie：从 MoviePilot 站点自动同步。"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-site-note__desc" }, "此处无需填写或手动操作，插件每次请求都会读取最新站点凭据。")
 ], -1));
@@ -342,7 +335,6 @@ const CONFIG_FIELDS = Object.freeze([
   'notify',
   'onlyonce',
   'use_proxy',
-  'force_ipv4',
   'enable_brick',
   'enable_beach',
   'auto_craft',
@@ -360,7 +352,6 @@ const DEFAULT_CONFIG = Object.freeze({
   notify: true,
   onlyonce: false,
   use_proxy: false,
-  force_ipv4: true,
   enable_brick: true,
   enable_beach: true,
   auto_craft: false,
@@ -640,26 +631,14 @@ return (_ctx, _cache) => {
           _: 1
         }, 8, ["type"]))
       : _createCommentVNode("", true),
-    _createVNode(_component_v_alert, {
-      type: "warning",
-      variant: "tonal",
-      density: "compact",
-      class: "siqi-migration-note"
-    }, {
-      default: _withCtx(() => [
-        _hoisted_10,
-        _createTextVNode("首次迁移会保持插件关闭。升级后请先检查并保存新版设置，再手动启用任务。 ")
-      ]),
-      _: 1
-    }),
     (configLoading.value)
-      ? (_openBlock(), _createElementBlock("div", _hoisted_11, [
+      ? (_openBlock(), _createElementBlock("div", _hoisted_10, [
           _createVNode(_component_v_progress_linear, {
             color: "success",
             indeterminate: "",
             rounded: ""
           }),
-          _hoisted_12
+          _hoisted_11
         ]))
       : _createCommentVNode("", true),
     _createElementVNode("fieldset", {
@@ -668,10 +647,10 @@ return (_ctx, _cache) => {
       inert: formLocked.value,
       "aria-busy": formLocked.value
     }, [
-      _createElementVNode("div", _hoisted_14, [
-        _createElementVNode("div", _hoisted_15, [
-          _createElementVNode("div", _hoisted_16, [
-            _createElementVNode("span", _hoisted_17, [
+      _createElementVNode("div", _hoisted_13, [
+        _createElementVNode("div", _hoisted_14, [
+          _createElementVNode("div", _hoisted_15, [
+            _createElementVNode("span", _hoisted_16, [
               _createVNode(_component_v_icon, {
                 icon: "mdi-toggle-switch-outline",
                 size: "18",
@@ -681,17 +660,17 @@ return (_ctx, _cache) => {
               _createTextVNode("基础设置 ")
             ])
           ]),
-          _createElementVNode("div", _hoisted_18, [
+          _createElementVNode("div", _hoisted_17, [
             _createElementVNode("div", {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.enabled}]),
               style: {"--siqi-accent":"34,197,94"}
             }, [
-              _createElementVNode("div", _hoisted_19, [
+              _createElementVNode("div", _hoisted_18, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-power-plug",
                   size: "18"
                 }),
-                _hoisted_20
+                _hoisted_19
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.enabled,
@@ -707,12 +686,12 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.notify}]),
               style: {"--siqi-accent":"59,130,246"}
             }, [
-              _createElementVNode("div", _hoisted_21, [
+              _createElementVNode("div", _hoisted_20, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-bell-outline",
                   size: "18"
                 }),
-                _hoisted_22
+                _hoisted_21
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.notify,
@@ -728,12 +707,12 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.use_proxy}]),
               style: {"--siqi-accent":"139,92,246"}
             }, [
-              _createElementVNode("div", _hoisted_23, [
+              _createElementVNode("div", _hoisted_22, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-lan-connect",
                   size: "18"
                 }),
-                _hoisted_24
+                _hoisted_23
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.use_proxy,
@@ -744,33 +723,12 @@ return (_ctx, _cache) => {
                 "aria-label": "代理",
                 disabled: formLocked.value
               }, null, 8, ["modelValue", "disabled"])
-            ], 2),
-            _createElementVNode("div", {
-              class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.force_ipv4}]),
-              style: {"--siqi-accent":"14,165,233"}
-            }, [
-              _createElementVNode("div", _hoisted_25, [
-                _createVNode(_component_v_icon, {
-                  icon: "mdi-ip-network-outline",
-                  size: "18"
-                }),
-                _hoisted_26
-              ]),
-              _createVNode(_component_v_switch, {
-                modelValue: config.force_ipv4,
-                "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.force_ipv4) = $event)),
-                color: "info",
-                "hide-details": "",
-                density: "compact",
-                "aria-label": "强制IPv4",
-                disabled: formLocked.value
-              }, null, 8, ["modelValue", "disabled"])
             ], 2)
           ])
         ]),
-        _createElementVNode("div", _hoisted_27, [
-          _createElementVNode("div", _hoisted_28, [
-            _createElementVNode("span", _hoisted_29, [
+        _createElementVNode("div", _hoisted_24, [
+          _createElementVNode("div", _hoisted_25, [
+            _createElementVNode("span", _hoisted_26, [
               _createVNode(_component_v_icon, {
                 icon: "mdi-robot-outline",
                 size: "18",
@@ -780,21 +738,21 @@ return (_ctx, _cache) => {
               _createTextVNode("自动化策略 ")
             ])
           ]),
-          _createElementVNode("div", _hoisted_30, [
+          _createElementVNode("div", _hoisted_27, [
             _createElementVNode("div", {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.onlyonce}]),
               style: {"--siqi-accent":"245,158,11"}
             }, [
-              _createElementVNode("div", _hoisted_31, [
+              _createElementVNode("div", _hoisted_28, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-play-circle-outline",
                   size: "18"
                 }),
-                _hoisted_32
+                _hoisted_29
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.onlyonce,
-                "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.onlyonce) = $event)),
+                "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.onlyonce) = $event)),
                 color: "orange",
                 "hide-details": "",
                 density: "compact",
@@ -806,16 +764,16 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.enable_brick}]),
               style: {"--siqi-accent":"34,197,94"}
             }, [
-              _createElementVNode("div", _hoisted_33, [
+              _createElementVNode("div", _hoisted_30, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-wall",
                   size: "18"
                 }),
-                _hoisted_34
+                _hoisted_31
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.enable_brick,
-                "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.enable_brick) = $event)),
+                "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.enable_brick) = $event)),
                 color: "green",
                 "hide-details": "",
                 density: "compact",
@@ -827,16 +785,16 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.enable_beach}]),
               style: {"--siqi-accent":"14,165,233"}
             }, [
-              _createElementVNode("div", _hoisted_35, [
+              _createElementVNode("div", _hoisted_32, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-beach",
                   size: "18"
                 }),
-                _hoisted_36
+                _hoisted_33
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.enable_beach,
-                "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.enable_beach) = $event)),
+                "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.enable_beach) = $event)),
                 color: "info",
                 "hide-details": "",
                 density: "compact",
@@ -848,16 +806,16 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.auto_craft}]),
               style: {"--siqi-accent":"239,68,68"}
             }, [
-              _createElementVNode("div", _hoisted_37, [
+              _createElementVNode("div", _hoisted_34, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-hammer-wrench",
                   size: "18"
                 }),
-                _hoisted_38
+                _hoisted_35
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.auto_craft,
-                "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.auto_craft) = $event)),
+                "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.auto_craft) = $event)),
                 color: "red",
                 "hide-details": "",
                 density: "compact",
@@ -869,16 +827,16 @@ return (_ctx, _cache) => {
               class: _normalizeClass(["siqi-switch-item", {'siqi-switch-item--active': config.auto_exchange}]),
               style: {"--siqi-accent":"236,72,153"}
             }, [
-              _createElementVNode("div", _hoisted_39, [
+              _createElementVNode("div", _hoisted_36, [
                 _createVNode(_component_v_icon, {
                   icon: "mdi-cash-sync",
                   size: "18"
                 }),
-                _hoisted_40
+                _hoisted_37
               ]),
               _createVNode(_component_v_switch, {
                 modelValue: config.auto_exchange,
-                "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.auto_exchange) = $event)),
+                "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.auto_exchange) = $event)),
                 color: "pink",
                 "hide-details": "",
                 density: "compact",
@@ -888,9 +846,9 @@ return (_ctx, _cache) => {
             ], 2)
           ])
         ]),
-        _createElementVNode("div", _hoisted_41, [
-          _createElementVNode("div", _hoisted_42, [
-            _createElementVNode("span", _hoisted_43, [
+        _createElementVNode("div", _hoisted_38, [
+          _createElementVNode("div", _hoisted_39, [
+            _createElementVNode("span", _hoisted_40, [
               _createVNode(_component_v_icon, {
                 icon: "mdi-tune-variant",
                 size: "18",
@@ -900,13 +858,13 @@ return (_ctx, _cache) => {
               _createTextVNode("参数设置 ")
             ])
           ]),
-          _createElementVNode("div", _hoisted_44, [
-            _createElementVNode("div", _hoisted_45, [
+          _createElementVNode("div", _hoisted_41, [
+            _createElementVNode("div", _hoisted_42, [
               _createVNode(_component_VCronField, {
                 modelValue: config.brick_cron,
                 "onUpdate:modelValue": [
-                  _cache[12] || (_cache[12] = $event => ((config.brick_cron) = $event)),
-                  _cache[13] || (_cache[13] = $event => (clearFieldError('brick_cron')))
+                  _cache[11] || (_cache[11] = $event => ((config.brick_cron) = $event)),
+                  _cache[12] || (_cache[12] = $event => (clearFieldError('brick_cron')))
                 ],
                 label: "搬砖Cron",
                 density: "compact",
@@ -916,16 +874,16 @@ return (_ctx, _cache) => {
                 "aria-invalid": Boolean(fieldErrors.brick_cron)
               }, null, 8, ["modelValue", "disabled", "error", "aria-invalid"]),
               (fieldErrors.brick_cron)
-                ? (_openBlock(), _createElementBlock("div", _hoisted_46, _toDisplayString(fieldErrors.brick_cron), 1))
+                ? (_openBlock(), _createElementBlock("div", _hoisted_43, _toDisplayString(fieldErrors.brick_cron), 1))
                 : _createCommentVNode("", true),
-              _hoisted_47
+              _hoisted_44
             ]),
-            _createElementVNode("div", _hoisted_48, [
+            _createElementVNode("div", _hoisted_45, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.schedule_buffer_seconds,
                 "onUpdate:modelValue": [
-                  _cache[14] || (_cache[14] = $event => ((config.schedule_buffer_seconds) = $event)),
-                  _cache[15] || (_cache[15] = $event => (clearFieldError('schedule_buffer_seconds')))
+                  _cache[13] || (_cache[13] = $event => ((config.schedule_buffer_seconds) = $event)),
+                  _cache[14] || (_cache[14] = $event => (clearFieldError('schedule_buffer_seconds')))
                 ],
                 label: "冷却缓冲（秒）",
                 type: "text",
@@ -941,14 +899,14 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.schedule_buffer_seconds ? [fieldErrors.schedule_buffer_seconds] : [],
                 "aria-invalid": Boolean(fieldErrors.schedule_buffer_seconds)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_49
+              _hoisted_46
             ]),
-            _createElementVNode("div", _hoisted_50, [
+            _createElementVNode("div", _hoisted_47, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.reserve_magic_pill_count,
                 "onUpdate:modelValue": [
-                  _cache[16] || (_cache[16] = $event => ((config.reserve_magic_pill_count) = $event)),
-                  _cache[17] || (_cache[17] = $event => (clearFieldError('reserve_magic_pill_count')))
+                  _cache[15] || (_cache[15] = $event => ((config.reserve_magic_pill_count) = $event)),
+                  _cache[16] || (_cache[16] = $event => (clearFieldError('reserve_magic_pill_count')))
                 ],
                 label: "保留魔丸",
                 type: "text",
@@ -964,14 +922,14 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.reserve_magic_pill_count ? [fieldErrors.reserve_magic_pill_count] : [],
                 "aria-invalid": Boolean(fieldErrors.reserve_magic_pill_count)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_51
+              _hoisted_48
             ]),
-            _createElementVNode("div", _hoisted_52, [
+            _createElementVNode("div", _hoisted_49, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.random_delay_max_seconds,
                 "onUpdate:modelValue": [
-                  _cache[18] || (_cache[18] = $event => ((config.random_delay_max_seconds) = $event)),
-                  _cache[19] || (_cache[19] = $event => (clearFieldError('random_delay_max_seconds')))
+                  _cache[17] || (_cache[17] = $event => ((config.random_delay_max_seconds) = $event)),
+                  _cache[18] || (_cache[18] = $event => (clearFieldError('random_delay_max_seconds')))
                 ],
                 label: "随机延迟（秒）",
                 type: "text",
@@ -987,14 +945,14 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.random_delay_max_seconds ? [fieldErrors.random_delay_max_seconds] : [],
                 "aria-invalid": Boolean(fieldErrors.random_delay_max_seconds)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_53
+              _hoisted_50
             ]),
-            _createElementVNode("div", _hoisted_54, [
+            _createElementVNode("div", _hoisted_51, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.http_timeout,
                 "onUpdate:modelValue": [
-                  _cache[20] || (_cache[20] = $event => ((config.http_timeout) = $event)),
-                  _cache[21] || (_cache[21] = $event => (clearFieldError('http_timeout')))
+                  _cache[19] || (_cache[19] = $event => ((config.http_timeout) = $event)),
+                  _cache[20] || (_cache[20] = $event => (clearFieldError('http_timeout')))
                 ],
                 label: "请求超时（秒）",
                 type: "text",
@@ -1010,14 +968,14 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.http_timeout ? [fieldErrors.http_timeout] : [],
                 "aria-invalid": Boolean(fieldErrors.http_timeout)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_55
+              _hoisted_52
             ]),
-            _createElementVNode("div", _hoisted_56, [
+            _createElementVNode("div", _hoisted_53, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.http_retry_times,
                 "onUpdate:modelValue": [
-                  _cache[22] || (_cache[22] = $event => ((config.http_retry_times) = $event)),
-                  _cache[23] || (_cache[23] = $event => (clearFieldError('http_retry_times')))
+                  _cache[21] || (_cache[21] = $event => ((config.http_retry_times) = $event)),
+                  _cache[22] || (_cache[22] = $event => (clearFieldError('http_retry_times')))
                 ],
                 label: "网络重试次数",
                 type: "text",
@@ -1033,14 +991,14 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.http_retry_times ? [fieldErrors.http_retry_times] : [],
                 "aria-invalid": Boolean(fieldErrors.http_retry_times)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_57
+              _hoisted_54
             ]),
-            _createElementVNode("div", _hoisted_58, [
+            _createElementVNode("div", _hoisted_55, [
               _createVNode(_component_v_text_field, {
                 modelValue: config.http_retry_delay,
                 "onUpdate:modelValue": [
-                  _cache[24] || (_cache[24] = $event => ((config.http_retry_delay) = $event)),
-                  _cache[25] || (_cache[25] = $event => (clearFieldError('http_retry_delay')))
+                  _cache[23] || (_cache[23] = $event => ((config.http_retry_delay) = $event)),
+                  _cache[24] || (_cache[24] = $event => (clearFieldError('http_retry_delay')))
                 ],
                 label: "重试间隔（毫秒）",
                 type: "text",
@@ -1056,13 +1014,13 @@ return (_ctx, _cache) => {
                 "error-messages": fieldErrors.http_retry_delay ? [fieldErrors.http_retry_delay] : [],
                 "aria-invalid": Boolean(fieldErrors.http_retry_delay)
               }, null, 8, ["modelValue", "disabled", "error-messages", "aria-invalid"]),
-              _hoisted_59
+              _hoisted_56
             ])
           ])
         ]),
-        _createElementVNode("div", _hoisted_60, [
-          _createElementVNode("div", _hoisted_61, [
-            _createElementVNode("span", _hoisted_62, [
+        _createElementVNode("div", _hoisted_57, [
+          _createElementVNode("div", _hoisted_58, [
+            _createElementVNode("span", _hoisted_59, [
               _createVNode(_component_v_icon, {
                 icon: "mdi-web-sync",
                 size: "18",
@@ -1072,21 +1030,21 @@ return (_ctx, _cache) => {
               _createTextVNode("站点凭据 ")
             ])
           ]),
-          _createElementVNode("div", _hoisted_63, [
+          _createElementVNode("div", _hoisted_60, [
             _createVNode(_component_v_icon, {
               icon: "mdi-shield-check-outline",
               size: "20"
             }),
-            _hoisted_64
+            _hoisted_61
           ])
         ])
       ])
-    ], 8, _hoisted_13)
+    ], 8, _hoisted_12)
   ]))
 }
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-5d297fe8"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3c6ab4bd"]]);
 
 export { ConfigView as default };

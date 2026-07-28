@@ -63,10 +63,6 @@
       {{ message }}
     </v-alert>
 
-    <v-alert type="warning" variant="tonal" density="compact" class="siqi-migration-note">
-      <strong>v0.2.0 升级提示：</strong>首次迁移会保持插件关闭。升级后请先检查并保存新版设置，再手动启用任务。
-    </v-alert>
-
     <div v-if="configLoading" class="siqi-loading-state" role="status" aria-live="polite">
       <v-progress-linear color="success" indeterminate rounded />
       <span>正在加载配置，请稍候</span>
@@ -97,10 +93,6 @@
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.use_proxy}" style="--siqi-accent:139,92,246">
             <div class="siqi-switch-main"><v-icon icon="mdi-lan-connect" size="18" /><div><div class="siqi-switch-label">代理</div><div class="siqi-switch-desc">使用 MoviePilot 已配置的网络代理访问站点</div></div></div>
             <v-switch v-model="config.use_proxy" color="purple" hide-details density="compact" aria-label="代理" :disabled="formLocked" />
-          </div>
-          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.force_ipv4}" style="--siqi-accent:14,165,233">
-            <div class="siqi-switch-main"><v-icon icon="mdi-ip-network-outline" size="18" /><div><div class="siqi-switch-label">强制IPv4</div><div class="siqi-switch-desc">强制 IPv4 可减少部分 IPv6 环境连接不稳</div></div></div>
-            <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" aria-label="强制IPv4" :disabled="formLocked" />
           </div>
         </div>
       </div>
@@ -223,7 +215,6 @@ const CONFIG_FIELDS = Object.freeze([
   'notify',
   'onlyonce',
   'use_proxy',
-  'force_ipv4',
   'enable_brick',
   'enable_beach',
   'auto_craft',
@@ -241,7 +232,6 @@ const DEFAULT_CONFIG = Object.freeze({
   notify: true,
   onlyonce: false,
   use_proxy: false,
-  force_ipv4: true,
   enable_brick: true,
   enable_beach: true,
   auto_craft: false,
@@ -420,7 +410,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .siqi-config{width:100%;max-width:100%;min-height:400px;padding:16px 20px;display:flex;flex-direction:column;gap:16px;overflow-x:hidden;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;color:rgba(var(--v-theme-on-surface),.85);border:1px solid rgba(var(--v-theme-on-surface),.12);border-radius:8px;background:linear-gradient(180deg,rgba(var(--v-theme-surface),.22),rgba(76,175,80,.025))}
 .siqi-config *{box-sizing:border-box}.siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px;min-width:0}.siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.siqi-topbar__copy{min-width:0}.siqi-topbar__right{display:flex;align-items:center;gap:10px;flex-shrink:0}.siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}.siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(76,175,80,.14);display:flex;align-items:center;justify-content:center;color:#2e7d32;flex-shrink:0}.siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}.siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.siqi-config :deep(.v-btn){min-height:44px}
-.siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}.siqi-migration-note{border-radius:12px!important;line-height:1.6}.siqi-loading-state{display:flex;flex-direction:column;gap:7px;font-size:11px;color:rgba(var(--v-theme-on-surface),.58)}.siqi-form-lock{min-inline-size:0;margin:0;padding:0;border:0}.siqi-config-col{display:flex;flex-direction:column;gap:16px;min-width:0}.siqi-card{min-width:0;background:rgba(var(--v-theme-surface),.5);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
+.siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}.siqi-loading-state{display:flex;flex-direction:column;gap:7px;font-size:11px;color:rgba(var(--v-theme-on-surface),.58)}.siqi-form-lock{min-inline-size:0;margin:0;padding:0;border:0}.siqi-config-col{display:flex;flex-direction:column;gap:16px;min-width:0}.siqi-card{min-width:0;background:rgba(var(--v-theme-surface),.5);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
 .siqi-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-switch-item{min-width:0;min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:.5px solid rgba(var(--v-theme-on-surface),.06);transition:background .2s ease,border-color .2s ease,transform .2s ease}.siqi-switch-item:hover{transform:translateY(-1px)}.siqi-switch-item--active{background:rgba(var(--siqi-accent,34,197,94),.07);border-color:rgba(var(--siqi-accent,34,197,94),.18)}.siqi-switch-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;color:rgba(var(--v-theme-on-surface),.58)}.siqi-switch-main>div{min-width:0}.siqi-switch-item--active .siqi-switch-main{color:rgb(var(--siqi-accent,34,197,94))}.siqi-switch-label{font-size:13px;font-weight:600;color:rgba(var(--v-theme-on-surface),.86)}.siqi-switch-desc{font-size:11px;color:rgba(var(--v-theme-on-surface),.46);line-height:1.45;margin-top:2px}.siqi-switch-item :deep(.v-switch){flex:0 0 auto}.siqi-switch-item :deep(.v-selection-control){min-width:44px;min-height:44px}.siqi-switch-item :deep(.v-input__details){display:none}
 .siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px;background:rgba(var(--v-theme-surface),.34)}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-field-error{font-size:12px;line-height:1.45;color:rgb(var(--v-theme-error));padding-inline:12px}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}.siqi-site-note{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border-radius:12px;background:rgba(34,197,94,.07);border:.5px solid rgba(34,197,94,.18);color:rgba(var(--v-theme-on-surface),.7)}.siqi-site-note>div{min-width:0}.siqi-site-note__title{font-size:13px;font-weight:650;color:rgba(var(--v-theme-on-surface),.86)}.siqi-site-note__desc{margin-top:3px;font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5)}
 @media(max-width:900px){.siqi-switch-grid,.siqi-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.siqi-wide-field{grid-column:span 2}}
