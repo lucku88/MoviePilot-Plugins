@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 import sys
 import time
@@ -187,8 +188,17 @@ def _install_moviepilot_stubs():
 def _load_plugin(key: str):
     _install_moviepilot_stubs()
     module_name = f"{key}_retry_limit_under_test"
-    sys.modules.pop(module_name, None)
-    spec = importlib.util.spec_from_file_location(module_name, PLUGIN_INITS[key])
+    for loaded_name in list(sys.modules):
+        if loaded_name == module_name or loaded_name.startswith(f"{module_name}."):
+            sys.modules.pop(loaded_name, None)
+    if key == "vuepill":
+        spec = importlib.util.spec_from_file_location(
+            module_name,
+            PLUGIN_INITS[key],
+            submodule_search_locations=[str(PLUGIN_INITS[key].parent)],
+        )
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, PLUGIN_INITS[key])
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     sys.modules[module_name] = module
@@ -197,6 +207,54 @@ def _load_plugin(key: str):
 
 
 class VueRetryLimitTests(unittest.TestCase):
+    def test_vuepill_has_one_module_backed_implementation_without_global_ipv4_patch(self):
+        source = PLUGIN_INITS["vuepill"].read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        vuepill = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "VuePill"
+        )
+        method_names = [
+            node.name for node in vuepill.body if isinstance(node, ast.FunctionDef)
+        ]
+        for method_name in (
+            "_run_brick_flow",
+            "_build_result_lines",
+            "_build_notify_text",
+            "_normalize_history_entry",
+        ):
+            self.assertEqual(1, method_names.count(method_name), method_name)
+
+        for removed_method in (
+            "_parse_page_state",
+            "_parse_inventory",
+            "_parse_recipes",
+            "_request_with_retry",
+            "_is_retryable_network_error",
+            "_plan_craft_for_item",
+            "_ensure_item_for_plan",
+            "_get_recipe_by_output",
+        ):
+            self.assertNotIn(removed_method, method_names)
+
+        imported_modules = {
+            node.module
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+        }
+        self.assertTrue(
+            {"crafting", "page_parser", "site_client"}.issubset(imported_modules)
+        )
+        imported_names = {
+            alias.name
+            for node in tree.body
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        }
+        self.assertNotIn("socket", imported_names)
+        self.assertNotIn("allowed_gai_family", source)
+
     def test_http_retry_defaults_to_five_for_all_vue_game_plugins(self):
         for key, class_name in [
             ("vuefarm", "VueFarm"),
@@ -298,4 +356,3 @@ class VueRetryLimitTests(unittest.TestCase):
         self.assertEqual(now + 24 * 3600, next_run)
         self.assertEqual("brick", next_action)
         self.assertEqual(6, plugin.get_data("consecutive_error_retries"))
-

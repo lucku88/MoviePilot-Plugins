@@ -1,22 +1,17 @@
+import inspect
 import math
 import random
 import re
-import socket
 import threading
 import time
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
-import requests
-import urllib3.util.connection as urllib3_connection
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
 
 from app.core.config import settings
 from app.db.site_oper import SiteOper
@@ -25,9 +20,81 @@ from app.plugins import _PluginBase
 from app.scheduler import Scheduler
 from app.schemas import NotificationType
 
+from .crafting import (
+    compute_magic_pill_plan,
+    exchange_batches,
+    inventory_to_map,
+    max_gift_quantity,
+)
+from .page_parser import parse_page
+from .site_client import VuePillActionError, VuePillSiteClient
+
 
 MIGRATION_KEY = "v020_initialized"
 _DROP_PUBLIC_VALUE = object()
+
+
+class _SiteResponseAdapter:
+    def __init__(self, response, json_filter=None):
+        self._response = response
+        self._json_filter = json_filter
+
+    @property
+    def status_code(self):
+        try:
+            value = getattr(self._response, "status_code")
+        except Exception:
+            value = None
+        if isinstance(value, int):
+            return value
+        raise_for_status = getattr(self._response, "raise_for_status", None)
+        if callable(raise_for_status):
+            raise_for_status()
+            return 200
+        return value
+
+    def __getattr__(self, name):
+        return getattr(self._response, name)
+
+    def json(self):
+        value = self._response.json()
+        return self._json_filter(value) if self._json_filter else value
+
+
+class _SiteSessionAdapter:
+    def __init__(self, session, json_filter=None):
+        self._session = session
+        self._json_filter = json_filter
+
+    def get(self, *args, **kwargs):
+        return _SiteResponseAdapter(
+            self._call("get", *args, **kwargs),
+            json_filter=self._json_filter,
+        )
+
+    def post(self, *args, **kwargs):
+        return _SiteResponseAdapter(
+            self._call("post", *args, **kwargs),
+            json_filter=self._json_filter,
+        )
+
+    def _call(self, method_name: str, *args, **kwargs):
+        method = getattr(self._session, method_name)
+        try:
+            parameters = inspect.signature(method).parameters.values()
+            accepts_extra = any(
+                parameter.kind == inspect.Parameter.VAR_KEYWORD
+                for parameter in parameters
+            )
+            if not accepts_extra:
+                allowed = {parameter.name for parameter in parameters}
+                kwargs = {key: value for key, value in kwargs.items() if key in allowed}
+        except (TypeError, ValueError):
+            pass
+        return method(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._session, name)
 
 
 def _public_api(method):
@@ -134,15 +201,6 @@ class VuePill(_PluginBase):
         "魔丸胚胎": "🥚",
         "魔丸": "⚗️",
         "蚯蚓": "🪱",
-    }
-
-    RECIPE_DEFINITIONS = {
-        1: {"name": "木工件", "output_item": "木工件", "ingredients": {"砖块": 5, "木材": 1, "塑料袋": 1}},
-        2: {"name": "塑料件", "output_item": "塑料件", "ingredients": {"砖块": 5, "塑料袋": 1, "瓶子": 1}},
-        3: {"name": "简易工具", "output_item": "简易工具", "ingredients": {"螺丝": 2, "木工件": 2}},
-        4: {"name": "能量碎片", "output_item": "能量碎片", "ingredients": {"旧电池": 1, "塑料件": 2}},
-        5: {"name": "魔丸胚胎", "output_item": "魔丸胚胎", "ingredients": {"破铜片": 1, "简易工具": 1, "能量碎片": 1}},
-        6: {"name": "魔丸", "output_item": "魔丸", "ingredients": {"砖块": 10, "魔丸胚胎": 2}},
     }
 
     _scheduler: Optional[BackgroundScheduler] = None
@@ -357,8 +415,6 @@ class VuePill(_PluginBase):
                 return {"success": False, "message": "插件未启用", "status": self._build_status(auto_refresh=False)}
 
             self._ensure_cookie()
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             if not force and reason == "schedule" and self._is_pre_refresh_trigger():
                 before_refresh = self._capture_refresh_catchup_state()
@@ -402,6 +458,7 @@ class VuePill(_PluginBase):
             brick_result: Dict[str, Any] = {}
             beach_result: Dict[str, Any] = {}
             auto_result: Dict[str, Any] = {}
+            beach_flow_attempted = False
 
             if run_brick and page.get("brick", {}).get("ready"):
                 brick_result = self._run_brick_flow(session, page.get("brick") or {})
@@ -409,6 +466,7 @@ class VuePill(_PluginBase):
                 brick_result = {"message": page.get("brick", {}).get("status_text") or "今日搬砖已满"}
 
             if run_beach and page.get("beach", {}).get("ready"):
+                beach_flow_attempted = True
                 beach_result = self._run_beach_flow(session)
             elif run_beach:
                 beach_result = {"message": page.get("beach", {}).get("status_text") or "沙滩冷却中"}
@@ -420,7 +478,12 @@ class VuePill(_PluginBase):
                 expect_beach_cooldown=bool(beach_result.get("done")),
             )
             brick_result = self._sync_brick_result_with_page(brick_result, page, final_page)
-            if beach_due_action and not beach_result.get("done") and (final_page.get("beach") or {}).get("ready"):
+            if (
+                beach_due_action
+                and not beach_flow_attempted
+                and (final_page.get("beach") or {}).get("ready")
+            ):
+                beach_flow_attempted = True
                 beach_result = self._run_beach_flow(session)
                 final_page = self._fetch_stable_page_state(
                     session,
@@ -431,6 +494,8 @@ class VuePill(_PluginBase):
                 auto_result, final_page = self._run_auto_post_beach(session, final_page)
                 final_page = self._fetch_stable_page_state(session, previous_page=final_page)
             retry_action = self._get_retry_action(final_page, brick_result, beach_result)
+            if beach_due_action and not beach_result.get("done"):
+                retry_action = "beach"
             next_run, next_action = self._compute_next_plan(final_page)
             if retry_action:
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
@@ -441,16 +506,6 @@ class VuePill(_PluginBase):
                     next_action,
                     reason,
                 )
-            if beach_due_action and not beach_result.get("done"):
-                retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
-                next_run, next_action = self._limit_retry_plan_if_needed(
-                    "beach",
-                    retry_ts,
-                    next_run,
-                    next_action,
-                    reason,
-                )
-
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
                 remaining = max(
@@ -582,7 +637,11 @@ class VuePill(_PluginBase):
         refresh_reason: str,
         before_refresh: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
-        if not self._should_run_after_refresh(status, before_refresh):
+        if not self._should_run_after_refresh(
+            status,
+            before_refresh,
+            refresh_reason=refresh_reason,
+        ):
             return None
         logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
         return self.run_job(force=True, reason=run_reason)
@@ -591,6 +650,7 @@ class VuePill(_PluginBase):
         self,
         status: Optional[Dict[str, Any]],
         before_refresh: Optional[Dict[str, Any]] = None,
+        refresh_reason: str = "",
     ) -> bool:
         if not self._enabled or not (self._enable_brick or self._enable_beach):
             return False
@@ -601,7 +661,11 @@ class VuePill(_PluginBase):
             return True
 
         pill_status = status or {}
-        if self._enable_beach and self._is_beach_ready(pill_status.get("beach") or {}):
+        if (
+            refresh_reason == "save-config"
+            and self._enable_beach
+            and self._is_beach_ready(pill_status.get("beach") or {})
+        ):
             return True
 
         return False
@@ -716,8 +780,6 @@ class VuePill(_PluginBase):
         try:
             item_name, target_uid, quantity = self._validate_gift_item_payload(payload)
             self._ensure_cookie()
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             session = self._build_session()
             page = self._fetch_page_state(session)
@@ -736,9 +798,7 @@ class VuePill(_PluginBase):
             if item.get("giftable") is not True:
                 raise ValueError(f"物品 {item_name} 当前不可赠送")
 
-            from . import crafting
-
-            max_quantity = crafting.max_gift_quantity(
+            max_quantity = max_gift_quantity(
                 inventory,
                 item_name,
                 cap=500,
@@ -789,6 +849,16 @@ class VuePill(_PluginBase):
                     refresh_error,
                 )
 
+            history_title = f"🎁赠送：{item_name}×{quantity} / 目标 UID {target_uid}"
+            try:
+                self._append_history(history_title, [])
+            except Exception as err:
+                logger.warning(
+                    "%s 赠送成功后写入历史失败：%s",
+                    self.plugin_name,
+                    self._get_error_detail(err, (target_uid,)),
+                )
+
             message = self._safe_result_message(
                 result,
                 "赠送成功",
@@ -818,8 +888,6 @@ class VuePill(_PluginBase):
         try:
             direction, range_value = self._validate_gift_stats_payload(payload)
             self._ensure_cookie()
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             session = self._build_session()
             result = self._post_action(
@@ -1344,8 +1412,6 @@ class VuePill(_PluginBase):
 
     def _refresh_state(self, reason: str = "refresh", record_run: bool = True) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         data = self._fetch_page_state(session)
         next_run, next_action = self._compute_next_plan(data)
@@ -1486,24 +1552,6 @@ class VuePill(_PluginBase):
             user_agent,
         )
 
-    def _resolve_site_profile(self):
-        site_url = self.DEFAULT_SITE_URL
-        user_agent = self.DEFAULT_USER_AGENT
-        try:
-            if self._siteoper:
-                site = self._siteoper.get_by_domain(self._site_domain)
-                if site:
-                    site_url = (getattr(site, "url", None) or site_url).rstrip("/")
-                    user_agent = (getattr(site, "ua", None) or user_agent).strip()
-        except Exception as err:
-            logger.warning(
-                "%s 获取站点配置失败：%s",
-                self.plugin_name,
-                self._get_error_detail(err),
-            )
-        self._site_url = site_url.rstrip("/")
-        self._user_agent = user_agent or self.DEFAULT_USER_AGENT
-
     def _sync_cookie_from_site(self, save_config: bool = False, silent: bool = True) -> Dict[str, Any]:
         try:
             self._sync_site_credentials()
@@ -1523,68 +1571,46 @@ class VuePill(_PluginBase):
             logger.warning("%s 同步站点 Cookie 失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail}
 
-    def _build_session(self) -> requests.Session:
+    def _build_site_client(self) -> VuePillSiteClient:
         _, cookie, _, _, site_url, user_agent = self._site_credentials_snapshot()
-        session = requests.Session()
-        retry_strategy = Retry(
-            total=self._http_retry_times,
-            connect=self._http_retry_times,
-            read=self._http_retry_times,
-            status=self._http_retry_times,
-            backoff_factor=max(0.1, self._http_retry_delay / 1000.0),
-            status_forcelist=[500, 502, 503, 504],
-            allowed_methods=frozenset(["HEAD", "GET", "OPTIONS"]),
-            raise_on_status=False,
+        return VuePillSiteClient(
+            site_url=site_url,
+            cookie=cookie,
+            user_agent=user_agent,
+            timeout=self._http_timeout,
+            retry_times=self._http_retry_times,
+            retry_delay_ms=self._http_retry_delay,
+            use_proxy=self._use_proxy,
+            force_ipv4=self._force_ipv4,
+            logger=logger,
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        session.trust_env = self._use_proxy
-        session.headers.update({
-            "User-Agent": user_agent,
-            "Cookie": cookie,
-            "Referer": f"{site_url}/mowan.php",
-            "X-Requested-With": "XMLHttpRequest",
-            "Connection": "keep-alive",
-        })
+
+    def _build_session(self):
+        client = self._build_site_client()
+        session = client.build_session()
+        try:
+            setattr(session, "_vuepill_site_client", client)
+        except Exception:
+            pass
         return session
 
-    def _refresh_session_credentials(self, session: requests.Session):
-        self._ensure_cookie()
-        _, cookie, _, _, site_url, user_agent = self._site_credentials_snapshot()
-        headers = getattr(session, "headers", None)
-        if hasattr(headers, "update"):
-            headers.update({
-                "User-Agent": user_agent,
-                "Cookie": cookie,
-                "Referer": f"{site_url}/mowan.php",
-            })
-        return site_url
+    def _site_client_for_session(self, session) -> VuePillSiteClient:
+        try:
+            client = getattr(session, "_vuepill_site_client", None)
+        except Exception:
+            client = None
+        return client if isinstance(client, VuePillSiteClient) else self._build_site_client()
 
-    def _fetch_page_state(self, session: requests.Session) -> Dict[str, Any]:
-        def fetch_page():
-            site_url = self._refresh_session_credentials(session)
-            return session.get(
-                f"{site_url}/mowan.php",
-                params={"_": int(time.time() * 1000)},
-                headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
-                timeout=(self._http_timeout, self._http_timeout),
-            )
-
-        response = self._request_with_retry(
-            "fetchMowanPage",
-            fetch_page,
-        )
-        response.raise_for_status()
-        html = response.text
-        data = self._parse_page_state(html)
+    def _fetch_page_state(self, session) -> Dict[str, Any]:
+        client = self._site_client_for_session(session)
+        data = parse_page(client.fetch_page_html(_SiteSessionAdapter(session)))
         if not data.get("title") and not data.get("stats"):
             raise ValueError("获取魔丸页面失败，Cookie 可能失效")
         return data
 
     def _fetch_stable_page_state(
         self,
-        session: requests.Session,
+        session,
         previous_page: Optional[Dict[str, Any]] = None,
         expect_brick_update: bool = False,
         expect_beach_cooldown: bool = False,
@@ -1617,7 +1643,7 @@ class VuePill(_PluginBase):
 
         return page
 
-    def _refresh_beach_due_page(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
+    def _refresh_beach_due_page(self, session, page: Dict[str, Any]) -> Dict[str, Any]:
         current = page
         try:
             current = self._fetch_stable_page_state(session, previous_page=page)
@@ -1638,214 +1664,50 @@ class VuePill(_PluginBase):
                 break
         return current
 
-    def _parse_page_state(self, html: str) -> Dict[str, Any]:
-        stats = {
-            "points": self._extract_id_int(html, "points"),
-            "bonus_earned": self._extract_id_int(html, "bonusEarned"),
-            "magic_pills": self._extract_id_int(html, "magicPills"),
-            "daily_bricks": self._extract_id_int(html, "dailyBricks"),
-        }
-        daily_limit = self._extract_int(
-            self._first_match(html, r'id="dailyBricks"[^>]*>\s*\d+\s*</span>\s*/\s*(\d+)'),
-            50,
-        )
-        stats["daily_limit"] = daily_limit
-
-        points2 = self._extract_id_int(html, "points2", stats["points"])
-        magic_pills2 = self._extract_id_int(html, "magicPills2", stats["magic_pills"])
-        pill_price = self._extract_int(self._first_match(html, r"魔丸限时价格：\s*<b>\s*([\d,]+)\s*魔力/颗"), 0)
-
-        server_marker = (
-            self._first_match(html, r"server_now\s*[:=]\s*(\d+)")
-            or self._first_match(html, r"serverNow\s*[:=]\s*(\d+)")
-            or self._first_match(html, r"serverTimeOffset:\s*([-\d]+)")
-        )
-        server_now = self._resolve_server_now(server_marker)
-        next_brick_reset_ts = self._normalize_timestamp(
-            self._first_match(html, r"next_brick_reset_ts\s*[:=]\s*(\d+)")
-            or self._first_match(html, r"nextBrickResetTs:\s*(\d+)"),
-            0,
-        )
-        last_beach_time = self._normalize_timestamp(
-            self._first_match(html, r"last_beach_time\s*[:=]\s*(\d+)")
-            or self._first_match(html, r"lastBeachTime:\s*(\d+)"),
-            0,
-        )
-        beach_interval = self._extract_int(self._first_match(html, r"beachInterval:\s*(\d+)"), 7200)
-
-        brick_ready = stats["daily_bricks"] < daily_limit
-        brick_next_ts = next_brick_reset_ts if (not brick_ready and self._is_reasonable_future_ts(next_brick_reset_ts, server_now)) else 0
-        beach_next_ts = last_beach_time + beach_interval if last_beach_time and self._is_reasonable_future_ts(last_beach_time + beach_interval, server_now) else 0
-        beach_ready = not beach_next_ts
-
-        brick = {
-            "ready": brick_ready,
-            "daily_bricks": stats["daily_bricks"],
-            "daily_limit": daily_limit,
-            "available_count": self._extract_int(self._extract_id_text(html, "factoryBrickCount"), max(0, daily_limit - stats["daily_bricks"])),
-            "bag_count": self._extract_int(self._extract_id_text(html, "bagBrickCount"), 0),
-            "status_text": self._extract_id_text(html, "brickStatus") or ("可以搬砖" if brick_ready else "今日搬砖已满"),
-            "next_reset_ts": brick_next_ts,
-            "next_reset_time": self._format_ts(brick_next_ts),
-            "factory_text": self._extract_id_text(html, "factoryBrickCount"),
-            "bag_text": self._extract_id_text(html, "bagBrickCount"),
-        }
-
-        beach = {
-            "ready": beach_ready,
-            "status_text": self._extract_id_text(html, "beachStatus") or ("可以进入清理" if beach_ready else "沙滩冷却中"),
-            "next_ready_ts": beach_next_ts,
-            "next_ready_time": self._format_ts(beach_next_ts),
-            "level_text": self._first_match(html, r"发种等级.*?当前：([^）<]+)") or "",
-            "hnr_text": self._first_match(html, r"HNR值.*?当前：([^）<]+)") or "",
-            "enter_button_text": self._extract_button_text(html, "beachBtn") or "清理沙滩",
-            "collect_button_text": self._extract_button_text(html, "collectAllTrashBtn") or "一键收集",
-            "collect_enabled": self._button_enabled(html, "collectAllTrashBtn"),
-        }
-
-        exchange = {
-            "pill_price": pill_price,
-            "magic_pills": magic_pills2,
-            "points": points2,
-            "max_count": self._extract_int(self._first_match(html, r'id="exchangeCount"[^>]*max="(\d+)"'), 0),
-            "enabled": self._button_enabled(html, "exchangeBtn"),
-            "action_ready": self._button_enabled(html, "exchangeBtn") and magic_pills2 > 0,
-            "note": "支持手动兑换魔力；一键炼造魔丸已整合到物品栏。",
-        }
-
-        inventory = self._parse_inventory(self._extract_div_inner(html, "inventoryGrid"))
-        recipes = self._parse_recipes(self._extract_div_inner(html, "recipeGrid"))
-
-        return {
-            "title": self._extract_tag_text(html, "h1") or "搬砖捡破烂炼魔丸",
-            "price_text": self._clean_html(self._first_match(html, r"魔丸限时价格：\s*<b>(.*?)</b>")) or "",
-            "stats": stats,
-            "exchange": exchange,
-            "brick": brick,
-            "beach": beach,
-            "inventory": inventory,
-            "recipes": recipes,
-            "server_now": server_now,
-        }
-
-    def _parse_inventory(self, container_html: str) -> List[Dict[str, Any]]:
-        items: List[Dict[str, Any]] = []
-        if not container_html:
-            return items
-        blocks = re.findall(r'(<div class="inventory-item[^"]*">.*?</div>\s*(?=(?:<div class="inventory-item|\s*$)))', container_html, re.S)
-        for block in blocks:
-            name = self._clean_html(self._first_match(block, r'class="item-name"[^>]*>(.*?)</div>'))
-            if not name:
-                continue
-            count = self._extract_int(self._first_match(block, r'class="item-count"[^>]*>(.*?)</div>'), 0)
-            items.append({
-                "name": name,
-                "icon": self._clean_html(self._first_match(block, r'class="item-icon"[^>]*>(.*?)</span>')) or self.ITEM_ICON_MAP.get(name, "📦"),
-                "count": count,
-                "giftable": "gift-btn" in block,
-                "has_items": "has-items" in block and count > 0,
-            })
-        return items
-
-    def _parse_recipes(self, container_html: str) -> List[Dict[str, Any]]:
-        recipes: List[Dict[str, Any]] = []
-        if not container_html:
-            return recipes
-        blocks = re.findall(r'(<div class="recipe[^"]*">.*?</div>\s*(?=(?:<div class="recipe|\s*$)))', container_html, re.S)
-        for block in blocks:
-            title_html = self._first_match(block, r'class="recipe-title"[^>]*>(.*?)</div>')
-            title_text = self._clean_html(title_html)
-            if not title_text:
-                continue
-            materials = [self._clean_html(val) for val in re.findall(r'class="material-item"[^>]*>(.*?)</span>', block, re.S)]
-            craft_id = self._extract_int(self._first_match(block, r"craft\((\d+)\)"), 0)
-            recipe_def = self.RECIPE_DEFINITIONS.get(craft_id, {})
-            recipes.append({
-                "title": re.sub(r"\s*\([^)]*\)\s*$", "", title_text),
-                "status": self._clean_html(self._first_match(title_html, r"<span[^>]*>(.*?)</span>")),
-                "materials": [item for item in materials if item],
-                "can_craft": "can-craft" in block and "disabled" not in block,
-                "max_count": self._extract_int(self._first_match(block, r'class="craft-input"[^>]*max="(\d+)"'), 0),
-                "craft_id": craft_id,
-                "enabled": "disabled" not in block,
-                "supported": bool(recipe_def),
-                "icon": self.ITEM_ICON_MAP.get(recipe_def.get("output_item") or re.sub(r"\s*\([^)]*\)\s*$", "", title_text), "📦"),
-            })
-        return recipes
-
     def _post_action(
         self,
-        session: requests.Session,
+        session,
         action: str,
         payload: Optional[dict] = None,
         retry_network: bool = False,
     ) -> dict:
-        form = {"action": action}
-        for key, value in (payload or {}).items():
-            if value is None:
+        try:
+            return self._site_client_for_session(session).post_action(
+                _SiteSessionAdapter(
+                    session,
+                    json_filter=self._sanitize_site_action_result,
+                ),
+                action,
+                payload=payload,
+                retry_network=retry_network,
+            )
+        except VuePillActionError as err:
+            detail = self._get_error_detail(err)
+            prefix = f"Action {action} failed: "
+            if detail.startswith(prefix):
+                detail = detail[len(prefix):]
+            raise ValueError(detail) from None
+
+    def _sanitize_site_action_result(self, result: Any) -> Any:
+        if not isinstance(result, dict):
+            return result
+        safe_result = dict(result)
+        for key in ("message", "msg"):
+            value = result.get(key)
+            if not isinstance(value, str):
                 continue
-            form[key] = value
-
-        def do_request():
-            site_url = self._refresh_session_credentials(session)
-            response = session.post(
-                f"{site_url}/mowan.php",
-                data=form,
-                timeout=(self._http_timeout, self._http_timeout),
+            safe_message = self._safe_result_message(result, value)
+            safe_result[key] = re.sub(
+                r"(?i)\b(?:cookie|set-cookie|authorization|proxy-authorization|"
+                r"[a-z0-9_-]*(?:token|password|passwd|session|secret)[a-z0-9_-]*|"
+                r"sid|api[_-]?key|target[_-]?uid|uid|user[_-]?id)\b"
+                r"(?=[\"']?\s*[:=])",
+                "sensitive",
+                safe_message,
             )
-            response.raise_for_status()
-            return response.json()
+        return safe_result
 
-        if retry_network:
-            return self._request_with_retry(f"postAction:{action}", do_request)
-        return do_request()
-
-    def _request_with_retry(self, label: str, func):
-        last_err = None
-        for idx in range(1, self._http_retry_times + 1):
-            try:
-                return func()
-            except Exception as err:
-                last_err = err
-                detail = self._get_error_detail(err)
-                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, idx, self._http_retry_times, detail)
-                if not self._is_retryable_network_error(err) or idx == self._http_retry_times:
-                    raise
-                wait_ms = self._http_retry_delay * idx + random.randint(0, 500)
-                logger.info(
-                    "%s %s 将在 %.1f 秒后自动重试（%s/%s）",
-                    self.plugin_name,
-                    label,
-                    wait_ms / 1000.0,
-                    idx + 1,
-                    self._http_retry_times,
-                )
-                time.sleep(wait_ms / 1000.0)
-        raise last_err
-
-    @staticmethod
-    def _is_retryable_network_error(err: Exception) -> bool:
-        code = getattr(err, "code", None) or getattr(getattr(err, "cause", None), "code", None)
-        status = getattr(getattr(err, "response", None), "status_code", None)
-        retryable = {"ETIMEDOUT", "ECONNRESET", "ECONNABORTED", "EAI_AGAIN", "ENOTFOUND", "EHOSTUNREACH", "ECONNREFUSED"}
-        if code in retryable or (status is not None and 500 <= int(status) < 600):
-            return True
-        if isinstance(err, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
-            return True
-        message = str(err).lower()
-        return any(
-            token in message
-            for token in (
-                "read timed out",
-                "connect timeout",
-                "connection timed out",
-                "connection aborted",
-                "temporarily unavailable",
-                "remote disconnected",
-            )
-        )
-
-    def _run_brick_flow(self, session: requests.Session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _run_brick_flow(self, session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         total_moved = 0
         last_message = ""
         warning = ""
@@ -1920,7 +1782,7 @@ class VuePill(_PluginBase):
             "attempted": attempted,
         }
 
-    def _run_beach_flow(self, session: requests.Session) -> Dict[str, Any]:
+    def _run_beach_flow(self, session) -> Dict[str, Any]:
         try:
             enter = self._post_action(session, "enter_beach", retry_network=False)
         except Exception as err:
@@ -1953,8 +1815,6 @@ class VuePill(_PluginBase):
 
     def _manual_move_bricks(self) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         page = self._fetch_page_state(session)
         initial_page = page
@@ -2025,8 +1885,6 @@ class VuePill(_PluginBase):
 
     def _manual_clean_beach(self) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         page = self._fetch_page_state(session)
         if not page.get("beach", {}).get("ready"):
@@ -2073,8 +1931,6 @@ class VuePill(_PluginBase):
 
     def _manual_exchange_points(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         page = self._fetch_page_state(session)
         exchange = page.get("exchange") or {}
@@ -2112,22 +1968,20 @@ class VuePill(_PluginBase):
 
     def _manual_craft_item(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         recipe_id = self._safe_int(payload.get("recipe_id"), 0)
-        recipe_def = self.RECIPE_DEFINITIONS.get(recipe_id)
-        if not recipe_def:
-            raise ValueError("不支持的炼造配方")
-
         session = self._build_session()
         page = self._fetch_page_state(session)
         recipe = next((item for item in (page.get("recipes") or []) if self._safe_int(item.get("craft_id"), 0) == recipe_id), None)
-        if not recipe:
+        if not recipe or recipe.get("supported") is False:
             raise ValueError("未识别到对应配方")
+
+        output_item = str(recipe.get("output_item") or recipe.get("title") or "").strip()
+        if not output_item:
+            raise ValueError("不支持的炼造配方")
 
         max_count = max(0, self._safe_int(recipe.get("max_count"), 0))
         if max_count <= 0 or not recipe.get("enabled"):
-            raise ValueError(f"{recipe_def['name']} 当前无法炼造")
+            raise ValueError(f"{output_item} 当前无法炼造")
 
         quantity = min(max(1, self._safe_int(payload.get("quantity"), 1)), max_count)
         result = self._post_action(
@@ -2143,7 +1997,6 @@ class VuePill(_PluginBase):
         next_run, next_action = self._compute_next_plan(page)
         self._schedule_next_run(next_run, "manual-craft", next_action)
 
-        output_item = recipe_def["output_item"]
         icon = self.ITEM_ICON_MAP.get(output_item, "📦")
         lines = [f"⚒️ 炼造：{icon}{output_item}×{quantity}"]
         public_result = self._safe_result_data(result)
@@ -2156,59 +2009,37 @@ class VuePill(_PluginBase):
 
     def _manual_craft_max_pill(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         page = self._fetch_page_state(session)
-        plan_info = self._compute_magic_pill_plan(page.get("inventory") or [])
+        plan_info = compute_magic_pill_plan(
+            page.get("inventory") or [],
+            page.get("recipes") or [],
+        )
         max_count = self._safe_int(plan_info.get("max_count"), 0)
         if max_count <= 0:
             raise ValueError("当前材料不足，无法炼造魔丸")
 
         quantity = min(max(1, self._safe_int(payload.get("quantity"), max_count)), max_count)
-        if quantity != max_count:
-            plan_info = self._compute_magic_pill_plan(page.get("inventory") or [], quantity)
+        craft_result = self._craft_magic_pill_loop(session, page, target=quantity)
+        if not craft_result.get("craft_steps") and craft_result.get("warning"):
+            raise ValueError(craft_result.get("warning"))
 
-        craft_plan = plan_info.get("plan") or {}
-        if not craft_plan or self._safe_int(craft_plan.get(6), 0) <= 0:
-            raise ValueError("未生成有效的魔丸炼造计划")
-
-        executed_steps: List[str] = []
-        for recipe_id in [1, 2, 3, 4, 5, 6]:
-            craft_qty = self._safe_int(craft_plan.get(recipe_id), 0)
-            if craft_qty <= 0:
-                continue
-            recipe_def = self.RECIPE_DEFINITIONS[recipe_id]
-            result = self._post_action(
-                session,
-                "craft_item",
-                {"recipe_id": recipe_id, "quantity": craft_qty},
-                retry_network=False,
-            )
-            if result and not result.get("success", True):
-                raise ValueError(
-                    self._safe_result_message(
-                        result,
-                        f"{recipe_def['name']} 炼造失败",
-                    )
-                )
-            executed_steps.append(
-                f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
-            )
-
-        page = self._fetch_page_state(session)
+        page = craft_result.get("page") or page
         next_run, next_action = self._compute_next_plan(page)
         self._schedule_next_run(next_run, "manual-craft-pill", next_action)
 
-        lines = [f"⚗️ 一键炼造魔丸：{quantity}颗"]
-        if executed_steps:
-            lines.append(f"🧪 步骤：{'  '.join(executed_steps)}")
+        crafted = self._safe_int(craft_result.get("crafted"), 0)
+        lines = [f"⚗️ 一键炼造魔丸：{crafted}颗"]
+        if craft_result.get("craft_steps"):
+            lines.append(f"🧪 步骤：{'  '.join(craft_result.get('craft_steps') or [])}")
+        if craft_result.get("warning"):
+            lines.append(f"⚠️ 炼造中止：{craft_result.get('warning')}")
 
         pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("⚗️ 一键炼造魔丸", lines)
         return {"pill_status": pill_status, "lines": lines}
 
-    def _run_auto_post_beach(self, session: requests.Session, page: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def _run_auto_post_beach(self, session, page: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         result = {
             "crafted": 0,
             "craft_steps": [],
@@ -2221,183 +2052,199 @@ class VuePill(_PluginBase):
 
         if self._auto_craft:
             craft_result = self._auto_craft_magic_pill(session, current_page)
-            if craft_result.get("crafted"):
-                result["crafted"] += self._safe_int(craft_result.get("crafted"), 0)
-                result["craft_steps"].extend(craft_result.get("craft_steps") or [])
-                result["lines"].extend(craft_result.get("lines") or [])
-                current_page = self._fetch_page_state(session)
-            elif craft_result.get("warning"):
+            result["crafted"] += self._safe_int(craft_result.get("crafted"), 0)
+            result["craft_steps"].extend(craft_result.get("craft_steps") or [])
+            result["lines"].extend(craft_result.get("lines") or [])
+            current_page = craft_result.get("page") or current_page
+            if craft_result.get("warning"):
                 result["warning"] = craft_result.get("warning")
                 result["lines"].append(f"⚠️ 自动炼造失败：{craft_result.get('warning')}")
+                return result, current_page
 
         if self._auto_exchange:
             exchange_result = self._auto_exchange_points(session, current_page)
-            if exchange_result.get("exchanged"):
-                result["exchanged"] += self._safe_int(exchange_result.get("exchanged"), 0)
-                result["points"] += self._safe_int(exchange_result.get("points"), 0)
-                result["lines"].extend(exchange_result.get("lines") or [])
-                current_page = self._fetch_page_state(session)
-            elif exchange_result.get("warning"):
+            result["exchanged"] += self._safe_int(exchange_result.get("exchanged"), 0)
+            result["points"] += self._safe_int(exchange_result.get("points"), 0)
+            result["lines"].extend(exchange_result.get("lines") or [])
+            current_page = exchange_result.get("page") or current_page
+            if exchange_result.get("warning"):
                 result["warning"] = result["warning"] or exchange_result.get("warning")
                 result["lines"].append(f"⚠️ 自动兑换失败：{exchange_result.get('warning')}")
 
         return result, current_page
 
-    def _auto_craft_magic_pill(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
-        plan_info = self._compute_magic_pill_plan(page.get("inventory") or [])
-        max_count = self._safe_int(plan_info.get("max_count"), 0)
-        if max_count <= 0:
-            return {}
+    def _auto_craft_magic_pill(self, session, page: Dict[str, Any]) -> Dict[str, Any]:
+        result = self._craft_magic_pill_loop(session, page)
+        crafted = self._safe_int(result.get("crafted"), 0)
+        lines: List[str] = []
+        if crafted > 0:
+            lines.append(f"⚗️ 炼造：⚗️魔丸×{crafted}")
+        if result.get("warning") and result.get("craft_steps"):
+            lines.append(f"🧪 已完成：{'  '.join(result.get('craft_steps') or [])}")
+        result["lines"] = lines
+        return result
 
-        craft_plan = plan_info.get("plan") or {}
-        executed_steps: List[str] = []
-        for recipe_id in [1, 2, 3, 4, 5, 6]:
-            craft_qty = self._safe_int(craft_plan.get(recipe_id), 0)
-            if craft_qty <= 0:
-                continue
-            recipe_def = self.RECIPE_DEFINITIONS[recipe_id]
-            result = self._post_action(
-                session,
-                "craft_item",
-                {"recipe_id": recipe_id, "quantity": craft_qty},
-                retry_network=False,
-            )
-            if result and not result.get("success", True):
-                return {
-                    "warning": self._safe_result_message(
-                        result,
-                        f"{recipe_def['name']} 炼造失败",
-                    )
-                }
-            executed_steps.append(
-                f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
-            )
-
-        lines = [f"⚗️ 炼造：⚗️魔丸×{max_count}"]
-        return {"crafted": max_count, "craft_steps": executed_steps, "lines": lines}
-
-    def _auto_exchange_points(self, session: requests.Session, page: Dict[str, Any]) -> Dict[str, Any]:
-        exchange = page.get("exchange") or {}
-        max_count = self._safe_int(exchange.get("max_count"), 0)
-        magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
-        inventory_map = self._inventory_to_map(self._get_inventory_items(page.get("inventory")))
-        inventory_magic_pills = self._safe_int(inventory_map.get("魔丸"), magic_pills)
-        exchange_pool = max(0, inventory_magic_pills - self._reserve_magic_pill_count)
-        exchangeable = max(0, min(max_count, exchange_pool))
-        logger.info(
-            "%s 自动兑换计算：库存魔丸=%s，兑换页魔丸=%s，保留=%s，可兑换=%s",
-            self.plugin_name,
-            inventory_magic_pills,
-            magic_pills,
-            self._reserve_magic_pill_count,
-            exchangeable,
-        )
-        if exchangeable <= 0 or not exchange.get("enabled"):
-            return {}
-
-        result = self._post_action(
-            session,
-            "exchange_points",
-            {"quantity": exchangeable},
-            retry_network=False,
-        )
-        if result and not result.get("success", True):
-            return {
-                "warning": self._safe_result_message(result, "兑换失败")
-            }
-
-        public_result = self._safe_result_data(result)
-        gained = self._safe_int(public_result.get("points_gained"), 0)
-        lines = [f"💰 兑换：⚗️魔丸×{exchangeable}"]
-        if self._reserve_magic_pill_count > 0:
-            lines.append(f"🧮 保留：⚗️魔丸≥{self._reserve_magic_pill_count}（当前 {inventory_magic_pills}）")
-        if gained > 0:
-            lines.append(f"✨ 获得：{gained} 魔力")
-        return {"exchanged": exchangeable, "points": gained, "lines": lines}
-
-    def _compute_magic_pill_plan(
+    def _craft_magic_pill_loop(
         self,
-        inventory_items: List[Dict[str, Any]],
+        session,
+        page: Dict[str, Any],
         target: Optional[int] = None,
     ) -> Dict[str, Any]:
-        inventory_map = self._inventory_to_map(inventory_items)
-        upper = max(0, sum(max(0, self._safe_int(val, 0)) for val in inventory_map.values()))
-        upper = max(upper, inventory_map.get("砖块", 0) // 10, inventory_map.get("魔丸胚胎", 0) // 2)
+        current_page = page or {}
+        first_plan = compute_magic_pill_plan(
+            current_page.get("inventory") or [],
+            current_page.get("recipes") or [],
+            target=target,
+        )
+        goal = self._safe_int(first_plan.get("max_count"), 0)
+        if goal <= 0:
+            return {"crafted": 0, "craft_steps": [], "lines": [], "warning": "", "page": current_page}
 
-        if target is not None:
-            plan = self._plan_craft_for_item("魔丸", target, inventory_map)
-            return {"max_count": target if plan else 0, "plan": plan or {}}
+        crafted = 0
+        executed_steps: List[str] = []
+        warning = ""
+        seen_steps = set()
+        for _ in range(100):
+            if crafted >= goal:
+                break
+            plan_info = compute_magic_pill_plan(
+                current_page.get("inventory") or [],
+                current_page.get("recipes") or [],
+                target=goal,
+            )
+            steps = plan_info.get("steps") or []
+            if not steps:
+                warning = str(plan_info.get("reason") or "剩余炼造计划不可用")
+                break
 
-        best_count = 0
-        best_plan: Dict[int, int] = {}
-        left, right = 0, upper
-        while left <= right:
-            mid = (left + right) // 2
-            plan = self._plan_craft_for_item("魔丸", mid, inventory_map)
-            if plan is not None:
-                best_count = mid
-                best_plan = plan
-                left = mid + 1
-            else:
-                right = mid - 1
-        return {"max_count": best_count, "plan": best_plan}
+            step = steps[0]
+            recipe_id = self._safe_int(step.get("craft_id"), 0)
+            craft_qty = self._safe_int(step.get("count"), 0)
+            output_item = str(step.get("output_item") or "").strip()
+            stock_marker = tuple(sorted(inventory_to_map(current_page.get("inventory") or []).items()))
+            step_marker = (stock_marker, recipe_id, craft_qty, output_item)
+            if recipe_id <= 0 or craft_qty <= 0 or not output_item or step_marker in seen_steps:
+                warning = "炼造页面未更新，已停止以避免重复提交"
+                break
+            seen_steps.add(step_marker)
 
-    def _plan_craft_for_item(self, item_name: str, quantity: int, inventory_map: Dict[str, int]) -> Optional[Dict[int, int]]:
-        target = max(0, self._safe_int(quantity, 0))
-        if target <= 0:
-            return {}
-        stock = {name: max(0, self._safe_int(count, 0)) for name, count in inventory_map.items()}
-        stock["魔丸"] = 0
-        plan: Dict[int, int] = {}
-        if self._ensure_item_for_plan(item_name, target, stock, plan):
-            return plan
-        return None
+            try:
+                action_result = self._post_action(
+                    session,
+                    "craft_item",
+                    {"recipe_id": recipe_id, "quantity": craft_qty},
+                    retry_network=False,
+                )
+            except Exception as err:
+                warning = self._get_error_detail(err)
+                break
+            if not isinstance(action_result, dict) or action_result.get("success") is not True:
+                warning = self._safe_result_message(action_result, f"{output_item} 炼造失败")
+                break
 
-    def _ensure_item_for_plan(self, item_name: str, quantity: int, stock: Dict[str, int], plan: Dict[int, int]) -> bool:
-        need = max(0, self._safe_int(quantity, 0))
-        if need <= 0:
-            return True
+            executed_steps.append(
+                f"{self.ITEM_ICON_MAP.get(output_item, '📦')}{output_item}×{craft_qty}"
+            )
+            if output_item == "魔丸":
+                crafted += craft_qty
+            try:
+                current_page = self._fetch_page_state(session)
+            except Exception as err:
+                warning = self._get_error_detail(err)
+                break
 
-        available = max(0, self._safe_int(stock.get(item_name), 0))
-        if available >= need:
-            stock[item_name] = available - need
-            return True
-        if available > 0:
-            need -= available
-            stock[item_name] = 0
+        return {
+            "crafted": crafted,
+            "craft_steps": executed_steps,
+            "lines": [],
+            "warning": warning,
+            "page": current_page,
+        }
 
-        recipe_id, recipe_def = self._get_recipe_by_output(item_name)
-        if not recipe_def:
-            return False
+    def _auto_exchange_points(self, session, page: Dict[str, Any]) -> Dict[str, Any]:
+        current_page = page or {}
+        exchanged = 0
+        points = 0
+        warning = ""
+        seen_counts = set()
 
-        for material_name, material_count in recipe_def["ingredients"].items():
-            if not self._ensure_item_for_plan(material_name, material_count * need, stock, plan):
-                return False
+        for _ in range(1000):
+            exchange = current_page.get("exchange") or {}
+            inventory = inventory_to_map(
+                self._get_inventory_items(current_page.get("inventory"))
+            )
+            current_count = self._safe_int(
+                inventory.get("魔丸"),
+                self._safe_int(exchange.get("magic_pills"), 0),
+            )
+            batches = exchange_batches(
+                current_count,
+                self._reserve_magic_pill_count,
+                100,
+            )
+            if not batches or not exchange.get("enabled"):
+                break
+            if current_count in seen_counts:
+                warning = "兑换页面未更新，已停止以保护保留魔丸"
+                break
+            seen_counts.add(current_count)
 
-        plan[recipe_id] = self._safe_int(plan.get(recipe_id), 0) + need
-        return True
+            batch = batches[0]
+            page_max = self._safe_int(exchange.get("max_count"), 0)
+            if page_max > 0:
+                batch = min(batch, page_max)
+            if batch <= 0:
+                break
 
-    def _get_recipe_by_output(self, item_name: str) -> Tuple[int, Optional[Dict[str, Any]]]:
-        for recipe_id, recipe_def in self.RECIPE_DEFINITIONS.items():
-            if recipe_def["output_item"] == item_name:
-                return recipe_id, recipe_def
-        return 0, None
+            try:
+                action_result = self._post_action(
+                    session,
+                    "exchange_points",
+                    {"quantity": batch},
+                    retry_network=False,
+                )
+            except Exception as err:
+                warning = self._get_error_detail(err)
+                break
+            if not isinstance(action_result, dict) or action_result.get("success") is not True:
+                warning = self._safe_result_message(action_result, "兑换失败")
+                break
 
-    def _inventory_to_map(
-        self,
-        inventory_items: List[Dict[str, Any]],
-        reserve_magic_pill_count: int = 0,
-    ) -> Dict[str, int]:
-        data: Dict[str, int] = {}
-        for item in inventory_items or []:
-            name = str(item.get("name") or "").strip()
-            if not name:
-                continue
-            count = max(0, self._safe_int(item.get("count"), 0))
-            if name == "魔丸":
-                count = max(0, count - max(0, reserve_magic_pill_count))
-            data[name] = count
-        return data
+            exchanged += batch
+            public_result = self._safe_result_data(action_result)
+            points += self._safe_int(public_result.get("points_gained"), 0)
+            try:
+                refreshed_page = self._fetch_page_state(session)
+            except Exception as err:
+                warning = self._get_error_detail(err)
+                break
+            refreshed_exchange = refreshed_page.get("exchange") or {}
+            refreshed_inventory = inventory_to_map(
+                self._get_inventory_items(refreshed_page.get("inventory"))
+            )
+            refreshed_count = self._safe_int(
+                refreshed_inventory.get("魔丸"),
+                self._safe_int(refreshed_exchange.get("magic_pills"), 0),
+            )
+            current_page = refreshed_page
+            if refreshed_count >= current_count:
+                warning = "兑换后库存未减少，已停止以保护保留魔丸"
+                break
+
+        lines: List[str] = []
+        if exchanged > 0:
+            lines.append(f"💰 兑换：⚗️魔丸×{exchanged}")
+            if self._reserve_magic_pill_count > 0:
+                lines.append(f"🧮 保留：⚗️魔丸≥{self._reserve_magic_pill_count}")
+            if points > 0:
+                lines.append(f"✨ 获得：{points} 魔力")
+        return {
+            "exchanged": exchanged,
+            "points": points,
+            "lines": lines,
+            "warning": warning,
+            "page": current_page,
+        }
 
     @staticmethod
     def _get_inventory_items(inventory_data: Any) -> List[Dict[str, Any]]:
@@ -2435,11 +2282,6 @@ class VuePill(_PluginBase):
             else:
                 items.append({"name": "魔丸", "count": extra_magic_pill, "icon": "⚗️"})
         return items
-
-    def _needs_retry_soon(self, page: Dict[str, Any], brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> bool:
-        brick_retry = page.get("brick", {}).get("ready") and bool(brick_result.get("warning") or brick_result.get("attempted"))
-        beach_retry = bool(beach_result.get("warning")) and page.get("beach", {}).get("ready")
-        return brick_retry or beach_retry
 
     def _get_retry_action(self, page: Dict[str, Any], brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> str:
         brick_retry = page.get("brick", {}).get("ready") and bool(brick_result.get("warning") or brick_result.get("attempted"))
@@ -2621,7 +2463,7 @@ class VuePill(_PluginBase):
         recipes = data.get("recipes") or []
         next_trigger = self._load_saved_next_trigger()
         _, _, cookie_source, _, _, _ = self._site_credentials_snapshot()
-        pill_plan = self._compute_magic_pill_plan(inventory)
+        pill_plan = compute_magic_pill_plan(inventory, recipes)
         pill_recipe = next((recipe for recipe in recipes if self._safe_int(recipe.get("craft_id"), 0) == 6), {})
 
         return {
@@ -2661,7 +2503,7 @@ class VuePill(_PluginBase):
             "crafting": {
                 "magic_pill_max": self._safe_int(pill_plan.get("max_count"), 0),
                 "magic_pill_recipe": pill_recipe,
-                "magic_pill_requirements": self.RECIPE_DEFINITIONS[6]["ingredients"],
+                "magic_pill_requirements": pill_recipe.get("ingredients") or {},
             },
             "recipes": recipes,
             "summary": summary_lines,
@@ -2754,221 +2596,6 @@ class VuePill(_PluginBase):
         history.insert(0, {"time": self._format_time(self._aware_now()), "title": history_title, "lines": history_lines})
         self.save_data("history", history[:20])
 
-    def _run_brick_flow(self, session: requests.Session, brick_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        total_moved = 0
-        last_message = ""
-        warning = ""
-        next_reset_ts = 0
-        attempted = False
-        brick_state = brick_state or {}
-        daily_limit = max(1, self._safe_int(brick_state.get("daily_limit"), 50))
-        daily_bricks = max(0, self._safe_int(brick_state.get("daily_bricks"), 0))
-        remaining_quota = max(0, daily_limit - daily_bricks)
-        loop_cap = max(1, min(400, (remaining_quota if remaining_quota > 0 else daily_limit) * 8))
-
-        for _ in range(loop_cap):
-            attempted = True
-            try:
-                result = self._post_action(session, "move_brick", retry_network=True)
-            except Exception as err:
-                warning = self._get_error_detail(err)
-                if total_moved > 0:
-                    try:
-                        latest_page = self._fetch_page_state(session)
-                        latest_brick = latest_page.get("brick") or {}
-                        latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
-                        latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
-                        next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), 0)
-                        if latest_brick.get("ready") and latest_daily < latest_limit:
-                            delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
-                            if delay_ms > 0:
-                                time.sleep(delay_ms / 1000.0)
-                            continue
-                    except Exception:
-                        pass
-                break
-
-            if result and result.get("success"):
-                public_result = self._safe_result_data(result)
-                last_message = self._safe_result_message(result, "").strip()
-                moved = self._safe_int(public_result.get("bricks_moved"), 0)
-                if moved <= 0:
-                    if any(token in last_message for token in ("已满", "上限", "不能", "冷却", "结束")):
-                        break
-                    moved = 1
-                total_moved += moved
-                delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
-                if delay_ms > 0:
-                    time.sleep(delay_ms / 1000.0)
-                continue
-
-            public_result = self._safe_result_data(result)
-            last_message = self._safe_result_message(result, "今日搬砖已满")
-            next_reset_ts = self._safe_int(public_result.get("next_brick_reset_ts"), 0)
-            if total_moved > 0:
-                try:
-                    latest_page = self._fetch_page_state(session)
-                    latest_brick = latest_page.get("brick") or {}
-                    latest_limit = max(1, self._safe_int(latest_brick.get("daily_limit"), daily_limit))
-                    latest_daily = max(0, self._safe_int(latest_brick.get("daily_bricks"), daily_bricks))
-                    next_reset_ts = self._safe_int(latest_brick.get("next_reset_ts"), next_reset_ts)
-                    if latest_brick.get("ready") and latest_daily < latest_limit:
-                        delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
-                        if delay_ms > 0:
-                            time.sleep(delay_ms / 1000.0)
-                        continue
-                except Exception:
-                    pass
-            break
-
-        return {
-            "moved": total_moved,
-            "message": last_message,
-            "warning": warning,
-            "next_reset_ts": next_reset_ts,
-            "attempted": attempted,
-        }
-
-    def _build_result_lines(
-        self,
-        brick_result: Dict[str, Any],
-        beach_result: Dict[str, Any],
-        auto_result: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[str], bool, bool]:
-        lines: List[str] = []
-        has_action = False
-        has_warning = False
-
-        if self._safe_int(brick_result.get("moved"), 0) > 0:
-            lines.append(f"🧱 搬砖：🧱砖块×{self._safe_int(brick_result.get('moved'), 0)}")
-            has_action = True
-        elif brick_result.get("warning"):
-            lines.append(f"⚠️ 搬砖失败：{brick_result.get('warning')}")
-            has_warning = True
-
-        beach_items = beach_result.get("items") or []
-        if beach_items:
-            lines.append(f"🏖️ 沙滩：{self._format_item_lines(beach_items)}")
-            has_action = True
-        elif beach_result.get("warning"):
-            lines.append(f"⚠️ 沙滩失败：{beach_result.get('warning')}")
-            has_warning = True
-
-        for line in (auto_result or {}).get("lines") or []:
-            lines.append(line)
-            if line.startswith(("⚗️", "💰", "⚒️", "✅")):
-                has_action = True
-            elif line.startswith("⚠️"):
-                has_warning = True
-
-        return lines, has_action, has_warning
-
-    def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        report_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "⚒️", "✅"))]
-        if not report_lines:
-            report_lines = [line for line in lines if not line.startswith(("ℹ️", "⚠️"))]
-        chunks = [self.SUMMARY_LINE]
-        chunks.extend(report_lines)
-        chunks.append(self.SUMMARY_LINE)
-        chunks.append(f"⏰ 下次运行：{self._format_ts(next_run) if next_run else '等待下一次刷新'}")
-        chunks.append(self.SUMMARY_LINE)
-        return "\n".join(chunks)
-
-    def _normalize_history_entry(self, title: str, lines: List[str]) -> Tuple[str, List[str]]:
-        history_title = title
-        history_lines = [line for line in (lines or []) if line]
-        if not history_lines:
-            return history_title, history_lines
-
-        first_line = history_lines[0]
-        replacements = [
-            ("🏖️ 沙滩：", "🏖️沙滩："),
-            ("🧱 搬砖：", "🧱搬砖："),
-            ("💰 兑换：", "💰兑换："),
-            ("⚒️ 炼造：", "⚒️炼造："),
-            ("⚗️ 魔丸：", "⚗️魔丸："),
-            ("⚠️ 沙滩失败：", "🏖️沙滩失败："),
-            ("⚠️ 搬砖失败：", "🧱搬砖失败："),
-            ("ℹ️ 沙滩：", "🏖️沙滩："),
-            ("ℹ️ 搬砖：", "🧱搬砖："),
-        ]
-        manual_replacements = [
-            ("🏖️ 沙滩：", "🏖️手动沙滩："),
-            ("🧱 搬砖：", "🧱手动搬砖："),
-            ("💰 兑换：", "💰手动兑换："),
-            ("⚒️ 炼造：", "⚒️手动炼造："),
-            ("⚗️ 魔丸：", "⚗️手动魔丸："),
-            ("⚠️ 沙滩失败：", "🏖️手动沙滩失败："),
-            ("⚠️ 搬砖失败：", "🧱手动搬砖失败："),
-            ("ℹ️ 沙滩：", "🏖️手动沙滩："),
-            ("ℹ️ 搬砖：", "🧱手动搬砖："),
-        ]
-
-        if title == "⚗️ Vue-魔丸运行":
-            history_title = first_line
-            for src, dest in replacements:
-                if history_title.startswith(src):
-                    history_title = history_title.replace(src, dest, 1)
-                    break
-            return history_title, history_lines[1:]
-
-        if title in {"🏖️ 手动清沙滩", "🧱 手动搬砖", "💰 手动兑换", "⚒️ 手动炼造", "⚗️ 一键炼造魔丸"}:
-            history_title = first_line
-            for src, dest in manual_replacements:
-                if history_title.startswith(src):
-                    history_title = history_title.replace(src, dest, 1)
-                    break
-            return history_title, history_lines[1:]
-
-        return history_title, history_lines
-
-    def _extract_id_text(self, html: str, element_id: str) -> str:
-        return self._clean_html(self._first_match(html, rf'id="{re.escape(element_id)}"[^>]*>(.*?)</'))
-
-    def _extract_tag_text(self, html: str, tag: str) -> str:
-        return self._clean_html(self._first_match(html, rf"<{tag}[^>]*>(.*?)</{tag}>"))
-
-    def _extract_button_text(self, html: str, element_id: str) -> str:
-        return self._clean_html(self._first_match(html, rf'id="{re.escape(element_id)}"[^>]*>(.*?)</button>'))
-
-    def _button_enabled(self, html: str, element_id: str) -> bool:
-        tag = self._first_match(html, rf'(<button[^>]+id="{re.escape(element_id)}"[^>]*>)')
-        if not tag:
-            return False
-        return "disabled" not in tag.lower()
-
-    def _extract_id_int(self, html: str, element_id: str, default: int = 0) -> int:
-        return self._extract_int(self._extract_id_text(html, element_id), default)
-
-    def _extract_div_inner(self, html: str, element_id: str) -> str:
-        match = re.search(rf'<div[^>]+id="{re.escape(element_id)}"[^>]*>', html, re.I)
-        if not match:
-            return ""
-        start = match.end()
-        depth = 1
-        for tag in re.finditer(r"</?div\b", html[start:], re.I):
-            token = tag.group(0).lower()
-            if token.startswith("</div"):
-                depth -= 1
-            else:
-                depth += 1
-            if depth == 0:
-                return html[start:start + tag.start()]
-        return ""
-
-    @staticmethod
-    def _first_match(text: str, pattern: str) -> str:
-        match = re.search(pattern, text, re.S | re.I)
-        return match.group(1).strip() if match else ""
-
-    @staticmethod
-    def _clean_html(text: str) -> str:
-        if not text:
-            return ""
-        stripped = re.sub(r"<[^>]+>", " ", text)
-        stripped = unescape(stripped)
-        return re.sub(r"\s+", " ", stripped).strip()
-
     @staticmethod
     def _to_bool(val: Any) -> bool:
         if isinstance(val, bool):
@@ -2985,9 +2612,6 @@ class VuePill(_PluginBase):
             return int(value)
         except Exception:
             return default
-
-    def _extract_int(self, value: Any, default: int = 0) -> int:
-        return self._safe_int(value, default)
 
     def _normalize_timestamp(self, value: Any, default: int = 0) -> int:
         ts = self._safe_int(value, default)
