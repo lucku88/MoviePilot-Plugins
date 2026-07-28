@@ -447,6 +447,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   createLatestRequestGuard,
+  extractStatusPayload,
   isStrictSuccess,
   resolveGiftStatsFilters,
   safeResponseMessage,
@@ -480,6 +481,7 @@ const giftStats = ref(null)
 const giftStatsLoading = ref(false)
 const giftStatsError = ref('')
 const statusRequestGuard = createLatestRequestGuard()
+const actionRequestGuard = createLatestRequestGuard()
 const giftRequestGuard = createLatestRequestGuard()
 const giftStatsRequestGuard = createLatestRequestGuard()
 let giftDialogToken = 0
@@ -556,18 +558,12 @@ function flash(text, type = 'success') {
 }
 
 function applyStatusPayload(payload = {}) {
-  const nestedStatus = payload?.status && typeof payload.status === 'object' ? payload.status : {}
-  const nextPill = payload?.pill_status || nestedStatus.pill_status || payload?.status?.pill_status
-  if (nextPill && typeof nextPill === 'object') status.pill_status = nextPill
+  const update = extractStatusPayload(payload)
+  if (!update) return false
 
-  const nextHistory = Array.isArray(payload?.history)
-    ? payload.history
-    : Array.isArray(nestedStatus.history)
-      ? nestedStatus.history
-      : Array.isArray(nextPill?.history)
-        ? nextPill.history
-        : null
-  if (nextHistory) status.history = nextHistory
+  status.pill_status = update.pillStatus
+  if (update.history) status.history = update.history
+  return true
 }
 
 async function loadStatus({ silent = false } = {}) {
@@ -577,7 +573,7 @@ async function loadStatus({ silent = false } = {}) {
     if (!statusRequestGuard.isCurrent(requestId)) return false
     if (!result || typeof result !== 'object') throw new Error('状态响应无效')
     if (result.success === false) throw new Error(safeResponseMessage(result, '状态加载失败'))
-    applyStatusPayload(result)
+    if (!applyStatusPayload(result)) throw new Error('状态响应无效')
     return true
   } catch (error) {
     if (!statusRequestGuard.isCurrent(requestId)) return false
@@ -590,23 +586,29 @@ async function loadStatus({ silent = false } = {}) {
 
 async function runAction(key, request, fallbackMessage) {
   if (initialLoading.value || actionLoading.value) return null
+  const requestId = actionRequestGuard.begin()
   actionLoading.value = key
   try {
     const result = await request()
-    if (!isStrictSuccess(result)) {
+    if (!actionRequestGuard.isCurrent(requestId)) return null
+    statusRequestGuard.invalidate()
+    const statusApplied = applyStatusPayload(result)
+    if (!statusApplied || !isStrictSuccess(result)) {
       flash(safeResponseMessage(result, `${fallbackMessage}失败`), 'error')
+      if (!statusApplied) await loadStatus({ silent: true })
       return null
     }
-    statusRequestGuard.invalidate()
-    applyStatusPayload(result)
     flash(safeResponseMessage(result, fallbackMessage))
     await loadStatus({ silent: true })
     return result
   } catch (error) {
+    if (!actionRequestGuard.isCurrent(requestId)) return null
     flash(safeResponseMessage(error, `${fallbackMessage}失败`), 'error')
+    statusRequestGuard.invalidate()
+    await loadStatus({ silent: true })
     return null
   } finally {
-    actionLoading.value = ''
+    if (actionRequestGuard.isCurrent(requestId)) actionLoading.value = ''
   }
 }
 
@@ -707,13 +709,14 @@ async function submitGift() {
       quantity: snapshot.quantity,
     })
     if (!giftRequestGuard.isCurrent(requestId)) return
-    if (!isStrictSuccess(result)) {
+    statusRequestGuard.invalidate()
+    const statusApplied = applyStatusPayload(result)
+    if (!statusApplied || !isStrictSuccess(result)) {
       flash(safeResponseMessage(result, '赠送失败'), 'error')
+      if (!statusApplied) await loadStatus({ silent: true })
       return
     }
 
-    statusRequestGuard.invalidate()
-    applyStatusPayload(result)
     flash(safeResponseMessage(result, '赠送成功'))
     if (
       showGiftDialog.value
@@ -730,6 +733,8 @@ async function submitGift() {
   } catch (error) {
     if (giftRequestGuard.isCurrent(requestId)) {
       flash(safeResponseMessage(error, '赠送失败'), 'error')
+      statusRequestGuard.invalidate()
+      await loadStatus({ silent: true })
     }
   } finally {
     if (giftRequestGuard.isCurrent(requestId)) giftLoading.value = false
@@ -840,6 +845,7 @@ onMounted(loadStatus)
 
 onBeforeUnmount(() => {
   statusRequestGuard.invalidate()
+  actionRequestGuard.invalidate()
   giftRequestGuard.invalidate()
   giftStatsRequestGuard.invalidate()
   if (messageTimer) window.clearTimeout(messageTimer)

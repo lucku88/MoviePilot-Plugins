@@ -140,7 +140,31 @@ class VuePillFrontendContractTest(unittest.TestCase):
     def test_post_actions_require_explicit_success(self):
         self.assertGreaterEqual(self.page.count("isStrictSuccess(result)"), 3)
         self.assertIn("safeResponseMessage", self.page)
+        self.assertIn("extractStatusPayload", self.page)
+        self.assertIn("const actionRequestGuard = createLatestRequestGuard()", self.page)
         self.assertNotRegex(self.page, r"\.success\s*!==\s*false")
+
+        run_action = self.page.split("async function runAction", 1)[1].split(
+            "function quantityError", 1
+        )[0]
+        strict_action_check = "if (!statusApplied || !isStrictSuccess(result))"
+        self.assertIn(strict_action_check, run_action)
+        self.assertLess(
+            run_action.index("applyStatusPayload(result)"),
+            run_action.index(strict_action_check),
+        )
+        self.assertIn("if (!statusApplied) await loadStatus({ silent: true })", run_action)
+        self.assertIn("actionRequestGuard.isCurrent(requestId)", run_action)
+
+        submit_gift = self.page.split("async function submitGift", 1)[1].split(
+            "async function openGiftStats", 1
+        )[0]
+        self.assertIn(strict_action_check, submit_gift)
+        self.assertLess(
+            submit_gift.index("applyStatusPayload(result)"),
+            submit_gift.index(strict_action_check),
+        )
+        self.assertIn("if (!statusApplied) await loadStatus({ silent: true })", submit_gift)
 
     def test_async_guard_runtime_rejects_stale_requests_and_invalid_success(self):
         script = f"""
@@ -196,6 +220,61 @@ assert.deepEqual(
 )
 assert.equal(safeResponseMessage({{ message: {{ bad: true }} }}, 'fallback'), 'fallback')
 assert.equal(safeResponseMessage({{ message: '  ok  ' }}, 'fallback'), 'ok')
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+    def test_partial_failure_runtime_applies_valid_status_without_success(self):
+        script = f"""
+import assert from 'node:assert/strict'
+import {{
+  extractStatusPayload,
+  isStrictSuccess,
+  safeResponseMessage,
+}} from {ASYNC_GUARD_PATH.as_uri()!r}
+
+const latestPillStatus = {{
+  schema_version: '0.2.0',
+  inventory: {{ items: [{{ name: '魔丸', count: 2 }}] }},
+  recipes: [{{ craft_id: 6, max_count: 1, enabled: true }}],
+  exchange: {{ max_count: 3, reserve: 10 }},
+}}
+const response = {{
+  success: false,
+  message: '部分完成',
+  pill_status: latestPillStatus,
+  status: {{ history: [{{ text: '炼造 2 颗', time: '12:00' }}] }},
+}}
+const current = {{ pill_status: {{ inventory: {{ items: [] }} }}, history: [] }}
+const update = extractStatusPayload(response)
+assert.deepEqual(update, {{
+  pillStatus: latestPillStatus,
+  history: response.status.history,
+}})
+current.pill_status = update.pillStatus
+current.history = update.history
+assert.equal(current.pill_status.inventory.items[0].count, 2)
+assert.equal(current.pill_status.recipes[0].max_count, 1)
+assert.equal(current.pill_status.exchange.max_count, 3)
+assert.equal(isStrictSuccess(response), false)
+assert.equal(safeResponseMessage(response, '炼造失败'), '部分完成')
+
+assert.equal(extractStatusPayload(null), null)
+assert.equal(extractStatusPayload({{}}), null)
+assert.equal(extractStatusPayload({{ success: false, pill_status: {{ forged: true }} }}), null)
+assert.equal(extractStatusPayload({{ success: false, status: {{ pill_status: [] }} }}), null)
+const forgedSuccess = {{ success: true, pill_status: {{ forged: true }} }}
+assert.equal(
+  isStrictSuccess(forgedSuccess) && extractStatusPayload(forgedSuccess) !== null,
+  false,
+)
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
