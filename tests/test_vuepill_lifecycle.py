@@ -822,7 +822,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(defaults["auto_craft"], False)
         self.assertIs(defaults["auto_exchange"], False)
         self.assertIs(defaults["use_proxy"], False)
-        self.assertIs(defaults["force_ipv4"], True)
+        self.assertNotIn("force_ipv4", defaults)
         self.assertEqual("5 0 * * *", defaults["brick_cron"])
         self.assertEqual(5, defaults["schedule_buffer_seconds"])
         self.assertEqual(10, defaults["reserve_magic_pill_count"])
@@ -831,6 +831,63 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(5, defaults["http_retry_times"])
         self.assertEqual(1500, defaults["http_retry_delay"])
         self.assertEqual(60, defaults["ready_retry_seconds"])
+
+    def test_legacy_force_ipv4_is_ignored_and_not_persisted(self):
+        for legacy_value in (True, False):
+            with self.subTest(force_ipv4=legacy_value):
+                plugin = make_plugin(self.module)
+                plugin.save_data(
+                    plugin.CONFIG_GENERATION_KEY,
+                    plugin.CONFIG_GENERATION,
+                )
+                plugin.stop_service = lambda: None
+
+                plugin.init_plugin(
+                    {
+                        "enabled": False,
+                        "force_ipv4": legacy_value,
+                    }
+                )
+
+                self.assertNotIn(
+                    "force_ipv4",
+                    plugin._get_config(include_options=False),
+                )
+                plugin._update_config()
+                self.assertNotIn("force_ipv4", plugin._config_store)
+
+    def test_build_site_client_does_not_pass_force_ipv4(self):
+        captured = {}
+
+        class RecordingSiteClient:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        self.module.VuePillSiteClient = RecordingSiteClient
+        self.plugin._cookie = "sid=runtime-cookie"
+        self.plugin._site_url = "https://example.test"
+        self.plugin._user_agent = "VuePill-Test/1.0"
+        self.plugin._http_timeout = 12
+        self.plugin._http_retry_times = 5
+        self.plugin._http_retry_delay = 1500
+        self.plugin._use_proxy = True
+
+        client = self.plugin._build_site_client()
+
+        self.assertIsInstance(client, RecordingSiteClient)
+        self.assertEqual(
+            {
+                "site_url": "https://example.test",
+                "cookie": "sid=runtime-cookie",
+                "user_agent": "VuePill-Test/1.0",
+                "timeout": 12,
+                "retry_times": 5,
+                "retry_delay_ms": 1500,
+                "use_proxy": True,
+                "logger": self.module.logger,
+            },
+            captured,
+        )
 
     def test_save_config_rejects_invalid_numbers_and_cron_without_side_effects(self):
         expected_ranges = {

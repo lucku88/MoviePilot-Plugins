@@ -232,7 +232,6 @@ class VuePillSiteClientTests(unittest.TestCase):
             "retry_times": 5,
             "retry_delay_ms": 0,
             "use_proxy": False,
-            "force_ipv4": False,
             "logger": logger,
         }
         values.update(overrides)
@@ -1104,9 +1103,23 @@ class VuePillSiteClientTests(unittest.TestCase):
         self.assertEqual(0, session.adapters["http://"].max_retries.total)
         self.assertEqual(0, session.adapters["https://"].max_retries.total)
 
-    def test_force_ipv4_sessions_are_isolated_without_global_mutation(self):
-        ipv4_client, _ = self.make_client(force_ipv4=True)
-        normal_client, _ = self.make_client(force_ipv4=False)
+    def test_build_session_uses_standard_adapters_without_source_address(self):
+        client, _ = self.make_client()
+
+        session = client.build_session()
+        self.addCleanup(session.close)
+
+        for prefix in ("http://", "https://"):
+            adapter = session.adapters[prefix]
+            self.assertIs(type(adapter), self.module.HTTPAdapter)
+            self.assertNotIn(
+                "source_address",
+                adapter.poolmanager.connection_pool_kw,
+            )
+            self.assertEqual(0, adapter.max_retries.total)
+
+    def test_build_session_does_not_change_global_address_family_selection(self):
+        client, _ = self.make_client()
         sentinel = lambda: socket.AF_UNSPEC
         connection_module = sys.modules["urllib3.util.connection"]
 
@@ -1115,47 +1128,12 @@ class VuePillSiteClientTests(unittest.TestCase):
             "allowed_gai_family",
             sentinel,
         ):
-            ipv4_session = ipv4_client.build_session()
-            normal_session = normal_client.build_session()
-            second_ipv4_session = ipv4_client.build_session()
-            self.addCleanup(ipv4_session.close)
-            self.addCleanup(normal_session.close)
-            self.addCleanup(second_ipv4_session.close)
+            session = client.build_session()
+            second_session = client.build_session()
+            self.addCleanup(session.close)
+            self.addCleanup(second_session.close)
 
             self.assertIs(sentinel, connection_module.allowed_gai_family)
-
-        for prefix in ("http://", "https://"):
-            ipv4_adapter = ipv4_session.adapters[prefix]
-            normal_adapter = normal_session.adapters[prefix]
-            second_ipv4_adapter = second_ipv4_session.adapters[prefix]
-            self.assertEqual(
-                ("0.0.0.0", 0),
-                ipv4_adapter.poolmanager.connection_pool_kw["source_address"],
-            )
-            self.assertNotIn(
-                "source_address",
-                normal_adapter.poolmanager.connection_pool_kw,
-            )
-            self.assertEqual(
-                ("0.0.0.0", 0),
-                second_ipv4_adapter.poolmanager.connection_pool_kw[
-                    "source_address"
-                ],
-            )
-            self.assertEqual(0, ipv4_adapter.max_retries.total)
-            self.assertEqual(0, normal_adapter.max_retries.total)
-
-        ipv4_proxy = ipv4_session.adapters["https://"].proxy_manager_for(
-            "http://proxy.test"
-        )
-        normal_proxy = normal_session.adapters["https://"].proxy_manager_for(
-            "http://proxy.test"
-        )
-        self.assertEqual(
-            ("0.0.0.0", 0),
-            ipv4_proxy.proxy_kwargs["source_address"],
-        )
-        self.assertNotIn("source_address", normal_proxy.proxy_kwargs)
 
     def test_fetch_page_uses_timestamp_no_cache_and_returns_text(self):
         client, _ = self.make_client(timeout=12)
@@ -1372,19 +1350,16 @@ class VuePillSiteClientTests(unittest.TestCase):
             retry_times="99",
             retry_delay_ms=-100,
             use_proxy="off",
-            force_ipv4="no",
         )
         minimum_client, _ = self.make_client(
             timeout=0,
             retry_times=0,
             retry_delay_ms="invalid",
             use_proxy="yes",
-            force_ipv4="1",
         )
         unknown_client, _ = self.make_client(
             timeout=float("nan"),
             use_proxy="unexpected",
-            force_ipv4="unexpected",
         )
 
         self.assertEqual("https://example.test", client.site_url)
@@ -1394,15 +1369,12 @@ class VuePillSiteClientTests(unittest.TestCase):
         self.assertEqual(5, client.retry_times)
         self.assertEqual(0, client.retry_delay_ms)
         self.assertIs(client.use_proxy, False)
-        self.assertIs(client.force_ipv4, False)
         self.assertEqual(10.0, minimum_client.timeout)
         self.assertEqual(1, minimum_client.retry_times)
         self.assertEqual(0, minimum_client.retry_delay_ms)
         self.assertIs(minimum_client.use_proxy, True)
-        self.assertIs(minimum_client.force_ipv4, True)
         self.assertEqual(10.0, unknown_client.timeout)
         self.assertIs(unknown_client.use_proxy, False)
-        self.assertIs(unknown_client.force_ipv4, False)
 
     def test_site_url_accepts_only_http_https_origin(self):
         for site_url, expected in (
@@ -1452,26 +1424,22 @@ class VuePillSiteClientTests(unittest.TestCase):
             retry_times=3.5,
             retry_delay_ms=1.5,
             use_proxy=2,
-            force_ipv4=float("nan"),
         )
         valid_numeric_client, _ = self.make_client(
             timeout="1.5",
             retry_times=4.0,
             retry_delay_ms="25",
             use_proxy=1,
-            force_ipv4=0,
         )
 
         self.assertEqual(10.0, client.timeout)
         self.assertEqual(1, client.retry_times)
         self.assertEqual(0, client.retry_delay_ms)
         self.assertIs(client.use_proxy, False)
-        self.assertIs(client.force_ipv4, False)
         self.assertEqual(1.5, valid_numeric_client.timeout)
         self.assertEqual(4, valid_numeric_client.retry_times)
         self.assertEqual(25, valid_numeric_client.retry_delay_ms)
         self.assertIs(valid_numeric_client.use_proxy, True)
-        self.assertIs(valid_numeric_client.force_ipv4, False)
 
 
 if __name__ == "__main__":

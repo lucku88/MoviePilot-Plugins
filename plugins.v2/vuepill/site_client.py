@@ -48,23 +48,6 @@ class _NullLogger:
         return None
 
 
-class _IPv4HTTPAdapter(HTTPAdapter):
-    SOURCE_ADDRESS = ("0.0.0.0", 0)
-
-    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
-        pool_kwargs["source_address"] = self.SOURCE_ADDRESS
-        return super().init_poolmanager(
-            connections,
-            maxsize,
-            block=block,
-            **pool_kwargs,
-        )
-
-    def proxy_manager_for(self, proxy, **proxy_kwargs):
-        proxy_kwargs["source_address"] = self.SOURCE_ADDRESS
-        return super().proxy_manager_for(proxy, **proxy_kwargs)
-
-
 class _ErrorSnapshot:
     __slots__ = ("category", "type_name", "status_code", "retryable", "text")
 
@@ -233,7 +216,6 @@ class VuePillSiteClient:
         retry_times,
         retry_delay_ms,
         use_proxy,
-        force_ipv4,
         logger,
     ):
         self.site_url = self._normalize_site_url(site_url)
@@ -255,14 +237,12 @@ class VuePillSiteClient:
             minimum=0,
         )
         self.use_proxy = self._normalize_bool(use_proxy)
-        self.force_ipv4 = self._normalize_bool(force_ipv4)
         self.logger = logger or _NullLogger()
         self._cookie_secrets = self._extract_cookie_secrets(self.cookie)
 
     def build_session(self):
         session = requests.Session()
-        adapter_class = _IPv4HTTPAdapter if self.force_ipv4 else HTTPAdapter
-        adapter = adapter_class(
+        adapter = HTTPAdapter(
             max_retries=0,
             pool_connections=10,
             pool_maxsize=10,

@@ -246,7 +246,6 @@ class VuePill(_PluginBase):
     _auto_craft: bool = False
     _auto_exchange: bool = False
     _use_proxy: bool = False
-    _force_ipv4: bool = True
     _cookie: str = ""
     _cookie_source: str = "未同步"
     _site_domain: str = DEFAULT_SITE_DOMAIN
@@ -1524,7 +1523,6 @@ class VuePill(_PluginBase):
             "auto_craft": self._auto_craft,
             "auto_exchange": self._auto_exchange,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "brick_cron": self._brick_cron,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -1627,7 +1625,6 @@ class VuePill(_PluginBase):
             "auto_craft": False,
             "auto_exchange": False,
             "use_proxy": False,
-            "force_ipv4": True,
             "brick_cron": self.DEFAULT_BRICK_CRON,
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 3,
@@ -1840,7 +1837,6 @@ class VuePill(_PluginBase):
         self._auto_craft = self._to_bool(config.get("auto_craft", False))
         self._auto_exchange = self._to_bool(config.get("auto_exchange", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
-        self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._brick_cron = self._coerce_stored_config_cron(config.get("brick_cron"))
         self._schedule_buffer_seconds = self._coerce_stored_config_integer(
             "schedule_buffer_seconds", config.get("schedule_buffer_seconds")
@@ -2100,7 +2096,6 @@ class VuePill(_PluginBase):
             retry_times=self._http_retry_times,
             retry_delay_ms=self._http_retry_delay,
             use_proxy=self._use_proxy,
-            force_ipv4=self._force_ipv4,
             logger=logger,
         )
 
