@@ -39,7 +39,37 @@ export const DEFAULT_CONFIG = Object.freeze({
 })
 
 const CANONICAL_UNSIGNED_INTEGER = /^(?:0|[1-9]\d*)$/
-const SAFE_CRON_FIELD = /^[0-9A-Za-z*/,\-]+$/
+const CRON_NUMBER = /^\d+$/
+const MONTH_NAMES = Object.freeze({
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+})
+const DAY_OF_WEEK_NAMES = Object.freeze({
+  mon: 0,
+  tue: 1,
+  wed: 2,
+  thu: 3,
+  fri: 4,
+  sat: 5,
+  sun: 6,
+})
+const CRON_FIELD_RULES = Object.freeze([
+  Object.freeze({ label: '分钟', min: 0, max: 59 }),
+  Object.freeze({ label: '小时', min: 0, max: 23 }),
+  Object.freeze({ label: '日期', min: 1, max: 31 }),
+  Object.freeze({ label: '月份', min: 1, max: 12, names: MONTH_NAMES }),
+  Object.freeze({ label: '星期', min: 0, max: 7, names: DAY_OF_WEEK_NAMES }),
+])
 
 export function parseStrictInteger(value, rule) {
   let parsed
@@ -67,6 +97,56 @@ export function parseStrictInteger(value, rule) {
   return { valid: true, value: parsed, error: '' }
 }
 
+function parseCronValue(value, rule) {
+  if (CRON_NUMBER.test(value)) {
+    const parsed = Number(value)
+    return Number.isSafeInteger(parsed) && parsed >= rule.min && parsed <= rule.max
+      ? parsed
+      : null
+  }
+  return rule.names && Object.hasOwn(rule.names, value)
+    ? rule.names[value]
+    : null
+}
+
+function validateCronItem(item, rule) {
+  const stepParts = item.split('/')
+  if (stepParts.length > 2 || stepParts.some(part => !part)) return false
+
+  const base = stepParts[0]
+  let step = null
+  if (stepParts.length === 2) {
+    if (!CRON_NUMBER.test(stepParts[1])) return false
+    step = Number(stepParts[1])
+    if (!Number.isSafeInteger(step) || step <= 0) return false
+  }
+
+  let start
+  let end
+  if (base === '*') {
+    start = rule.min
+    end = rule.max
+  } else if (base.includes('-')) {
+    const rangeParts = base.split('-')
+    if (rangeParts.length !== 2 || rangeParts.some(part => !part)) return false
+    start = parseCronValue(rangeParts[0], rule)
+    end = parseCronValue(rangeParts[1], rule)
+    if (start === null || end === null || start > end) return false
+  } else {
+    if (step !== null) return false
+    return parseCronValue(base, rule) !== null
+  }
+
+  return step === null || step <= end - start
+}
+
+function validateCronField(field, rule) {
+  const items = field.split(',')
+  if (!items.length || items.some(item => !item)) return false
+  if (items.length > 1 && items.some(item => item.startsWith('*'))) return false
+  return items.every(item => validateCronItem(item, rule))
+}
+
 export function validateCronExpression(value) {
   if (typeof value !== 'string' || !value.trim()) {
     return { valid: false, value: '', error: '搬砖 Cron 不能为空' }
@@ -79,10 +159,18 @@ export function validateCronExpression(value) {
   if (fields.length !== 5) {
     return { valid: false, value: '', error: '搬砖 Cron 必须是 5 段表达式' }
   }
-  if (fields.some(field => !SAFE_CRON_FIELD.test(field))) {
-    return { valid: false, value: '', error: '搬砖 Cron 包含不支持的字符' }
+  const normalizedFields = fields.map(field => field.toLowerCase())
+  const invalidIndex = normalizedFields.findIndex(
+    (field, index) => !validateCronField(field, CRON_FIELD_RULES[index]),
+  )
+  if (invalidIndex >= 0) {
+    return {
+      valid: false,
+      value: '',
+      error: `搬砖 Cron 的${CRON_FIELD_RULES[invalidIndex].label}段不合法`,
+    }
   }
-  return { valid: true, value: fields.join(' '), error: '' }
+  return { valid: true, value: normalizedFields.join(' '), error: '' }
 }
 
 export function validateVuePillConfig(source) {

@@ -193,13 +193,39 @@ for (const [field, rule] of Object.entries(INTEGER_CONFIG_RULES)) {
   assert.equal(parseStrictInteger(rule.max + 1, rule).valid, false, `${field}: max`)
 }
 
-for (const value of ['', ' ', '* * * *', '* * * * * *', '* * * * *\n']) {
+for (const value of [
+  '',
+  ' ',
+  '* * * *',
+  '* * * * * *',
+  '* * * * *\n',
+  '60 * * * *',
+  '* 24 * * *',
+  '* * 0 * *',
+  '* * * 13 *',
+  '* * * * 8',
+  '*/0 * * * *',
+  '5-1 * * * *',
+  '1,,2 * * * *',
+  'foo * * * *',
+  '* * * foo *',
+  '* * * * foo',
+]) {
   assert.equal(validateCronExpression(value).valid, false, JSON.stringify(value))
 }
-assert.deepEqual(
-  validateCronExpression('  5   0 * * *  '),
-  { valid: true, value: '5 0 * * *', error: '' },
-)
+for (const [value, normalized] of [
+  ['  5   0 * * *  ', '5 0 * * *'],
+  ['*/5 * * * *', '*/5 * * * *'],
+  ['0,15,30,45 * * * *', '0,15,30,45 * * * *'],
+  ['0-59/5 0-23/2 1-31/3 1-12/2 0-6', '0-59/5 0-23/2 1-31/3 1-12/2 0-6'],
+  ['0 0 * JAN MON-FRI', '0 0 * jan mon-fri'],
+]) {
+  assert.deepEqual(
+    validateCronExpression(value),
+    { valid: true, value: normalized, error: '' },
+    value,
+  )
+}
 
 const source = {
   ...DEFAULT_CONFIG,

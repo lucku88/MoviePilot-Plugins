@@ -533,6 +533,9 @@ class VuePillLifecycleTests(unittest.TestCase):
                 "NaN",
                 math.nan,
                 math.inf,
+                1.0,
+                100.0,
+                -0.0,
                 "0x10",
                 "+12",
                 "-1",
@@ -543,7 +546,24 @@ class VuePillLifecycleTests(unittest.TestCase):
             cases.extend(((field, minimum - 1), (field, maximum + 1)))
         cases.extend(
             ("brick_cron", value)
-            for value in ("", " ", "* * * *", "* * * * * *", "* * * * *\n")
+            for value in (
+                "",
+                " ",
+                "* * * *",
+                "* * * * * *",
+                "* * * * *\n",
+                "60 * * * *",
+                "* 24 * * *",
+                "* * 0 * *",
+                "* * * 13 *",
+                "* * * * 8",
+                "*/0 * * * *",
+                "5-1 * * * *",
+                "1,,2 * * * *",
+                "foo * * * *",
+                "* * * foo *",
+                "* * * * foo",
+            )
         )
 
         for field, value in cases:
@@ -619,6 +639,47 @@ class VuePillLifecycleTests(unittest.TestCase):
                         continue
                     self.assertIs(type(result["config"][field]), int)
                     self.assertEqual(int(value), result["config"][field])
+
+    def test_save_config_accepts_supported_cron_forms(self):
+        expressions = (
+            "5 0 * * *",
+            "*/5 * * * *",
+            "0,15,30,45 * * * *",
+            "0-59/5 0-23/2 1-31/3 1-12/2 0-6",
+            "0 0 * jan mon-fri",
+        )
+
+        for expression in expressions:
+            with self.subTest(expression=expression):
+                plugin = make_plugin(self.module)
+                plugin.save_data(plugin.MIGRATION_KEY, True)
+                plugin._apply_config(plugin._default_config())
+                plugin._refresh_state = lambda **kwargs: {}
+                plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+                plugin._reregister_plugin = lambda reason="": None
+
+                result = plugin._save_config({"brick_cron": expression})
+
+                self.assertIs(result["success"], True)
+                self.assertEqual(expression, result["config"]["brick_cron"])
+
+    def test_save_config_json_integer_uses_field_range_without_float_coercion(self):
+        plugin = make_plugin(self.module)
+        plugin.save_data(plugin.MIGRATION_KEY, True)
+        plugin._apply_config(plugin._default_config())
+        plugin._refresh_state = lambda **kwargs: {}
+        plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        plugin._reregister_plugin = lambda reason="": None
+
+        accepted = plugin._save_config({"schedule_buffer_seconds": 100})
+        before_rejected = plugin._get_config(include_options=False)
+        rejected = plugin._save_config({"http_retry_times": 100})
+
+        self.assertIs(accepted["success"], True)
+        self.assertEqual(100, accepted["config"]["schedule_buffer_seconds"])
+        self.assertIs(rejected["success"], False)
+        self.assertIn("http_retry_times", rejected["errors"])
+        self.assertEqual(before_rejected, plugin._get_config(include_options=False))
 
     def test_status_exchange_reserve_uses_default_and_configured_value(self):
         cases = (

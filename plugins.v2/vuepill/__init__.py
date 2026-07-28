@@ -281,7 +281,37 @@ class VuePill(_PluginBase):
         "reserve_magic_pill_count": ("保留魔丸", 0, JS_SAFE_INTEGER_MAX, 10),
     }
     _CANONICAL_CONFIG_INTEGER_PATTERN = re.compile(r"^(?:0|[1-9]\d*)$")
-    _SAFE_CRON_FIELD_PATTERN = re.compile(r"^[0-9A-Za-z*/,\-]+$")
+    _CRON_NUMBER_PATTERN = re.compile(r"^\d+$")
+    _CRON_MONTH_NAMES = {
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
+    }
+    _CRON_DAY_OF_WEEK_NAMES = {
+        "mon": 0,
+        "tue": 1,
+        "wed": 2,
+        "thu": 3,
+        "fri": 4,
+        "sat": 5,
+        "sun": 6,
+    }
+    _CRON_FIELD_RULES = (
+        ("分钟", 0, 59, None),
+        ("小时", 0, 23, None),
+        ("日期", 1, 31, None),
+        ("月份", 1, 12, _CRON_MONTH_NAMES),
+        ("星期", 0, 7, _CRON_DAY_OF_WEEK_NAMES),
+    )
     PUBLIC_MAX_ITEMS = 500
     PUBLIC_MAX_DEPTH = 20
     PUBLIC_MAX_SECRETS = 500
@@ -1569,8 +1599,6 @@ class VuePill(_PluginBase):
         parsed: Optional[int] = None
         if type(value) is int:
             parsed = value
-        elif type(value) is float and math.isfinite(value) and value.is_integer():
-            parsed = int(value)
         elif (
             type(value) is str
             and cls._CANONICAL_CONFIG_INTEGER_PATTERN.fullmatch(value)
@@ -1587,6 +1615,87 @@ class VuePill(_PluginBase):
         return parsed, ""
 
     @classmethod
+    def _parse_cron_value(
+        cls,
+        value: str,
+        minimum: int,
+        maximum: int,
+        names: Optional[Dict[str, int]],
+    ) -> Optional[int]:
+        if cls._CRON_NUMBER_PATTERN.fullmatch(value):
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+            return parsed if minimum <= parsed <= maximum else None
+        if names and value in names:
+            return names[value]
+        return None
+
+    @classmethod
+    def _validate_cron_item(
+        cls,
+        item: str,
+        minimum: int,
+        maximum: int,
+        names: Optional[Dict[str, int]],
+    ) -> bool:
+        step_parts = item.split("/")
+        if len(step_parts) > 2 or any(not part for part in step_parts):
+            return False
+
+        base = step_parts[0]
+        step: Optional[int] = None
+        if len(step_parts) == 2:
+            if not cls._CRON_NUMBER_PATTERN.fullmatch(step_parts[1]):
+                return False
+            try:
+                step = int(step_parts[1])
+            except (TypeError, ValueError, OverflowError):
+                return False
+            if step <= 0:
+                return False
+
+        if base == "*":
+            start, end = minimum, maximum
+        elif "-" in base:
+            range_parts = base.split("-")
+            if len(range_parts) != 2 or any(not part for part in range_parts):
+                return False
+            start = cls._parse_cron_value(
+                range_parts[0], minimum, maximum, names
+            )
+            end = cls._parse_cron_value(
+                range_parts[1], minimum, maximum, names
+            )
+            if start is None or end is None or start > end:
+                return False
+        else:
+            if step is not None:
+                return False
+            return cls._parse_cron_value(base, minimum, maximum, names) is not None
+
+        return step is None or step <= end - start
+
+    @classmethod
+    def _validate_cron_field(
+        cls,
+        field: str,
+        minimum: int,
+        maximum: int,
+        names: Optional[Dict[str, int]],
+    ) -> bool:
+        items = field.split(",")
+        if not items or any(not item for item in items):
+            return False
+        if len(items) > 1 and any(item.startswith("*") for item in items):
+            return False
+        return all(
+            cls._validate_cron_item(item, minimum, maximum, names)
+            for item in items
+        )
+
+    @classmethod
     def _parse_config_cron(cls, value: Any) -> Tuple[Optional[str], str]:
         if not isinstance(value, str) or not value.strip():
             return None, "搬砖 Cron 不能为空"
@@ -1596,13 +1705,18 @@ class VuePill(_PluginBase):
         fields = re.split(r"[ \t]+", value.strip())
         if len(fields) != 5:
             return None, "搬砖 Cron 必须是 5 段表达式"
-        if any(
-            not cls._SAFE_CRON_FIELD_PATTERN.fullmatch(field)
-            for field in fields
-        ):
-            return None, "搬砖 Cron 包含不支持的字符"
+        normalized_fields = [field.lower() for field in fields]
+        for index, field in enumerate(normalized_fields):
+            label, minimum, maximum, names = cls._CRON_FIELD_RULES[index]
+            if not cls._validate_cron_field(
+                field,
+                minimum,
+                maximum,
+                names,
+            ):
+                return None, f"搬砖 Cron 的{label}段不合法"
 
-        normalized = " ".join(fields)
+        normalized = " ".join(normalized_fields)
         try:
             CronTrigger.from_crontab(normalized, timezone=settings.TZ)
         except Exception:
