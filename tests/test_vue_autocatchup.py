@@ -338,6 +338,180 @@ class VueAutoCatchupTests(unittest.TestCase):
         self.assertEqual([(True, "bootstrap:brick")], run_calls)
         self.assertEqual("补跑完成", result["message"])
 
+    def test_vuepill_bootstrap_catchup_finishes_before_generation_reset(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._enable_brick = True
+        plugin._enable_beach = False
+        plugin._notify = False
+        plugin.save_data(plugin.CONFIG_GENERATION_KEY, 1)
+        plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+        plugin._next_run_time = plugin._aware_now() - module.timedelta(seconds=30)
+        plugin._next_trigger_time = plugin._aware_now() - module.timedelta(seconds=90)
+        plugin._next_trigger_mode = "run:brick"
+        plugin._refresh_state = lambda reason, record_run=True: {
+            "brick": {"ready": True},
+            "beach": {"ready": False},
+        }
+        run_started = threading.Event()
+        allow_run_finish = threading.Event()
+        reset_reached = threading.Event()
+        init_finished = threading.Event()
+        errors = []
+        run_generations = []
+        bootstrap_result = {}
+
+        def run_job(force=False, reason="manual"):
+            run_started.set()
+            if not allow_run_finish.wait(2):
+                raise RuntimeError("补跑线程等待超时")
+            run_generations.append(
+                plugin.get_data(plugin.CONFIG_GENERATION_KEY)
+            )
+            plugin.save_data("history", [{"title": "旧补跑记录"}])
+            plugin.save_data("next_run_time", "2026-08-01 00:00:00")
+            plugin.save_data("next_trigger_mode", "run:brick")
+            return {
+                "success": True,
+                "message": "补跑完成",
+                "pill_status": {"ran": True},
+            }
+
+        def bootstrap():
+            try:
+                bootstrap_result["value"] = plugin._bootstrap_worker()
+            except BaseException as err:
+                errors.append(err)
+
+        def initialize():
+            try:
+                plugin.init_plugin({"enabled": True})
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                init_finished.set()
+
+        plugin.run_job = run_job
+        plugin.stop_service = lambda: reset_reached.set()
+        bootstrap_thread = threading.Thread(target=bootstrap)
+        init_thread = threading.Thread(target=initialize)
+        reset_finished_while_catching_up = False
+        bootstrap_thread.start()
+        self.assertTrue(run_started.wait(1))
+        init_thread.start()
+        try:
+            self.assertTrue(reset_reached.wait(1))
+            reset_finished_while_catching_up = init_finished.wait(0.2)
+        finally:
+            allow_run_finish.set()
+            bootstrap_thread.join(3)
+            init_thread.join(3)
+
+        self.assertFalse(reset_finished_while_catching_up)
+        self.assertFalse(bootstrap_thread.is_alive())
+        self.assertFalse(init_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual([1], run_generations)
+        self.assertEqual("补跑完成", bootstrap_result["value"]["message"])
+        self.assertEqual([], plugin.get_data("history"))
+        self.assertEqual("", plugin.get_data("next_run_time"))
+        self.assertEqual("", plugin.get_data("next_trigger_mode"))
+        self.assertEqual(
+            plugin.CONFIG_GENERATION,
+            plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+        )
+
+    def test_vuepill_save_config_catchup_finishes_before_generation_reset(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._enable_brick = False
+        plugin._enable_beach = True
+        plugin._notify = False
+        plugin.save_data(
+            plugin.CONFIG_GENERATION_KEY,
+            plugin.CONFIG_GENERATION,
+        )
+        plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+        plugin.stop_service = lambda: None
+        plugin._reregister_plugin = lambda reason="": None
+        plugin._refresh_state = lambda reason, record_run=True: {
+            "brick": {"ready": False},
+            "beach": {"ready": True},
+        }
+        run_started = threading.Event()
+        allow_run_finish = threading.Event()
+        reset_reached = threading.Event()
+        init_finished = threading.Event()
+        errors = []
+        run_generations = []
+        save_result = {}
+
+        def run_job(force=False, reason="manual"):
+            run_started.set()
+            if not allow_run_finish.wait(2):
+                raise RuntimeError("保存配置补跑等待超时")
+            run_generations.append(
+                plugin.get_data(plugin.CONFIG_GENERATION_KEY)
+            )
+            plugin.save_data("history", [{"title": "旧保存补跑记录"}])
+            plugin.save_data("next_run_time", "2026-08-01 00:00:00")
+            plugin.save_data("next_trigger_mode", "run:beach")
+            return {
+                "success": True,
+                "message": "补跑完成",
+                "pill_status": {"ran": True},
+                "status": {"ran": True},
+            }
+
+        def save_config():
+            try:
+                save_result["value"] = plugin._save_config(
+                    {"enabled": True, "enable_beach": True}
+                )
+            except BaseException as err:
+                errors.append(err)
+
+        def initialize():
+            try:
+                plugin.init_plugin({"enabled": True})
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                init_finished.set()
+
+        plugin.run_job = run_job
+        save_thread = threading.Thread(target=save_config)
+        init_thread = threading.Thread(target=initialize)
+        reset_finished_while_catching_up = False
+        save_thread.start()
+        self.assertTrue(run_started.wait(1))
+        plugin.save_data(plugin.CONFIG_GENERATION_KEY, 1)
+        plugin.stop_service = lambda: reset_reached.set()
+        init_thread.start()
+        try:
+            self.assertTrue(reset_reached.wait(1))
+            reset_finished_while_catching_up = init_finished.wait(0.2)
+        finally:
+            allow_run_finish.set()
+            save_thread.join(3)
+            init_thread.join(3)
+
+        self.assertFalse(reset_finished_while_catching_up)
+        self.assertFalse(save_thread.is_alive())
+        self.assertFalse(init_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual([1], run_generations)
+        self.assertEqual("配置已保存，已执行补跑", save_result["value"]["message"])
+        self.assertEqual([], plugin.get_data("history"))
+        self.assertEqual("", plugin.get_data("next_run_time"))
+        self.assertEqual("", plugin.get_data("next_trigger_mode"))
+        self.assertEqual(
+            plugin.CONFIG_GENERATION,
+            plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+        )
+
     def test_overdue_run_brick_catchup_keeps_brick_action_through_real_run_job(self):
         result, action_calls = self._run_vuepill_overdue_catchup("brick")
 

@@ -108,22 +108,38 @@ def _public_api(method):
     return wrapped
 
 
-def _exclusive_action(method):
+def _migration_activity(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
-        execution_lock = type(self)._execution_lock
-        if not execution_lock.acquire(blocking=False):
-            return self._action_busy_response()
+        self._enter_migration_activity()
         try:
             return method(self, *args, **kwargs)
         finally:
-            should_register = False
+            self._exit_migration_activity()
+
+    return wrapped
+
+
+def _exclusive_action(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        self._enter_migration_activity()
+        try:
+            execution_lock = type(self)._execution_lock
+            if not execution_lock.acquire(blocking=False):
+                return self._action_busy_response()
             try:
-                should_register = self._commit_pending_execution_retry()
+                return method(self, *args, **kwargs)
             finally:
-                execution_lock.release()
-            if should_register:
-                self._reregister_plugin("execution-busy-retry")
+                should_register = False
+                try:
+                    should_register = self._commit_pending_execution_retry()
+                finally:
+                    execution_lock.release()
+                if should_register:
+                    self._reregister_plugin("execution-busy-retry")
+        finally:
+            self._exit_migration_activity()
 
     return wrapped
 
@@ -235,6 +251,10 @@ class VuePill(_PluginBase):
     _plan_lock = threading.RLock()
     _site_credentials_lock = threading.RLock()
     _execution_lock = threading.Lock()
+    _migration_barrier = threading.Condition(threading.RLock())
+    _migration_activity_local = threading.local()
+    _active_migration_activities: int = 0
+    _generation_reset_in_progress: bool = False
     _plan_revision: int = 0
     _pending_execution_retry: Optional[Tuple[int, str]] = None
 
@@ -329,6 +349,54 @@ class VuePill(_PluginBase):
     def __init__(self):
         super().__init__()
 
+    def _enter_migration_activity(self):
+        cls = type(self)
+        local = cls._migration_activity_local
+        depth = getattr(local, "depth", 0)
+        if depth:
+            local.depth = depth + 1
+            return
+
+        with cls._migration_barrier:
+            while cls._generation_reset_in_progress:
+                cls._migration_barrier.wait()
+            cls._active_migration_activities += 1
+            local.depth = 1
+
+    def _exit_migration_activity(self):
+        cls = type(self)
+        local = cls._migration_activity_local
+        depth = getattr(local, "depth", 0)
+        if depth > 1:
+            local.depth = depth - 1
+            return
+        if depth != 1:
+            raise RuntimeError("迁移活动屏障退出顺序无效")
+
+        del local.depth
+        with cls._migration_barrier:
+            cls._active_migration_activities -= 1
+            if cls._active_migration_activities == 0:
+                cls._migration_barrier.notify_all()
+
+    def _begin_generation_reset(self):
+        cls = type(self)
+        if getattr(cls._migration_activity_local, "depth", 0):
+            raise RuntimeError("状态活动执行期间不能启动配置迁移")
+
+        with cls._migration_barrier:
+            while cls._generation_reset_in_progress:
+                cls._migration_barrier.wait()
+            cls._generation_reset_in_progress = True
+            while cls._active_migration_activities:
+                cls._migration_barrier.wait()
+
+    def _end_generation_reset(self):
+        cls = type(self)
+        with cls._migration_barrier:
+            cls._generation_reset_in_progress = False
+            cls._migration_barrier.notify_all()
+
     def init_plugin(self, config: Optional[dict] = None):
         with self._lifecycle_lock:
             self._init_plugin_locked(
@@ -401,9 +469,15 @@ class VuePill(_PluginBase):
             execution_lock = (
                 type(self)._execution_lock if reset_required else None
             )
-            if execution_lock is not None:
-                execution_lock.acquire()
+            migration_started = False
+            execution_acquired = False
             try:
+                if reset_required:
+                    self._begin_generation_reset()
+                    migration_started = True
+                if execution_lock is not None:
+                    execution_lock.acquire()
+                    execution_acquired = True
                 self._reset_runtime_site_credentials()
                 self._bootstrap_pending = False
                 self._apply_config(self._default_config())
@@ -419,8 +493,10 @@ class VuePill(_PluginBase):
                 )
                 self.save_data(self.LEGACY_MIGRATION_KEY, True)
             finally:
-                if execution_lock is not None:
+                if execution_acquired and execution_lock is not None:
                     execution_lock.release()
+                if migration_started:
+                    self._end_generation_reset()
             return
 
         if generation_mode == "legacy-current":
@@ -554,6 +630,7 @@ class VuePill(_PluginBase):
         except Exception:
             pass
 
+    @_migration_activity
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         run_start = time.time()
         base_reason, _ = self._parse_run_reason(reason)
@@ -852,6 +929,7 @@ class VuePill(_PluginBase):
     def _auto_worker(self):
         return self.run_job(force=False, reason="schedule")
 
+    @_migration_activity
     def _bootstrap_worker(self):
         self._bootstrap_pending = False
         if not self._enabled:
@@ -1556,6 +1634,7 @@ class VuePill(_PluginBase):
 
     @_public_api
     def _save_config(self, config_payload: dict):
+        activity_entered = False
         with self._lifecycle_lock:
             current = self._get_config(include_options=False)
             normalized_payload, errors = self._validate_save_config_payload(
@@ -1585,6 +1664,8 @@ class VuePill(_PluginBase):
             )
             if not onlyonce_queued:
                 self._update_config()
+                self._enter_migration_activity()
+                activity_entered = True
 
         if onlyonce_queued:
             status = self.get_data("pill_status") or {}
@@ -1596,34 +1677,38 @@ class VuePill(_PluginBase):
                 "status": self._build_status(auto_refresh=False),
             }
 
-        catchup_result: Optional[Dict[str, Any]] = None
         try:
-            status = self._refresh_state(reason="save-config")
-            catchup_result = self._run_after_refresh_if_due(
-                status,
-                run_reason="save-config",
-                refresh_reason="save-config",
-                before_refresh=before_refresh,
-            )
-        except Exception as err:
-            logger.warning(
-                "%s 保存配置后刷新失败：%s",
-                self.plugin_name,
-                self._get_error_detail(err),
-            )
-            status = self.get_data("pill_status") or {}
-            if self._enabled and not (self._scheduler and self._scheduler.running):
-                self._reregister_plugin("save-config")
-        message = "配置已保存"
-        if catchup_result:
-            message = "配置已保存，已执行补跑" if catchup_result.get("success", True) else f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
-        return {
-            "success": True,
-            "message": message,
-            "config": self._get_config(),
-            "pill_status": (catchup_result or {}).get("pill_status") or status,
-            "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
-        }
+            catchup_result: Optional[Dict[str, Any]] = None
+            try:
+                status = self._refresh_state(reason="save-config")
+                catchup_result = self._run_after_refresh_if_due(
+                    status,
+                    run_reason="save-config",
+                    refresh_reason="save-config",
+                    before_refresh=before_refresh,
+                )
+            except Exception as err:
+                logger.warning(
+                    "%s 保存配置后刷新失败：%s",
+                    self.plugin_name,
+                    self._get_error_detail(err),
+                )
+                status = self.get_data("pill_status") or {}
+                if self._enabled and not (self._scheduler and self._scheduler.running):
+                    self._reregister_plugin("save-config")
+            message = "配置已保存"
+            if catchup_result:
+                message = "配置已保存，已执行补跑" if catchup_result.get("success", True) else f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
+            return {
+                "success": True,
+                "message": message,
+                "config": self._get_config(),
+                "pill_status": (catchup_result or {}).get("pill_status") or status,
+                "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
+            }
+        finally:
+            if activity_entered:
+                self._exit_migration_activity()
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
@@ -1931,6 +2016,7 @@ class VuePill(_PluginBase):
             return retry_ts, retry_action
         return next_run, next_action
 
+    @_migration_activity
     def _refresh_state(
         self,
         reason: str = "refresh",

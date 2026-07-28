@@ -638,6 +638,83 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
         )
 
+    def test_generation_reset_waits_for_real_refresh_before_clearing_state(self):
+        self.plugin.save_data(self.plugin.CONFIG_GENERATION_KEY, 1)
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        self.plugin._enabled = True
+        self.plugin._enable_brick = False
+        self.plugin._enable_beach = True
+        self.plugin._notify = False
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._reregister_plugin = lambda reason="": None
+        fetch_started = threading.Event()
+        allow_fetch_return = threading.Event()
+        reset_reached = threading.Event()
+        init_finished = threading.Event()
+        errors = []
+        refresh_result = {}
+        now_ts = int(self.plugin._aware_now().timestamp())
+        page = self._gift_page()
+        page["server_now"] = now_ts
+        page["brick"] = {"ready": False}
+        page["beach"] = {
+            "ready": False,
+            "next_ready_ts": now_ts + 3600,
+        }
+
+        def fetch_page(session):
+            fetch_started.set()
+            if not allow_fetch_return.wait(2):
+                raise RuntimeError("刷新读取等待超时")
+            return page
+
+        def refresh():
+            try:
+                refresh_result["value"] = self.plugin._refresh_data()
+            except BaseException as err:
+                errors.append(err)
+
+        def initialize():
+            try:
+                self.plugin.init_plugin({"enabled": True})
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                init_finished.set()
+
+        self.plugin._fetch_page_state = fetch_page
+        self.plugin.stop_service = lambda: reset_reached.set()
+        refresh_thread = threading.Thread(target=refresh)
+        init_thread = threading.Thread(target=initialize)
+        reset_finished_while_refreshing = False
+        refresh_thread.start()
+        self.assertTrue(fetch_started.wait(1))
+        init_thread.start()
+        try:
+            self.assertTrue(reset_reached.wait(1))
+            reset_finished_while_refreshing = init_finished.wait(0.2)
+        finally:
+            allow_fetch_return.set()
+            refresh_thread.join(3)
+            init_thread.join(3)
+
+        self.assertFalse(reset_finished_while_refreshing)
+        self.assertFalse(refresh_thread.is_alive())
+        self.assertFalse(init_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertIs(refresh_result["value"]["success"], True)
+        self.assertEqual({}, self.plugin.get_data("state"))
+        self.assertEqual({}, self.plugin.get_data("pill_status"))
+        self.assertEqual("", self.plugin.get_data("last_run"))
+        self.assertEqual("", self.plugin.get_data("next_run_time"))
+        self.assertEqual("", self.plugin.get_data("next_trigger_time"))
+        self.assertEqual("", self.plugin.get_data("next_trigger_mode"))
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
+
     def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
         for config in (None, {}):
             with self.subTest(config=config):
