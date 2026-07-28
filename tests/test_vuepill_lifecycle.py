@@ -2340,7 +2340,19 @@ class VuePillLifecycleTests(unittest.TestCase):
         scheduler.start()
         self.plugin._scheduler = scheduler
         self.plugin._enabled = True
-        self.plugin._reregister_plugin = lambda reason="": None
+        register_calls = []
+
+        class RecordingScheduler:
+            def update_plugin_job(self, plugin_name):
+                register_calls.append(plugin_name)
+
+            def reload_plugin_job(self, plugin_name):
+                register_calls.append(plugin_name)
+
+            def remove_plugin_job(self, plugin_name):
+                return None
+
+        self.module.Scheduler = RecordingScheduler
         activity_started = threading.Event()
         allow_activity_finish = threading.Event()
         stop_finished = threading.Event()
@@ -2352,6 +2364,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             if not allow_activity_finish.wait(2):
                 raise RuntimeError("一次性任务等待超时")
             plugin.save_data("history", [{"title": "旧任务收尾"}])
+            plugin._scheduler = scheduler
             return {"success": True, "message": "任务完成"}
 
         self.plugin.run_job = types.MethodType(blocking_run_job, self.plugin)
@@ -2388,10 +2401,122 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual([], errors)
         self.assertIs(type(self.plugin)._migration_stopping, True)
         self.assertIsNone(self.plugin._scheduler)
+        self.assertEqual([], register_calls)
         self.assertEqual(
             [{"title": "旧任务收尾"}],
             self.plugin.get_data("history"),
         )
+
+    def test_public_stop_skips_late_reregister_from_draining_activity(self):
+        register_calls = []
+        stop_removed_job = threading.Event()
+        activity_started = threading.Event()
+        stop_finished = threading.Event()
+        errors = []
+
+        class RecordingScheduler:
+            def update_plugin_job(self, plugin_name):
+                register_calls.append("late-old-registration")
+
+            def reload_plugin_job(self, plugin_name):
+                register_calls.append("late-old-registration")
+
+            def remove_plugin_job(self, plugin_name):
+                stop_removed_job.set()
+
+        self.module.Scheduler = RecordingScheduler
+
+        @self.module._migration_activity
+        def late_register(plugin):
+            activity_started.set()
+            if not stop_removed_job.wait(2):
+                raise RuntimeError("停止标记等待超时")
+            plugin._reregister_plugin("late-old-registration")
+
+        def run_activity():
+            try:
+                late_register(self.plugin)
+            except BaseException as err:
+                errors.append(err)
+
+        def stop_plugin():
+            try:
+                self.plugin.stop_service()
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                stop_finished.set()
+
+        activity_thread = threading.Thread(target=run_activity)
+        stop_thread = threading.Thread(target=stop_plugin)
+        activity_thread.start()
+        self.assertTrue(activity_started.wait(1))
+        stop_thread.start()
+        activity_thread.join(3)
+        stop_thread.join(3)
+
+        self.assertFalse(activity_thread.is_alive())
+        self.assertFalse(stop_thread.is_alive())
+        self.assertTrue(stop_finished.is_set())
+        self.assertEqual([], errors)
+        self.assertEqual([], register_calls)
+
+    def test_public_stop_waits_for_inflight_reregister_before_removing_job(self):
+        scheduled_jobs = set()
+        register_started = threading.Event()
+        allow_register_finish = threading.Event()
+        stop_removed_job = threading.Event()
+        errors = []
+
+        class RacingScheduler:
+            def update_plugin_job(self, plugin_name):
+                register_started.set()
+                if not allow_register_finish.wait(2):
+                    raise RuntimeError("在途注册等待超时")
+                scheduled_jobs.add(plugin_name)
+
+            def reload_plugin_job(self, plugin_name):
+                scheduled_jobs.add(plugin_name)
+
+            def remove_plugin_job(self, plugin_name):
+                scheduled_jobs.discard(plugin_name)
+                stop_removed_job.set()
+
+        self.module.Scheduler = RacingScheduler
+
+        @self.module._migration_activity
+        def register_inflight(plugin):
+            plugin._reregister_plugin("inflight-old-registration")
+
+        def run_activity():
+            try:
+                register_inflight(self.plugin)
+            except BaseException as err:
+                errors.append(err)
+
+        def stop_plugin():
+            try:
+                self.plugin.stop_service()
+            except BaseException as err:
+                errors.append(err)
+
+        activity_thread = threading.Thread(target=run_activity)
+        stop_thread = threading.Thread(target=stop_plugin)
+        activity_thread.start()
+        self.assertTrue(register_started.wait(1))
+        stop_thread.start()
+        try:
+            removed_while_registering = stop_removed_job.wait(0.2)
+        finally:
+            allow_register_finish.set()
+            activity_thread.join(3)
+            stop_thread.join(3)
+
+        self.assertFalse(removed_while_registering)
+        self.assertFalse(activity_thread.is_alive())
+        self.assertFalse(stop_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual(set(), scheduled_jobs)
 
     def test_gift_item_rejects_invalid_quantity_stock_and_item(self):
         self._install_valid_site()

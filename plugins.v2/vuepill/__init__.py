@@ -3159,19 +3159,28 @@ class VuePill(_PluginBase):
         return should_register
 
     def _reregister_plugin(self, reason: str = ""):
-        try:
-            Scheduler().update_plugin_job(self.__class__.__name__)
-            logger.info("%s 已重新注册调度：%s", self.plugin_name, reason or "update")
-        except Exception:
-            try:
-                Scheduler().reload_plugin_job(self.__class__.__name__)
-                logger.info("%s 已重新加载调度：%s", self.plugin_name, reason or "reload")
-            except Exception as err:
-                logger.warning(
-                    "%s 重新注册调度失败：%s",
+        cls = type(self)
+        with cls._migration_barrier:
+            if cls._migration_stopping:
+                logger.info(
+                    "%s 已停止，跳过调度注册：%s",
                     self.plugin_name,
-                    self._get_error_detail(err),
+                    reason or "update",
                 )
+                return
+            try:
+                Scheduler().update_plugin_job(self.__class__.__name__)
+                logger.info("%s 已重新注册调度：%s", self.plugin_name, reason or "update")
+            except Exception:
+                try:
+                    Scheduler().reload_plugin_job(self.__class__.__name__)
+                    logger.info("%s 已重新加载调度：%s", self.plugin_name, reason or "reload")
+                except Exception as err:
+                    logger.warning(
+                        "%s 重新注册调度失败：%s",
+                        self.plugin_name,
+                        self._get_error_detail(err),
+                    )
 
     def _load_saved_next_run(self) -> Optional[datetime]:
         with self._plan_lock:
