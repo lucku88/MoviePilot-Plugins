@@ -651,7 +651,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             public_value["float_message"],
         )
         self.assertEqual(
-            "server echoed [REDACTED]",
+            "server echoed true",
             public_value["bool_message"],
         )
         self.assertEqual(
@@ -695,6 +695,45 @@ class VuePillLifecycleTests(unittest.TestCase):
         raw_calls = json.dumps(logger.calls, ensure_ascii=False, allow_nan=False)
         self.assertNotIn("LOG-SECRET", rendered_logs)
         self.assertNotIn("LOG-SECRET", raw_calls)
+
+    def test_public_filter_drops_numeric_secret_twins_but_keeps_common_scalars(self):
+        public_value = self.plugin._sanitize_public_response(
+            {
+                "token": 424242,
+                "count": 424242,
+                "message": "server echoed 424242",
+                "nested": {
+                    "password": 12.5,
+                    "ratio": 12.5,
+                },
+                "common": {
+                    "access_token": 1,
+                    "count": 1,
+                    "authorization": True,
+                    "ready": True,
+                    "session": 0,
+                    "zero": 0,
+                    "secret": False,
+                    "enabled": False,
+                    "one_text": "普通版本 1",
+                    "zero_text": "普通数量 0",
+                    "true_text": "普通状态 true",
+                    "false_text": "普通状态 false",
+                },
+            }
+        )
+
+        self.assertNotIn("count", public_value)
+        self.assertEqual("server echoed [REDACTED]", public_value["message"])
+        self.assertNotIn("nested", public_value)
+        self.assertEqual(1, public_value["common"]["count"])
+        self.assertIs(public_value["common"]["ready"], True)
+        self.assertEqual(0, public_value["common"]["zero"])
+        self.assertIs(public_value["common"]["enabled"], False)
+        self.assertEqual("普通版本 1", public_value["common"]["one_text"])
+        self.assertEqual("普通数量 0", public_value["common"]["zero_text"])
+        self.assertEqual("普通状态 true", public_value["common"]["true_text"])
+        self.assertEqual("普通状态 false", public_value["common"]["false_text"])
 
     def test_public_filter_emits_bounded_json_safe_acyclic_values(self):
         class CustomValue:
@@ -971,6 +1010,42 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(self.plugin.DEFAULT_SITE_URL, self.plugin._site_url)
         self.assertEqual(self.plugin.DEFAULT_USER_AGENT, self.plugin._user_agent)
 
+    def test_site_sync_failure_redacts_cookie_read_before_url_error(self):
+        raw_cookie = "theme=blue; account=URL-COOKIE-SECRET"
+        logger = RecordingLogger()
+        self.module.logger = logger
+
+        class BrokenSite:
+            @property
+            def cookie(self):
+                return raw_cookie
+
+            @property
+            def url(self):
+                raise RuntimeError(
+                    "读取 URL 失败，服务端回显 URL-COOKIE-SECRET"
+                )
+
+            @property
+            def ua(self):
+                return "New UA"
+
+        class BrokenSiteOper:
+            def get_by_domain(self, domain):
+                return BrokenSite()
+
+        self.module.SiteOper = BrokenSiteOper
+
+        result = self.plugin._sync_cookie_from_site(silent=False)
+
+        self.assertIs(result["success"], False)
+        encoded_result = json.dumps(result, ensure_ascii=False, allow_nan=False)
+        encoded_logs = json.dumps(logger.calls, ensure_ascii=False, allow_nan=False)
+        self.assertNotIn(raw_cookie, encoded_result)
+        self.assertNotIn(raw_cookie, encoded_logs)
+        self.assertNotIn("URL-COOKIE-SECRET", encoded_result)
+        self.assertNotIn("URL-COOKIE-SECRET", encoded_logs)
+
     def test_concurrent_site_syncs_commit_credentials_in_request_order(self):
         first_read_started = threading.Event()
         allow_first_read = threading.Event()
@@ -1161,6 +1236,107 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(1, len(temporary_scheduler.shutdown_calls))
         self.assertEqual(1, len(registrations))
         self.assertEqual(1, len(self.plugin.get_service()))
+
+    def test_concurrent_init_cannot_cancel_onlyonce_queued_by_save(self):
+        self.plugin.save_data("v020_initialized", True)
+        scheduler_started = threading.Event()
+        cancellation_attempted = threading.Event()
+        allow_start_return = threading.Event()
+        schedulers = []
+        errors = []
+        save_result = {}
+        original_scheduler_class = self.module.BackgroundScheduler
+
+        class BlockingScheduler(original_scheduler_class):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                schedulers.append(self)
+
+            def remove_all_jobs(self):
+                cancellation_attempted.set()
+                super().remove_all_jobs()
+
+            def start(self):
+                self.running = True
+                scheduler_started.set()
+                if not allow_start_return.wait(2):
+                    raise RuntimeError("一次性调度启动等待超时")
+
+        self.module.BackgroundScheduler = BlockingScheduler
+
+        def save_config():
+            try:
+                save_result.update(
+                    self.plugin._save_config(
+                        {
+                            "enabled": True,
+                            "enable_beach": True,
+                            "onlyonce": True,
+                        }
+                    )
+                )
+            except BaseException as err:
+                errors.append(err)
+
+        def reload_plugin():
+            try:
+                self.plugin.init_plugin(
+                    {
+                        "enabled": True,
+                        "enable_beach": True,
+                        "onlyonce": False,
+                    }
+                )
+            except BaseException as err:
+                errors.append(err)
+
+        save_thread = threading.Thread(target=save_config)
+        reload_thread = threading.Thread(target=reload_plugin)
+        save_thread.start()
+        self.assertTrue(scheduler_started.wait(1))
+        reload_thread.start()
+        cancelled_while_save_held_lock = cancellation_attempted.wait(0.5)
+        allow_start_return.set()
+        save_thread.join(2)
+        reload_thread.join(2)
+
+        self.assertFalse(save_thread.is_alive())
+        self.assertFalse(reload_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertFalse(cancelled_while_save_held_lock)
+        self.assertEqual("配置已保存，已排队一次性执行", save_result["message"])
+        self.assertEqual(1, len(schedulers))
+        self.assertIs(self.plugin._scheduler, schedulers[0])
+        self.assertIs(schedulers[0].running, True)
+        self.assertEqual(1, len(schedulers[0].jobs))
+        self.assertEqual([], schedulers[0].shutdown_calls)
+
+    def test_non_gift_action_uses_raw_secret_for_api_and_log_sanitizing(self):
+        self._install_valid_site("sid=safe-site-cookie")
+        logger = RecordingLogger()
+        self.module.logger = logger
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: {
+            "exchange": {
+                "max_count": 1,
+                "magic_pills": 1,
+                "enabled": True,
+            }
+        }
+        self.plugin._post_action = lambda *args, **kwargs: {
+            "success": False,
+            "access_token": "ACTION-SECRET",
+            "message": "兑换失败，服务端回显 ACTION-SECRET",
+        }
+
+        result = self.plugin._exchange_points_api({"quantity": 1})
+
+        self.assertIs(result["success"], False)
+        self.assertIn("兑换失败", result["message"])
+        encoded_result = json.dumps(result, ensure_ascii=False, allow_nan=False)
+        encoded_logs = json.dumps(logger.calls, ensure_ascii=False, allow_nan=False)
+        self.assertNotIn("ACTION-SECRET", encoded_result)
+        self.assertNotIn("ACTION-SECRET", encoded_logs)
 
     def test_manual_worker_does_not_clear_a_replacement_scheduler(self):
         old_scheduler = self.module.BackgroundScheduler()

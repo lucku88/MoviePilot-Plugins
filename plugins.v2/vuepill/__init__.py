@@ -190,44 +190,72 @@ class VuePill(_PluginBase):
         super().__init__()
 
     def init_plugin(self, config: Optional[dict] = None):
-        self.stop_service()
         with self._lifecycle_lock:
-            if not self.get_data(self.MIGRATION_KEY):
-                self._reset_v020_data()
-                self._reset_runtime_site_credentials()
-                self._next_run_time = None
-                self._next_trigger_time = None
-                self._next_trigger_mode = "run"
-                self._bootstrap_pending = False
-                self._apply_config(self._default_config())
-                self._update_config()
-                self.save_data(self.MIGRATION_KEY, True)
-                return
-
-            self._reset_runtime_site_credentials()
-            merged = self._merge_public_config(config)
-            self._apply_config(merged)
-
-            self._load_saved_next_run()
-            self._load_saved_next_trigger()
-            self._bootstrap_pending = (
-                self._enabled
-                and (self._enable_brick or self._enable_beach)
-                and not self._onlyonce
+            self._init_plugin_locked(
+                config,
+                preserve_running_onlyonce=True,
             )
 
-            if self._onlyonce:
-                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-                self._scheduler.add_job(
-                    func=self._manual_worker,
-                    trigger="date",
-                    run_date=self._aware_now() + timedelta(seconds=3),
-                    name=self.plugin_name,
-                )
-                self._onlyonce = False
+    def _init_plugin_locked(
+        self,
+        config: Optional[dict] = None,
+        preserve_running_onlyonce: bool = False,
+    ):
+        migration_required = not self.get_data(self.MIGRATION_KEY)
+        running_scheduler = bool(
+            self._scheduler and self._scheduler.running
+        )
+        keep_running_scheduler = bool(
+            preserve_running_onlyonce
+            and not migration_required
+            and running_scheduler
+        )
+        if not keep_running_scheduler:
+            self.stop_service()
+
+        if migration_required:
+            self._reset_v020_data()
+            self._reset_runtime_site_credentials()
+            self._next_run_time = None
+            self._next_trigger_time = None
+            self._next_trigger_mode = "run"
+            self._bootstrap_pending = False
+            self._apply_config(self._default_config())
+            self._update_config()
+            self.save_data(self.MIGRATION_KEY, True)
+            return
+
+        self._reset_runtime_site_credentials()
+        merged = self._merge_public_config(config)
+        self._apply_config(merged)
+
+        self._load_saved_next_run()
+        self._load_saved_next_trigger()
+        self._bootstrap_pending = (
+            self._enabled
+            and (self._enable_brick or self._enable_beach)
+            and not self._onlyonce
+        )
+
+        if keep_running_scheduler:
+            requested_onlyonce = self._onlyonce
+            self._onlyonce = False
+            if requested_onlyonce:
                 self._update_config()
-                self._scheduler.start()
-                logger.info("%s 已注册一次性执行任务", self.plugin_name)
+            return
+
+        if self._onlyonce:
+            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+            self._scheduler.add_job(
+                func=self._manual_worker,
+                trigger="date",
+                run_date=self._aware_now() + timedelta(seconds=3),
+                name=self.plugin_name,
+            )
+            self._onlyonce = False
+            self._update_config()
+            self._scheduler.start()
+            logger.info("%s 已注册一次性执行任务", self.plugin_name)
 
     def _reset_v020_data(self):
         reset_values = {
@@ -293,12 +321,17 @@ class VuePill(_PluginBase):
         return services
 
     def stop_service(self):
+        with self._lifecycle_lock:
+            self._stop_service_locked()
+
+    def _stop_service_locked(self):
+        scheduler = self._scheduler
+        self._scheduler = None
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            if scheduler:
+                scheduler.remove_all_jobs()
+                if scheduler.running:
+                    scheduler.shutdown(wait=False)
         except Exception as err:
             logger.warning(
                 "%s 停止一次性调度失败：%s",
@@ -799,27 +832,39 @@ class VuePill(_PluginBase):
                 summary = result.get("stats")
             if not isinstance(summary, dict):
                 summary = result
-            result_sensitive_values = tuple(
-                self._collect_sensitive_public_values(result)
-            )
+            (
+                result_sensitive_values,
+                result_sensitive_scalars,
+            ) = self._collect_sensitive_public_data(result)
+            result_sensitive_values = tuple(result_sensitive_values)
             return {
                 "success": True,
                 "message": self._safe_result_message(result, "统计加载完成"),
                 "direction": direction,
                 "range": range_value,
-                "total_events": self._summary_int(summary.get("total_events")),
-                "total_quantity": self._summary_int(summary.get("total_quantity")),
+                "total_events": self._summary_int(
+                    summary.get("total_events"),
+                    result_sensitive_values,
+                    result_sensitive_scalars,
+                ),
+                "total_quantity": self._summary_int(
+                    summary.get("total_quantity"),
+                    result_sensitive_values,
+                    result_sensitive_scalars,
+                ),
                 "users": self._whitelist_summary_rows(
                     summary.get("users"),
                     self._USER_SUMMARY_FIELDS,
                     "uid",
                     result_sensitive_values,
+                    result_sensitive_scalars,
                 ),
                 "items": self._whitelist_summary_rows(
                     summary.get("items"),
                     self._ITEM_SUMMARY_FIELDS,
                     "item_name",
                     result_sensitive_values,
+                    result_sensitive_scalars,
                 ),
                 "status": self._build_status(auto_refresh=False),
             }
@@ -917,12 +962,19 @@ class VuePill(_PluginBase):
                     )
         return self._sanitize_sensitive_text(default, combined_sensitive_values)
 
+    def _safe_result_data(self, result: Any) -> Dict[str, Any]:
+        if type(result) is not dict:
+            return {}
+        public_result = self._sanitize_public_response(result)
+        return public_result if type(public_result) is dict else {}
+
     def _whitelist_summary_rows(
         self,
         value: Any,
         allowed_fields: Tuple[str, ...],
         identity_field: str,
         sensitive_values: Tuple[str, ...] = (),
+        sensitive_scalar_values: Optional[set] = None,
     ) -> List[Dict[str, Any]]:
         if isinstance(value, dict):
             if any(key in value for key in allowed_fields):
@@ -941,16 +993,23 @@ class VuePill(_PluginBase):
         for raw_row in self._take_public_items(source_rows):
             if not isinstance(raw_row, dict):
                 continue
-            row_sensitive_values = tuple(sensitive_values) + tuple(
-                self._collect_sensitive_public_values(raw_row)
+            row_values, row_scalars = self._collect_sensitive_public_data(
+                raw_row
             )
+            row_sensitive_values = tuple(sensitive_values) + tuple(row_values)
+            row_sensitive_scalars = set(sensitive_scalar_values or ())
+            row_sensitive_scalars.update(row_scalars)
             row: Dict[str, Any] = {}
             for key in allowed_fields:
                 if key not in raw_row:
                     continue
                 raw_value = raw_row.get(key)
                 if key in self._SUMMARY_COUNT_FIELDS:
-                    row[key] = self._summary_int(raw_value)
+                    row[key] = self._summary_int(
+                        raw_value,
+                        row_sensitive_values,
+                        row_sensitive_scalars,
+                    )
                 elif type(raw_value) in {str, int} and type(raw_value) is not bool:
                     text = str(raw_value).strip()
                     if text and len(text) <= 200 and not self._contains_control_characters(text):
@@ -962,16 +1021,28 @@ class VuePill(_PluginBase):
                 rows.append(row)
         return rows
 
-    @classmethod
-    def _summary_int(cls, value: Any) -> int:
+    def _summary_int(
+        self,
+        value: Any,
+        sensitive_values: Tuple[str, ...] = (),
+        sensitive_scalar_values: Optional[set] = None,
+    ) -> int:
         if type(value) is bool:
             return 0
         if type(value) is int:
-            return min(cls.JS_SAFE_INTEGER_MAX, max(0, value))
+            marker = self._sensitive_public_scalar_marker(value)
+            if (
+                marker is not None
+                and marker in (sensitive_scalar_values or set())
+            ):
+                return 0
+            return min(self.JS_SAFE_INTEGER_MAX, max(0, value))
         if type(value) is str and value.strip().isdigit():
+            if value.strip() in sensitive_values:
+                return 0
             try:
                 return min(
-                    cls.JS_SAFE_INTEGER_MAX,
+                    self.JS_SAFE_INTEGER_MAX,
                     max(0, int(value.strip())),
                 )
             except (TypeError, ValueError, OverflowError):
@@ -1092,7 +1163,10 @@ class VuePill(_PluginBase):
                 config_payload,
             )
             requested_onlyonce = self._to_bool(merged.get("onlyonce", False))
-            self.init_plugin(merged)
+            self._init_plugin_locked(
+                merged,
+                preserve_running_onlyonce=False,
+            )
             onlyonce_queued = bool(
                 requested_onlyonce
                 and self._scheduler
@@ -1307,6 +1381,20 @@ class VuePill(_PluginBase):
             and cookie.strip().lower() != "cookie"
         )
 
+    @staticmethod
+    def _cookie_sensitive_values(cookie: Any) -> Tuple[str, ...]:
+        if not isinstance(cookie, str) or not cookie.strip():
+            return ()
+        values = [cookie.strip()]
+        for part in cookie.split(";"):
+            _, separator, raw_value = part.partition("=")
+            if not separator:
+                continue
+            secret = raw_value.strip().strip("\"'")
+            if len(secret) >= 4:
+                values.append(secret)
+        return tuple(dict.fromkeys(values))
+
     def _has_valid_cookie(self) -> bool:
         _, cookie, _, _, _, _ = self._site_credentials_snapshot()
         return self._is_valid_cookie_value(cookie)
@@ -1331,7 +1419,10 @@ class VuePill(_PluginBase):
                 raw_site_url = self._site_value(site, "url")
                 raw_user_agent = self._site_value(site, "ua")
         except Exception as err:
-            detail = self._get_error_detail(err)
+            detail = self._get_error_detail(
+                err,
+                self._cookie_sensitive_values(raw_cookie),
+            )
             self._reset_runtime_site_credentials()
             raise ValueError(
                 f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{detail}"
@@ -1766,8 +1857,9 @@ class VuePill(_PluginBase):
                 break
 
             if result and result.get("success"):
-                last_message = (result.get("message") or "").strip()
-                moved = self._safe_int(result.get("bricks_moved"), 0)
+                public_result = self._safe_result_data(result)
+                last_message = self._safe_result_message(result, "").strip()
+                moved = self._safe_int(public_result.get("bricks_moved"), 0)
                 if moved <= 0:
                     if any(token in last_message for token in ("已满", "上限", "不能", "冷却", "结束")):
                         break
@@ -1778,8 +1870,9 @@ class VuePill(_PluginBase):
                     time.sleep(delay_ms / 1000.0)
                 continue
 
-            last_message = (result or {}).get("message") or (result or {}).get("msg") or "今日搬砖已满"
-            next_reset_ts = self._safe_int((result or {}).get("next_brick_reset_ts"), 0)
+            public_result = self._safe_result_data(result)
+            last_message = self._safe_result_message(result, "今日搬砖已满")
+            next_reset_ts = self._safe_int(public_result.get("next_brick_reset_ts"), 0)
             if total_moved > 0:
                 try:
                     latest_page = self._fetch_page_state(session)
@@ -1811,7 +1904,7 @@ class VuePill(_PluginBase):
             return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
 
         if not enter or not enter.get("success", False):
-            message = (enter or {}).get("message") or (enter or {}).get("msg") or "沙滩冷却中"
+            message = self._safe_result_message(enter, "沙滩冷却中")
             return {"items": [], "message": message, "warning": "", "done": False}
 
         try:
@@ -1820,11 +1913,17 @@ class VuePill(_PluginBase):
             return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
 
         if result and result.get("success", False):
-            items = self._normalize_collected_items(result)
-            return {"items": items, "message": (result.get("message") or "").strip(), "warning": "", "done": True}
+            public_result = self._safe_result_data(result)
+            items = self._normalize_collected_items(public_result)
+            return {
+                "items": items,
+                "message": self._safe_result_message(result, "").strip(),
+                "warning": "",
+                "done": True,
+            }
         return {
             "items": [],
-            "message": (result or {}).get("message") or (result or {}).get("msg") or "一键收集失败",
+            "message": self._safe_result_message(result, "一键收集失败"),
             "warning": "",
             "done": False,
         }
@@ -1970,18 +2069,19 @@ class VuePill(_PluginBase):
             retry_network=False,
         )
         if result and not result.get("success", True):
-            raise ValueError(result.get("message") or result.get("msg") or "兑换失败")
+            raise ValueError(self._safe_result_message(result, "兑换失败"))
 
         page = self._fetch_page_state(session)
         next_run, next_action = self._compute_next_plan(page)
         self._schedule_next_run(next_run, "manual-exchange", next_action)
 
-        gained = self._safe_int((result or {}).get("points_gained"), 0)
+        public_result = self._safe_result_data(result)
+        gained = self._safe_int(public_result.get("points_gained"), 0)
         lines = [f"💰 兑换：魔丸×{exchange_quantity}"]
         if gained > 0:
             lines.append(f"✨ 获得：{gained} 魔力")
-        elif (result or {}).get("message"):
-            lines.append(f"ℹ️ {(result or {}).get('message')}")
+        elif public_result.get("message"):
+            lines.append(f"ℹ️ {public_result.get('message')}")
 
         pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("💰 手动兑换", lines)
@@ -2014,7 +2114,7 @@ class VuePill(_PluginBase):
             retry_network=False,
         )
         if result and not result.get("success", True):
-            raise ValueError(result.get("message") or result.get("msg") or "炼造失败")
+            raise ValueError(self._safe_result_message(result, "炼造失败"))
 
         page = self._fetch_page_state(session)
         next_run, next_action = self._compute_next_plan(page)
@@ -2023,8 +2123,9 @@ class VuePill(_PluginBase):
         output_item = recipe_def["output_item"]
         icon = self.ITEM_ICON_MAP.get(output_item, "📦")
         lines = [f"⚒️ 炼造：{icon}{output_item}×{quantity}"]
-        if (result or {}).get("message"):
-            lines.append(f"ℹ️ {(result or {}).get('message')}")
+        public_result = self._safe_result_data(result)
+        if public_result.get("message"):
+            lines.append(f"ℹ️ {public_result.get('message')}")
 
         pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
         self._append_history("⚒️ 手动炼造", lines)
@@ -2062,7 +2163,12 @@ class VuePill(_PluginBase):
                 retry_network=False,
             )
             if result and not result.get("success", True):
-                raise ValueError(result.get("message") or result.get("msg") or f"{recipe_def['name']} 炼造失败")
+                raise ValueError(
+                    self._safe_result_message(
+                        result,
+                        f"{recipe_def['name']} 炼造失败",
+                    )
+                )
             executed_steps.append(
                 f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
             )
@@ -2134,7 +2240,12 @@ class VuePill(_PluginBase):
                 retry_network=False,
             )
             if result and not result.get("success", True):
-                return {"warning": result.get("message") or result.get("msg") or f"{recipe_def['name']} 炼造失败"}
+                return {
+                    "warning": self._safe_result_message(
+                        result,
+                        f"{recipe_def['name']} 炼造失败",
+                    )
+                }
             executed_steps.append(
                 f"{self.ITEM_ICON_MAP.get(recipe_def['output_item'], '📦')}{recipe_def['name']}×{craft_qty}"
             )
@@ -2168,9 +2279,12 @@ class VuePill(_PluginBase):
             retry_network=False,
         )
         if result and not result.get("success", True):
-            return {"warning": result.get("message") or result.get("msg") or "兑换失败"}
+            return {
+                "warning": self._safe_result_message(result, "兑换失败")
+            }
 
-        gained = self._safe_int((result or {}).get("points_gained"), 0)
+        public_result = self._safe_result_data(result)
+        gained = self._safe_int(public_result.get("points_gained"), 0)
         lines = [f"💰 兑换：⚗️魔丸×{exchangeable}"]
         if self._reserve_magic_pill_count > 0:
             lines.append(f"🧮 保留：⚗️魔丸≥{self._reserve_magic_pill_count}（当前 {inventory_magic_pills}）")
@@ -2652,8 +2766,9 @@ class VuePill(_PluginBase):
                 break
 
             if result and result.get("success"):
-                last_message = (result.get("message") or "").strip()
-                moved = self._safe_int(result.get("bricks_moved"), 0)
+                public_result = self._safe_result_data(result)
+                last_message = self._safe_result_message(result, "").strip()
+                moved = self._safe_int(public_result.get("bricks_moved"), 0)
                 if moved <= 0:
                     if any(token in last_message for token in ("已满", "上限", "不能", "冷却", "结束")):
                         break
@@ -2664,8 +2779,9 @@ class VuePill(_PluginBase):
                     time.sleep(delay_ms / 1000.0)
                 continue
 
-            last_message = (result or {}).get("message") or (result or {}).get("msg") or "今日搬砖已满"
-            next_reset_ts = self._safe_int((result or {}).get("next_brick_reset_ts"), 0)
+            public_result = self._safe_result_data(result)
+            last_message = self._safe_result_message(result, "今日搬砖已满")
+            next_reset_ts = self._safe_int(public_result.get("next_brick_reset_ts"), 0)
             if total_moved > 0:
                 try:
                     latest_page = self._fetch_page_state(session)
@@ -2918,14 +3034,7 @@ class VuePill(_PluginBase):
 
         secrets: List[str] = []
         _, cookie, _, _, _, _ = self._site_credentials_snapshot()
-        if isinstance(cookie, str) and cookie:
-            secrets.append(cookie)
-            for part in cookie.split(";"):
-                _, separator, raw_value = part.partition("=")
-                if separator:
-                    secret = raw_value.strip().strip("\"'")
-                    if len(secret) >= 4:
-                        secrets.append(secret)
+        secrets.extend(self._cookie_sensitive_values(cookie))
         secrets.extend(
             secret
             for secret in sensitive_values
@@ -2959,22 +3068,35 @@ class VuePill(_PluginBase):
             except StopIteration:
                 return
 
-    def _collect_sensitive_public_values(self, value: Any) -> List[str]:
+    @staticmethod
+    def _sensitive_public_scalar_marker(value: Any):
+        if type(value) is int:
+            if value in {0, 1}:
+                return None
+            return "number", value
+        if type(value) is float:
+            if not math.isfinite(value) or value in {0.0, 1.0}:
+                return None
+            return "number", value
+        return None
+
+    def _collect_sensitive_public_data(self, value: Any) -> Tuple[List[str], set]:
         secrets: List[str] = []
+        scalar_values = set()
         known_secrets = set()
         active_containers = set()
 
         def add_scalar(raw_value: Any):
-            if len(secrets) >= self.PUBLIC_MAX_SECRETS:
-                return
             if type(raw_value) is str:
                 texts = (raw_value,)
             elif raw_value is None:
                 texts = ("None", "null")
             elif type(raw_value) is bool:
-                texts = (str(raw_value), str(raw_value).lower())
-            elif type(raw_value) in {int, float}:
-                texts = (str(raw_value),)
+                texts = ()
+            elif type(raw_value) is int:
+                texts = () if raw_value in {0, 1} else (str(raw_value),)
+            elif type(raw_value) is float:
+                texts = () if raw_value in {0.0, 1.0} else (str(raw_value),)
             else:
                 return
             for text in texts:
@@ -2983,9 +3105,21 @@ class VuePill(_PluginBase):
                 if text and text not in known_secrets:
                     known_secrets.add(text)
                     secrets.append(text)
+            marker = self._sensitive_public_scalar_marker(raw_value)
+            if (
+                marker is not None
+                and len(scalar_values) < self.PUBLIC_MAX_SECRETS
+            ):
+                scalar_values.add(marker)
 
         def collect_scalars(raw_value: Any, depth: int):
-            if depth > self.PUBLIC_MAX_DEPTH or len(secrets) >= self.PUBLIC_MAX_SECRETS:
+            if (
+                depth > self.PUBLIC_MAX_DEPTH
+                or (
+                    len(secrets) >= self.PUBLIC_MAX_SECRETS
+                    and len(scalar_values) >= self.PUBLIC_MAX_SECRETS
+                )
+            ):
                 return
             if (
                 raw_value is None
@@ -3011,7 +3145,13 @@ class VuePill(_PluginBase):
                 active_containers.discard(container_id)
 
         def walk(raw_value: Any, depth: int):
-            if depth > self.PUBLIC_MAX_DEPTH or len(secrets) >= self.PUBLIC_MAX_SECRETS:
+            if (
+                depth > self.PUBLIC_MAX_DEPTH
+                or (
+                    len(secrets) >= self.PUBLIC_MAX_SECRETS
+                    and len(scalar_values) >= self.PUBLIC_MAX_SECRETS
+                )
+            ):
                 return
             if type(raw_value) not in {dict, list, tuple}:
                 return
@@ -3035,17 +3175,28 @@ class VuePill(_PluginBase):
                 active_containers.discard(container_id)
 
         walk(value, 0)
+        return secrets, scalar_values
+
+    def _collect_sensitive_public_values(self, value: Any) -> List[str]:
+        secrets, _ = self._collect_sensitive_public_data(value)
         return secrets
 
     def _public_value(
         self,
         value: Any,
         sensitive_values: Optional[Tuple[str, ...]] = None,
+        sensitive_scalar_values: Optional[set] = None,
         depth: int = 0,
         active_containers: Optional[set] = None,
     ) -> Any:
-        if sensitive_values is None:
-            sensitive_values = tuple(self._collect_sensitive_public_values(value))
+        if sensitive_values is None or sensitive_scalar_values is None:
+            collected_values, collected_scalars = (
+                self._collect_sensitive_public_data(value)
+            )
+            if sensitive_values is None:
+                sensitive_values = tuple(collected_values)
+            if sensitive_scalar_values is None:
+                sensitive_scalar_values = collected_scalars
         if active_containers is None:
             active_containers = set()
         if depth > self.PUBLIC_MAX_DEPTH:
@@ -3055,10 +3206,16 @@ class VuePill(_PluginBase):
         if type(value) is str:
             return self._sanitize_sensitive_text(value, sensitive_values)
         if type(value) is int:
+            marker = self._sensitive_public_scalar_marker(value)
+            if marker is not None and marker in sensitive_scalar_values:
+                return _DROP_PUBLIC_VALUE
             if abs(value) <= self.JS_SAFE_INTEGER_MAX:
                 return value
             return _DROP_PUBLIC_VALUE
         if type(value) is float:
+            marker = self._sensitive_public_scalar_marker(value)
+            if marker is not None and marker in sensitive_scalar_values:
+                return _DROP_PUBLIC_VALUE
             return value if math.isfinite(value) else _DROP_PUBLIC_VALUE
         if type(value) not in {dict, list, tuple}:
             return _DROP_PUBLIC_VALUE
@@ -3076,6 +3233,7 @@ class VuePill(_PluginBase):
                     public_nested = self._public_value(
                         nested,
                         sensitive_values,
+                        sensitive_scalar_values,
                         depth + 1,
                         active_containers,
                     )
@@ -3090,6 +3248,7 @@ class VuePill(_PluginBase):
                 public_nested = self._public_value(
                     nested,
                     sensitive_values,
+                    sensitive_scalar_values,
                     depth + 1,
                     active_containers,
                 )
@@ -3102,8 +3261,14 @@ class VuePill(_PluginBase):
             active_containers.discard(container_id)
 
     def _sanitize_public_response(self, value: Any) -> Any:
-        sensitive_values = tuple(self._collect_sensitive_public_values(value))
-        public_value = self._public_value(value, sensitive_values)
+        sensitive_values, sensitive_scalar_values = (
+            self._collect_sensitive_public_data(value)
+        )
+        public_value = self._public_value(
+            value,
+            tuple(sensitive_values),
+            sensitive_scalar_values,
+        )
         return None if public_value is _DROP_PUBLIC_VALUE else public_value
 
     def _get_error_detail(
