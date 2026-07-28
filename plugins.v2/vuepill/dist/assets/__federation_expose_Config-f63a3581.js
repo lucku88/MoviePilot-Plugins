@@ -184,12 +184,12 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_1aa036a6_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_e2955237_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-1aa036a6"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-e2955237"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -368,7 +368,8 @@ const DEFAULT_CONFIG = Object.freeze({
 const config = reactive({ ...DEFAULT_CONFIG });
 const configLoading = ref(false);
 const configSaving = ref(false);
-const formLocked = computed(() => configLoading.value || configSaving.value);
+const upgradeRestartRequired = ref(false);
+const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value);
 const fieldErrors = reactive({});
 const message = ref('');
 const messageType = ref('success');
@@ -392,6 +393,7 @@ function ownDataValue(source, field) {
 }
 
 function applyPublicConfig(source) {
+  upgradeRestartRequired.value = ownDataValue(source, 'upgrade_restart_required') === true;
   for (const field of CONFIG_FIELDS) {
     const value = ownDataValue(source, field);
     config[field] = value === undefined ? DEFAULT_CONFIG[field] : value;
@@ -640,6 +642,19 @@ return (_ctx, _cache) => {
           }),
           _hoisted_11
         ]))
+      : _createCommentVNode("", true),
+    (upgradeRestartRequired.value)
+      ? (_openBlock(), _createBlock(_component_v_alert, {
+          key: 2,
+          type: "warning",
+          density: "compact",
+          role: "alert"
+        }, {
+          default: _withCtx(() => [
+            _createTextVNode(" 请重启 MoviePilot 完成 Vue-魔丸 v0.2.0 升级 ")
+          ]),
+          _: 1
+        }))
       : _createCommentVNode("", true),
     _createElementVNode("fieldset", {
       class: "siqi-form-lock",
@@ -1045,6 +1060,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1aa036a6"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-e2955237"]]);
 
 export { ConfigView as default };

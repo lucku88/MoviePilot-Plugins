@@ -68,6 +68,10 @@
       <span>正在加载配置，请稍候</span>
     </div>
 
+    <v-alert v-if="upgradeRestartRequired" type="warning" density="compact" role="alert">
+      请重启 MoviePilot 完成 Vue-魔丸 v0.2.0 升级
+    </v-alert>
+
     <fieldset
       class="siqi-form-lock"
       :disabled="formLocked"
@@ -248,7 +252,8 @@ const DEFAULT_CONFIG = Object.freeze({
 const config = reactive({ ...DEFAULT_CONFIG })
 const configLoading = ref(false)
 const configSaving = ref(false)
-const formLocked = computed(() => configLoading.value || configSaving.value)
+const upgradeRestartRequired = ref(false)
+const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value)
 const fieldErrors = reactive({})
 const message = ref('')
 const messageType = ref('success')
@@ -272,6 +277,7 @@ function ownDataValue(source, field) {
 }
 
 function applyPublicConfig(source) {
+  upgradeRestartRequired.value = ownDataValue(source, 'upgrade_restart_required') === true
   for (const field of CONFIG_FIELDS) {
     const value = ownDataValue(source, field)
     config[field] = value === undefined ? DEFAULT_CONFIG[field] : value

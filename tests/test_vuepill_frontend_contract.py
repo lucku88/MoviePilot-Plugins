@@ -464,7 +464,7 @@ try {
         self.assert_config_contains(
             "const configLoading = ref(false)",
             "const configSaving = ref(false)",
-            "const formLocked = computed(() => configLoading.value || configSaving.value)",
+            "const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value)",
             '<fieldset',
             ':disabled="formLocked"',
             ':inert="formLocked"',
@@ -494,6 +494,140 @@ try {
             )
             self.assertIsNotNone(button, f"未找到按钮：{aria_label}")
             self.assertIn(':disabled="formLocked"', button.group(0))
+
+    def test_config_upgrade_restart_gate_is_conditional_and_read_only(self):
+        self.assert_config_contains(
+            "const upgradeRestartRequired = ref(false)",
+            "upgrade_restart_required",
+            "v-if=\"upgradeRestartRequired\"",
+            "请重启 MoviePilot 完成 Vue-魔丸 v0.2.0 升级",
+            "upgradeRestartRequired.value",
+        )
+
+        field_block = re.search(
+            r"const\s+CONFIG_FIELDS\s*=\s*Object\.freeze\(\[(.*?)\]\)",
+            self.config,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(field_block)
+        self.assertNotIn("upgrade_restart_required", field_block.group(1))
+
+        default_block = re.search(
+            r"const\s+DEFAULT_CONFIG\s*=\s*Object\.freeze\(\{(.*?)\}\)",
+            self.config,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(default_block)
+        self.assertNotIn("upgrade_restart_required", default_block.group(1))
+
+        save_button = re.search(
+            r'<v-btn\b[^>]+aria-label="保存配置"[^>]+>',
+            self.config,
+            re.DOTALL,
+        )
+        close_button = re.search(
+            r'<v-btn\b[^>]+aria-label="关闭配置"[^>]+>',
+            self.config,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(save_button)
+        self.assertIsNotNone(close_button)
+        self.assertIn(':disabled="formLocked"', save_button.group(0))
+        self.assertNotIn(":disabled=", close_button.group(0))
+
+    def test_config_upgrade_restart_gate_reads_initial_and_get_state(self):
+        script = r"""
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { compileScript, parse } from '@vue/compiler-sfc'
+
+const filename = path.resolve('src/components/Config.vue')
+const source = await fs.readFile(filename, 'utf8')
+const parsed = parse(source, { filename })
+assert.deepEqual(parsed.errors, [])
+const compiled = compileScript(parsed.descriptor, { id: 'vuepill-restart-gate-runtime' })
+const tempFile = path.join(
+  path.dirname(filename),
+  `.Config.restart-gate-runtime-${process.pid}-${Date.now()}.mjs`,
+)
+
+const normalizedConfig = {
+  enabled: false,
+  notify: true,
+  onlyonce: false,
+  use_proxy: false,
+  enable_brick: true,
+  enable_beach: true,
+  auto_craft: false,
+  auto_exchange: false,
+  brick_cron: '5 0 * * *',
+  schedule_buffer_seconds: 5,
+  reserve_magic_pill_count: 10,
+  random_delay_max_seconds: 3,
+  http_timeout: 12,
+  http_retry_times: 5,
+  http_retry_delay: 1500,
+}
+let restartRequired = true
+const posts = []
+const api = {
+  get: async () => ({ ...normalizedConfig, upgrade_restart_required: restartRequired }),
+  post: async (url, payload) => {
+    posts.push({ url, payload: { ...payload } })
+    return { success: true, message: '配置已保存', config: { ...payload, onlyonce: false } }
+  },
+}
+
+const originalWarn = console.warn
+const originalSetTimeout = globalThis.setTimeout
+const originalClearTimeout = globalThis.clearTimeout
+try {
+  await fs.writeFile(tempFile, compiled.content, 'utf8')
+  const component = (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`)).default
+  console.warn = () => {}
+  const bindings = component.setup(
+    { api, initialConfig: { ...normalizedConfig, upgrade_restart_required: true } },
+    { attrs: {}, slots: {}, emit() {}, expose() {} },
+  )
+  console.warn = originalWarn
+  globalThis.setTimeout = callback => { callback(); return 1 }
+  globalThis.clearTimeout = () => {}
+
+  assert.equal(bindings.upgradeRestartRequired.value, true)
+  assert.equal(bindings.formLocked.value, true)
+  assert.equal(Object.hasOwn(bindings.config, 'upgrade_restart_required'), false)
+
+  await bindings.saveConfig()
+  assert.equal(posts.length, 0)
+
+  restartRequired = false
+  await bindings.loadConfig()
+  assert.equal(bindings.upgradeRestartRequired.value, false)
+  assert.equal(bindings.formLocked.value, false)
+
+  await bindings.saveConfig()
+  assert.equal(posts.length, 1)
+  assert.equal(Object.hasOwn(posts[0].payload, 'upgrade_restart_required'), false)
+} finally {
+  console.warn = originalWarn
+  globalThis.setTimeout = originalSetTimeout
+  globalThis.clearTimeout = originalClearTimeout
+  await fs.rm(tempFile, { force: true })
+}
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=VUEPILL_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
 
     def test_config_latest_load_always_applies_complete_whitelist(self):
         load_block = self.config.split("async function loadConfig", 1)[1].split(
