@@ -511,6 +511,61 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(1500, defaults["http_retry_delay"])
         self.assertEqual(60, defaults["ready_retry_seconds"])
 
+    def test_status_exchange_reserve_uses_default_and_configured_value(self):
+        cases = (
+            ({}, 10),
+            ({"reserve_magic_pill_count": 7}, 7),
+            (
+                {"reserve_magic_pill_count": self.plugin.JS_SAFE_INTEGER_MAX + 100},
+                self.plugin.JS_SAFE_INTEGER_MAX,
+            ),
+        )
+
+        for config, expected_reserve in cases:
+            with self.subTest(config=config):
+                plugin = make_plugin(self.module)
+                plugin._apply_config(plugin._merge_public_config(config))
+                plugin.save_data(
+                    "pill_status",
+                    {
+                        "schema_version": plugin.plugin_version,
+                        "stats": {},
+                        "brick": {},
+                        "beach": {},
+                        "exchange": {"max_count": 37, "enabled": True},
+                        "inventory": [],
+                        "recipes": [],
+                    },
+                )
+
+                status = plugin._get_status()
+                exchange = status["pill_status"]["exchange"]
+                self.assertEqual(expected_reserve, exchange["reserve"])
+                self.assertEqual(37, exchange["max_count"])
+                json.dumps(status, ensure_ascii=False, allow_nan=False)
+
+    def test_status_exchange_contains_reserve_when_site_exchange_is_missing(self):
+        self.plugin._apply_config(
+            self.plugin._merge_public_config(
+                {"reserve_magic_pill_count": 6}
+            )
+        )
+        self.plugin.save_data(
+            "pill_status",
+            {
+                "schema_version": self.plugin.plugin_version,
+                "stats": {},
+                "brick": {},
+                "beach": {},
+                "inventory": [],
+                "recipes": [],
+            },
+        )
+
+        status = self.plugin._get_status()
+
+        self.assertEqual(6, status["pill_status"]["exchange"]["reserve"])
+
     def test_public_config_and_api_never_expose_cookie_input(self):
         secret = "sid=manual-cookie-secret; token=manual-token-secret"
         self.plugin.save_data("v020_initialized", True)

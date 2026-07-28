@@ -16,6 +16,9 @@ class VuePillFrontendContractTest(unittest.TestCase):
         cls.app = APP_PATH.read_text(encoding="utf-8")
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
         cls.compact_page = re.sub(r"\s+", "", cls.page)
+        cls.mobile_css = cls.compact_page.split(
+            "@media(max-width:600px){", 1
+        )[1].rsplit("</style>", 1)[0]
 
     def assert_page_contains(self, *tokens):
         for token in tokens:
@@ -107,6 +110,18 @@ class VuePillFrontendContractTest(unittest.TestCase):
         )
         self.assertRegex(self.page, r':max="[^\"]*recipe\.max_count')
         self.assertRegex(self.page, r':max="[^\"]*exchange\.max_count')
+        self.assertIn("exchange.value.reserve", self.page)
+        self.assertNotIn("reserve_count", self.page)
+        self.assertNotIn("reserve_magic_pill_count", self.page)
+        self.assertNotIn("后端未返回 reserve", self.page)
+        self.assertNotRegex(
+            self.page,
+            r"exchange(?:\.value)?\.reserve\s*(?:\?\?|\|\|)\s*10",
+        )
+        self.assertNotRegex(
+            self.compact_page,
+            r"exchangeReserve=computed\([^}]*:10\}",
+        )
 
     def test_history_is_single_line_with_time_on_the_right(self):
         self.assert_page_contains(
@@ -127,6 +142,15 @@ class VuePillFrontendContractTest(unittest.TestCase):
             self.compact_page,
             r"\.history-detail\{[^}]*overflow:hidden[^}]*text-overflow:ellipsis[^}]*white-space:nowrap",
         )
+        self.assertNotRegex(
+            self.mobile_css,
+            r"\.history-item\{[^}]*grid-template-columns:minmax\(0,1fr\)(?:;|\})",
+        )
+        self.assertNotRegex(
+            self.mobile_css,
+            r"\.history-time\{[^}]*text-align:left",
+        )
+        self.assertNotIn("justify-self:start", self.mobile_css)
         self.assertNotIn("任务结果", self.page)
 
     def test_mobile_layout_and_touch_targets_follow_farm_behavior(self):

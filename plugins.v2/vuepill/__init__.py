@@ -1306,6 +1306,14 @@ class VuePill(_PluginBase):
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
+    def _build_public_exchange(self, exchange: Any) -> Dict[str, Any]:
+        public_exchange = dict(exchange) if isinstance(exchange, dict) else {}
+        public_exchange["reserve"] = min(
+            self.JS_SAFE_INTEGER_MAX,
+            max(0, self._safe_int(self._reserve_magic_pill_count, 0)),
+        )
+        return public_exchange
+
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         pill_status = self.get_data("pill_status") or {}
         needs_refresh = not pill_status or pill_status.get("schema_version") != self.plugin_version
@@ -1319,6 +1327,10 @@ class VuePill(_PluginBase):
                     self._get_error_detail(err),
                 )
 
+        pill_status = dict(pill_status) if isinstance(pill_status, dict) else {}
+        pill_status["exchange"] = self._build_public_exchange(
+            pill_status.get("exchange")
+        )
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
         _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
@@ -2770,7 +2782,7 @@ class VuePill(_PluginBase):
 
     def _build_ui_state(self, data: dict, next_run: Optional[int], summary_lines: List[str], next_action: str = "all") -> Dict[str, Any]:
         stats = data.get("stats") or {}
-        exchange = data.get("exchange") or {}
+        exchange = self._build_public_exchange(data.get("exchange"))
         brick = data.get("brick") or {}
         beach = data.get("beach") or {}
         inventory = data.get("inventory") or []
