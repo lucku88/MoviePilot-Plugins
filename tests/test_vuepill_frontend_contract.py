@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+VUEPILL_DIR = ROOT / "plugins.v2" / "vuepill"
 PAGE_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Page.vue"
 CONFIG_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Config.vue"
 APP_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "App.vue"
@@ -145,9 +146,11 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "buildConfigPayload",
             "isStrictSuccess(result)",
             "safeResponseMessage(result, '配置已保存')",
-            "formRevision",
-            ':disabled="saving || loading"',
-            "if (saving.value || loading.value) return",
+            "if (formLocked.value) return",
+            "isCompletePublicConfig(result?.config)",
+            "applyPublicConfig(result.config)",
+            "config.onlyonce = false",
+            "await loadConfig({ silent: true })",
         )
         self.assertRegex(
             self.config,
@@ -158,6 +161,149 @@ class VuePillFrontendContractTest(unittest.TestCase):
             self.config,
             r"props\.api\.post\([^\n]+\{\s*\.\.\.config",
         )
+
+    def test_config_locks_every_control_during_load_and_save(self):
+        self.assert_config_contains(
+            "const configLoading = ref(false)",
+            "const configSaving = ref(false)",
+            "const formLocked = computed(() => configLoading.value || configSaving.value)",
+            '<fieldset',
+            ':disabled="formLocked"',
+            ':inert="formLocked"',
+            ':aria-busy="formLocked"',
+            'v-if="configLoading"',
+            ':loading="configSaving"',
+            "正在加载配置，请稍候",
+        )
+        self.assertNotIn("pointer-events:none", self.compact_config)
+
+        for tag_name in ("v-switch", "v-text-field"):
+            tags = re.findall(rf"<{tag_name}\b[^>]+>", self.config, re.DOTALL)
+            self.assertTrue(tags, f"未找到 {tag_name}")
+            for tag in tags:
+                with self.subTest(tag_name=tag_name, tag=tag[:80]):
+                    self.assertIn(':disabled="formLocked"', tag)
+
+        cron_tag = re.search(r"<VCronField\b[^>]+>", self.config, re.DOTALL)
+        self.assertIsNotNone(cron_tag)
+        self.assertIn(':disabled="formLocked"', cron_tag.group(0))
+
+        for aria_label in ("状态页", "保存配置"):
+            button = re.search(
+                rf'<v-btn\b[^>]+aria-label="{aria_label}"[^>]+>',
+                self.config,
+                re.DOTALL,
+            )
+            self.assertIsNotNone(button, f"未找到按钮：{aria_label}")
+            self.assertIn(':disabled="formLocked"', button.group(0))
+
+    def test_config_latest_load_always_applies_complete_whitelist(self):
+        load_block = self.config.split("async function loadConfig", 1)[1].split(
+            "async function saveConfig", 1
+        )[0]
+        self.assertIn("loadRequestGuard.begin()", load_block)
+        self.assertIn("if (!loadRequestGuard.isCurrent(requestId)) return", load_block)
+        self.assertIn("applyPublicConfig(data)", load_block)
+        self.assertNotIn("formRevision", load_block)
+        self.assertNotIn("revisionAtStart", load_block)
+        self.assertNotIn("watch(config", self.config)
+        self.assertNotIn("formRevision", self.config)
+
+    def test_config_runtime_preserves_failure_and_applies_onlyonce_reset(self):
+        script = r"""
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { compileScript, parse } from '@vue/compiler-sfc'
+
+const filename = path.resolve('src/components/Config.vue')
+const source = await fs.readFile(filename, 'utf8')
+const parsed = parse(source, { filename })
+assert.deepEqual(parsed.errors, [])
+const compiled = compileScript(parsed.descriptor, { id: 'vuepill-config-runtime' })
+const tempFile = path.join(
+  path.dirname(filename),
+  `.Config.runtime-${process.pid}-${Date.now()}.mjs`,
+)
+
+let resolveSuccess
+let responseMode = 'failure'
+const posts = []
+const api = {
+  get: async () => { throw new Error('unexpected reload') },
+  post: async (url, payload) => {
+    posts.push({ url, payload: { ...payload } })
+    if (responseMode === 'failure') {
+      return { success: false, message: '保存失败' }
+    }
+    if (posts.length === 2) {
+      await new Promise(resolve => { resolveSuccess = resolve })
+    }
+    return {
+      success: true,
+      message: '配置已保存',
+      config: { ...payload, onlyonce: false },
+    }
+  },
+}
+
+const originalWarn = console.warn
+const originalSetTimeout = globalThis.setTimeout
+const originalClearTimeout = globalThis.clearTimeout
+try {
+  await fs.writeFile(tempFile, compiled.content, 'utf8')
+  const component = (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`)).default
+  console.warn = () => {}
+  const bindings = component.setup(
+    { api, initialConfig: {} },
+    { attrs: {}, slots: {}, emit() {}, expose() {} },
+  )
+  console.warn = originalWarn
+  globalThis.setTimeout = callback => { callback(); return 1 }
+  globalThis.clearTimeout = () => {}
+
+  bindings.config.onlyonce = true
+  bindings.config.notify = false
+  await bindings.saveConfig()
+  assert.equal(posts.length, 1)
+  assert.equal(posts[0].payload.onlyonce, true)
+  assert.equal(bindings.config.onlyonce, true)
+  assert.equal(bindings.config.notify, false)
+  assert.equal(bindings.formLocked.value, false)
+
+  responseMode = 'success'
+  const successfulSave = bindings.saveConfig()
+  const duplicateSave = bindings.saveConfig()
+  await duplicateSave
+  assert.equal(posts.length, 2)
+  assert.equal(bindings.formLocked.value, true)
+  assert.equal(bindings.configSaving.value, true)
+  resolveSuccess()
+  await successfulSave
+  assert.equal(bindings.config.onlyonce, false)
+  assert.equal(bindings.config.notify, false)
+  assert.equal(bindings.formLocked.value, false)
+
+  await bindings.saveConfig()
+  assert.equal(posts.length, 3)
+  assert.equal(posts[2].payload.onlyonce, false)
+} finally {
+  console.warn = originalWarn
+  globalThis.setTimeout = originalSetTimeout
+  globalThis.clearTimeout = originalClearTimeout
+  await fs.rm(tempFile, { force: true })
+}
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=VUEPILL_DIR,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
 
     def test_config_shows_migration_warning_without_blocking_content(self):
         self.assert_config_contains(
