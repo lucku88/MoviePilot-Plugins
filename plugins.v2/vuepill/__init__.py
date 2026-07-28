@@ -345,9 +345,9 @@ class VuePill(_PluginBase):
             return -1
         if isinstance(raw, int):
             return raw
-        if isinstance(raw, str) and raw.strip().isdecimal():
+        if isinstance(raw, str) and raw.isdecimal():
             try:
-                return int(raw.strip())
+                return int(raw)
             except ValueError:
                 return -1
         return -1
