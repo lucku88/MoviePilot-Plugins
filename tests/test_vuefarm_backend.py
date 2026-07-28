@@ -40,8 +40,10 @@ def _install_moviepilot_stubs():
     urllib3_util_module = types.ModuleType("urllib3.util")
 
     class Retry:
+        last_kwargs = None
+
         def __init__(self, *args, **kwargs):
-            return None
+            Retry.last_kwargs = dict(kwargs)
 
     urllib3_util_module.Retry = Retry
     sys.modules["urllib3.util"] = urllib3_util_module
@@ -394,7 +396,8 @@ class VueFarmBackendTests(unittest.TestCase):
         harvest_calls = []
 
         self.plugin._harvest_all = lambda session: self.fail("未配置 OCR API 时不应调用批量接口")
-        self.plugin._refetch_state_until = lambda *args, **kwargs: empty_data
+        refetch_results = iter([ready_data, empty_data])
+        self.plugin._refetch_state_until = lambda *args, **kwargs: next(refetch_results)
         self.plugin._harvest_single_plot = lambda session, land_id, plot_index: harvest_calls.append((land_id, plot_index)) or {
             "success": True,
             "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
@@ -492,7 +495,8 @@ class VueFarmBackendTests(unittest.TestCase):
         self.plugin._ai_agent_available = lambda: True
         self.plugin._harvest_all = lambda session: calls.append("ocr") or {"success": False, "detail": "OCR 识别失败", "items": []}
         self.plugin._harvest_ai = lambda session: calls.append("ai") or {"success": False, "detail": "AI 识别失败", "items": []}
-        self.plugin._refetch_state_until = lambda *args, **kwargs: {**ready_data, "user_lands": []}
+        refetch_results = iter([ready_data, {**ready_data, "user_lands": []}])
+        self.plugin._refetch_state_until = lambda *args, **kwargs: next(refetch_results)
         self.plugin._harvest_single_plot = lambda session, land_id, plot_index: calls.append("single") or {
             "success": True,
             "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
@@ -533,6 +537,170 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertEqual(3, captcha_calls["count"])
         self.assertIn("OCR", result["detail"])
+
+    def test_batch_failure_refetches_before_individual_fallback(self):
+        ready_data = _ready_farm_data(2)
+        fresh_data = {**ready_data, "user_lands": [ready_data["user_lands"][0]]}
+        empty_data = {**ready_data, "user_lands": []}
+        self.plugin._harvest_all = lambda session: {
+            "success": False,
+            "detail": "OCR 超时",
+            "items": [],
+        }
+
+        refetch_results = iter([fresh_data, empty_data])
+        self.plugin._refetch_state_until = lambda *args, **kwargs: next(refetch_results)
+        single_calls = []
+
+        def harvest_single(session, land_id, plot_index):
+            single_calls.append((land_id, plot_index))
+            return {
+                "success": True,
+                "items": [{"name": "茄子", "qty": 1, "unit": 4230, "icon": "🍆"}],
+            }
+
+        self.plugin._harvest_single_plot = harvest_single
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertEqual([(1, 0)], single_calls)
+        self.assertEqual(1, result["harvested_count"])
+
+    def test_stolen_plot_is_not_counted_as_successful_harvest(self):
+        ready_data = _ready_farm_data(2)
+        empty_data = {**ready_data, "user_lands": []}
+        self.plugin._harvest_all = lambda session: {
+            "success": False,
+            "detail": "验证码失败",
+            "items": [],
+        }
+        self.plugin._refetch_state_until = lambda *args, **kwargs: empty_data
+        single_calls = []
+        self.plugin._harvest_single_plot = lambda *args, **kwargs: single_calls.append(True) or {
+            "success": True,
+            "items": [],
+        }
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertEqual([], single_calls)
+        self.assertEqual(0, result["harvested_count"])
+        self.assertFalse(result["success"])
+
+    def test_batch_success_counts_inventory_delta_not_absolute_quantity(self):
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
+        ready_data = _ready_farm_data(3)
+        ready_data["inventory"] = [
+            {"seed_id": 4, "name": "茄子", "icon": "🍆", "quantity": 10, "unit_reward": 4230}
+        ]
+        after_data = {
+            **ready_data,
+            "user_lands": [],
+            "inventory": [
+                {"seed_id": 4, "name": "茄子", "icon": "🍆", "quantity": 12, "unit_reward": 4230}
+            ],
+        }
+        self.plugin._harvest_all = lambda session: {
+            "success": True,
+            "detail": "",
+            "inventory": after_data["inventory"],
+            "items": [],
+        }
+        self.plugin._refetch_state_until = lambda *args, **kwargs: after_data
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(2, result["harvested_count"])
+        self.assertEqual(
+            [{"name": "茄子", "qty": 2, "unit": 4230, "icon": "🍆"}],
+            result["harvest_items"],
+        )
+
+    def test_batch_success_without_inventory_gain_does_not_count_stolen_plots(self):
+        self.module.settings.OCR_HOST = "http://moviepilot-ocr:3000"
+        ready_data = _ready_farm_data(2)
+        ready_data["inventory"] = [
+            {"seed_id": 4, "name": "茄子", "icon": "🍆", "quantity": 10, "unit_reward": 4230}
+        ]
+        after_data = {**ready_data, "user_lands": []}
+        self.plugin._harvest_all = lambda session: {
+            "success": True,
+            "detail": "",
+            "inventory": after_data["inventory"],
+            "items": [],
+        }
+        self.plugin._refetch_state_until = lambda *args, **kwargs: after_data
+
+        result = self.plugin._harvest_ready_plots(object(), ready_data)
+
+        self.assertFalse(result["success"])
+        self.assertEqual(0, result["harvested_count"])
+        self.assertIn("未检测到背包新增", result["detail"])
+
+    def test_http_adapter_does_not_duplicate_manual_network_retries(self):
+        self.plugin._build_session()
+
+        retry_kwargs = self.module.Retry.last_kwargs
+        self.assertIsNotNone(retry_kwargs)
+        self.assertEqual(0, retry_kwargs.get("total"))
+        self.assertEqual(0, retry_kwargs.get("connect"))
+        self.assertEqual(0, retry_kwargs.get("read"))
+        self.assertEqual(0, retry_kwargs.get("status"))
+
+    def test_critical_request_uses_at_most_two_manual_attempts(self):
+        calls = []
+        self.plugin._http_retry_times = 5
+        self.plugin._http_retry_delay = 0
+        self.plugin._is_retryable_network_error = lambda err: True
+        self.module.random.randint = lambda start, end: 0
+
+        def fail_request():
+            calls.append(True)
+            raise RuntimeError("network down")
+
+        with self.assertRaisesRegex(RuntimeError, "network down"):
+            self.plugin._request_with_retry(
+                "critical-fetch",
+                fail_request,
+                deadline=time.monotonic() + 10,
+                max_attempts=2,
+            )
+
+        self.assertEqual(2, len(calls))
+
+    def test_fetch_state_retries_transient_http_error_in_manual_layer(self):
+        calls = []
+        self.plugin._http_retry_times = 2
+        self.plugin._http_retry_delay = 0
+        self.plugin._is_retryable_network_error = lambda err: True
+        self.module.random.randint = lambda start, end: 0
+
+        class FakeResponse:
+            text = ""
+
+            def __init__(self, failed):
+                self.failed = failed
+
+            def raise_for_status(self):
+                if self.failed:
+                    raise RuntimeError("HTTP 503")
+
+            def json(self):
+                return {
+                    "success": True,
+                    "user_stats": {"total_harvest": 1, "total_steal_gain": 0, "farm_like_total": 0},
+                }
+
+        class FakeSession:
+            def get(self, *args, **kwargs):
+                calls.append(kwargs.get("timeout"))
+                return FakeResponse(failed=len(calls) == 1)
+
+        result = self.plugin._fetch_state(FakeSession())
+
+        self.assertTrue(result["success"])
+        self.assertEqual(2, len(calls))
 
     def test_bootstrap_runs_full_job_after_refresh_when_ready(self):
         run_calls = []

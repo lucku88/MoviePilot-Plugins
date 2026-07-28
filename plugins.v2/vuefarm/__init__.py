@@ -35,7 +35,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.11"
+    plugin_version = "0.2.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -54,6 +54,7 @@ class VueFarm(_PluginBase):
     MIN_TRIGGER_SECONDS = 5
     BATCH_HARVEST_ATTEMPTS = 3
     MAX_NETWORK_RETRY_TIMES = 5
+    CRITICAL_NETWORK_RETRY_TIMES = 2
     MAX_CONSECUTIVE_ERROR_RETRIES = 5
 
     _scheduler: Optional[BackgroundScheduler] = None
@@ -100,6 +101,8 @@ class VueFarm(_PluginBase):
     _bootstrap_pending: bool = False
     _page_stat_cache: Optional[Dict[str, int]] = None
     _page_stat_cache_at: float = 0.0
+    _critical_deadline: Optional[float] = None
+    _critical_attempt_limit: Optional[int] = None
     _harvest_deadline: Optional[float] = None
     _harvest_batch_deadline: Optional[float] = None
 
@@ -268,6 +271,9 @@ class VueFarm(_PluginBase):
                 return {"success": True, "message": "未到最近收菜时间，已跳过", "status": self._build_status(auto_refresh=False)}
 
             session = self._build_session()
+            # 收菜窗口从正式任务开始计时，避免前置状态请求把逐坑位兜底时间吃完。
+            self._critical_deadline = time.monotonic() + self._harvest_time_budget_seconds
+            self._critical_attempt_limit = self.CRITICAL_NETWORK_RETRY_TIMES
             data = self._fetch_state(session)
             if not data or not data.get("success"):
                 raise RuntimeError("获取农场数据失败，Cookie 可能失效")
@@ -301,6 +307,10 @@ class VueFarm(_PluginBase):
                 data = harvest_result.get("data") or self._fetch_state(session)
                 if action_harvest:
                     harvest_snapshot = list(harvest_result.get("harvest_items") or [])
+
+            # 成熟田已经处理完后解除临界窗口，出售和补种不再占用收菜保护时间。
+            self._critical_deadline = None
+            self._critical_attempt_limit = None
 
             inventory = data.get("inventory") or []
             if self._enable_sell and inventory:
@@ -448,6 +458,8 @@ class VueFarm(_PluginBase):
                 self.post_message(mtype=NotificationType.Plugin, title="【⚠️农场异常】", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
+            self._critical_deadline = None
+            self._critical_attempt_limit = None
             cost_sec = max(1, round(time.time() - run_start))
             logger.info("## 执行结束... %s  耗时 %s 秒", self._format_time(self._aware_now()), cost_sec)
 
@@ -1354,7 +1366,17 @@ class VueFarm(_PluginBase):
         base = float(default if default is not None else self._http_timeout)
         if left is None:
             return max(1.0, base)
-        return max(1.0, min(base, left))
+        target = deadline if deadline is not None else self._harvest_deadline
+        return self._request_timeout(target, base)
+
+    def _request_timeout(self, deadline: Optional[float] = None, default: Optional[float] = None) -> float:
+        """返回不会超过当前关键窗口的请求超时。"""
+        base = float(default if default is not None else self._http_timeout)
+        if deadline is None:
+            return max(1.0, base)
+        # requests 的连接和读取超时分别计时，各使用一半剩余时间，避免单次请求越过截止点。
+        remaining = max(0.2, deadline - time.monotonic())
+        return max(0.2, min(base, remaining / 2.0))
 
     @staticmethod
     def _normalize_daily_time(value: Any, default: str = "09:00") -> str:
@@ -1725,13 +1747,14 @@ class VueFarm(_PluginBase):
 
     def _build_session(self) -> requests.Session:
         session = requests.Session()
+        # 重试统一由 _request_with_retry 控制，禁止 urllib3 再对 GET 隐式重试，
+        # 否则一次插件重试会被放大成多轮底层请求，直接挤占成熟作物的保护窗口。
         retry_strategy = Retry(
-            total=self._http_retry_times,
-            connect=self._http_retry_times,
-            read=self._http_retry_times,
-            status=self._http_retry_times,
-            backoff_factor=max(0.1, self._http_retry_delay / 1000.0),
-            status_forcelist=[500, 502, 503, 504],
+            total=0,
+            connect=0,
+            read=0,
+            status=0,
+            backoff_factor=0,
             allowed_methods=frozenset(["HEAD", "GET", "OPTIONS"]),
             raise_on_status=False,
         )
@@ -1748,16 +1771,49 @@ class VueFarm(_PluginBase):
         })
         return session
 
-    def _fetch_state(self, session: requests.Session) -> dict:
+    def _fetch_state(
+        self,
+        session: requests.Session,
+        deadline: Optional[float] = None,
+        max_attempts: Optional[int] = None,
+    ) -> dict:
+        deadline = (self._harvest_deadline or self._critical_deadline) if deadline is None else deadline
+        if max_attempts is None:
+            max_attempts = self._critical_attempt_limit
+            if max_attempts is None and self._harvest_deadline is not None:
+                max_attempts = 1
+
+        request_timeout = min(self._http_timeout, 6) if deadline is not None else self._http_timeout
+
+        def fetch():
+            response = session.get(
+                f"{self._site_url}/plant_game.php?action=fetch",
+                timeout=(
+                    self._request_timeout(deadline, request_timeout),
+                    self._request_timeout(deadline, request_timeout),
+                ),
+            )
+            response.raise_for_status()
+            return response
+
         response = self._request_with_retry(
             "fetchState",
-            lambda: session.get(f"{self._site_url}/plant_game.php?action=fetch", timeout=(self._http_timeout, self._http_timeout)),
+            fetch,
+            deadline=deadline,
+            max_attempts=max_attempts,
         )
-        response.raise_for_status()
         data = response.json()
-        return self._enrich_state_with_page_stats(session, data)
+        if deadline is not None:
+            return data
+        return self._enrich_state_with_page_stats(session, data, deadline=deadline, max_attempts=1 if deadline else None)
 
-    def _enrich_state_with_page_stats(self, session: requests.Session, data: dict) -> dict:
+    def _enrich_state_with_page_stats(
+        self,
+        session: requests.Session,
+        data: dict,
+        deadline: Optional[float] = None,
+        max_attempts: Optional[int] = None,
+    ) -> dict:
         if not isinstance(data, dict):
             return data
         if self._has_stat_key(data, "user_steal_gain", "total_steal_gain", "total_steal", "steal_gain_total", "steal_gain") and self._has_stat_key(
@@ -1771,7 +1827,7 @@ class VueFarm(_PluginBase):
             return data
 
         try:
-            page_stats = self._fetch_page_stats(session)
+            page_stats = self._fetch_page_stats(session, deadline=deadline, max_attempts=max_attempts)
         except Exception as err:
             logger.warning("%s 页面统计兜底失败：%s", self.plugin_name, err)
             return data
@@ -1792,16 +1848,38 @@ class VueFarm(_PluginBase):
             user_stats["farm_like_total"] = page_stats["user_farm_like_total"]
         return data
 
-    def _fetch_page_stats(self, session: requests.Session) -> Dict[str, int]:
+    def _fetch_page_stats(
+        self,
+        session: requests.Session,
+        deadline: Optional[float] = None,
+        max_attempts: Optional[int] = None,
+    ) -> Dict[str, int]:
+        deadline = (self._harvest_deadline or self._critical_deadline) if deadline is None else deadline
+        if max_attempts is None:
+            max_attempts = self._critical_attempt_limit
+            if max_attempts is None and self._harvest_deadline is not None:
+                max_attempts = 1
         now = time.time()
         if self._page_stat_cache and (now - self._page_stat_cache_at) < 30:
             return dict(self._page_stat_cache)
 
+        def fetch():
+            response = session.get(
+                f"{self._site_url}/plant_game.php",
+                timeout=(
+                    self._request_timeout(deadline, self._http_timeout),
+                    self._request_timeout(deadline, self._http_timeout),
+                ),
+            )
+            response.raise_for_status()
+            return response
+
         response = self._request_with_retry(
             "fetchPageStats",
-            lambda: session.get(f"{self._site_url}/plant_game.php", timeout=(self._http_timeout, self._http_timeout)),
+            fetch,
+            deadline=deadline,
+            max_attempts=max_attempts,
         )
-        response.raise_for_status()
         stats = self._parse_page_stats(response.text)
         if stats:
             self._page_stat_cache = dict(stats)
@@ -1841,9 +1919,15 @@ class VueFarm(_PluginBase):
     ) -> dict:
         body = dict(payload or {})
         body["action"] = action
-        if timeout_seconds is None and action == "harvest" and self._harvest_deadline is not None:
-            timeout_seconds = self._harvest_timeout(self._harvest_deadline, min(self._http_timeout, 4))
-        request_timeout = max(1.0, float(timeout_seconds or self._http_timeout))
+        action_deadline = None
+        if action in {"get_harvest_all_captcha", "harvest_all"}:
+            action_deadline = self._harvest_batch_deadline
+        if action_deadline is None:
+            action_deadline = self._harvest_deadline or self._critical_deadline
+        if timeout_seconds is None and action_deadline is not None:
+            default_timeout = min(self._http_timeout, 4 if action == "harvest" else 6)
+            timeout_seconds = self._request_timeout(action_deadline, default_timeout)
+        request_timeout = max(0.2, float(timeout_seconds or self._http_timeout))
 
         def run():
             response = session.post(
@@ -1855,22 +1939,46 @@ class VueFarm(_PluginBase):
             response.raise_for_status()
             return response
 
-        response = self._request_with_retry(f"postAction:{action}", run) if retry_network else run()
+        response = (
+            self._request_with_retry(
+                f"postAction:{action}",
+                run,
+                deadline=action_deadline,
+                max_attempts=self._critical_attempt_limit,
+            )
+            if retry_network
+            else run()
+        )
         return response.json()
 
-    def _request_with_retry(self, label: str, func):
+    def _request_with_retry(
+        self,
+        label: str,
+        func,
+        deadline: Optional[float] = None,
+        max_attempts: Optional[int] = None,
+    ):
+        deadline = (self._harvest_deadline or self._critical_deadline) if deadline is None else deadline
+        configured_attempts = self._critical_attempt_limit if max_attempts is None else max_attempts
+        if configured_attempts is None and self._harvest_deadline is not None:
+            configured_attempts = 1
+        attempt_limit = max(1, min(self._http_retry_times, int(configured_attempts or self._http_retry_times)))
         last_err = None
-        for idx in range(1, self._http_retry_times + 1):
+        for idx in range(1, attempt_limit + 1):
             try:
                 return func()
             except Exception as err:
                 last_err = err
                 detail = self._get_error_detail(err)
-                if not self._is_retryable_network_error(err) or idx == self._http_retry_times:
+                if not self._is_retryable_network_error(err) or idx == attempt_limit:
                     raise
                 wait_ms = self._http_retry_delay * idx + random.randint(0, 500)
-                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, idx, self._http_retry_times, detail)
-                logger.info("%s %s 将在 %.1f 秒后自动重试（%s/%s）", self.plugin_name, label, wait_ms / 1000.0, idx + 1, self._http_retry_times)
+                if deadline is not None:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0 or wait_ms / 1000.0 >= remaining:
+                        raise
+                logger.warning("%s %s failed %s/%s: %s", self.plugin_name, label, idx, attempt_limit, detail)
+                logger.info("%s %s 将在 %.1f 秒后自动重试（%s/%s）", self.plugin_name, label, wait_ms / 1000.0, idx + 1, attempt_limit)
                 time.sleep(wait_ms / 1000.0)
         raise last_err
 
@@ -2002,7 +2110,12 @@ class VueFarm(_PluginBase):
                         "success": True,
                         "detail": "",
                         "reward": self._safe_int(harvest_res.get("reward"), 0),
-                        "items": self._normalize_harvest_items(harvest_res.get("inventory")),
+                        "inventory": harvest_res.get("inventory"),
+                        # 接口返回的是背包绝对数量，实际新增数量在收菜前后状态差值中计算。
+                        "items": self._normalize_harvest_items(
+                            harvest_res.get("inventory"),
+                            allow_quantity_fallback=False,
+                        ),
                     }
                 last_detail = f"提交收菜失败：{(harvest_res or {}).get('msg', 'UNKNOWN')}"
                 logger.warning("harvest_all failed: %s", (harvest_res or {}).get("msg", "UNKNOWN"))
@@ -2052,7 +2165,11 @@ class VueFarm(_PluginBase):
                         "success": True,
                         "detail": "",
                         "reward": self._safe_int(harvest_res.get("reward"), 0),
-                        "items": self._normalize_harvest_items(harvest_res.get("inventory")),
+                        "inventory": harvest_res.get("inventory"),
+                        "items": self._normalize_harvest_items(
+                            harvest_res.get("inventory"),
+                            allow_quantity_fallback=False,
+                        ),
                     }
                 last_detail = f"AI 提交收菜失败：{(harvest_res or {}).get('msg', 'UNKNOWN')}"
                 if not (harvest_res or {}).get("captcha_required"):
@@ -2075,6 +2192,13 @@ class VueFarm(_PluginBase):
             seed = seed_map.get(str(plot.get("seed_id"))) or {}
             if self._is_plot_ready(plot, seed, now_sec):
                 ready_plots.append(plot)
+        ready_plots.sort(
+            key=lambda plot: (
+                self._plot_harvest_time(plot, seed_map.get(str(plot.get("seed_id"))) or {}) or now_sec,
+                self._safe_int(plot.get("land_id"), 0),
+                self._safe_int(plot.get("plot_index"), 0),
+            )
+        )
         return ready_plots
 
     def _refetch_state_until(
@@ -2084,11 +2208,16 @@ class VueFarm(_PluginBase):
         attempts: int = 3,
         delay_seconds: float = 1.0,
         default: Optional[dict] = None,
+        deadline: Optional[float] = None,
     ) -> Optional[dict]:
+        deadline = (self._harvest_deadline or self._critical_deadline) if deadline is None else deadline
         latest = default
         total_attempts = max(1, attempts)
         for idx in range(total_attempts):
+            if deadline is not None and deadline - time.monotonic() <= 0:
+                break
             try:
+                # _fetch_state 会读取当前收菜截止时间；保持单参数调用也便于测试和旧扩展兼容。
                 data = self._fetch_state(session)
                 latest = data
                 if predicate is None or predicate(data):
@@ -2161,9 +2290,14 @@ class VueFarm(_PluginBase):
             return {"success": False, "detail": "当前没有可收获田块", "note": "", "data": data, "harvested_count": 0, "harvest_items": []}
 
         harvest_started = time.monotonic()
-        self._harvest_deadline = harvest_started + self._harvest_time_budget_seconds
+        provided_deadline = self._critical_deadline
+        self._harvest_deadline = provided_deadline or (harvest_started + self._harvest_time_budget_seconds)
         fallback_reserve = min(20, max(12, int(self._harvest_time_budget_seconds * 0.45)))
-        self._harvest_batch_deadline = harvest_started + max(5, self._harvest_time_budget_seconds - fallback_reserve)
+        batch_deadline = self._harvest_deadline - fallback_reserve
+        self._harvest_batch_deadline = min(
+            batch_deadline,
+            harvest_started + max(5, self._harvest_time_budget_seconds - fallback_reserve),
+        )
 
         try:
             return self._harvest_ready_plots_with_deadline(session, data, ready_before)
@@ -2199,23 +2333,56 @@ class VueFarm(_PluginBase):
                 batch_detail = batch_result.get("detail") or "OCR 识别失败"
                 batch_result["detail"] = f"{batch_detail}；{ai_result.get('detail')}"
 
-        harvested_items = list(batch_result.get("items") or [])
+        batch_items = self._inventory_delta_items(
+            (data or {}).get("inventory"),
+            batch_result.get("inventory"),
+        )
+        if not batch_items:
+            # 兼容测试桩和旧扩展返回的明确新增明细；绝不把 quantity 总数直接当新增数。
+            batch_items = list(batch_result.get("items") or [])
         if batch_result.get("success"):
-            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=data) or data
+            latest_data = self._refetch_state_until(
+                session,
+                attempts=2,
+                delay_seconds=0.2,
+                default=data,
+                deadline=self._harvest_deadline,
+            ) or data
+            if not batch_items:
+                batch_items = self._inventory_delta_items(
+                    (data or {}).get("inventory"),
+                    (latest_data or {}).get("inventory"),
+                )
+            harvested_items = list(batch_items)
             remaining_ready = self._collect_ready_plots(latest_data)
             if remaining_ready and not note_prefix.startswith("AI"):
                 note_prefix = "批量收菜后检测到漏收，已自动切换逐坑位补收"
         else:
-            latest_data = data
-            remaining_ready = ready_before
+            # 批量验证码阶段可能跨过被偷窗口，不能继续使用旧快照逐块点击。
+            # 先重新读取一次田地，只对仍然成熟的坑位做兜底收菜。
+            refreshed_data = self._refetch_state_until(
+                session,
+                attempts=1,
+                delay_seconds=0,
+                default=None,
+                deadline=self._harvest_deadline,
+            )
+            if refreshed_data is None:
+                latest_data = data
+                remaining_ready = []
+            else:
+                latest_data = refreshed_data
+                remaining_ready = self._collect_ready_plots(latest_data)
 
-        if batch_result.get("success") and not remaining_ready:
+        batch_success_count = sum(int(item.get("qty") or 0) for item in batch_items)
+
+        if batch_result.get("success") and not remaining_ready and batch_success_count:
             return {
                 "success": True,
                 "detail": "",
                 "note": "",
                 "data": latest_data,
-                "harvested_count": sum(int(item.get("qty") or 0) for item in harvested_items) or len(ready_before),
+                "harvested_count": batch_success_count,
                 "harvest_items": harvested_items,
             }
 
@@ -2228,19 +2395,31 @@ class VueFarm(_PluginBase):
             fallback_failures.extend(failures)
             harvested_items.extend(single_items)
 
-        latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=latest_data) or latest_data
+        latest_data = self._refetch_state_until(
+            session,
+            attempts=2,
+            delay_seconds=0.2,
+            default=latest_data,
+            deadline=self._harvest_deadline,
+        ) or latest_data
         remaining_after = self._collect_ready_plots(latest_data)
 
-        if remaining_after:
+        if remaining_after and self._harvest_time_left(self._harvest_deadline) > 0:
             logger.warning("INFO 收菜后复查发现仍有 %s 块成熟田，立即逐坑位补收", len(remaining_after))
             success_count, failures, single_items = self._harvest_plots_individually(session, remaining_after, counted_success_keys)
             fallback_success += success_count
             fallback_failures.extend(failures)
             harvested_items.extend(single_items)
-            latest_data = self._refetch_state_until(session, attempts=2, delay_seconds=0.2, default=latest_data) or latest_data
+            latest_data = self._refetch_state_until(
+                session,
+                attempts=2,
+                delay_seconds=0.2,
+                default=latest_data,
+                deadline=self._harvest_deadline,
+            ) or latest_data
             remaining_after = self._collect_ready_plots(latest_data)
 
-        harvested_count = max(0, len(ready_before) - len(remaining_after))
+        harvested_count = batch_success_count + fallback_success
 
         note = ""
         if fallback_success > 0:
@@ -2250,6 +2429,8 @@ class VueFarm(_PluginBase):
 
         detail = ""
         batch_detail = batch_result.get("detail") or ""
+        if batch_result.get("success") and not batch_success_count:
+            detail = "批量收菜返回成功，但未检测到背包新增，作物可能已被他人偷取"
         if remaining_after:
             detail = f"仍有 {len(remaining_after)} 块成熟田未收获"
             if fallback_failures:
@@ -2257,7 +2438,7 @@ class VueFarm(_PluginBase):
             elif batch_detail:
                 detail = f"{detail}；批量原因：{batch_detail}"
         elif not harvested_count:
-            detail = batch_detail or "收菜失败"
+            detail = detail or batch_detail or "收菜失败"
             if fallback_failures:
                 detail = f"{detail}；逐坑位失败：{' / '.join(fallback_failures[:3])}"
 
@@ -3043,7 +3224,50 @@ class VueFarm(_PluginBase):
         lines.append(f"⏰下次可收：{next_run_text}")
         return lines
 
-    def _normalize_harvest_items(self, inventory: Any, default_added: int = 0) -> List[Dict[str, Any]]:
+    def _inventory_delta_items(self, before_inventory: Any, after_inventory: Any) -> List[Dict[str, Any]]:
+        """根据收菜前后的背包绝对数量计算本次实际新增作物。"""
+        def entries(value: Any) -> List[Dict[str, Any]]:
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+            if isinstance(value, dict):
+                return [value]
+            return []
+
+        def key_for(item: Dict[str, Any]) -> tuple:
+            seed_id = item.get("seed_id")
+            if seed_id not in (None, ""):
+                return ("id", str(seed_id))
+            return ("name", str(item.get("name") or "作物"))
+
+        before_map = {
+            key_for(item): self._safe_int(item.get("quantity"), 0)
+            for item in entries(before_inventory)
+        }
+        added_items: List[Dict[str, Any]] = []
+        for item in entries(after_inventory):
+            key = key_for(item)
+            quantity = item.get("quantity")
+            if quantity is None:
+                added = self._safe_int(item.get("added"), 0)
+            else:
+                added = max(0, self._safe_int(quantity, 0) - before_map.get(key, 0))
+            if added <= 0:
+                continue
+            name = str(item.get("name") or "作物")
+            added_items.append({
+                "name": name,
+                "qty": added,
+                "unit": self._safe_int(item.get("unit_reward"), 0),
+                "icon": item.get("icon") or self._crop_icon.get(name, "🌱"),
+            })
+        return added_items
+
+    def _normalize_harvest_items(
+        self,
+        inventory: Any,
+        default_added: int = 0,
+        allow_quantity_fallback: bool = True,
+    ) -> List[Dict[str, Any]]:
         if not inventory:
             return []
         items = inventory if isinstance(inventory, list) else [inventory]
@@ -3053,7 +3277,7 @@ class VueFarm(_PluginBase):
                 continue
             name = str(item.get("name") or "作物")
             added = self._safe_int(item.get("added"), 0)
-            if added <= 0:
+            if added <= 0 and allow_quantity_fallback:
                 added = self._safe_int(item.get("quantity"), 0) or default_added or 1
             normalized.append({
                 "name": name,
