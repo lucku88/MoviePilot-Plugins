@@ -1,170 +1,444 @@
 <template>
-  <div ref="rootEl" class="vp-page" :class="{ 'is-dark-theme': isDarkTheme }">
-    <div class="vp-shell">
-      <section class="vp-card vp-hero">
-        <div class="vp-copy">
-          <div class="vp-badge">Vue-魔丸</div>
-          <h1 class="vp-title">{{ pill.title || '搬砖捡破烂炼魔丸' }}</h1>
-
-          <div class="vp-chip-row">
-            <span v-if="showLastRunChip" class="vp-chip">最近执行 {{ status.last_run }}</span>
-            <span class="vp-chip">下次运行 {{ pill.next_run_time || '等待刷新' }}</span>
-            <span class="vp-chip">计划触发 {{ pill.next_trigger_time || '等待刷新' }}</span>
-            <span class="vp-chip">{{ pill.cookie_source || status.cookie_source || '未同步' }}</span>
-          </div>
+  <div class="siqi-page">
+    <div class="siqi-topbar">
+      <div class="siqi-topbar__left">
+        <div class="siqi-topbar__icon">
+          <v-icon icon="mdi-flask-round-bottom" size="24" />
         </div>
-
-        <div class="vp-action-grid">
-          <v-btn color="success" variant="flat" :loading="loading" @click="runNow">立即执行</v-btn>
-          <v-btn color="primary" variant="flat" :loading="loading" @click="refreshData">刷新状态</v-btn>
-          <v-btn color="warning" variant="flat" :loading="loading" @click="syncCookie">同步 Cookie</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'config')">配置</v-btn>
-          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+        <div class="siqi-topbar__copy">
+          <div class="siqi-topbar__title">Vue-魔丸</div>
+          <div class="siqi-topbar__sub">搬砖、清理沙滩、兑换、赠送与炼造</div>
         </div>
-      </section>
-
-      <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
-
-      <section class="vp-stats">
-        <article v-for="item in overview" :key="item.label" class="vp-card vp-stat">
-          <div class="vp-kicker">{{ item.label }}</div>
-          <div class="vp-value">{{ item.value }}</div>
-        </article>
-      </section>
-
-      <section v-if="showSummary" class="vp-card vp-summary">
-        <div class="vp-head compact">
-          <div>
-            <div class="vp-kicker">本次摘要</div>
-            <h2 class="vp-section-title">任务结果</h2>
-          </div>
-          <v-btn variant="text" size="small" @click="dismissSummary">关闭</v-btn>
-        </div>
-        <div class="vp-list">
-          <div v-for="line in summaryLines" :key="line" class="vp-list-item">{{ line }}</div>
-        </div>
-      </section>
-
-      <section class="vp-grid-2">
-        <article class="vp-card vp-panel brick">
-          <div class="vp-head vp-head-action">
-            <div>
-              <div class="vp-kicker">搬砖工坊</div>
-            </div>
-            <div class="vp-card-action-slot">
-              <v-btn
-                v-if="brick.ready"
-                color="deep-orange"
-                variant="flat"
-                size="small"
-                class="vp-card-action-btn"
-                :loading="loading"
-                @click="moveBricks"
-              >
-                立即搬砖
-              </v-btn>
-              <span v-else class="vp-state">冷却中</span>
-            </div>
-          </div>
-          <div class="vp-countdown">{{ brickStatusLine }}</div>
-        </article>
-
-        <article class="vp-card vp-panel beach">
-          <div class="vp-head vp-head-action">
-            <div>
-              <div class="vp-kicker">沙滩捡破烂</div>
-            </div>
-            <div class="vp-card-action-slot">
-              <v-btn
-                v-if="beach.ready"
-                color="teal"
-                variant="flat"
-                size="small"
-                class="vp-card-action-btn"
-                :loading="loading"
-                @click="cleanBeach"
-              >
-                清理沙滩
-              </v-btn>
-              <span v-else class="vp-state">冷却中</span>
-            </div>
-          </div>
-          <div class="vp-countdown">{{ beachStatusLine }}</div>
-        </article>
-      </section>
-
-      <section class="vp-card vp-panel stash">
-        <div class="vp-head">
-          <div>
-            <h2 class="vp-section-title">当前库存</h2>
-          </div>
-          <div class="vp-note">材料、工具和魔丸会在这里汇总显示。</div>
-        </div>
-
-        <div class="vp-tool-grid">
-          <article class="vp-tool craft">
-            <div class="vp-head vp-head-action vp-tool-head">
-              <div class="vp-tool-title">⚗️ 一键炼造魔丸</div>
-              <div class="vp-tool-actions">
-                <label class="vp-field vp-field-compact">
-                  <input v-model="pillCraftQuantity" class="vp-input" type="number" min="1" :max="Math.max(magicPillMax, 1)" />
-                </label>
-                <v-btn variant="text" :disabled="!magicPillMax" @click="setPillCraftMax">最大</v-btn>
-                <v-btn color="deep-purple-accent-3" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !magicPillMax" @click="craftMagicPill">一键炼造</v-btn>
-              </div>
-            </div>
-            <div class="vp-note">
-              最大可炼造 {{ magicPillMax }} 颗
-              <span v-if="magicPillRecipe?.materials?.length"> · 材料 {{ magicPillRecipe.materials.join(' / ') }}</span>
-            </div>
-          </article>
-
-          <article class="vp-tool exchange">
-            <div class="vp-head vp-head-action vp-tool-head">
-              <div class="vp-tool-title">💰 兑换魔力</div>
-              <div class="vp-tool-actions">
-                <label class="vp-field vp-field-compact">
-                  <input v-model="exchangeQuantity" class="vp-input" type="number" min="1" :max="Math.max(Number(exchange.max_count || 0), 1)" />
-                </label>
-                <v-btn color="amber-darken-2" variant="flat" size="small" class="vp-card-action-btn" :loading="loading" :disabled="loading || !exchange.action_ready" @click="exchangePoints">兑换魔力</v-btn>
-              </div>
-            </div>
-            <div class="vp-note">价格 {{ exchangePriceText }} · 可兑换 {{ exchange.max_count || 0 }} 颗</div>
-          </article>
-        </div>
-
-        <div v-if="pill.inventory?.empty" class="vp-empty">{{ pill.inventory?.empty_text }}</div>
-        <div v-else class="vp-items">
-          <article v-for="item in inventoryItems" :key="item.name" class="vp-item" :class="{ active: item.has_items }" :style="itemToneStyle(item)">
-            <div class="vp-item-icon-wrap">
-              <div class="vp-item-icon">{{ item.icon }}</div>
-            </div>
-            <div class="vp-item-body">
-              <div class="vp-item-name">{{ item.name }}</div>
-              <div class="vp-item-count">{{ item.count }}</div>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="vp-card vp-panel history">
-        <div class="vp-head">
-          <div>
-            <h2 class="vp-section-title">执行历史</h2>
-          </div>
-        </div>
-        <div v-if="!historyItems.length" class="vp-empty">暂无执行记录</div>
-        <div v-else class="vp-list">
-          <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="vp-history">
-            <div class="vp-history-top">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.time }}</span>
-            </div>
-            <div v-if="item.lines?.length" class="vp-history-lines">{{ (item.lines || []).join(' / ') }}</div>
-          </article>
-        </div>
-      </section>
+      </div>
+      <div class="siqi-topbar__right">
+        <v-btn-group variant="tonal" density="compact" class="elevation-0">
+          <v-btn
+            color="orange-darken-1"
+            class="px-0 px-sm-3"
+            min-width="44"
+            aria-label="立即执行 Vue-魔丸"
+            :loading="actionLoading === 'run'"
+            :disabled="isBusy && actionLoading !== 'run'"
+            @click="runNow"
+          >
+            <v-icon icon="mdi-play" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">执行</span>
+          </v-btn>
+          <v-btn
+            color="orange-darken-1"
+            class="px-0 px-sm-3"
+            min-width="44"
+            aria-label="刷新 Vue-魔丸状态"
+            :loading="actionLoading === 'refresh'"
+            :disabled="isBusy && actionLoading !== 'refresh'"
+            @click="refreshData"
+          >
+            <v-icon icon="mdi-refresh" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">刷新</span>
+          </v-btn>
+          <v-btn
+            color="orange-darken-1"
+            class="px-0 px-sm-3"
+            min-width="44"
+            aria-label="打开 Vue-魔丸配置"
+            :disabled="isBusy"
+            @click="emit('switch', 'config')"
+          >
+            <v-icon icon="mdi-cog" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">配置</span>
+          </v-btn>
+          <v-btn
+            color="orange-darken-1"
+            class="px-0 px-sm-3"
+            min-width="44"
+            aria-label="关闭 Vue-魔丸"
+            :disabled="isBusy"
+            @click="emit('close')"
+          >
+            <v-icon icon="mdi-close" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">关闭</span>
+          </v-btn>
+        </v-btn-group>
+      </div>
     </div>
+
+    <div class="siqi-content">
+      <v-alert
+        v-if="message.text"
+        :type="message.type"
+        density="compact"
+        class="siqi-toast"
+        closable
+        @click:close="message.text = ''"
+      >
+        {{ message.text }}
+      </v-alert>
+
+      <div v-if="initialLoading" class="page-skeleton">
+        <v-row dense class="mb-3">
+          <v-col v-for="index in 4" :key="`overview-skeleton-${index}`" cols="6" md="3">
+            <div class="stat-card skeleton-card"><div class="sk sk-icon" /><div class="sk-lines"><div class="sk sk-line short" /><div class="sk sk-line" /></div></div>
+          </v-col>
+        </v-row>
+        <div class="schedule-grid mb-3">
+          <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="siqi-card skeleton-panel"><div class="sk sk-title" /><div class="sk sk-line" /><div class="sk sk-line short" /></div>
+        </div>
+        <div v-for="index in 4" :key="`panel-skeleton-${index}`" class="siqi-card skeleton-panel mb-3"><div class="sk sk-title" /><div class="sk sk-row" /><div class="sk sk-row" /></div>
+      </div>
+
+      <template v-else>
+        <v-row dense class="mb-3 overview-grid">
+          <v-col v-for="item in overview" :key="item.label" cols="6" md="3">
+            <div class="stat-card" :class="`stat-${overviewTone(item)}`">
+              <div class="stat-icon">
+                <v-icon :icon="overviewIcon(item)" size="22" />
+              </div>
+              <div class="stat-content">
+                <div class="stat-title">{{ item.label }}</div>
+                <div class="stat-value">{{ item.value }}</div>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+
+        <div class="schedule-grid mb-3">
+          <v-card flat class="siqi-card dynamic-schedule-card schedule-card schedule-card--brick">
+            <v-card-text class="dynamic-schedule-body">
+              <div class="dynamic-schedule-main">
+                <span class="dynamic-schedule-icon"><v-icon icon="mdi-wall" size="20" /></span>
+                <div class="dynamic-schedule-copy">
+                  <strong>搬砖动态调度</strong>
+                  <small>{{ brick.status_text || '等待后端刷新搬砖状态' }}</small>
+                </div>
+              </div>
+              <div class="schedule-state-row">
+                <v-chip size="small" :color="brick.ready === true ? 'success' : 'grey'" variant="tonal">
+                  {{ brick.ready === true ? '后端标记可执行' : '后端标记不可执行' }}
+                </v-chip>
+                <v-btn
+                  color="deep-orange"
+                  variant="tonal"
+                  class="schedule-action"
+                  :loading="actionLoading === 'brick'"
+                  :disabled="isBusy || brick.ready !== true"
+                  @click="moveBricks"
+                >立即搬砖</v-btn>
+              </div>
+              <div class="schedule-meta">
+                <span>今日搬砖 {{ brick.daily_bricks ?? 0 }}/{{ brick.daily_limit ?? 50 }}</span>
+                <span>可搬数量 {{ brick.available_count ?? 0 }}</span>
+                <span>下次重置 {{ brick.next_reset_time || '等待后端刷新' }}</span>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <v-card flat class="siqi-card dynamic-schedule-card schedule-card schedule-card--beach">
+            <v-card-text class="dynamic-schedule-body">
+              <div class="dynamic-schedule-main">
+                <span class="dynamic-schedule-icon"><v-icon icon="mdi-beach" size="20" /></span>
+                <div class="dynamic-schedule-copy">
+                  <strong>沙滩动态调度</strong>
+                  <small>{{ beach.status_text || '等待后端刷新沙滩状态' }}</small>
+                </div>
+              </div>
+              <div class="schedule-state-row">
+                <v-chip size="small" :color="beach.ready === true ? 'success' : 'grey'" variant="tonal">
+                  {{ beach.ready === true ? '后端标记可执行' : '后端标记不可执行' }}
+                </v-chip>
+                <v-btn
+                  color="teal"
+                  variant="tonal"
+                  class="schedule-action"
+                  :loading="actionLoading === 'beach'"
+                  :disabled="isBusy || beach.ready !== true"
+                  @click="cleanBeach"
+                >清理沙滩</v-btn>
+              </div>
+              <div class="schedule-meta">
+                <span>{{ beach.level_text || '等级信息待刷新' }}</span>
+                <span>{{ beach.hnr_text || 'HNR 信息待刷新' }}</span>
+                <span>下次可用 {{ beach.next_ready_time || '等待后端刷新' }}</span>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+
+        <v-card flat class="siqi-card exchange-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--exchange d-flex align-center">
+            <v-icon icon="mdi-swap-horizontal-circle" class="mr-2" color="amber-darken-2" />兑换魔力
+          </v-card-title>
+          <v-card-text class="exchange-body">
+            <div class="exchange-summary">
+              <div class="exchange-stat"><span>当前魔丸</span><strong>{{ exchange.magic_pills ?? 0 }}</strong></div>
+              <div class="exchange-stat"><span>单颗价值</span><strong>{{ exchange.pill_price ?? 0 }}</strong><small>魔力</small></div>
+              <div class="exchange-stat"><span>后端上限</span><strong>{{ exchange.max_count ?? 0 }}</strong><small>颗</small></div>
+            </div>
+            <div class="exchange-action-panel">
+              <v-text-field
+                v-model="exchangeQuantity"
+                type="number"
+                min="1"
+                :max="exchange.max_count"
+                label="兑换数量"
+                variant="outlined"
+                density="compact"
+                :error-messages="exchangeQuantityError ? [exchangeQuantityError] : []"
+                :hint="exchangeReserveHint"
+                persistent-hint
+              />
+              <v-btn
+                color="amber-darken-2"
+                variant="tonal"
+                :loading="actionLoading === 'exchange'"
+                :disabled="isBusy || exchange.enabled !== true || exchange.action_ready !== true || !!exchangeQuantityError"
+                @click="exchangePoints"
+              >兑换魔力</v-btn>
+            </div>
+            <div v-if="exchange.note" class="backend-note">{{ exchange.note }}</div>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="siqi-card inventory-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--inventory d-flex align-center">
+            <v-icon icon="mdi-package-variant-closed" class="mr-2" color="orange" />物品栏
+            <v-spacer />
+            <v-btn
+              color="blue"
+              variant="tonal"
+              prepend-icon="mdi-chart-box-outline"
+              aria-label="查看赠送统计"
+              :loading="giftStatsLoading"
+              :disabled="giftStatsLoading"
+              @click="openGiftStats"
+            >赠送统计</v-btn>
+          </v-card-title>
+          <v-card-text class="inventory-body">
+            <div v-if="!inventoryItems.length" class="empty-state">
+              <v-icon icon="mdi-package-variant" size="34" />
+              <strong>物品栏暂无内容</strong>
+              <small>刷新后仍为空时，请以后端页面数据为准。</small>
+            </div>
+            <div v-else class="inventory-grid">
+              <button
+                v-for="item in inventoryItems"
+                :key="item.name"
+                type="button"
+                class="gift-item"
+                :class="{ 'gift-item--available': canGiftItem(item) }"
+                :disabled="!canGiftItem(item)"
+                :aria-label="canGiftItem(item) ? `赠送 ${item.name}` : `${item.name} 当前不可赠送`"
+                @click="openGiftDialog(item)"
+              >
+                <span class="gift-item__icon">{{ item.icon || '📦' }}</span>
+                <span class="gift-item__main">
+                  <strong>{{ item.name }}</strong>
+                  <small>数量 {{ item.count ?? 0 }}</small>
+                </span>
+                <span class="gift-item__state">{{ canGiftItem(item) ? '点击赠送' : '不可赠送' }}</span>
+              </button>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="siqi-card workshop-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--workshop d-flex align-center">
+            <v-icon icon="mdi-anvil" class="mr-2" color="cyan-darken-1" />炼造工坊
+            <v-spacer />
+            <v-btn
+              color="cyan-darken-1"
+              variant="tonal"
+              prepend-icon="mdi-flask-round-bottom"
+              :loading="actionLoading === 'craft-max'"
+              :disabled="isBusy"
+              @click="craftMaxPill"
+            >一键炼造魔丸</v-btn>
+          </v-card-title>
+          <v-card-text class="workshop-body">
+            <div v-if="!recipes.length" class="empty-state">
+              <v-icon icon="mdi-flask-empty-outline" size="34" />
+              <strong>后端暂未返回配方</strong>
+              <small>页面不会自行补造配方或推测可炼造状态。</small>
+            </div>
+            <div v-else class="recipe-grid">
+              <article v-for="recipe in recipes" :key="recipe.craft_id" class="recipe-card" :class="{ 'recipe-card--disabled': recipe.enabled !== true }">
+                <div class="recipe-head">
+                  <span class="recipe-icon">{{ recipe.icon || '⚒️' }}</span>
+                  <div class="recipe-title">
+                    <strong>{{ recipe.output_item || recipe.name || recipe.title }}</strong>
+                    <small>配方 ID {{ recipe.craft_id }} · 最多 {{ recipe.max_count ?? 0 }}</small>
+                  </div>
+                </div>
+                <div class="recipe-ingredients">
+                  <span v-for="(required, name) in recipe.ingredients || {}" :key="`${recipe.craft_id}-${name}`">{{ name }} ×{{ required }}</span>
+                </div>
+                <div class="recipe-controls">
+                  <v-text-field
+                    v-model="recipeQuantities[recipe.craft_id]"
+                    type="number"
+                    min="1"
+                    :max="recipe.max_count"
+                    label="数量"
+                    variant="outlined"
+                    density="compact"
+                    hide-details="auto"
+                    :error-messages="recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : []"
+                    :disabled="recipe.enabled !== true || Number(recipe.max_count || 0) <= 0"
+                  />
+                  <v-btn
+                    color="cyan-darken-1"
+                    variant="tonal"
+                    :loading="actionLoading === `craft-${recipe.craft_id}`"
+                    :disabled="isBusy || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe)"
+                    @click="craftRecipe(recipe)"
+                  >炼造</v-btn>
+                </div>
+                <div v-if="recipe.enabled !== true || Number(recipe.max_count || 0) <= 0" class="unavailable-reason">
+                  {{ recipeUnavailableReason(recipe) }}
+                </div>
+              </article>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="siqi-card history-card">
+          <v-card-title class="siqi-card-title siqi-card-title--logs d-flex align-center">
+            <v-icon icon="mdi-history" class="mr-2" color="blue" />执行历史
+          </v-card-title>
+          <v-card-text class="history-body">
+            <div v-if="!historyItems.length" class="empty-state compact-empty">暂无执行记录</div>
+            <div v-else class="history-list">
+              <div v-for="item in historyItems" :key="historyKey(item)" class="history-item">
+                <span class="history-detail">{{ historyText(item) }}</span>
+                <time class="history-time">{{ item.time || '' }}</time>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </template>
+    </div>
+
+    <v-dialog v-model="showGiftDialog" max-width="560">
+      <v-card flat class="siqi-dialog gift-dialog">
+        <v-card-title class="dialog-header">
+          <div class="dialog-avatar">{{ selectedGiftItem?.icon || '🎁' }}</div>
+          <div class="dialog-copy">
+            <strong>赠送 {{ selectedGiftItem?.name || '物品' }}</strong>
+            <small>当前库存 {{ selectedGiftItem?.count ?? 0 }}，网站单次最多接受 500 个。</small>
+          </div>
+          <v-btn icon variant="text" aria-label="取消赠送并关闭对话框" :disabled="giftLoading" @click="closeGiftDialog">
+            <v-icon icon="mdi-close" />
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="dialog-body">
+          <v-text-field
+            v-model="giftForm.target_uid"
+            label="接收方 UID"
+            variant="outlined"
+            autocomplete="off"
+            :disabled="giftLoading"
+          />
+          <v-text-field
+            v-model="giftForm.quantity"
+            type="number"
+            min="1"
+            :max="giftMaxQuantity"
+            label="赠送数量"
+            variant="outlined"
+            :hint="giftQuantityHint"
+            persistent-hint
+            :error-messages="giftFormError ? [giftFormError] : []"
+            :disabled="giftLoading"
+          />
+          <v-alert v-if="giftConfirming" type="warning" variant="tonal" density="compact" class="confirm-alert">
+            再次确认：向 UID {{ giftForm.target_uid.trim() }} 赠送 {{ selectedGiftItem?.name }} ×{{ normalizedGiftQuantity }}。提交后由后端进行最终校验。
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-btn variant="tonal" :disabled="giftLoading" @click="closeGiftDialog">取消</v-btn>
+          <v-spacer />
+          <v-btn v-if="giftConfirming" variant="text" :disabled="giftLoading" @click="giftConfirming = false">返回修改</v-btn>
+          <v-btn
+            v-if="!giftConfirming"
+            color="orange-darken-1"
+            variant="tonal"
+            :disabled="giftLoading || !!giftFormError"
+            @click="requestGiftConfirmation"
+          >确认赠送</v-btn>
+          <v-btn
+            v-else
+            color="error"
+            variant="tonal"
+            :loading="giftLoading"
+            :disabled="giftLoading || !!giftFormError"
+            @click="submitGift"
+          >再次确认并赠送</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showGiftStatsDialog" max-width="820" scrollable>
+      <v-card flat class="siqi-dialog stats-dialog">
+        <v-card-title class="dialog-header">
+          <div class="dialog-avatar stats-avatar"><v-icon icon="mdi-chart-box-outline" /></div>
+          <div class="dialog-copy">
+            <strong>赠送统计</strong>
+            <small>按后端记录查看赠出或收到的物品汇总。</small>
+          </div>
+          <v-btn icon variant="text" aria-label="关闭赠送统计" :disabled="giftStatsLoading" @click="showGiftStatsDialog = false">
+            <v-icon icon="mdi-close" />
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="stats-dialog-body">
+          <div class="stats-filters">
+            <v-btn-toggle v-model="giftStatsDirection" mandatory color="blue" variant="tonal" divided>
+              <v-btn value="out">赠出</v-btn>
+              <v-btn value="in">收到</v-btn>
+            </v-btn-toggle>
+            <v-btn-toggle v-model="giftStatsRange" mandatory color="blue" variant="tonal" divided>
+              <v-btn value="30">最近30天</v-btn>
+              <v-btn value="all">全部</v-btn>
+            </v-btn-toggle>
+            <v-btn color="blue" variant="tonal" :loading="giftStatsLoading" :disabled="giftStatsLoading" @click="loadGiftStats">查询统计</v-btn>
+          </div>
+
+          <v-alert v-if="giftStatsError" type="error" variant="tonal" density="compact" class="mb-3">{{ giftStatsError }}</v-alert>
+          <div v-else-if="giftStatsLoading && !giftStats" class="empty-state">正在加载赠送统计...</div>
+          <template v-else-if="giftStats">
+            <div class="gift-stats summary-grid">
+              <div class="summary-stat"><span>总事件数</span><strong>{{ giftStats.total_events ?? 0 }}</strong></div>
+              <div class="summary-stat"><span>总数量</span><strong>{{ giftStats.total_quantity ?? 0 }}</strong></div>
+            </div>
+            <div v-if="giftStatsEmpty" class="empty-state compact-empty">当前筛选范围暂无赠送记录</div>
+            <div v-else class="stats-columns">
+              <section class="stats-section">
+                <h3>用户汇总</h3>
+                <div v-if="!giftStatsUsers.length" class="stats-empty">暂无用户数据</div>
+                <div v-else class="stats-list">
+                  <div v-for="row in giftStatsUsers" :key="row.uid || row.name || row.display_name" class="stats-row">
+                    <span>{{ row.display_name || row.name || row.uid || '未知用户' }}</span>
+                    <small>{{ rowEvents(row) }} 次 · {{ rowQuantity(row) }} 个</small>
+                  </div>
+                </div>
+              </section>
+              <section class="stats-section">
+                <h3>物品汇总</h3>
+                <div v-if="!giftStatsItems.length" class="stats-empty">暂无物品数据</div>
+                <div v-else class="stats-list">
+                  <div v-for="row in giftStatsItems" :key="row.item_name || row.name" class="stats-row">
+                    <span>{{ row.item_name || row.name || '未知物品' }}</span>
+                    <small>{{ rowEvents(row) }} 次 · {{ rowQuantity(row) }} 个</small>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </template>
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-spacer />
+          <v-btn variant="tonal" :disabled="giftStatsLoading" @click="showGiftStatsDialog = false">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -174,364 +448,350 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 const props = defineProps({ api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['switch', 'close'])
 
-const loading = ref(false)
-const rootEl = ref(null)
+const PLUGIN_ID = 'VuePill'
+const apiGet = (path) => props.api.get(`/plugin/${PLUGIN_ID}${path}`)
+const apiPost = (path, data = {}) => props.api.post(`/plugin/${PLUGIN_ID}${path}`, data)
+
 const status = reactive({ pill_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
-const nowTs = ref(Math.floor(Date.now() / 1000))
-const isDarkTheme = ref(false)
-const dismissedSummaryKey = ref('')
-const lastRunAutoRefreshTs = ref(0)
-const lastTriggerAutoRefreshTs = ref(0)
-const lastBrickCooldownRefreshTs = ref(0)
-const lastBeachCooldownRefreshTs = ref(0)
-const pluginBase = '/plugin/VuePill'
-
-let timer = null
-let themeObserver = null
-let mediaQuery = null
-let pendingRefreshTimer = null
+const initialLoading = ref(true)
+const actionLoading = ref('')
+const exchangeQuantity = ref('1')
+const recipeQuantities = reactive({})
+const showGiftDialog = ref(false)
+const selectedGiftItem = ref(null)
+const giftForm = reactive({ target_uid: '', quantity: '1' })
+const giftConfirming = ref(false)
+const giftLoading = ref(false)
+const showGiftStatsDialog = ref(false)
+const giftStatsDirection = ref('out')
+const giftStatsRange = ref('30')
+const giftStats = ref(null)
+const giftStatsLoading = ref(false)
+const giftStatsError = ref('')
+let messageTimer = null
 
 const pill = computed(() => status.pill_status || {})
-const overview = computed(() => pill.value.overview || [])
-const exchange = computed(() => pill.value.exchange || {})
+const overview = computed(() => Array.isArray(pill.value.overview) ? pill.value.overview.slice(0, 4) : [])
 const brick = computed(() => pill.value.brick || {})
 const beach = computed(() => pill.value.beach || {})
-const inventoryItems = computed(() => pill.value.inventory?.items || [])
-const crafting = computed(() => pill.value.crafting || {})
-const magicPillMax = computed(() => Number(crafting.value.magic_pill_max || 0))
-const magicPillRecipe = computed(() => pill.value.crafting?.magic_pill_recipe || {})
-const historyItems = computed(() => status.history || pill.value.history || [])
-const summaryLines = computed(() => (pill.value.summary || []).filter(Boolean))
-const summaryKey = computed(() => summaryLines.value.join('||'))
-const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
-const showLastRunChip = computed(() => {
-  const text = String(status.last_run || '').trim()
-  return !!text && text !== '暂无'
+const exchange = computed(() => pill.value.exchange || {})
+const inventoryItems = computed(() => {
+  const inventory = pill.value.inventory || {}
+  return Array.isArray(inventory.items) ? inventory.items : []
 })
-const nextRunTs = computed(() => Number(pill.value.next_run_ts || 0) || parseDateTime(pill.value.next_run_time))
-const nextTriggerTs = computed(() => Number(pill.value.next_trigger_ts || 0) || parseDateTime(pill.value.next_trigger_time))
-const brickResetTs = computed(() => Number(brick.value.next_reset_ts || 0) || parseDateTime(brick.value.next_reset_time))
-const beachReadyTs = computed(() => Number(beach.value.next_ready_ts || 0) || parseDateTime(beach.value.next_ready_time))
-const exchangePriceText = computed(() => (exchange.value.pill_price ? `${exchange.value.pill_price} 魔力/颗` : '待识别'))
-const exchangeQuantity = ref('1')
-const pillCraftQuantity = ref('1')
+const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : [])
+const historyItems = computed(() => Array.isArray(status.history) ? status.history : [])
+const isBusy = computed(() => !!actionLoading.value)
 
-const brickStatusLine = computed(() => {
-  const moved = Number(brick.value.daily_bricks || 0)
-  const limit = Number(brick.value.daily_limit || 50)
-  if (brick.value.ready) return `可以搬砖 (${moved}/${limit})`
-  const remain = brickResetTs.value - nowTs.value
-  return brickResetTs.value && remain > 0 ? `下次搬砖：${formatCountdown(remain)}` : '下次搬砖：等待刷新'
+const exchangeReserve = computed(() => {
+  const reserve = Number(exchange.value.reserve ?? exchange.value.reserve_count ?? exchange.value.reserve_magic_pill_count)
+  return Number.isInteger(reserve) && reserve >= 0 ? reserve : 10
 })
-const beachStatusLine = computed(() => {
-  if (beach.value.ready) return '可一键清理'
-  const remain = beachReadyTs.value - nowTs.value
-  return beachReadyTs.value && remain > 0 ? `下次清理：${formatCountdown(remain)}` : '下次清理：等待刷新'
+const exchangeReserveHint = computed(() => {
+  const hasBackendReserve = ['reserve', 'reserve_count', 'reserve_magic_pill_count'].some(key => exchange.value[key] !== undefined)
+  return hasBackendReserve
+    ? `后端保留 ${exchangeReserve.value} 个魔丸，实际兑换以后端校验为准。`
+    : '后端未返回 reserve，页面提示默认保留 10 个；实际兑换以后端校验为准。'
 })
+const exchangeQuantityError = computed(() => quantityError(exchangeQuantity.value, Number(exchange.value.max_count || 0), '兑换'))
 
-watch(summaryKey, (nextKey, prevKey) => { if (nextKey && nextKey !== prevKey) dismissedSummaryKey.value = '' })
-watch(() => exchange.value.max_count, (maxCount) => { const limit = Math.max(normalizePositiveInt(maxCount, 1), 1); exchangeQuantity.value = String(Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit)) }, { immediate: true })
-watch(() => magicPillMax.value, (maxCount) => { const limit = Math.max(normalizePositiveInt(maxCount, 1), 1); pillCraftQuantity.value = String(Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), limit)) }, { immediate: true })
-watch(summaryKey, loadDismissedSummaryKey)
+const giftMaxQuantity = computed(() => Math.min(Math.max(Number(selectedGiftItem.value?.count || 0), 0), 500))
+const normalizedGiftQuantity = computed(() => Number.parseInt(giftForm.quantity, 10) || 0)
+const giftFormError = computed(() => {
+  if (!selectedGiftItem.value) return '请选择要赠送的物品'
+  if (!giftForm.target_uid.trim()) return '请填写接收方 UID'
+  return quantityError(giftForm.quantity, giftMaxQuantity.value, '赠送')
+})
+const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.value || 0}，最终以后端校验为准。`)
 
-function normalizePositiveInt(value, fallback = 1) {
-  const parsed = Number.parseInt(value, 10)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
+const giftStatsUsers = computed(() => Array.isArray(giftStats.value?.users) ? giftStats.value.users : [])
+const giftStatsItems = computed(() => Array.isArray(giftStats.value?.items) ? giftStats.value.items : [])
+const giftStatsEmpty = computed(() => Number(giftStats.value?.total_events || 0) <= 0 && !giftStatsUsers.value.length && !giftStatsItems.value.length)
+
+watch(() => exchange.value.max_count, (maxCount) => {
+  const maximum = Number(maxCount || 0)
+  if (maximum > 0 && Number(exchangeQuantity.value) > maximum) exchangeQuantity.value = String(maximum)
+}, { immediate: true })
+
+watch(recipes, (rows) => {
+  rows.forEach((recipe) => {
+    const key = recipe.craft_id
+    const maximum = Number(recipe.max_count || 0)
+    const current = Number(recipeQuantities[key])
+    if (!Number.isInteger(current) || current < 1) recipeQuantities[key] = '1'
+    else if (maximum > 0 && current > maximum) recipeQuantities[key] = String(maximum)
+  })
+}, { immediate: true })
+
+watch(() => [giftForm.target_uid, giftForm.quantity], () => { giftConfirming.value = false })
 
 function flash(text, type = 'success') {
-  message.text = text
+  message.text = String(text || '')
   message.type = type
-}
-
-function parseDateTime(value) {
-  if (!value || typeof value !== 'string') return 0
-  const parsed = Date.parse(value.replace(/-/g, '/'))
-  return Number.isNaN(parsed) ? 0 : Math.floor(parsed / 1000)
-}
-
-function formatCountdown(totalSeconds) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0))
-  const hours = Math.floor(safeSeconds / 3600)
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-  const seconds = safeSeconds % 60
-  return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
-function toneRgbByName(name) {
-  const text = String(name || '')
-  if (text.includes('砖')) return '255,119,64'
-  if (text.includes('木')) return '171,121,79'
-  if (text.includes('塑料') || text.includes('胶') || text.includes('瓶')) return '78,151,255'
-  if (text.includes('螺丝') || text.includes('旧电池') || text.includes('能量')) return '82,183,110'
-  if (text.includes('铜')) return '226,165,98'
-  if (text.includes('工具')) return '104,122,255'
-  if (text.includes('魔丸胚胎')) return '255,132,179'
-  if (text.includes('魔丸')) return '139,108,255'
-  if (text.includes('蟑螂')) return '74,194,173'
-  return '124,92,255'
-}
-
-function itemToneStyle(item) {
-  return { '--vp-tone-rgb': toneRgbByName(item?.name) }
-}
-
-function closePlugin() {
-  if (showSummary.value) dismissSummary()
-  emit('close')
-}
-
-function dismissSummary() {
-  const key = summaryKey.value
-  dismissedSummaryKey.value = key
-  if (typeof window !== 'undefined' && window.sessionStorage) {
-    key ? window.sessionStorage.setItem('vuepill-dismissed-summary', key) : window.sessionStorage.removeItem('vuepill-dismissed-summary')
-  }
-}
-
-function loadDismissedSummaryKey() {
-  dismissedSummaryKey.value = typeof window !== 'undefined' && window.sessionStorage ? (window.sessionStorage.getItem('vuepill-dismissed-summary') || '') : ''
-}
-
-async function loadStatus() {
-  applyStatusPayload(await props.api.get(`${pluginBase}/status`))
+  if (messageTimer) window.clearTimeout(messageTimer)
+  messageTimer = window.setTimeout(() => {
+    message.text = ''
+    messageTimer = null
+  }, 3600)
 }
 
 function applyStatusPayload(payload = {}) {
-  const nextStatus = payload?.status?.pill_status || payload?.pill_status || {}
-  if (Object.keys(nextStatus).length) status.pill_status = nextStatus
-  if (Array.isArray(payload?.history)) status.history = payload.history
-  else if (Array.isArray(payload?.status?.history)) status.history = payload.status.history
-  const runTs = Number(status.pill_status?.next_run_ts || 0) || parseDateTime(status.pill_status?.next_run_time)
-  const triggerTs = Number(status.pill_status?.next_trigger_ts || 0) || parseDateTime(status.pill_status?.next_trigger_time)
-  if (runTs && nowTs.value >= runTs) lastRunAutoRefreshTs.value = runTs
-  if (triggerTs && nowTs.value >= triggerTs) lastTriggerAutoRefreshTs.value = triggerTs
-  if (brickResetTs.value && nowTs.value >= brickResetTs.value) lastBrickCooldownRefreshTs.value = brickResetTs.value
-  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value) lastBeachCooldownRefreshTs.value = beachReadyTs.value
+  const nestedStatus = payload?.status && typeof payload.status === 'object' ? payload.status : {}
+  const nextPill = payload?.pill_status || nestedStatus.pill_status || payload?.status?.pill_status
+  if (nextPill && typeof nextPill === 'object') status.pill_status = nextPill
+
+  const nextHistory = Array.isArray(payload?.history)
+    ? payload.history
+    : Array.isArray(nestedStatus.history)
+      ? nestedStatus.history
+      : Array.isArray(nextPill?.history)
+        ? nextPill.history
+        : null
+  if (nextHistory) status.history = nextHistory
 }
 
-async function silentRefreshStatus() {
+async function loadStatus({ silent = false } = {}) {
   try {
-    await loadStatus()
-  } catch (error) {
-    console.warn('[VuePill] silent refresh failed', error)
-  }
-}
-
-function scheduleFollowUpRefresh(delay = 1200) {
-  if (pendingRefreshTimer) window.clearTimeout(pendingRefreshTimer)
-  pendingRefreshTimer = window.setTimeout(() => {
-    pendingRefreshTimer = null
-    silentRefreshStatus()
-  }, delay)
-}
-
-async function doAction(action, { silent = false } = {}) {
-  loading.value = true
-  try {
-    const result = await action()
+    const result = await apiGet('/status')
+    if (result?.success === false) throw new Error(result.message || '状态加载失败')
     applyStatusPayload(result)
-    await silentRefreshStatus()
-    scheduleFollowUpRefresh()
-    if (!silent) flash(result?.message || '操作完成')
   } catch (error) {
-    if (!silent) flash(error?.message || '操作失败', 'error')
+    if (!silent) flash(error?.message || '状态加载失败', 'error')
   } finally {
-    loading.value = false
+    initialLoading.value = false
   }
 }
 
-async function refreshData() { await doAction(() => props.api.post(`${pluginBase}/refresh`)) }
-async function runNow() { await doAction(() => props.api.post(`${pluginBase}/run`)) }
-async function syncCookie() { await doAction(() => props.api.get(`${pluginBase}/cookie`)) }
-async function moveBricks() { await doAction(() => props.api.post(`${pluginBase}/move-bricks`)) }
-async function cleanBeach() { await doAction(() => props.api.post(`${pluginBase}/clean-beach`)) }
+async function runAction(key, request, fallbackMessage) {
+  if (actionLoading.value) return null
+  actionLoading.value = key
+  try {
+    const result = await request()
+    applyStatusPayload(result)
+    if (result?.success === false) {
+      flash(result.message || `${fallbackMessage}失败`, 'error')
+      return result
+    }
+    flash(result?.message || fallbackMessage)
+    await loadStatus({ silent: true })
+    return result
+  } catch (error) {
+    flash(error?.message || `${fallbackMessage}失败`, 'error')
+    return null
+  } finally {
+    actionLoading.value = ''
+  }
+}
+
+function quantityError(value, maximum, actionName) {
+  const quantity = Number(value)
+  if (!Number.isInteger(quantity) || quantity < 1) return `${actionName}数量必须是正整数`
+  if (maximum <= 0) return `后端返回的${actionName}上限为 0`
+  if (quantity > maximum) return `${actionName}数量不能超过后端上限 ${maximum}`
+  return ''
+}
+
+function overviewTone(item) {
+  const label = String(item?.label || '')
+  if (label.includes('兑换')) return 'green'
+  if (label.includes('魔丸')) return 'blue'
+  if (label.includes('搬砖')) return 'orange'
+  return 'red'
+}
+
+function overviewIcon(item) {
+  const label = String(item?.label || '')
+  if (label.includes('兑换')) return 'mdi-cash-multiple'
+  if (label.includes('魔丸')) return 'mdi-flask-round-bottom'
+  if (label.includes('搬砖')) return 'mdi-wall'
+  return 'mdi-star-four-points'
+}
+
+function canGiftItem(item) {
+  return item?.giftable === true && Number(item?.count || 0) > 0
+}
+
+function openGiftDialog(item) {
+  if (!canGiftItem(item)) return
+  selectedGiftItem.value = item
+  giftForm.target_uid = ''
+  giftForm.quantity = '1'
+  giftConfirming.value = false
+  showGiftDialog.value = true
+}
+
+function closeGiftDialog() {
+  if (giftLoading.value) return
+  showGiftDialog.value = false
+  giftConfirming.value = false
+  selectedGiftItem.value = null
+}
+
+function requestGiftConfirmation() {
+  if (giftFormError.value) return flash(giftFormError.value, 'warning')
+  giftConfirming.value = true
+}
+
+async function submitGift() {
+  if (giftFormError.value) return flash(giftFormError.value, 'warning')
+  giftLoading.value = true
+  try {
+    const result = await apiPost('/gift-item', {
+      item_name: selectedGiftItem.value.name,
+      target_uid: giftForm.target_uid.trim(),
+      quantity: normalizedGiftQuantity.value,
+    })
+    applyStatusPayload(result)
+    if (result?.success === false) {
+      flash(result.message || '赠送失败', 'error')
+      return
+    }
+    flash(result?.message || '赠送成功')
+    showGiftDialog.value = false
+    giftConfirming.value = false
+    selectedGiftItem.value = null
+    await loadStatus({ silent: true })
+  } catch (error) {
+    flash(error?.message || '赠送失败', 'error')
+  } finally {
+    giftLoading.value = false
+  }
+}
+
+async function openGiftStats() {
+  showGiftStatsDialog.value = true
+  await loadGiftStats()
+}
+
+async function loadGiftStats() {
+  if (giftStatsLoading.value) return
+  giftStatsLoading.value = true
+  giftStatsError.value = ''
+  try {
+    const result = await apiPost('/gift-stats', {
+      direction: giftStatsDirection.value,
+      range: giftStatsRange.value,
+    })
+    applyStatusPayload(result)
+    if (result?.success === false) {
+      giftStats.value = null
+      giftStatsError.value = result.message || '赠送统计加载失败'
+      return
+    }
+    giftStats.value = {
+      total_events: Number(result?.total_events || 0),
+      total_quantity: Number(result?.total_quantity || 0),
+      users: Array.isArray(result?.users) ? result.users : [],
+      items: Array.isArray(result?.items) ? result.items : [],
+    }
+  } catch (error) {
+    giftStats.value = null
+    giftStatsError.value = error?.message || '赠送统计加载失败'
+  } finally {
+    giftStatsLoading.value = false
+  }
+}
+
+function rowEvents(row) {
+  return Number(row?.total_events ?? row?.events ?? row?.count ?? 0)
+}
+
+function rowQuantity(row) {
+  return Number(row?.total_quantity ?? row?.quantity ?? row?.count ?? 0)
+}
+
+function recipeQuantityError(recipe) {
+  return quantityError(recipeQuantities[recipe.craft_id], Number(recipe.max_count || 0), '炼造')
+}
+
+function recipeUnavailableReason(recipe) {
+  if (recipe.supported === false) return '后端标记该配方暂不支持。'
+  if (recipe.status) return recipe.status
+  if (Number(recipe.max_count || 0) <= 0) return '材料不足，后端返回最大可炼造数量为 0。'
+  return '后端标记该配方当前不可炼造。'
+}
+
+function historyText(item) {
+  return [item?.title, ...(Array.isArray(item?.lines) ? item.lines : [])].filter(Boolean).join(' / ') || '未提供执行内容'
+}
+
+function historyKey(item) {
+  return `${item?.time || ''}-${item?.title || ''}-${historyText(item)}`
+}
+
+async function refreshData() { await runAction('refresh', () => apiPost('/refresh'), '状态已刷新') }
+async function runNow() { await runAction('run', () => apiPost('/run'), '执行完成') }
+async function moveBricks() { await runAction('brick', () => apiPost('/move-bricks'), '搬砖完成') }
+async function cleanBeach() { await runAction('beach', () => apiPost('/clean-beach'), '沙滩清理完成') }
 
 async function exchangePoints() {
-  if (!exchange.value.action_ready) return flash('当前没有可兑换的魔丸', 'warning')
-  const limit = Math.max(normalizePositiveInt(exchange.value.max_count, 1), 1)
-  const quantity = Math.min(normalizePositiveInt(exchangeQuantity.value, 1), limit)
-  exchangeQuantity.value = String(quantity)
-  await doAction(() => props.api.post(`${pluginBase}/exchange-points`, { quantity }))
+  if (exchangeQuantityError.value) return flash(exchangeQuantityError.value, 'warning')
+  await runAction('exchange', () => apiPost('/exchange-points', { quantity: Number(exchangeQuantity.value) }), '兑换完成')
 }
 
-function setPillCraftMax() {
-  if (magicPillMax.value) pillCraftQuantity.value = String(magicPillMax.value)
+async function craftRecipe(recipe) {
+  const error = recipeQuantityError(recipe)
+  if (error) return flash(error, 'warning')
+  await runAction(
+    `craft-${recipe.craft_id}`,
+    () => apiPost('/craft-item', { recipe_id: Number(recipe.craft_id), quantity: Number(recipeQuantities[recipe.craft_id]) }),
+    '炼造完成',
+  )
 }
 
-async function craftMagicPill() {
-  if (!magicPillMax.value) return flash('当前材料不足，无法炼造魔丸', 'warning')
-  const quantity = Math.min(normalizePositiveInt(pillCraftQuantity.value, 1), magicPillMax.value)
-  pillCraftQuantity.value = String(quantity)
-  await doAction(() => props.api.post(`${pluginBase}/craft-max-pill`, { quantity }))
+async function craftMaxPill() {
+  await runAction('craft-max', () => apiPost('/craft-max-pill'), '一键炼造完成')
 }
 
-function findThemeNode() {
-  let current = rootEl.value
-  while (current) {
-    if (current.getAttribute?.('data-theme')) return current
-    const classValue = String(current.className || '').toLowerCase()
-    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) return current
-    current = current.parentElement
-  }
-  const bodyClass = String(document.body?.className || '').toLowerCase()
-  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) return document.body
-  const rootClass = String(document.documentElement?.className || '').toLowerCase()
-  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) return document.documentElement
-  return null
-}
-
-function getThemeNodes() {
-  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
-}
-
-function nodeHasDarkHint(node) {
-  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  const classValue = String(node?.className || '').toLowerCase()
-  return ['dark', 'purple', 'transparent'].includes(themeValue) || classValue.includes('dark') || classValue.includes('theme-dark') || classValue.includes('v-theme--dark')
-}
-
-function nodeHasLightHint(node) {
-  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  const classValue = String(node?.className || '').toLowerCase()
-  return themeValue === 'light' || classValue.includes('light') || classValue.includes('theme-light') || classValue.includes('v-theme--light')
-}
-
-function detectTheme() {
-  const nodes = getThemeNodes()
-  if (nodes.some(nodeHasDarkHint)) return (isDarkTheme.value = true)
-  if (nodes.some(nodeHasLightHint)) return (isDarkTheme.value = false)
-  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
-}
-
-function bindThemeObserver() {
-  detectTheme()
-  if (window.MutationObserver) {
-    themeObserver = new MutationObserver(detectTheme)
-    getThemeNodes().forEach((node) => themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] }))
-  }
-  if (window.matchMedia) {
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener?.('change', detectTheme)
-  }
-}
-
-function tick() {
-  nowTs.value = Math.floor(Date.now() / 1000)
-  if (nextRunTs.value && nowTs.value >= nextRunTs.value && lastRunAutoRefreshTs.value !== nextRunTs.value) {
-    lastRunAutoRefreshTs.value = nextRunTs.value
-    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
-  }
-  if (nextTriggerTs.value && nowTs.value >= nextTriggerTs.value && lastTriggerAutoRefreshTs.value !== nextTriggerTs.value) {
-    lastTriggerAutoRefreshTs.value = nextTriggerTs.value
-    doAction(() => props.api.post(`${pluginBase}/refresh`), { silent: true })
-  }
-  if (brickResetTs.value && nowTs.value >= brickResetTs.value && lastBrickCooldownRefreshTs.value !== brickResetTs.value) {
-    lastBrickCooldownRefreshTs.value = brickResetTs.value
-    silentRefreshStatus()
-  }
-  if (beachReadyTs.value && nowTs.value >= beachReadyTs.value && lastBeachCooldownRefreshTs.value !== beachReadyTs.value) {
-    lastBeachCooldownRefreshTs.value = beachReadyTs.value
-    silentRefreshStatus()
-  }
-}
-
-onMounted(async () => {
-  bindThemeObserver()
-  loadDismissedSummaryKey()
-  await loadStatus()
-  timer = window.setInterval(tick, 1000)
-})
+onMounted(loadStatus)
 
 onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer)
-  if (pendingRefreshTimer) window.clearTimeout(pendingRefreshTimer)
-  themeObserver?.disconnect()
-  mediaQuery?.removeEventListener?.('change', detectTheme)
+  if (messageTimer) window.clearTimeout(messageTimer)
 })
 </script>
 
 <style scoped>
-.vp-page{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--panel-soft:rgba(255,255,255,.72);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
-.vp-page.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--panel-soft:rgba(34,36,50,.72);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
-.vp-page,.vp-page *{box-sizing:border-box}
-.vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
-.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
-.vp-card{padding:16px}
-.vp-hero,.vp-head,.vp-chip-row{display:flex;gap:10px;flex-wrap:wrap}
-.vp-hero{justify-content:space-between;align-items:flex-start;background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 34%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 52%),var(--panel)}
-.vp-copy{flex:1;min-width:0}
-.vp-badge,.vp-chip,.vp-state{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
-.vp-badge{width:fit-content;padding:6px 12px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
-.vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,34px);line-height:1.06;font-weight:900;letter-spacing:-.02em}
-.vp-subtitle,.vp-note,.vp-history-top span,.vp-kicker,.vp-tool .vp-note,.vp-history-lines,.vp-stat-note{color:var(--muted)}
-.vp-subtitle{margin:0;font-size:14px;line-height:1.7;max-width:720px}
-.vp-chip-row{margin-top:12px}
-.vp-chip{padding:7px 12px;border:1px solid var(--border);background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600;justify-content:flex-start}
-.vp-action-grid{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:nowrap;min-width:min(100%,560px)}
-.vp-action-grid :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
-.vp-action-grid :deep(.v-btn--variant-flat){min-width:132px}
-.vp-action-grid :deep(.v-btn--variant-text){min-width:auto;padding-inline:6px}
-.vp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.vp-stat{padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 100%),var(--panel-strong);position:relative;overflow:hidden}
-.vp-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:rgba(124,92,255,.22)}
-.vp-stat:nth-child(1)::before{background:rgba(124,92,255,.42)}
-.vp-stat:nth-child(2)::before{background:rgba(255,160,67,.42)}
-.vp-stat:nth-child(3)::before{background:rgba(76,132,255,.42)}
-.vp-stat:nth-child(4)::before{background:rgba(34,197,171,.42)}
-.vp-stat-focus{background:radial-gradient(circle at top left,rgba(124,92,255,.18) 0%,transparent 42%),var(--panel-strong)}
-.vp-value{margin-top:10px;font-size:clamp(22px,3vw,30px);font-weight:900;line-height:1}
-.vp-head{justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.vp-head-action{align-items:center}
-.vp-head.compact{align-items:center}
-.vp-section-title{margin:0;font-size:20px;font-weight:900;line-height:1.15}
-.vp-summary{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vp-list{display:grid;gap:12px}
-.vp-list-item,.vp-history{padding:14px 16px;background:var(--panel-strong)}
-.vp-grid-2{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
-.vp-panel.brick{background:linear-gradient(135deg,rgba(255,160,67,.14) 0%,transparent 42%),var(--panel)}
-.vp-panel.beach{background:linear-gradient(135deg,rgba(34,197,171,.12) 0%,transparent 42%),var(--panel)}
-.vp-panel.stash{background:radial-gradient(circle at top left,rgba(124,92,255,.12) 0%,transparent 36%),linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vp-panel.history{background:linear-gradient(135deg,rgba(99,102,241,.12) 0%,transparent 44%),var(--panel)}
-.vp-state{min-height:30px;padding:0 12px;font-size:12px;font-weight:800;color:#88612b;background:rgba(255,179,76,.16)}
-.vp-state.ready{color:#1d8c57;background:rgba(47,193,120,.16)}
-.vp-title-strong{font-size:clamp(23px,2.8vw,30px);line-height:1.08;font-weight:900}
-.vp-countdown{margin-top:4px;font-size:clamp(17px,1.95vw,21px);font-weight:900;color:var(--accent)}
-.vp-card-action-slot{display:flex;align-items:center;justify-content:flex-end;min-width:118px}
-.vp-card-action-btn{min-height:34px;border-radius:999px;font-weight:800;min-width:118px}
-.vp-tool-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}
-.vp-tool{padding:12px;display:grid;gap:10px;background:var(--panel-strong)}
-.vp-tool.craft{background:linear-gradient(135deg,rgba(124,92,255,.14) 0%,transparent 48%),var(--panel-strong)}
-.vp-tool.exchange{background:linear-gradient(135deg,rgba(255,171,64,.14) 0%,transparent 48%),var(--panel-strong)}
-.vp-tool-head{margin-bottom:0}
-.vp-tool-head .vp-tool-title{flex:1;min-width:0}
-.vp-tool-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.vp-tool-actions :deep(.v-btn--variant-text){min-width:auto;padding-inline:4px}
-.vp-tool-title{font-size:15px;font-weight:900;line-height:1.25}
-.vp-inline{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
-.vp-inline-right{justify-content:flex-end}
-.vp-field{min-width:110px;display:grid;gap:6px;font-size:12px;color:var(--muted)}
-.vp-field-compact{min-width:108px;max-width:108px}
-.vp-input{width:100%;height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:13px;background:var(--panel);color:var(--text);outline:none}
-.vp-input:focus{border-color:rgba(124,92,255,.48);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
-.vp-items{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
-.vp-item{position:relative;overflow:hidden;padding:10px 10px 9px;display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(180deg,rgba(var(--vp-tone-rgb,124,92,255),.18) 0%,transparent 70%),var(--panel-strong);border-color:rgba(var(--vp-tone-rgb,124,92,255),.28)}
-.vp-item::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(var(--vp-tone-rgb,124,92,255),.4)}
-.vp-item.active{box-shadow:0 14px 28px rgba(17,24,39,.08)}
-.vp-item-icon-wrap{display:grid;place-items:center}
-.vp-item-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:rgba(var(--vp-tone-rgb,124,92,255),.2);box-shadow:inset 0 0 0 1px rgba(var(--vp-tone-rgb,124,92,255),.22)}
-.vp-item-body{min-width:0;display:grid;gap:4px}
-.vp-item-name{font-size:12px;font-weight:800;line-height:1.3;word-break:break-all}
-.vp-item-count{font-size:17px;font-weight:900;line-height:1}
-.vp-history{position:relative;overflow:hidden;padding:15px 16px 14px 18px;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%),var(--panel-strong)}
-.vp-history::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,rgba(124,92,255,.54) 0%,rgba(99,102,241,.18) 100%)}
-.vp-history-top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:nowrap;margin-bottom:0}
-.vp-history-top strong{flex:1;min-width:0;font-size:14px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vp-history-top span{font-size:12px;white-space:nowrap}
-.vp-history-lines{margin-top:8px;font-size:12px;line-height:1.7}
-.vp-empty{padding:34px 18px;text-align:center;color:var(--muted);border-radius:18px;border:1px dashed var(--border);background:var(--panel-strong)}
-@media (max-width:1120px){.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-grid-2,.vp-tool-grid{grid-template-columns:1fr}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
-@media (max-width:920px){.vp-head{flex-direction:column;align-items:flex-start}.vp-head-action{align-items:flex-start}.vp-card-action-slot{justify-content:flex-start;min-width:0}.vp-tool-actions{justify-content:flex-start;width:100%}.vp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{justify-content:flex-start}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card,.vp-list-item,.vp-history,.vp-item,.vp-tool{border-radius:18px}.vp-card{padding:14px}.vp-items,.vp-stats{grid-template-columns:1fr}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}.vp-history-top{flex-direction:column;align-items:flex-start;gap:6px}}
+.siqi-page{padding:16px 20px;display:flex;flex-direction:column;gap:16px;min-height:400px;overflow-x:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;color:rgba(var(--v-theme-on-surface),.85);border:1px solid rgba(var(--v-theme-on-surface),.12);border-radius:8px;background:linear-gradient(180deg,rgba(var(--v-theme-surface),.02),rgba(245,158,11,.035))}
+.siqi-page,.siqi-page *{box-sizing:border-box}
+.siqi-page :deep(.v-btn){min-height:44px;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease}
+.siqi-page :deep(.v-btn:not(.v-btn--disabled):hover){transform:translateY(-1px);box-shadow:0 6px 16px rgba(15,23,42,.12);filter:saturate(1.05)}
+.siqi-page :deep(.v-btn:not(.v-btn--disabled):active){transform:translateY(0) scale(.98)}
+.siqi-page :deep(.v-btn.v-btn--disabled){cursor:not-allowed;opacity:.55}
+.siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px}
+.siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.siqi-topbar__copy{min-width:0}
+.siqi-topbar__right{display:flex;align-items:center;flex-shrink:0}
+.siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}
+.siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(245,158,11,.14);display:flex;align-items:center;justify-content:center;color:#f59e0b;flex-shrink:0}
+.siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}
+.siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.siqi-content{display:flex;flex-direction:column;gap:0}
+.siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}
+.siqi-card{background:rgba(var(--v-theme-on-surface),.03)!important;backdrop-filter:blur(20px) saturate(150%);border-radius:14px!important;border:.5px solid rgba(var(--v-theme-on-surface),.08)!important;box-shadow:0 2px 10px rgba(0,0,0,.05)!important;overflow:hidden}
+.siqi-card-title{min-height:52px;padding:8px 16px!important;font-size:13px!important;font-weight:700!important;background:rgba(245,158,11,.08);border-bottom:.5px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84)}
+.siqi-card-title :deep(.v-spacer){flex:1 1 auto!important}
+.siqi-card-title--exchange{background:rgba(245,158,11,.09)}
+.siqi-card-title--inventory{background:rgba(251,146,60,.10)}
+.siqi-card-title--workshop{background:rgba(6,182,212,.09)}
+.siqi-card-title--logs{background:rgba(59,130,246,.09)}
+.stat-card{min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
+.stat-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(var(--v-theme-surface),.72);flex:0 0 38px}
+.stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-orange{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.24);color:#f59e0b}.stat-green{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.24);color:#10b981}.stat-blue{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.24);color:#3b82f6}.stat-red{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.24);color:#ef4444}
+.overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px!important}
+.overview-grid>*{width:auto!important;max-width:none!important;padding:0!important}
+.schedule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+.schedule-card{height:100%}.dynamic-schedule-body{height:100%;display:flex;flex-direction:column;gap:13px;padding:14px 16px!important;background:linear-gradient(90deg,rgba(245,158,11,.09),rgba(14,165,233,.05))}.schedule-card--beach .dynamic-schedule-body{background:linear-gradient(90deg,rgba(20,184,166,.09),rgba(14,165,233,.05))}
+.dynamic-schedule-main{display:flex;align-items:center;gap:10px}.dynamic-schedule-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:rgba(245,158,11,.14);color:#f59e0b;flex:0 0 36px}.schedule-card--beach .dynamic-schedule-icon{background:rgba(20,184,166,.14);color:#14b8a6}.dynamic-schedule-copy{min-width:0}.dynamic-schedule-copy strong{display:block;font-size:13px;color:rgba(var(--v-theme-on-surface),.86)}.dynamic-schedule-copy small{display:block;margin-top:2px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schedule-state-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.schedule-action{min-width:108px}.schedule-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.schedule-meta span{padding:5px 9px;border-radius:999px;background:rgba(var(--v-theme-surface),.72);border:1px solid rgba(var(--v-theme-on-surface),.08);font-size:11px;color:rgba(var(--v-theme-on-surface),.66);font-variant-numeric:tabular-nums}
+.exchange-body{padding:16px!important}.exchange-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.exchange-stat{padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);text-align:center}.exchange-stat span{display:block;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-stat strong{display:inline-block;margin-top:3px;font-size:21px;color:#f59e0b}.exchange-stat small{margin-left:3px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-action-panel{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:start;margin-top:14px}.backend-note{margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.2);font-size:12px;color:rgba(var(--v-theme-on-surface),.66)}
+.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__state{font-size:10px;font-weight:800;color:#f59e0b;white-space:nowrap}
+.recipe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.recipe-card{padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:start}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
+.history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
+.empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
+.siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
+.page-skeleton{display:flex;flex-direction:column}.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
+@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-grid,.recipe-grid,.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
+@media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.schedule-state-row{align-items:stretch;flex-direction:column}.schedule-state-row :deep(.v-chip){align-self:flex-start}.schedule-action{width:100%}.schedule-meta span{width:100%}.exchange-summary{grid-template-columns:1fr}.inventory-grid{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr);gap:4px}.history-time{justify-self:start;text-align:left}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
 </style>
