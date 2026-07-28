@@ -105,6 +105,26 @@ def _public_api(method):
     return wrapped
 
 
+def _exclusive_action(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        execution_lock = type(self)._execution_lock
+        if not execution_lock.acquire(blocking=False):
+            return self._action_busy_response()
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            should_register = False
+            try:
+                should_register = self._commit_pending_execution_retry()
+            finally:
+                execution_lock.release()
+            if should_register:
+                self._reregister_plugin("execution-busy-retry")
+
+    return wrapped
+
+
 class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
@@ -206,7 +226,11 @@ class VuePill(_PluginBase):
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
     _lifecycle_lock = threading.RLock()
+    _plan_lock = threading.RLock()
     _site_credentials_lock = threading.RLock()
+    _execution_lock = threading.Lock()
+    _plan_revision: int = 0
+    _pending_execution_retry: Optional[Tuple[int, str]] = None
 
     _enabled: bool = False
     _notify: bool = True
@@ -279,9 +303,6 @@ class VuePill(_PluginBase):
         if migration_required:
             self._reset_v020_data()
             self._reset_runtime_site_credentials()
-            self._next_run_time = None
-            self._next_trigger_time = None
-            self._next_trigger_mode = "run"
             self._bootstrap_pending = False
             self._apply_config(self._default_config())
             self._update_config()
@@ -326,14 +347,23 @@ class VuePill(_PluginBase):
             "state": {},
             "pill_status": {},
             "last_run": "",
-            "next_run_time": "",
-            "next_trigger_time": "",
-            "next_trigger_mode": "",
             "consecutive_error_retries": 0,
             "last_error_retry_detail": "",
         }
         for key, value in reset_values.items():
             self.save_data(key, value)
+        self._clear_plan_state()
+
+    def _clear_plan_state(self):
+        with self._plan_lock:
+            self._next_run_time = None
+            self._next_trigger_time = None
+            self._next_trigger_mode = "run"
+            type(self)._pending_execution_retry = None
+            self.save_data("next_run_time", "")
+            self.save_data("next_trigger_time", "")
+            self.save_data("next_trigger_mode", "")
+            type(self)._plan_revision += 1
 
     def get_state(self) -> bool:
         return bool(self._enabled)
@@ -409,6 +439,8 @@ class VuePill(_PluginBase):
 
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         run_start = time.time()
+        base_reason, _ = self._parse_run_reason(reason)
+        execution_acquired = False
         logger.info("## 开始执行... %s", self._format_time(self._aware_now()))
         try:
             if not self._enabled and not force:
@@ -416,7 +448,7 @@ class VuePill(_PluginBase):
 
             self._ensure_cookie()
 
-            if not force and reason == "schedule" and self._is_pre_refresh_trigger():
+            if not force and base_reason == "schedule" and self._is_pre_refresh_trigger():
                 before_refresh = self._capture_refresh_catchup_state()
                 pill_status = self._refresh_state(
                     reason="pre-run-refresh",
@@ -441,6 +473,11 @@ class VuePill(_PluginBase):
                     "status": self._build_status(auto_refresh=False),
                 }
 
+            execution_lock = type(self)._execution_lock
+            if not execution_lock.acquire(blocking=False):
+                return self._busy_run_result(force=force, reason=reason)
+            execution_acquired = True
+
             rand_delay = random.randint(0, max(0, self._random_delay_max_seconds))
             if rand_delay:
                 logger.info("INFO 随机延迟 %s 秒后执行...", rand_delay)
@@ -456,7 +493,7 @@ class VuePill(_PluginBase):
             scheduled_action = self._resolve_scheduled_action(force, reason)
             run_brick = self._enable_brick and scheduled_action in {"all", "brick"}
             run_beach = self._enable_beach and scheduled_action in {"all", "beach"}
-            beach_due_action = not force and reason == "schedule" and scheduled_action == "beach" and run_beach
+            beach_due_action = not force and base_reason == "schedule" and scheduled_action == "beach" and run_beach
             if beach_due_action and not (page.get("beach") or {}).get("ready"):
                 page = self._refresh_beach_due_page(session, page)
 
@@ -510,7 +547,7 @@ class VuePill(_PluginBase):
                     retry_ts,
                     next_run,
                     next_action,
-                    reason,
+                    base_reason,
                 )
                 force_run_trigger = bool(
                     next_run == retry_ts
@@ -531,15 +568,24 @@ class VuePill(_PluginBase):
 
             self._schedule_next_run(
                 next_run,
-                reason,
+                base_reason,
                 next_action,
                 force_run=force_run_trigger,
             )
             pill_status = self._refresh_and_store_status(final_page, next_run, lines, next_action=next_action)
-            self._append_history("⚗️ Vue-魔丸运行", lines)
+            auto_warning = str(auto_result.get("warning") or "")
+            auto_failed = bool(auto_warning)
+            history_title = "⚗️ Vue-魔丸运行"
+            if auto_failed:
+                history_title = (
+                    "⚠️ Vue-魔丸部分完成"
+                    if has_action or auto_result.get("craft_steps")
+                    else "❌ Vue-魔丸失败"
+                )
+            self._append_history(history_title, lines)
 
-            if self._notify and has_action:
-                title = "【⚗️魔丸报告 】"
+            if self._notify and (has_action or has_warning):
+                title = "【⚠️魔丸部分完成】" if auto_failed else "【⚗️魔丸报告 】"
                 self.post_message(
                     mtype=NotificationType.Plugin,
                     title=title,
@@ -548,9 +594,18 @@ class VuePill(_PluginBase):
 
             if not has_warning:
                 self._reset_error_retry_count()
+            message = lines[0]
+            if auto_failed:
+                message = next(
+                    (line for line in lines if line.startswith("⚠️")),
+                    message,
+                )
             return {
-                "success": True,
-                "message": lines[0],
+                "success": not auto_failed,
+                "message": message,
+                "lines": lines,
+                "warning": auto_warning,
+                "partial": bool(auto_result.get("partial")),
                 "status": self._build_status(auto_refresh=False),
                 "pill_status": pill_status,
             }
@@ -572,8 +627,72 @@ class VuePill(_PluginBase):
                 self.post_message(mtype=NotificationType.Plugin, title=f"【⚠️{self.plugin_name}】 执行异常", text=text)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         finally:
+            should_register = False
+            if execution_acquired:
+                try:
+                    should_register = self._commit_pending_execution_retry()
+                finally:
+                    type(self)._execution_lock.release()
+            if should_register:
+                self._reregister_plugin("execution-busy-retry")
             cost_sec = max(1, round(time.time() - run_start))
             logger.info("## 执行结束... %s  耗时 %s 秒", self._format_time(self._aware_now()), cost_sec)
+
+    def _action_busy_response(self) -> Dict[str, Any]:
+        return {
+            "success": False,
+            "message": "已有任务正在执行，请稍后重试",
+            "status": self._build_status(auto_refresh=False),
+        }
+
+    def _busy_run_result(self, force: bool, reason: str) -> Dict[str, Any]:
+        base_reason, _ = self._parse_run_reason(reason)
+        if base_reason in {"schedule", "bootstrap", "save-config"}:
+            retry_action = self._resolve_scheduled_action(force, reason)
+            retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
+            self._queue_execution_retry(
+                retry_ts,
+                f"{base_reason}-busy-retry",
+                retry_action,
+            )
+        return self._action_busy_response()
+
+    def _queue_execution_retry(
+        self,
+        retry_ts: int,
+        reason: str,
+        retry_action: str,
+    ):
+        with self._plan_lock:
+            pending = type(self)._pending_execution_retry
+            if pending:
+                retry_ts = min(retry_ts, pending[0])
+                retry_action = self._merge_trigger_actions(
+                    retry_action,
+                    pending[1],
+                )
+            type(self)._pending_execution_retry = (retry_ts, retry_action)
+            should_register = self._commit_next_run_locked(
+                retry_ts,
+                retry_action,
+                force_run=True,
+            )
+        if should_register:
+            self._reregister_plugin(reason)
+
+    def _commit_pending_execution_retry(self) -> bool:
+        with self._plan_lock:
+            pending = type(self)._pending_execution_retry
+            if not pending:
+                return False
+            type(self)._pending_execution_retry = None
+            retry_ts, retry_action = pending
+            retry_ts = max(retry_ts, int(time.time()) + 5)
+            return self._commit_next_run_locked(
+                retry_ts,
+                retry_action,
+                force_run=True,
+            )
 
     def _manual_worker(self):
         scheduler = self._scheduler
@@ -600,10 +719,7 @@ class VuePill(_PluginBase):
                         )
 
                 if owns_scheduler_slot and self._enabled:
-                    next_trigger = (
-                        self._next_trigger_time
-                        or self._load_saved_next_trigger()
-                    )
+                    next_trigger = self._load_saved_next_trigger()
                     self._bootstrap_pending = (
                         (self._enable_brick or self._enable_beach)
                         and not bool(next_trigger)
@@ -636,9 +752,7 @@ class VuePill(_PluginBase):
 
     def _capture_refresh_catchup_state(self) -> Dict[str, Any]:
         now = self._aware_now()
-        next_run = self._load_saved_next_run()
-        next_trigger = self._load_saved_next_trigger()
-        trigger_mode = self._load_saved_next_trigger_mode()
+        next_run, next_trigger, trigger_mode, revision = self._load_plan_snapshot()
         _, trigger_action = self._parse_trigger_mode(trigger_mode)
         return {
             "next_run": next_run,
@@ -647,6 +761,7 @@ class VuePill(_PluginBase):
             "next_trigger_overdue": bool(next_trigger and next_trigger <= now),
             "trigger_mode": trigger_mode,
             "trigger_action": trigger_action,
+            "plan_revision": revision,
         }
 
     def _restore_pre_refresh_plan(self, before_refresh: Dict[str, Any]) -> bool:
@@ -654,21 +769,18 @@ class VuePill(_PluginBase):
         if not isinstance(planned_run, datetime):
             return False
 
-        with self._lifecycle_lock:
-            current_run = self._load_saved_next_run()
-            current_mode = self._load_saved_next_trigger_mode()
-            if (
-                current_run != planned_run
-                or current_mode != before_refresh.get("trigger_mode")
-            ):
+        should_register = False
+        with self._plan_lock:
+            if type(self)._plan_revision != before_refresh.get("plan_revision"):
                 logger.info("%s 预刷新期间计划已更新，跳过恢复旧计划", self.plugin_name)
                 return False
-            self._schedule_next_run(
+            should_register = self._commit_next_run_locked(
                 int(planned_run.timestamp()),
-                "pre-run-refresh",
                 before_refresh.get("trigger_action") or "all",
                 force_run=True,
             )
+        if should_register:
+            self._reregister_plugin("pre-run-refresh")
         return True
 
     def _run_after_refresh_if_due(
@@ -685,6 +797,9 @@ class VuePill(_PluginBase):
         ):
             return None
         logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
+        trigger_action = str((before_refresh or {}).get("trigger_action") or "")
+        if trigger_action in {"brick", "beach"}:
+            run_reason = f"{run_reason}:{trigger_action}"
         return self.run_job(force=True, reason=run_reason)
 
     def _should_run_after_refresh(
@@ -736,6 +851,7 @@ class VuePill(_PluginBase):
         return self.run_job(force=True, reason="manual-api")
 
     @_public_api
+    @_exclusive_action
     def _move_bricks_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_move_bricks()
@@ -752,6 +868,7 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     @_public_api
+    @_exclusive_action
     def _clean_beach_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_clean_beach()
@@ -768,6 +885,7 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     @_public_api
+    @_exclusive_action
     def _exchange_points_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_exchange_points(payload or {})
@@ -784,6 +902,7 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     @_public_api
+    @_exclusive_action
     def _craft_item_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_craft_item(payload or {})
@@ -800,13 +919,18 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     @_public_api
+    @_exclusive_action
     def _craft_max_pill_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_craft_max_pill(payload or {})
             return {
-                "success": True,
+                "success": result.get("success") is not False,
                 "message": result["lines"][0] if result["lines"] else "魔丸炼造完成",
                 "lines": result["lines"],
+                "warning": result.get("warning") or "",
+                "crafted": self._safe_int(result.get("crafted"), 0),
+                "target": self._safe_int(result.get("target"), 0),
+                "partial": bool(result.get("partial")),
                 "pill_status": result["pill_status"],
                 "status": self._build_status(auto_refresh=False),
             }
@@ -816,6 +940,7 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
     @_public_api
+    @_exclusive_action
     def _gift_item_api(self, payload: Optional[dict] = None):
         target_uid = ""
         try:
@@ -1218,9 +1343,20 @@ class VuePill(_PluginBase):
         return mode == "refresh"
 
     def _resolve_scheduled_action(self, force: bool, reason: str) -> str:
-        if force or reason != "schedule":
+        base_reason, explicit_action = self._parse_run_reason(reason)
+        if explicit_action:
+            return explicit_action
+        if base_reason in {"manual", "manual-api", "onlyonce"}:
             return "all"
         return self._get_scheduled_action()
+
+    @staticmethod
+    def _parse_run_reason(reason: str) -> Tuple[str, str]:
+        reason_text = str(reason or "manual").strip().lower() or "manual"
+        base_reason, separator, action = reason_text.rpartition(":")
+        if separator and base_reason and action in {"brick", "beach", "all"}:
+            return base_reason, action
+        return reason_text, ""
 
     def _get_scheduled_action(self) -> str:
         _, action = self._parse_trigger_mode(self._load_saved_next_trigger_mode())
@@ -1464,11 +1600,9 @@ class VuePill(_PluginBase):
             next_run, next_action = self._compute_next_plan(data)
             self._schedule_next_run(next_run, reason, next_action)
         else:
-            planned_run = self._load_saved_next_run()
+            planned_run, _, trigger_mode, _ = self._load_plan_snapshot()
             next_run = int(planned_run.timestamp()) if planned_run else None
-            _, next_action = self._parse_trigger_mode(
-                self._load_saved_next_trigger_mode()
-            )
+            _, next_action = self._parse_trigger_mode(trigger_mode)
         status = self._refresh_and_store_status(data, next_run, [], record_run=record_run, next_action=next_action)
         self._reset_error_retry_count()
         return status
@@ -1989,11 +2123,20 @@ class VuePill(_PluginBase):
         exchange = page.get("exchange") or {}
         max_count = self._safe_int(exchange.get("max_count"), 0)
         magic_pills = self._safe_int(exchange.get("magic_pills"), 0)
-        if max_count <= 0 or magic_pills <= 0 or not exchange.get("enabled"):
+        exchangeable = max(0, magic_pills - self._reserve_magic_pill_count)
+        if (
+            max_count <= 0
+            or exchangeable <= 0
+            or not exchange.get("enabled")
+        ):
             raise ValueError("当前没有可兑换的魔丸")
 
         quantity = self._safe_int(payload.get("quantity"), 0)
-        exchange_quantity = min(max(1, quantity or 1), max_count, magic_pills)
+        exchange_quantity = min(
+            max(1, quantity or 1),
+            max_count,
+            exchangeable,
+        )
         result = self._post_action(
             session,
             "exchange_points",
@@ -2074,27 +2217,47 @@ class VuePill(_PluginBase):
 
         quantity = min(max(1, self._safe_int(payload.get("quantity"), max_count)), max_count)
         craft_result = self._craft_magic_pill_loop(session, page, target=quantity)
-        if not craft_result.get("craft_steps") and craft_result.get("warning"):
-            raise ValueError(craft_result.get("warning"))
 
         page = craft_result.get("page") or page
         next_run, next_action = self._compute_next_plan(page)
         self._schedule_next_run(next_run, "manual-craft-pill", next_action)
 
         crafted = self._safe_int(craft_result.get("crafted"), 0)
-        lines = [f"⚗️ 一键炼造魔丸：{crafted}颗"]
+        target_count = self._safe_int(craft_result.get("target"), quantity)
+        complete = bool(craft_result.get("complete"))
+        partial = bool(craft_result.get("partial"))
+        if complete:
+            lines = [f"⚗️ 一键炼造魔丸：{crafted}颗"]
+            history_title = "⚗️ 一键炼造魔丸"
+        elif partial:
+            lines = [f"⚠️ 一键炼造魔丸部分完成：{crafted}/{target_count}颗"]
+            history_title = "⚠️ 一键炼造魔丸部分完成"
+        else:
+            lines = [f"⚠️ 一键炼造魔丸失败：{crafted}/{target_count}颗"]
+            history_title = "❌ 一键炼造魔丸失败"
         if craft_result.get("craft_steps"):
             lines.append(f"🧪 步骤：{'  '.join(craft_result.get('craft_steps') or [])}")
         if craft_result.get("warning"):
             lines.append(f"⚠️ 炼造中止：{craft_result.get('warning')}")
 
         pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
-        self._append_history("⚗️ 一键炼造魔丸", lines)
-        return {"pill_status": pill_status, "lines": lines}
+        self._append_history(history_title, lines)
+        return {
+            "success": complete,
+            "pill_status": pill_status,
+            "lines": lines,
+            "warning": craft_result.get("warning") or "",
+            "crafted": crafted,
+            "target": target_count,
+            "partial": partial,
+        }
 
     def _run_auto_post_beach(self, session, page: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         result = {
             "crafted": 0,
+            "craft_target": 0,
+            "craft_complete": True,
+            "partial": False,
             "craft_steps": [],
             "exchanged": 0,
             "points": 0,
@@ -2106,12 +2269,18 @@ class VuePill(_PluginBase):
         if self._auto_craft:
             craft_result = self._auto_craft_magic_pill(session, current_page)
             result["crafted"] += self._safe_int(craft_result.get("crafted"), 0)
+            result["craft_target"] = self._safe_int(craft_result.get("target"), 0)
+            result["craft_complete"] = bool(craft_result.get("complete"))
+            result["partial"] = bool(craft_result.get("partial"))
             result["craft_steps"].extend(craft_result.get("craft_steps") or [])
             result["lines"].extend(craft_result.get("lines") or [])
             current_page = craft_result.get("page") or current_page
-            if craft_result.get("warning"):
-                result["warning"] = craft_result.get("warning")
-                result["lines"].append(f"⚠️ 自动炼造失败：{craft_result.get('warning')}")
+            if craft_result.get("warning") or not craft_result.get("success", True):
+                result["warning"] = craft_result.get("warning") or "炼造目标未完成"
+                outcome = "部分完成" if craft_result.get("partial") else "失败"
+                result["lines"].append(
+                    f"⚠️ 自动炼造{outcome}：{result['warning']}"
+                )
                 return result, current_page
 
         if self._auto_exchange:
@@ -2129,9 +2298,12 @@ class VuePill(_PluginBase):
     def _auto_craft_magic_pill(self, session, page: Dict[str, Any]) -> Dict[str, Any]:
         result = self._craft_magic_pill_loop(session, page)
         crafted = self._safe_int(result.get("crafted"), 0)
+        target = self._safe_int(result.get("target"), 0)
         lines: List[str] = []
-        if crafted > 0:
+        if result.get("complete") and crafted > 0:
             lines.append(f"⚗️ 炼造：⚗️魔丸×{crafted}")
+        elif result.get("partial"):
+            lines.append(f"⚠️ 炼造部分完成：⚗️魔丸×{crafted}/{target}")
         if result.get("warning") and result.get("craft_steps"):
             lines.append(f"🧪 已完成：{'  '.join(result.get('craft_steps') or [])}")
         result["lines"] = lines
@@ -2151,8 +2323,19 @@ class VuePill(_PluginBase):
         )
         goal = self._safe_int(first_plan.get("max_count"), 0)
         if goal <= 0:
-            return {"crafted": 0, "craft_steps": [], "lines": [], "warning": "", "page": current_page}
+            return {
+                "success": True,
+                "complete": True,
+                "partial": False,
+                "target": 0,
+                "crafted": 0,
+                "craft_steps": [],
+                "lines": [],
+                "warning": "",
+                "page": current_page,
+            }
 
+        initial_magic_pills = self._page_magic_pill_count(current_page)
         crafted = 0
         executed_steps: List[str] = []
         warning = ""
@@ -2163,7 +2346,7 @@ class VuePill(_PluginBase):
             plan_info = compute_magic_pill_plan(
                 current_page.get("inventory") or [],
                 current_page.get("recipes") or [],
-                target=goal,
+                target=goal - crafted,
             )
             steps = plan_info.get("steps") or []
             if not steps:
@@ -2198,21 +2381,40 @@ class VuePill(_PluginBase):
             executed_steps.append(
                 f"{self.ITEM_ICON_MAP.get(output_item, '📦')}{output_item}×{craft_qty}"
             )
-            if output_item == "魔丸":
-                crafted += craft_qty
             try:
                 current_page = self._fetch_page_state(session)
             except Exception as err:
                 warning = self._get_error_detail(err)
                 break
+            crafted = max(
+                crafted,
+                self._page_magic_pill_count(current_page) - initial_magic_pills,
+            )
+
+        complete = crafted >= goal
+        partial = 0 < crafted < goal
+        if not complete and not warning:
+            warning = f"炼造目标未完成，已确认 {crafted}/{goal} 颗"
 
         return {
+            "success": complete,
+            "complete": complete,
+            "partial": partial,
+            "target": goal,
             "crafted": crafted,
             "craft_steps": executed_steps,
             "lines": [],
             "warning": warning,
             "page": current_page,
         }
+
+    def _page_magic_pill_count(self, page: Dict[str, Any]) -> int:
+        inventory = inventory_to_map(
+            self._get_inventory_items((page or {}).get("inventory"))
+        )
+        if "魔丸" in inventory:
+            return self._safe_int(inventory.get("魔丸"), 0)
+        return self._safe_int(((page or {}).get("stats") or {}).get("magic_pills"), 0)
 
     def _auto_exchange_points(self, session, page: Dict[str, Any]) -> Dict[str, Any]:
         current_page = page or {}
@@ -2356,7 +2558,7 @@ class VuePill(_PluginBase):
     def _get_next_run_for_service(self) -> Optional[datetime]:
         if self._bootstrap_pending:
             return self._aware_now() + timedelta(seconds=3)
-        next_trigger = self._next_trigger_time or self._load_saved_next_trigger()
+        next_trigger = self._load_saved_next_trigger()
         if not next_trigger:
             return None
         now = self._aware_now()
@@ -2369,6 +2571,21 @@ class VuePill(_PluginBase):
         next_action: str = "all",
         force_run: bool = False,
     ):
+        with self._plan_lock:
+            should_register = self._commit_next_run_locked(
+                next_run_ts,
+                next_action,
+                force_run=force_run,
+            )
+        if should_register:
+            self._reregister_plugin(reason)
+
+    def _commit_next_run_locked(
+        self,
+        next_run_ts: Optional[int],
+        next_action: str,
+        force_run: bool = False,
+    ) -> bool:
         next_run_ts = self._normalize_timestamp(next_run_ts, 0)
         if next_run_ts and not self._is_reasonable_future_ts(next_run_ts, int(time.time()) - 1):
             next_run_ts = 0
@@ -2409,9 +2626,13 @@ class VuePill(_PluginBase):
             self.save_data("next_trigger_mode", "")
             logger.info("INFO 当前没有已识别的下一次执行时间")
 
-        if self._enabled and not (self._scheduler and self._scheduler.running):
+        type(self)._plan_revision += 1
+        should_register = self._enabled and not (
+            self._scheduler and self._scheduler.running
+        )
+        if should_register:
             self._bootstrap_pending = not bool(next_run_ts)
-            self._reregister_plugin(reason)
+        return should_register
 
     def _reregister_plugin(self, reason: str = ""):
         try:
@@ -2429,23 +2650,51 @@ class VuePill(_PluginBase):
                 )
 
     def _load_saved_next_run(self) -> Optional[datetime]:
-        if self._next_run_time:
-            return self._next_run_time
-        raw = self.get_data("next_run_time") or ((self.get_data("state") or {}).get("next_run_time"))
-        self._next_run_time = self._parse_datetime(raw)
+        with self._plan_lock:
+            return self._load_saved_next_run_locked()
+
+    def _load_saved_next_run_locked(self) -> Optional[datetime]:
+        raw = self.get_data("next_run_time")
+        if raw is None:
+            raw = (self.get_data("state") or {}).get("next_run_time")
+        if raw is not None:
+            self._next_run_time = self._parse_datetime(raw) if raw else None
         return self._next_run_time
 
     def _load_saved_next_trigger(self) -> Optional[datetime]:
-        if self._next_trigger_time:
-            return self._next_trigger_time
-        raw = self.get_data("next_trigger_time") or ((self.get_data("state") or {}).get("next_trigger_time"))
-        self._next_trigger_time = self._parse_datetime(raw)
+        with self._plan_lock:
+            return self._load_saved_next_trigger_locked()
+
+    def _load_saved_next_trigger_locked(self) -> Optional[datetime]:
+        raw = self.get_data("next_trigger_time")
+        if raw is None:
+            raw = (self.get_data("state") or {}).get("next_trigger_time")
+        if raw is not None:
+            self._next_trigger_time = self._parse_datetime(raw) if raw else None
         return self._next_trigger_time
 
     def _load_saved_next_trigger_mode(self) -> str:
-        raw = self.get_data("next_trigger_mode") or ((self.get_data("state") or {}).get("next_trigger_mode")) or self._next_trigger_mode or "run"
-        self._next_trigger_mode = str(raw or "run").strip() or "run"
+        with self._plan_lock:
+            return self._load_saved_next_trigger_mode_locked()
+
+    def _load_saved_next_trigger_mode_locked(self) -> str:
+        raw = self.get_data("next_trigger_mode")
+        if raw is None:
+            raw = (self.get_data("state") or {}).get("next_trigger_mode")
+        if raw is not None:
+            self._next_trigger_mode = str(raw or "run").strip() or "run"
         return self._next_trigger_mode
+
+    def _load_plan_snapshot(
+        self,
+    ) -> Tuple[Optional[datetime], Optional[datetime], str, int]:
+        with self._plan_lock:
+            return (
+                self._load_saved_next_run_locked(),
+                self._load_saved_next_trigger_locked(),
+                self._load_saved_next_trigger_mode_locked(),
+                type(self)._plan_revision,
+            )
 
     def _compute_next_plan(self, data: dict) -> Tuple[Optional[int], str]:
         candidates: List[Tuple[int, str]] = []
@@ -2611,7 +2860,10 @@ class VuePill(_PluginBase):
         return lines, has_action, has_warning
 
     def _build_notify_text(self, lines: List[str], next_run: Optional[int]) -> str:
-        report_lines = [line for line in lines if line.startswith(("🧱", "🏖️", "⚗️", "💰", "✅", "✨"))]
+        prefixes = ("🧱", "🏖️", "⚗️", "💰", "✅", "✨")
+        if any(line.startswith("⚠️") for line in lines):
+            prefixes += ("⚠️", "🧪")
+        report_lines = [line for line in lines if line.startswith(prefixes)]
         if not report_lines:
             report_lines = [line for line in lines if not line.startswith("ℹ️")]
         chunks = [self.SUMMARY_LINE]

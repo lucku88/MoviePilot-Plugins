@@ -1,3 +1,4 @@
+import threading
 import unittest
 
 from tests.test_vuepill_lifecycle import _load_plugin_module, make_plugin
@@ -138,6 +139,136 @@ class VuePillBusinessFlowTests(unittest.TestCase):
         self.assertTrue(any("已完成" in line for line in result["lines"]))
         self.assertIn("第三步失败", result["warning"])
 
+    def test_manual_craft_api_reports_failure_after_completed_intermediate_steps(self):
+        stock = self._base_stock()
+        action_calls = []
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: self._page(stock)
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append((payload["recipe_id"], payload["quantity"]))
+            if len(action_calls) == 3:
+                raise RuntimeError("第三步失败")
+            self._apply_craft(stock, payload["recipe_id"], payload["quantity"])
+            return {"success": True}
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._craft_max_pill_api({"quantity": 1})
+
+        self.assertFalse(result["success"])
+        self.assertEqual(0, stock["魔丸"])
+        self.assertEqual(3, len(action_calls))
+        self.assertIn("第三步失败", result.get("warning", ""))
+        self.assertTrue(any("步骤" in line for line in result.get("lines", [])))
+        history = self.plugin.get_data("history") or []
+        self.assertEqual(1, len(history))
+        self.assertTrue(history[0]["title"].startswith(("⚠️", "❌")))
+
+    def test_run_job_reports_auto_craft_failure_and_skips_exchange(self):
+        stock = self._base_stock()
+        action_calls = []
+        notifications = []
+        self.plugin._enabled = True
+        self.plugin._enable_brick = False
+        self.plugin._enable_beach = True
+        self.plugin._auto_craft = True
+        self.plugin._auto_exchange = True
+        self.plugin._notify = True
+        self.plugin._random_delay_max_seconds = 0
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        fetch_calls = []
+
+        def fetch_page(session):
+            page = self._page(stock)
+            if not fetch_calls:
+                page["beach"]["ready"] = True
+            fetch_calls.append(True)
+            return page
+
+        self.plugin._fetch_page_state = fetch_page
+        self.plugin._fetch_stable_page_state = lambda *args, **kwargs: self._page(
+            stock
+        )
+        self.plugin._run_beach_flow = lambda session: {
+            "done": True,
+            "items": [{"name": "木材", "count": 1, "icon": "🪵"}],
+        }
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append(action)
+            if action == "exchange_points":
+                return {"success": True, "points_gained": 1}
+            if action_calls.count("craft_item") == 3:
+                raise RuntimeError("第三步失败")
+            self._apply_craft(stock, payload["recipe_id"], payload["quantity"])
+            return {"success": True}
+
+        self.plugin._post_action = post_action
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin.post_message = lambda *args, **kwargs: notifications.append(kwargs)
+
+        result = self.plugin.run_job(force=True, reason="manual-api")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(0, stock["魔丸"])
+        self.assertNotIn("exchange_points", action_calls)
+        self.assertIn("第三步失败", result.get("warning", ""))
+        self.assertTrue(any("已完成" in line for line in result.get("lines", [])))
+        history = self.plugin.get_data("history") or []
+        self.assertEqual(1, len(history))
+        self.assertTrue(history[0]["title"].startswith(("⚠️", "❌")))
+        self.assertEqual(1, len(notifications))
+        self.assertIn("⚠️", notifications[0]["title"])
+        self.assertIn("第三步失败", notifications[0]["text"])
+
+    def test_manual_craft_api_reports_confirmed_partial_magic_pills(self):
+        stock = {
+            name: count * 2 if name not in {"魔丸", "木工件", "塑料件", "简易工具", "能量碎片", "魔丸胚胎"} else count
+            for name, count in self._base_stock().items()
+        }
+        final_attempts = []
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: self._page(stock)
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+
+        def post_action(session, action, payload=None, retry_network=False):
+            recipe_id = payload["recipe_id"]
+            quantity = payload["quantity"]
+            if recipe_id == 6:
+                final_attempts.append(quantity)
+                if len(final_attempts) == 1:
+                    self._apply_craft(stock, recipe_id, 1)
+                    return {"success": True}
+                raise RuntimeError("剩余魔丸炼造失败")
+            self._apply_craft(stock, recipe_id, quantity)
+            return {"success": True}
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._craft_max_pill_api({"quantity": 2})
+
+        self.assertFalse(result["success"])
+        self.assertEqual(1, result.get("crafted"))
+        self.assertEqual(2, result.get("target"))
+        self.assertEqual(1, stock["魔丸"])
+        self.assertIn("部分完成", result["message"])
+        self.assertIn("1/2", result["message"])
+        self.assertIn("剩余魔丸炼造失败", result.get("warning", ""))
+        history = self.plugin.get_data("history") or []
+        self.assertEqual(1, len(history))
+        self.assertTrue(history[0]["title"].startswith("⚠️"))
+
     def test_auto_exchange_rechecks_inventory_between_safe_batches(self):
         stock = {"魔丸": 257}
         action_calls = []
@@ -163,6 +294,53 @@ class VuePillBusinessFlowTests(unittest.TestCase):
         self.assertEqual(247, result["exchanged"])
         self.assertEqual(10, stock["魔丸"])
 
+    def test_concurrent_manual_exchange_allows_one_post_and_keeps_reserve(self):
+        stock = {"魔丸": 15}
+        post_calls = []
+        post_started = threading.Event()
+        allow_first_post = threading.Event()
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: self._page(stock)
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda *args, **kwargs: None
+
+        def post_action(session, action, payload=None, retry_network=False):
+            post_calls.append(payload["quantity"])
+            if len(post_calls) == 1:
+                post_started.set()
+                self.assertTrue(allow_first_post.wait(2))
+            stock["魔丸"] -= payload["quantity"]
+            return {"success": True, "points_gained": payload["quantity"]}
+
+        self.plugin._post_action = post_action
+        results = []
+
+        def exchange():
+            results.append(self.plugin._exchange_points_api({"quantity": 5}))
+
+        first = threading.Thread(target=exchange)
+        second = threading.Thread(target=exchange)
+        first.start()
+        self.assertTrue(post_started.wait(1))
+        second.start()
+        second.join(1)
+        allow_first_post.set()
+        first.join(2)
+        second.join(2)
+
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
+        self.assertEqual([5], post_calls)
+        self.assertEqual(10, stock["魔丸"])
+        self.assertEqual(1, sum(result["success"] is True for result in results))
+        busy = next(result for result in results if result["success"] is False)
+        self.assertTrue(
+            "正在执行" in busy["message"] or "稍后重试" in busy["message"]
+        )
+
     def test_gift_success_appends_one_history_entry_after_single_post(self):
         stock = {"木材": 5, "魔丸": 10}
         pages = [self._page(stock), self._page(stock)]
@@ -187,6 +365,52 @@ class VuePillBusinessFlowTests(unittest.TestCase):
         history = self.plugin.get_data("history") or []
         self.assertEqual(1, len(history))
         self.assertEqual("🎁赠送：木材×2 / 目标 UID 12345", history[0]["title"])
+
+    def test_concurrent_duplicate_gift_allows_only_one_post(self):
+        stock = {"木材": 5, "魔丸": 10}
+        post_calls = []
+        post_started = threading.Event()
+        allow_first_post = threading.Event()
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: self._page(stock)
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda *args, **kwargs: None
+
+        def post_action(session, action, payload=None, retry_network=False):
+            post_calls.append((action, dict(payload or {})))
+            if len(post_calls) == 1:
+                post_started.set()
+                self.assertTrue(allow_first_post.wait(2))
+            return {"success": True, "message": "赠送成功"}
+
+        self.plugin._post_action = post_action
+        results = []
+        payload = {"item_name": "木材", "target_uid": "12345", "quantity": 2}
+
+        def gift():
+            results.append(self.plugin._gift_item_api(payload))
+
+        first = threading.Thread(target=gift)
+        second = threading.Thread(target=gift)
+        first.start()
+        self.assertTrue(post_started.wait(1))
+        second.start()
+        second.join(1)
+        allow_first_post.set()
+        first.join(2)
+        second.join(2)
+
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
+        self.assertEqual(1, len(post_calls))
+        self.assertEqual(1, sum(result["success"] is True for result in results))
+        busy = next(result for result in results if result["success"] is False)
+        self.assertTrue(
+            "正在执行" in busy["message"] or "稍后重试" in busy["message"]
+        )
 
 
 if __name__ == "__main__":

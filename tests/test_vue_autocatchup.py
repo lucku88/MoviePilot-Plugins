@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+import threading
 import time
 import types
 import unittest
@@ -243,6 +244,52 @@ class VueAutoCatchupTests(unittest.TestCase):
             "recipes": [],
         }
 
+    def _run_vuepill_overdue_catchup(self, action):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._enable_beach = True
+        plugin._enable_brick = True
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+        plugin._notify = False
+        plugin._random_delay_max_seconds = 0
+        plugin._next_trigger_mode = f"run:{action}"
+        plugin.save_data("next_trigger_mode", f"run:{action}")
+        plugin._ensure_cookie = lambda: None
+        plugin._build_session = lambda: object()
+        initial_page = self._vuepill_page(beach_ready=True, brick_ready=True)
+        final_page = self._vuepill_page(beach_ready=False, brick_ready=False)
+        plugin._fetch_page_state = lambda session: initial_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: final_page
+        action_calls = []
+        plugin._run_brick_flow = lambda *args, **kwargs: action_calls.append(
+            "brick"
+        ) or {"moved": 1, "attempted": True}
+        plugin._run_beach_flow = lambda *args, **kwargs: action_calls.append(
+            "beach"
+        ) or {
+            "done": True,
+            "items": [{"name": "木材", "count": 1, "icon": "🪵"}],
+        }
+        plugin._compute_next_plan = lambda page: (int(time.time()) + 7200, "brick")
+        plugin._schedule_next_run = lambda *args, **kwargs: None
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        result = plugin._run_after_refresh_if_due(
+            initial_page,
+            run_reason="bootstrap",
+            refresh_reason="status-init",
+            before_refresh={
+                "next_run_overdue": True,
+                "next_trigger_overdue": True,
+                "trigger_mode": f"run:{action}",
+                "trigger_action": action,
+            },
+        )
+        return result, action_calls
+
     def test_save_refresh_runs_when_beach_is_ready(self):
         module = _load_plugin("vuepill")
         plugin = module.VuePill()
@@ -288,8 +335,20 @@ class VueAutoCatchupTests(unittest.TestCase):
         result = plugin._bootstrap_worker()
 
         self.assertEqual([("status-init", False)], refresh_calls)
-        self.assertEqual([(True, "bootstrap")], run_calls)
+        self.assertEqual([(True, "bootstrap:brick")], run_calls)
         self.assertEqual("补跑完成", result["message"])
+
+    def test_overdue_run_brick_catchup_keeps_brick_action_through_real_run_job(self):
+        result, action_calls = self._run_vuepill_overdue_catchup("brick")
+
+        self.assertTrue(result["success"])
+        self.assertEqual(["brick"], action_calls)
+
+    def test_overdue_run_beach_catchup_keeps_beach_action_through_real_run_job(self):
+        result, action_calls = self._run_vuepill_overdue_catchup("beach")
+
+        self.assertTrue(result["success"])
+        self.assertEqual(["beach"], action_calls)
 
     def test_pre_refresh_preserves_future_formal_beach_plan_through_real_refresh(self):
         module = _load_plugin("vuepill")
@@ -347,6 +406,92 @@ class VueAutoCatchupTests(unittest.TestCase):
         self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
         self.assertEqual(["pre-run-refresh"], registrations)
 
+    def test_pre_refresh_does_not_restore_stale_plan_over_concurrent_update(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        writer = module.VuePill()
+        writer._data_store = plugin._data_store
+        plugin._enabled = True
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._notify = False
+        plugin._random_delay_max_seconds = 0
+        old_run = plugin._aware_now() + module.timedelta(seconds=30)
+        new_run = plugin._aware_now() + module.timedelta(hours=2)
+        plugin.save_data("next_run_time", plugin._format_time(old_run))
+        plugin.save_data(
+            "next_trigger_time",
+            plugin._format_time(plugin._aware_now() - module.timedelta(seconds=1)),
+        )
+        plugin.save_data("next_trigger_mode", "refresh:beach")
+        plugin._next_run_time = None
+        plugin._next_trigger_time = None
+        plugin._next_trigger_mode = "run"
+        writer._enabled = True
+        writer._next_run_time = None
+        writer._next_trigger_time = None
+        writer._next_trigger_mode = "run"
+        plugin._ensure_cookie = lambda: None
+        plugin._build_session = lambda: object()
+        fetch_started = threading.Event()
+        allow_fetch_return = threading.Event()
+
+        def fetch_page(session):
+            fetch_started.set()
+            self.assertTrue(allow_fetch_return.wait(2))
+            return self._vuepill_page(beach_ready=True, beach_next_ts=0)
+
+        plugin._fetch_page_state = fetch_page
+        plugin._reregister_plugin = lambda reason="": None
+        writer._reregister_plugin = lambda reason="": None
+        errors = []
+        result_box = {}
+
+        def run_pre_refresh():
+            try:
+                result_box["result"] = plugin.run_job(
+                    force=False,
+                    reason="schedule",
+                )
+            except Exception as err:
+                errors.append(err)
+
+        refresh_thread = threading.Thread(target=run_pre_refresh)
+        refresh_thread.start()
+        self.assertTrue(fetch_started.wait(1))
+
+        writer._schedule_next_run(
+            int(new_run.timestamp()),
+            "concurrent-update",
+            "beach",
+        )
+        allow_fetch_return.set()
+        refresh_thread.join(3)
+
+        self.assertFalse(refresh_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual("运行前状态已刷新", result_box["result"]["message"])
+        saved_run = plugin._parse_datetime(plugin.get_data("next_run_time"))
+        self.assertIsNotNone(saved_run)
+        self.assertAlmostEqual(new_run.timestamp(), saved_run.timestamp(), delta=1)
+        self.assertEqual("refresh:beach", plugin.get_data("next_trigger_mode"))
+
+    def test_cleared_persisted_plan_does_not_reuse_stale_instance_cache(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._next_run_time = plugin._aware_now() + module.timedelta(hours=1)
+        plugin._next_trigger_time = plugin._aware_now() + module.timedelta(minutes=59)
+        plugin._next_trigger_mode = "refresh:beach"
+        plugin.save_data("next_run_time", "")
+        plugin.save_data("next_trigger_time", "")
+        plugin.save_data("next_trigger_mode", "")
+
+        next_run, next_trigger, trigger_mode, _ = plugin._load_plan_snapshot()
+
+        self.assertIsNone(next_run)
+        self.assertIsNone(next_trigger)
+        self.assertEqual("run", trigger_mode)
+
     def test_pre_refresh_runs_overdue_formal_plan_without_registering_replacement(self):
         module = _load_plugin("vuepill")
         plugin = module.VuePill()
@@ -389,7 +534,7 @@ class VueAutoCatchupTests(unittest.TestCase):
 
         result = plugin.run_job(force=False, reason="schedule")
 
-        self.assertEqual([(True, "schedule")], run_calls)
+        self.assertEqual([(True, "schedule:beach")], run_calls)
         self.assertEqual("补跑完成", result["message"])
         self.assertEqual([], registrations)
 
@@ -486,6 +631,100 @@ class VueAutoCatchupTests(unittest.TestCase):
             next_trigger,
             next_run + module.timedelta(seconds=plugin._schedule_buffer_seconds + 1),
         )
+        self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
+
+    def test_busy_scheduled_beach_keeps_short_run_retry_without_entering_flow(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        execution_lock = getattr(module.VuePill, "_execution_lock", None)
+        if execution_lock is None:
+            execution_lock = threading.Lock()
+            module.VuePill._execution_lock = execution_lock
+        beach_calls = []
+        ready_page = self._vuepill_page(beach_ready=True)
+        plugin._fetch_page_state = lambda session: ready_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: ready_page
+        plugin._run_beach_flow = lambda session: beach_calls.append("beach") or {
+            "done": True,
+            "items": [],
+        }
+
+        execution_lock.acquire()
+        try:
+            started_at = time.time()
+            result = plugin.run_job(force=False, reason="schedule")
+        finally:
+            execution_lock.release()
+
+        next_run = plugin._load_saved_next_run()
+        self.assertFalse(result["success"])
+        self.assertIn("正在执行", result["message"])
+        self.assertEqual([], beach_calls)
+        self.assertIsNotNone(next_run)
+        self.assertGreaterEqual(next_run.timestamp(), started_at + 59)
+        self.assertLessEqual(next_run.timestamp(), time.time() + 61)
+        self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
+
+    def test_busy_scheduled_retry_survives_manual_action_plan_update(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._reserve_magic_pill_count = 10
+        stock = {"魔丸": 15}
+        post_started = threading.Event()
+        allow_post_return = threading.Event()
+
+        def page_state():
+            page = self._vuepill_page(beach_ready=True)
+            page["exchange"] = {
+                "enabled": stock["魔丸"] > 0,
+                "max_count": stock["魔丸"],
+                "magic_pills": stock["魔丸"],
+            }
+            page["inventory"] = [
+                {"name": "魔丸", "count": stock["魔丸"], "giftable": False}
+            ]
+            return page
+
+        plugin._fetch_page_state = lambda session: page_state()
+        plugin._compute_next_plan = lambda page: (int(time.time()) + 7200, "beach")
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        def post_action(session, action, payload=None, retry_network=False):
+            self.assertEqual("exchange_points", action)
+            post_started.set()
+            self.assertTrue(allow_post_return.wait(2))
+            stock["魔丸"] -= payload["quantity"]
+            return {"success": True, "points_gained": payload["quantity"]}
+
+        plugin._post_action = post_action
+        manual_result = {}
+
+        def exchange():
+            manual_result["result"] = plugin._exchange_points_api({"quantity": 5})
+
+        manual_thread = threading.Thread(target=exchange)
+        manual_thread.start()
+        self.assertTrue(post_started.wait(1))
+        started_at = time.time()
+
+        busy_result = plugin.run_job(force=False, reason="schedule")
+        allow_post_return.set()
+        manual_thread.join(3)
+
+        self.assertFalse(manual_thread.is_alive())
+        self.assertTrue(manual_result["result"]["success"])
+        self.assertFalse(busy_result["success"])
+        next_run = plugin._load_saved_next_run()
+        self.assertIsNotNone(next_run)
+        self.assertGreaterEqual(next_run.timestamp(), started_at + 59)
+        self.assertLessEqual(next_run.timestamp(), time.time() + 61)
         self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
 
     def test_run_beach_does_not_repeat_failed_irreversible_flow(self):

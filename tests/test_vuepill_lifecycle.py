@@ -1341,6 +1341,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
     def test_non_gift_action_uses_raw_secret_for_api_and_log_sanitizing(self):
         self._install_valid_site("sid=safe-site-cookie")
+        self.plugin._reserve_magic_pill_count = 0
         logger = RecordingLogger()
         self.module.logger = logger
         self.plugin._build_session = lambda: object()
