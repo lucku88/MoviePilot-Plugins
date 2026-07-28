@@ -480,10 +480,14 @@ class VuePill(_PluginBase):
                 "pill_status": pill_status,
             }
         except Exception as err:
-            detail = self._get_error_detail(err)
+            error_sensitive_values = self._error_sensitive_values(err)
+            detail = self._get_error_detail(err, error_sensitive_values)
             retry_count = self._record_error_retry(detail)
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
-            safe_traceback = self._sanitize_sensitive_text(traceback.format_exc())
+            safe_traceback = self._sanitize_sensitive_text(
+                traceback.format_exc(),
+                error_sensitive_values,
+            )
             logger.error("%s 异常堆栈：\n%s", self.plugin_name, safe_traceback)
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
@@ -1419,14 +1423,18 @@ class VuePill(_PluginBase):
                 raw_site_url = self._site_value(site, "url")
                 raw_user_agent = self._site_value(site, "ua")
         except Exception as err:
-            detail = self._get_error_detail(
-                err,
-                self._cookie_sensitive_values(raw_cookie),
+            sensitive_values = self._cookie_sensitive_values(raw_cookie)
+            self._attach_error_sensitive_values(err, sensitive_values)
+            detail = self._get_error_detail(err)
+            wrapped_error = ValueError(
+                f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{detail}"
+            )
+            self._attach_error_sensitive_values(
+                wrapped_error,
+                sensitive_values,
             )
             self._reset_runtime_site_credentials()
-            raise ValueError(
-                f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{detail}"
-            ) from err
+            raise wrapped_error from err
 
         if not site_found:
             self._reset_runtime_site_credentials()
@@ -3271,6 +3279,57 @@ class VuePill(_PluginBase):
         )
         return None if public_value is _DROP_PUBLIC_VALUE else public_value
 
+    @staticmethod
+    def _attach_error_sensitive_values(
+        err: BaseException,
+        sensitive_values: Tuple[str, ...],
+    ):
+        values = tuple(
+            value
+            for value in sensitive_values
+            if isinstance(value, str) and value
+        )
+        if not values:
+            return
+        try:
+            existing = getattr(err, "_vuepill_sensitive_values", ())
+            setattr(
+                err,
+                "_vuepill_sensitive_values",
+                tuple(dict.fromkeys(tuple(existing) + values)),
+            )
+        except Exception:
+            pass
+
+    def _error_sensitive_values(
+        self,
+        err: BaseException,
+        sensitive_values: Tuple[str, ...] = (),
+    ) -> Tuple[str, ...]:
+        values = [
+            value
+            for value in sensitive_values
+            if isinstance(value, str) and value
+        ]
+        seen_errors = set()
+        current: Optional[BaseException] = err
+        while current is not None and len(seen_errors) < 20:
+            error_id = id(current)
+            if error_id in seen_errors:
+                break
+            seen_errors.add(error_id)
+            try:
+                attached = getattr(current, "_vuepill_sensitive_values", ())
+                values.extend(
+                    value
+                    for value in attached
+                    if isinstance(value, str) and value
+                )
+                current = current.__cause__ or current.__context__
+            except Exception:
+                break
+        return tuple(dict.fromkeys(values))
+
     def _get_error_detail(
         self,
         err: Exception,
@@ -3291,5 +3350,8 @@ class VuePill(_PluginBase):
         detail = " | ".join(
             str(part) for part in (code, message) if part
         ) or "UNKNOWN"
-        return self._sanitize_sensitive_text(detail, sensitive_values)
+        return self._sanitize_sensitive_text(
+            detail,
+            self._error_sensitive_values(err, sensitive_values),
+        )
 

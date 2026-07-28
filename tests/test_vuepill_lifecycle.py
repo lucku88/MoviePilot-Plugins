@@ -1799,6 +1799,56 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.assertNotIn(secret, rendered_logs)
             self.assertNotIn(secret, raw_traceback_call)
 
+    def test_run_api_sanitizes_traceback_with_raw_cookie_from_site_getter(self):
+        raw_cookie = "theme=blue; account=TRACE-RAW-COOKIE-SECRET"
+        logger = RecordingLogger()
+        self.module.logger = logger
+
+        class BrokenSite:
+            @property
+            def cookie(self):
+                return raw_cookie
+
+            @property
+            def url(self):
+                raise RuntimeError(
+                    f"读取 URL 失败，服务端直接回显 {raw_cookie}"
+                )
+
+            @property
+            def ua(self):
+                return "New UA"
+
+        class BrokenSiteOper:
+            def get_by_domain(self, domain):
+                return BrokenSite()
+
+        self.module.SiteOper = BrokenSiteOper
+        self.plugin._enabled = True
+        self.plugin._notify = False
+        self.plugin._record_error_retry = lambda detail: 1
+
+        result = self.plugin._run_now()
+
+        self.assertIs(result["success"], False)
+        self.assertIn("读取站点", result["message"])
+        traceback_calls = [
+            call for call in logger.calls if "异常堆栈" in str(call[1])
+        ]
+        self.assertEqual(1, len(traceback_calls))
+        encoded_result = json.dumps(result, ensure_ascii=False, allow_nan=False)
+        rendered_logs = "\n".join(logger.entries)
+        raw_log_calls = json.dumps(
+            logger.calls,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        for secret in (raw_cookie, "TRACE-RAW-COOKIE-SECRET"):
+            self.assertNotIn(secret, encoded_result)
+            self.assertNotIn(secret, rendered_logs)
+            self.assertNotIn(secret, raw_log_calls)
+        self.assertEqual("", self.plugin._cookie)
+
 
 if __name__ == "__main__":
     unittest.main()
