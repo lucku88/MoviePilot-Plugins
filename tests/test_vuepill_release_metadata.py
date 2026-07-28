@@ -31,7 +31,8 @@ BUILD_INPUT_PATHS = (
 )
 EXPECTED_HISTORY = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
-    "加入手动赠送与赠礼统计，并首次升级时重置旧配置和历史。"
+    "加入手动赠送与赠礼统计；首次从 v0.1.x 升级时重置一次，后续小更新保留配置，"
+    "并移除强制 IPv4 限制以支持 IPv4/IPv6 自动访问。"
 )
 
 
@@ -436,6 +437,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual("v0.2.0", next(iter(history)))
+        self.assertNotIn("v0.2.1", history)
         self.assertEqual(EXPECTED_HISTORY, history["v0.2.0"])
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -453,8 +455,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "赠出",
             "收到",
             "保存配置或 MoviePilot 重启后会自动补跑",
-            "首次升级",
-            "重置旧配置和历史",
+            "仅首次从 `v0.1.x` 升级到本次完整重写的 `v0.2.0` 时会重置一次旧配置和执行历史",
+            "完成迁移后，后续小更新会保留配置、执行历史和动态调度计划",
+            "站点连接不再强制 IPv4，由系统自动选择可用 IPv4 或 IPv6",
             "默认关闭",
             "手动刷新插件市场",
             "手动更新 `Vue-魔丸`",
