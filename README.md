@@ -67,7 +67,7 @@
 
 1. 在 MoviePilot 中添加自定义插件仓库：`https://github.com/lucku88/MoviePilot-Plugins/`
 2. 发布新版本后，用户必须在 MoviePilot 中手动刷新插件市场。
-3. 用户还必须手动安装或更新对应插件；本程序不会自动安装、更新或重启 MoviePilot。
+3. 用户还必须手动安装，或手动更新 `Vue-魔丸`；本程序不会自动安装或更新插件，也不会自动重启 MoviePilot。
 4. 在插件配置页启用插件；站点 Cookie 会自动从 MoviePilot 站点管理中读取。
 5. `Vue-农场` 固定优先使用 MoviePilot 内置 OCR 批量收菜，不需要填写 OCR 地址；识别失败时会自动转为 AI 辅助或逐坑位收菜。
 
