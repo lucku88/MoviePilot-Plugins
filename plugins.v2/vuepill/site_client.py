@@ -110,7 +110,6 @@ class VuePillSiteClient:
     }
     MAX_REQUEST_TIMES = 5
     DEFAULT_TIMEOUT = 10.0
-    RETRYABLE_HTTP_STATUSES = frozenset({500, 502, 503, 504})
 
     _RETRYABLE_ERRNOS = frozenset(
         value
@@ -594,7 +593,7 @@ class VuePillSiteClient:
                     self._safe_exception_attribute(candidate, "response")
                 )
             if status_code is not None:
-                return status_code in self.RETRYABLE_HTTP_STATUSES
+                return 500 <= status_code < 600
 
         request_timeout = getattr(requests.exceptions, "Timeout", ())
         request_connection = getattr(requests.exceptions, "ConnectionError", ())

@@ -571,10 +571,10 @@ class VuePillSiteClientTests(unittest.TestCase):
                 self.assertEqual(1, len(session.post_calls))
                 self.assertEqual(1, response.json_calls)
 
-    def test_retry_status_matrix_only_allows_selected_5xx(self):
+    def test_retry_status_matrix_allows_all_5xx(self):
         client, _ = self.make_client(retry_times=2)
 
-        for status_code in (500, 502, 503, 504):
+        for status_code in (500, 501, 502, 503, 504, 505, 599):
             with self.subTest(status_code=status_code, retryable=True):
                 session = FakeSession(
                     post_results=[
@@ -594,7 +594,7 @@ class VuePillSiteClientTests(unittest.TestCase):
                 self.assertIs(result["success"], True)
                 self.assertEqual(2, len(session.post_calls))
 
-        for status_code in (400, 429, 501, 505):
+        for status_code in (307, 308, 400, 429, 499):
             with self.subTest(status_code=status_code, retryable=False):
                 session = FakeSession(
                     post_results=[
@@ -613,10 +613,10 @@ class VuePillSiteClientTests(unittest.TestCase):
                     )
                 self.assertEqual(1, len(session.post_calls))
 
-    def test_get_retry_status_matrix_only_allows_selected_5xx(self):
+    def test_get_retry_status_matrix_allows_all_5xx(self):
         client, _ = self.make_client(retry_times=2)
 
-        for status_code in (500, 502, 503, 504):
+        for status_code in (500, 501, 502, 503, 504, 505, 599):
             with self.subTest(status_code=status_code, retryable=True):
                 session = FakeSession(
                     get_results=[
@@ -632,7 +632,7 @@ class VuePillSiteClientTests(unittest.TestCase):
                 self.assertEqual("<html>game</html>", result)
                 self.assertEqual(2, len(session.get_calls))
 
-        for status_code in (307, 308, 400, 429, 501, 505):
+        for status_code in (307, 308, 400, 429, 499):
             with self.subTest(status_code=status_code, retryable=False):
                 session = FakeSession(
                     get_results=[
@@ -647,34 +647,75 @@ class VuePillSiteClientTests(unittest.TestCase):
                     client.fetch_page_html(session)
                 self.assertEqual(1, len(session.get_calls))
 
-    def test_unsafe_post_actions_do_not_retry_retryable_http_status(self):
-        client, _ = self.make_client(retry_times=5)
+    def test_safe_post_retries_501_505_599_up_to_retry_times(self):
+        client, _ = self.make_client(retry_times=3)
 
-        for action in (
-            "enter_beach",
-            "collect_all_trash",
-            "craft_item",
-            "exchange_points",
-            "gift_item",
-            "gift_stats",
-        ):
-            with self.subTest(action=action):
+        for status_code in (501, 505, 599):
+            with self.subTest(status_code=status_code):
                 session = FakeSession(
                     post_results=[
                         FakeResponse(
-                            status_code=503,
-                            json_data={"message": "retryable status"},
-                        ),
-                        FakeResponse(json_data={"success": True}),
+                            status_code=status_code,
+                            json_data={"message": "retry"},
+                        )
+                        for _ in range(3)
                     ]
                 )
                 with self.assertRaises(self.module.VuePillRequestError):
                     client.post_action(
                         session,
-                        action,
+                        "sync_game_state",
                         retry_network=True,
                     )
-                self.assertEqual(1, len(session.post_calls))
+                self.assertEqual(3, len(session.post_calls))
+
+    def test_get_retries_501_505_599_up_to_retry_times(self):
+        client, _ = self.make_client(retry_times=3)
+
+        for status_code in (501, 505, 599):
+            with self.subTest(status_code=status_code):
+                session = FakeSession(
+                    get_results=[
+                        FakeResponse(
+                            status_code=status_code,
+                            json_data={"message": "retry"},
+                        )
+                        for _ in range(3)
+                    ]
+                )
+                with self.assertRaises(self.module.VuePillRequestError):
+                    client.fetch_page_html(session)
+                self.assertEqual(3, len(session.get_calls))
+
+    def test_unsafe_post_actions_do_not_retry_retryable_http_status(self):
+        client, _ = self.make_client(retry_times=5)
+
+        for status_code in (500, 501, 505, 599):
+            for action in (
+                "enter_beach",
+                "collect_all_trash",
+                "craft_item",
+                "exchange_points",
+                "gift_item",
+                "gift_stats",
+            ):
+                with self.subTest(action=action, status_code=status_code):
+                    session = FakeSession(
+                        post_results=[
+                            FakeResponse(
+                                status_code=status_code,
+                                json_data={"message": "retryable status"},
+                            ),
+                            FakeResponse(json_data={"success": True}),
+                        ]
+                    )
+                    with self.assertRaises(self.module.VuePillRequestError):
+                        client.post_action(
+                            session,
+                            action,
+                            retry_network=True,
+                        )
+                    self.assertEqual(1, len(session.post_calls))
 
     def test_ssl_and_non_network_runtime_errors_do_not_retry(self):
         client, _ = self.make_client(retry_times=5)
