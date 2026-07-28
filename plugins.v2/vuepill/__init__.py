@@ -344,7 +344,7 @@ class VuePill(_PluginBase):
             return -1
         if isinstance(raw, int):
             return raw
-        if isinstance(raw, str) and raw.isdecimal():
+        if isinstance(raw, str) and re.fullmatch(r"[0-9]+", raw):
             try:
                 return int(raw)
             except ValueError:
@@ -397,14 +397,30 @@ class VuePill(_PluginBase):
             self.stop_service()
 
         if generation_mode in {"fresh", "reset"}:
-            if generation_mode == "reset":
-                self._reset_generation_data()
-            self._reset_runtime_site_credentials()
-            self._bootstrap_pending = False
-            self._apply_config(self._default_config())
-            self._update_config()
-            self.save_data(self.CONFIG_GENERATION_KEY, self.CONFIG_GENERATION)
-            self.save_data(self.LEGACY_MIGRATION_KEY, True)
+            reset_required = generation_mode == "reset"
+            execution_lock = (
+                type(self)._execution_lock if reset_required else None
+            )
+            if execution_lock is not None:
+                execution_lock.acquire()
+            try:
+                self._reset_runtime_site_credentials()
+                self._bootstrap_pending = False
+                self._apply_config(self._default_config())
+                if self._update_config() is False:
+                    raise RuntimeError(
+                        "默认配置写入失败，配置迁移未完成"
+                    )
+                if reset_required:
+                    self._reset_generation_data()
+                self.save_data(
+                    self.CONFIG_GENERATION_KEY,
+                    self.CONFIG_GENERATION,
+                )
+                self.save_data(self.LEGACY_MIGRATION_KEY, True)
+            finally:
+                if execution_lock is not None:
+                    execution_lock.release()
             return
 
         if generation_mode == "legacy-current":
@@ -1868,7 +1884,7 @@ class VuePill(_PluginBase):
         )
 
     def _update_config(self):
-        self.update_config(self._get_config(include_options=False))
+        return self.update_config(self._get_config(include_options=False))
 
     def _get_error_retry_count(self) -> int:
         return max(0, self._safe_int(self.get_data("consecutive_error_retries"), 0))

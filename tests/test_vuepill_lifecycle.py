@@ -417,6 +417,8 @@ class VuePillLifecycleTests(unittest.TestCase):
             (" ", -1),
             ("2.0", -1),
             ("\u00b2", -1),
+            ("２", -1),
+            ("٢", -1),
             ("invalid", -1),
             ([], -1),
         )
@@ -500,8 +502,47 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(self.plugin._notify, False)
         self.assertEqual(7, self.plugin._reserve_magic_pill_count)
 
+    def test_non_reset_initialization_does_not_wait_for_execution_lock(self):
+        for generation_mode in ("current", "legacy-current"):
+            with self.subTest(generation_mode=generation_mode):
+                plugin = make_plugin(self.module)
+                if generation_mode == "current":
+                    plugin.save_data(
+                        plugin.CONFIG_GENERATION_KEY,
+                        plugin.CONFIG_GENERATION,
+                    )
+                else:
+                    plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+                init_reached = threading.Event()
+                plugin.stop_service = lambda: init_reached.set()
+                init_finished = threading.Event()
+                errors = []
+
+                def initialize():
+                    try:
+                        plugin.init_plugin({"enabled": False})
+                    except BaseException as err:
+                        errors.append(err)
+                    finally:
+                        init_finished.set()
+
+                execution_lock = type(plugin)._execution_lock
+                self.assertTrue(execution_lock.acquire(timeout=1))
+                init_thread = threading.Thread(target=initialize)
+                try:
+                    init_thread.start()
+                    self.assertTrue(init_reached.wait(1))
+                    finished_while_execution_locked = init_finished.wait(0.5)
+                finally:
+                    execution_lock.release()
+                    init_thread.join(2)
+
+                self.assertTrue(finished_while_execution_locked)
+                self.assertFalse(init_thread.is_alive())
+                self.assertEqual([], errors)
+
     def test_different_or_invalid_generation_resets_and_records_current_generation(self):
-        for stored_generation in (1, True, "invalid"):
+        for stored_generation in (1, True, "invalid", "２", "٢"):
             with self.subTest(stored_generation=stored_generation):
                 plugin = make_plugin(self.module)
                 plugin.save_data(plugin.CONFIG_GENERATION_KEY, stored_generation)
@@ -536,6 +577,66 @@ class VuePillLifecycleTests(unittest.TestCase):
                     plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
                     True,
                 )
+
+    def test_generation_reset_waits_for_running_execution_before_clearing_data(self):
+        self.plugin.save_data(self.plugin.CONFIG_GENERATION_KEY, 1)
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        reset_reached = threading.Event()
+        self.plugin.stop_service = lambda: reset_reached.set()
+        execution_started = threading.Event()
+        allow_execution_finish = threading.Event()
+        execution_finished = threading.Event()
+        init_finished = threading.Event()
+        errors = []
+
+        def running_execution():
+            try:
+                with type(self.plugin)._execution_lock:
+                    execution_started.set()
+                    if not allow_execution_finish.wait(2):
+                        raise RuntimeError("执行线程等待超时")
+                    self.plugin.save_data("history", [{"title": "旧线程记录"}])
+                    self.plugin.save_data(
+                        "next_run_time",
+                        "2026-08-01 00:00:00",
+                    )
+                    self.plugin.save_data("next_trigger_mode", "run:beach")
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                execution_finished.set()
+
+        def initialize():
+            try:
+                self.plugin.init_plugin({"enabled": True})
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                init_finished.set()
+
+        execution_thread = threading.Thread(target=running_execution)
+        init_thread = threading.Thread(target=initialize)
+        execution_thread.start()
+        self.assertTrue(execution_started.wait(1))
+        init_thread.start()
+        self.assertTrue(reset_reached.wait(1))
+        reset_finished_while_execution_locked = init_finished.wait(0.2)
+        allow_execution_finish.set()
+        execution_thread.join(2)
+        init_thread.join(2)
+
+        self.assertFalse(reset_finished_while_execution_locked)
+        self.assertFalse(execution_thread.is_alive())
+        self.assertFalse(init_thread.is_alive())
+        self.assertTrue(execution_finished.is_set())
+        self.assertEqual([], errors)
+        self.assertEqual([], self.plugin.get_data("history"))
+        self.assertEqual("", self.plugin.get_data("next_run_time"))
+        self.assertEqual("", self.plugin.get_data("next_trigger_mode"))
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
 
     def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
         for config in (None, {}):
@@ -745,6 +846,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
     def test_failed_default_config_write_leaves_migration_retryable(self):
         self.plugin.save_data("history", [{"title": "旧记录"}])
+        self.plugin.save_data("next_run_time", "2026-01-02 00:00:00")
         original_update_config = self.plugin.update_config
         migration_state_during_write = []
 
@@ -766,8 +868,12 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIsNone(
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
         )
+        self.assertEqual([{"title": "旧记录"}], self.plugin.get_data("history"))
+        self.assertEqual(
+            "2026-01-02 00:00:00",
+            self.plugin.get_data("next_run_time"),
+        )
 
-        self.plugin.save_data("history", [{"title": "失败后的脏数据"}])
         self.plugin.update_config = original_update_config
         self.plugin.init_plugin({"enabled": True})
 
@@ -777,8 +883,47 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
         )
         self.assertEqual([], self.plugin.get_data("history"))
+        self.assertEqual("", self.plugin.get_data("next_run_time"))
         self.assertIs(self.plugin._enabled, False)
         self.assertIs(self.plugin._config_store["enabled"], False)
+
+    def test_false_default_config_write_preserves_data_and_markers(self):
+        old_history = [{"title": "旧记录"}]
+        old_next_run = "2026-01-02 00:00:00"
+        self.plugin.save_data("history", old_history)
+        self.plugin.save_data("next_run_time", old_next_run)
+        self.plugin.save_data("next_trigger_mode", "run:beach")
+        self.plugin.stop_service = lambda: None
+        state_during_write = []
+
+        def reject_update_config(config):
+            state_during_write.append(
+                (
+                    self.plugin.get_data("history"),
+                    self.plugin.get_data("next_run_time"),
+                    self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+                    self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY),
+                )
+            )
+            return False
+
+        self.plugin.update_config = reject_update_config
+        with self.assertRaisesRegex(RuntimeError, "默认配置写入失败"):
+            self.plugin.init_plugin({"enabled": True})
+
+        self.assertEqual(
+            [(old_history, old_next_run, None, None)],
+            state_during_write,
+        )
+        self.assertEqual(old_history, self.plugin.get_data("history"))
+        self.assertEqual(old_next_run, self.plugin.get_data("next_run_time"))
+        self.assertEqual("run:beach", self.plugin.get_data("next_trigger_mode"))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
+        )
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY)
+        )
 
     def test_saved_config_after_migration_can_enable_plugin(self):
         self.plugin.save_data("v020_initialized", True)
