@@ -4,6 +4,7 @@ import socket
 import time
 import traceback
 from datetime import datetime, timedelta
+from functools import wraps
 from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,6 +25,14 @@ from app.schemas import NotificationType
 
 
 MIGRATION_KEY = "v020_initialized"
+
+
+def _public_api(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        return self._sanitize_public_response(method(self, *args, **kwargs))
+
+    return wrapped
 
 
 class VuePill(_PluginBase):
@@ -55,11 +64,30 @@ class VuePill(_PluginBase):
         r"\s*:\s*)[^\r\n]+"
     )
     _SENSITIVE_VALUE_PATTERN = re.compile(
-        r"(?i)(\b(?:cookie|set-cookie|authorization|proxy-authorization|"
-        r"access[_-]?token|auth[_-]?token|csrf[_-]?token|refresh[_-]?token|"
-        r"token|session(?:[_-]?id)?|sid|target[_-]?uid|uid|user[_-]?id)\b"
-        r"\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|[^;,\s]+)"
+        r"(?i)((?:[\"'])?\b(?:cookie|set-cookie|authorization|"
+        r"proxy-authorization|[a-z0-9_-]*(?:token|password|passwd|session|"
+        r"secret)[a-z0-9_-]*|sid|api[_-]?key|target[_-]?uid|uid|"
+        r"user[_-]?id)\b(?:[\"'])?\s*[:=]\s*)"
+        r"(?:\[REDACTED\]|\"[^\"]*\"|'[^']*'|[^;,\s}\]]+)"
     )
+    _PUBLIC_SAFE_SENSITIVE_KEYS = {"cookie_source", "cookie_ready"}
+    _PUBLIC_SENSITIVE_KEY_FRAGMENTS = (
+        "cookie",
+        "token",
+        "authorization",
+        "password",
+        "passwd",
+        "session",
+        "secret",
+    )
+    _PUBLIC_SENSITIVE_KEYS = {
+        "api_key",
+        "apikey",
+        "auth",
+        "credential",
+        "credentials",
+        "sid",
+    }
     _SAFE_UID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
     _SUMMARY_COUNT_FIELDS = {
         "count",
@@ -407,7 +435,8 @@ class VuePill(_PluginBase):
             detail = self._get_error_detail(err)
             retry_count = self._record_error_retry(detail)
             logger.error("%s 执行失败：%s", self.plugin_name, detail)
-            logger.error("%s 异常堆栈：\n%s", self.plugin_name, traceback.format_exc())
+            safe_traceback = self._sanitize_sensitive_text(traceback.format_exc())
+            logger.error("%s 异常堆栈：\n%s", self.plugin_name, safe_traceback)
             self._append_history(f"❌ {self.plugin_name}异常", [f"⚠️ {detail}"])
             if self._notify:
                 text = f"⚠️ {detail}"
@@ -498,6 +527,7 @@ class VuePill(_PluginBase):
             or str(beach.get("action_kind") or "").lower() in {"ready", "run", "clean"}
         )
 
+    @_public_api
     def _refresh_data(self):
         try:
             status = self._refresh_state(reason="manual-refresh")
@@ -507,9 +537,11 @@ class VuePill(_PluginBase):
             logger.error("%s 刷新状态失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail}
 
+    @_public_api
     def _run_now(self):
         return self.run_job(force=True, reason="manual-api")
 
+    @_public_api
     def _move_bricks_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_move_bricks()
@@ -525,6 +557,7 @@ class VuePill(_PluginBase):
             logger.warning("%s 手动搬砖失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    @_public_api
     def _clean_beach_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_clean_beach()
@@ -540,6 +573,7 @@ class VuePill(_PluginBase):
             logger.warning("%s 手动清理沙滩失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    @_public_api
     def _exchange_points_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_exchange_points(payload or {})
@@ -555,6 +589,7 @@ class VuePill(_PluginBase):
             logger.warning("%s 兑换魔力失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    @_public_api
     def _craft_item_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_craft_item(payload or {})
@@ -570,6 +605,7 @@ class VuePill(_PluginBase):
             logger.warning("%s 炼造配方失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    @_public_api
     def _craft_max_pill_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_craft_max_pill(payload or {})
@@ -585,6 +621,7 @@ class VuePill(_PluginBase):
             logger.warning("%s 一键炼造魔丸失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    @_public_api
     def _gift_item_api(self, payload: Optional[dict] = None):
         target_uid = ""
         try:
@@ -687,6 +724,7 @@ class VuePill(_PluginBase):
                 "status": self._build_status(auto_refresh=False),
             }
 
+    @_public_api
     def _gift_stats_api(self, payload: Optional[dict] = None):
         try:
             direction, range_value = self._validate_gift_stats_payload(payload)
@@ -872,6 +910,7 @@ class VuePill(_PluginBase):
                 return 0
         return 0
 
+    @_public_api
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
@@ -890,7 +929,7 @@ class VuePill(_PluginBase):
 
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
-        return {
+        return self._sanitize_public_response({
             "enabled": self._enabled,
             "notify": self._notify,
             "enable_brick": self._enable_brick,
@@ -904,7 +943,7 @@ class VuePill(_PluginBase):
             "pill_status": pill_status,
             "history": (self.get_data("history") or [])[:10],
             "config": self._get_config(),
-        }
+        })
 
     def _is_pre_refresh_trigger(self) -> bool:
         mode, _ = self._parse_trigger_mode(self._load_saved_next_trigger_mode())
@@ -948,6 +987,7 @@ class VuePill(_PluginBase):
             return first
         return "all"
 
+    @_public_api
     def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
         config = {
             "enabled": self._enabled,
@@ -974,6 +1014,7 @@ class VuePill(_PluginBase):
             config["capture_tips"] = []
         return config
 
+    @_public_api
     def _save_config(self, config_payload: dict):
         before_refresh = self._capture_refresh_catchup_state()
         merged = self._merge_public_config(
@@ -2263,8 +2304,13 @@ class VuePill(_PluginBase):
         next_action: str = "all",
     ) -> Dict[str, Any]:
         lines = list(summary_lines or [])
-        self.save_data("state", self._build_state_record(data, next_run, lines, next_action))
-        pill_status = self._build_ui_state(data, next_run, lines, next_action)
+        state = self._sanitize_public_response(
+            self._build_state_record(data, next_run, lines, next_action)
+        )
+        self.save_data("state", state)
+        pill_status = self._sanitize_public_response(
+            self._build_ui_state(data, next_run, lines, next_action)
+        )
         self.save_data("pill_status", pill_status)
         if record_run:
             self.save_data("last_run", self._format_time(self._aware_now()))
@@ -2742,6 +2788,37 @@ class VuePill(_PluginBase):
         text = self._SENSITIVE_HEADER_PATTERN.sub(r"\1[REDACTED]", text)
         text = self._BEARER_PATTERN.sub(r"\1[REDACTED]", text)
         return self._SENSITIVE_VALUE_PATTERN.sub(r"\1[REDACTED]", text)
+
+    def _is_sensitive_public_key(self, key: Any) -> bool:
+        if not isinstance(key, str):
+            return False
+        normalized = re.sub(r"[^a-z0-9]+", "_", key.strip().lower()).strip("_")
+        if normalized in self._PUBLIC_SAFE_SENSITIVE_KEYS:
+            return False
+        if normalized in self._PUBLIC_SENSITIVE_KEYS:
+            return True
+        return any(
+            fragment in normalized
+            for fragment in self._PUBLIC_SENSITIVE_KEY_FRAGMENTS
+        )
+
+    def _public_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: self._public_value(nested)
+                for key, nested in value.items()
+                if not self._is_sensitive_public_key(key)
+            }
+        if isinstance(value, list):
+            return [self._public_value(nested) for nested in value]
+        if isinstance(value, tuple):
+            return tuple(self._public_value(nested) for nested in value)
+        if isinstance(value, str):
+            return self._sanitize_sensitive_text(value)
+        return value
+
+    def _sanitize_public_response(self, value: Any) -> Any:
+        return self._public_value(value)
 
     def _get_error_detail(
         self,

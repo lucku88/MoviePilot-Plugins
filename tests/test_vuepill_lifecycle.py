@@ -242,8 +242,10 @@ class FakeSession:
 class RecordingLogger:
     def __init__(self):
         self.entries = []
+        self.calls = []
 
     def _record(self, level, message, *args):
+        self.calls.append((level, message, args))
         try:
             rendered = message % args if args else str(message)
         except Exception:
@@ -290,6 +292,35 @@ class VuePillLifecycleTests(unittest.TestCase):
             "recipes": [],
             "server_now": 0,
         }
+
+    def _assert_public_value_has_no_secrets(self, value, secrets):
+        sensitive_fragments = (
+            "cookie",
+            "token",
+            "authorization",
+            "password",
+            "session",
+            "secret",
+        )
+
+        def assert_safe(nested):
+            if isinstance(nested, dict):
+                for key, child in nested.items():
+                    normalized_key = str(key).strip().lower().replace("-", "_")
+                    if normalized_key not in {"cookie_source", "cookie_ready"}:
+                        self.assertFalse(
+                            any(fragment in normalized_key for fragment in sensitive_fragments),
+                            f"敏感字段仍对外可见：{key}",
+                        )
+                    assert_safe(child)
+            elif isinstance(nested, (list, tuple)):
+                for child in nested:
+                    assert_safe(child)
+
+        assert_safe(value)
+        encoded = json.dumps(value, ensure_ascii=False, default=str)
+        for secret in secrets:
+            self.assertNotIn(secret, encoded)
 
     def test_first_v020_init_resets_old_state_and_stays_disabled(self):
         old_values = {
@@ -428,6 +459,149 @@ class VuePillLifecycleTests(unittest.TestCase):
         status = self.plugin._build_status(auto_refresh=False)
         self.assertIn("cookie_source", status)
         self.assertIn("cookie_ready", status)
+
+    def test_public_status_filters_nested_sensitive_data_and_keeps_uids(self):
+        secrets = (
+            "pill-cookie-secret",
+            "pill-token-secret",
+            "pill-auth-secret",
+            "pill-session-secret",
+            "history-password-secret",
+            "history-dict-cookie-secret",
+            "history-dict-token-secret",
+            "config-client-secret",
+        )
+        self.plugin.save_data(
+            "pill_status",
+            {
+                "schema_version": self.plugin.plugin_version,
+                "uid": "visible-pill-uid",
+                "target_uid": "visible-target-uid",
+                "Cookie": "pill-cookie-secret",
+                "nested": [
+                    {
+                        "access_token": "pill-token-secret",
+                        "message": "普通中文状态",
+                    },
+                    (
+                        {
+                            "authorization": "Bearer pill-auth-secret",
+                            "session_id": "pill-session-secret",
+                        },
+                    ),
+                ],
+            },
+        )
+        self.plugin.save_data(
+            "history",
+            [
+                {
+                    "uid": "visible-history-uid",
+                    "password": "history-password-secret",
+                    "message": (
+                        "处理失败：{'Cookie':'history-dict-cookie-secret',"
+                        "'token':'history-dict-token-secret'}，请稍后重试"
+                    ),
+                }
+            ],
+        )
+        self.plugin._get_config = lambda include_options=True: {
+            "enabled": False,
+            "client_secret": "config-client-secret",
+            "target_uid": "visible-config-target",
+        }
+
+        status = self.plugin._build_status(auto_refresh=False)
+
+        self._assert_public_value_has_no_secrets(status, secrets)
+        self.assertEqual("visible-pill-uid", status["pill_status"]["uid"])
+        self.assertEqual("visible-target-uid", status["pill_status"]["target_uid"])
+        self.assertEqual("visible-history-uid", status["history"][0]["uid"])
+        self.assertEqual("visible-config-target", status["config"]["target_uid"])
+        self.assertIn("普通中文状态", status["pill_status"]["nested"][0]["message"])
+        self.assertIn("处理失败", status["history"][0]["message"])
+        self.assertIn("请稍后重试", status["history"][0]["message"])
+
+    def test_refresh_store_and_api_responses_use_deep_public_filter(self):
+        secrets = (
+            "stored-cookie-secret",
+            "stored-token-secret",
+            "api-password-secret",
+            "api-session-secret",
+            "api-dict-cookie-secret",
+            "api-dict-token-secret",
+        )
+        stored_value = {
+            "uid": "stored-visible-uid",
+            "target_uid": "stored-visible-target",
+            "nested": [
+                {"cookie": "stored-cookie-secret"},
+                ({"refresh_token": "stored-token-secret"},),
+            ],
+        }
+        self.plugin._build_state_record = lambda *args, **kwargs: stored_value
+        self.plugin._build_ui_state = lambda *args, **kwargs: stored_value
+
+        refreshed = self.plugin._refresh_and_store_status({}, None, [])
+
+        for value in (
+            refreshed,
+            self.plugin.get_data("state"),
+            self.plugin.get_data("pill_status"),
+        ):
+            self._assert_public_value_has_no_secrets(value, secrets)
+            self.assertEqual("stored-visible-uid", value["uid"])
+            self.assertEqual("stored-visible-target", value["target_uid"])
+
+        api_value = {
+            "uid": "api-visible-uid",
+            "target_uid": "api-visible-target",
+            "password": "api-password-secret",
+            "nested": [
+                {"session": "api-session-secret"},
+                (
+                    "接口失败：{'Cookie':'api-dict-cookie-secret',"
+                    "'token':'api-dict-token-secret'}，普通中文保留",
+                ),
+            ],
+        }
+        action_result = {
+            "lines": [api_value["nested"][1][0]],
+            "pill_status": api_value,
+        }
+        self.plugin._build_status = lambda auto_refresh=False: api_value
+        self.plugin._refresh_state = lambda **kwargs: api_value
+        self.plugin.run_job = lambda *args, **kwargs: {
+            "success": True,
+            "message": api_value["nested"][1][0],
+            "pill_status": api_value,
+            "status": api_value,
+        }
+        self.plugin._manual_move_bricks = lambda: action_result
+        self.plugin._manual_clean_beach = lambda: action_result
+        self.plugin._manual_exchange_points = lambda payload: action_result
+        self.plugin._manual_craft_item = lambda payload: action_result
+        self.plugin._manual_craft_max_pill = lambda payload: action_result
+
+        responses = (
+            self.plugin._get_status(),
+            self.plugin._refresh_data(),
+            self.plugin._run_now(),
+            self.plugin._move_bricks_api({}),
+            self.plugin._clean_beach_api({}),
+            self.plugin._exchange_points_api({}),
+            self.plugin._craft_item_api({}),
+            self.plugin._craft_max_pill_api({}),
+            self.plugin._gift_item_api({}),
+            self.plugin._gift_stats_api({}),
+        )
+        for response in responses:
+            with self.subTest(response_keys=tuple(response)):
+                self._assert_public_value_has_no_secrets(response, secrets)
+                encoded = json.dumps(response, ensure_ascii=False, default=str)
+                self.assertIn("api-visible-uid", encoded)
+                self.assertIn("api-visible-target", encoded)
+                self.assertIn("普通中文保留", encoded)
 
     def test_ensure_cookie_reads_latest_object_and_dict_site_each_time(self):
         sites = [
@@ -855,6 +1029,76 @@ class VuePillLifecycleTests(unittest.TestCase):
         ):
             self.assertNotIn(secret, encoded)
             self.assertNotIn(secret, log_text)
+
+    def test_quoted_dictionary_api_message_and_logger_are_sanitized(self):
+        self._install_valid_site("sid=safe-site-cookie")
+        logger = RecordingLogger()
+        self.module.logger = logger
+        session = FakeSession(
+            {
+                "success": False,
+                "message": (
+                    "处理失败：{'Cookie':'single-cookie-secret',"
+                    "'token':'single-token-secret'}；"
+                    '{"access_token":"double-token-secret"}，请稍后重试'
+                ),
+            }
+        )
+        self.plugin._build_session = lambda: session
+        self.plugin._fetch_page_state = lambda current_session: self._gift_page()
+
+        result = self.plugin._gift_item_api(
+            {"item_name": "木材", "target_uid": "12345", "quantity": 1}
+        )
+
+        self.assertIs(result["success"], False)
+        self.assertIn("处理失败", result["message"])
+        self.assertIn("请稍后重试", result["message"])
+        rendered_logs = "\n".join(logger.entries)
+        raw_calls = json.dumps(logger.calls, ensure_ascii=False, default=str)
+        for secret in (
+            "single-cookie-secret",
+            "single-token-secret",
+            "double-token-secret",
+        ):
+            self.assertNotIn(secret, result["message"])
+            self.assertNotIn(secret, rendered_logs)
+            self.assertNotIn(secret, raw_calls)
+
+    def test_run_job_sanitizes_traceback_before_logging_arguments(self):
+        logger = RecordingLogger()
+        self.module.logger = logger
+        self.plugin._enabled = True
+        self.plugin._notify = False
+        self.plugin._record_error_retry = lambda detail: 1
+        self.plugin._ensure_cookie = lambda: (_ for _ in ()).throw(
+            RuntimeError(
+                "执行崩溃 Cookie: traceback-cookie-secret; "
+                "token=traceback-token-secret"
+            )
+        )
+
+        result = self.plugin.run_job(force=True, reason="test")
+
+        self.assertIs(result["success"], False)
+        traceback_calls = [
+            call for call in logger.calls if "异常堆栈" in str(call[1])
+        ]
+        self.assertEqual(1, len(traceback_calls))
+        rendered_logs = "\n".join(logger.entries)
+        raw_traceback_call = json.dumps(
+            traceback_calls,
+            ensure_ascii=False,
+            default=str,
+        )
+        self.assertIn("执行崩溃", rendered_logs)
+        for secret in (
+            "traceback-cookie-secret",
+            "traceback-token-secret",
+        ):
+            self.assertNotIn(secret, json.dumps(result, ensure_ascii=False, default=str))
+            self.assertNotIn(secret, rendered_logs)
+            self.assertNotIn(secret, raw_traceback_call)
 
 
 if __name__ == "__main__":
