@@ -153,6 +153,7 @@ class VuePillFrontendContractTest(unittest.TestCase):
         self.assertNotIn("force_ipv4", self.config_validation)
         self.assertNotIn("强制IPv4", self.config)
         self.assertNotIn("v0.2.0 升级提示", self.config)
+        self.assertNotIn("升级后请确认设置再手动开启", self.config)
         self.assertNotIn("siqi-migration-note", self.config)
 
     def test_config_validation_runtime_rejects_noncanonical_values(self):

@@ -83,7 +83,7 @@
         </div>
         <div class="siqi-switch-grid">
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enabled}" style="--siqi-accent:34,197,94">
-            <div class="siqi-switch-main"><v-icon icon="mdi-power-plug" size="18" /><div><div class="siqi-switch-label">启用插件</div><div class="siqi-switch-desc">开启定时任务；升级后请确认设置再手动开启</div></div></div>
+            <div class="siqi-switch-main"><v-icon icon="mdi-power-plug" size="18" /><div><div class="siqi-switch-label">启用插件</div><div class="siqi-switch-desc">开启后注册搬砖与沙滩自动任务</div></div></div>
             <v-switch v-model="config.enabled" color="green" hide-details density="compact" aria-label="启用插件" :disabled="formLocked" />
           </div>
           <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.notify}" style="--siqi-accent:59,130,246">

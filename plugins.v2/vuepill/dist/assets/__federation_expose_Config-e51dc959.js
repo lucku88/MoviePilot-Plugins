@@ -184,12 +184,12 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_3c6ab4bd_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_1aa036a6_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-3c6ab4bd"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-1aa036a6"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -218,7 +218,7 @@ const _hoisted_17 = { class: "siqi-switch-grid" };
 const _hoisted_18 = { class: "siqi-switch-main" };
 const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "启用插件"),
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "开启定时任务；升级后请确认设置再手动开启")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "开启后注册搬砖与沙滩自动任务")
 ], -1));
 const _hoisted_20 = { class: "siqi-switch-main" };
 const _hoisted_21 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
@@ -1045,6 +1045,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3c6ab4bd"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1aa036a6"]]);
 
 export { ConfigView as default };
