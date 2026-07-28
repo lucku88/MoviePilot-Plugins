@@ -12,6 +12,28 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / "plugins.v2" / "vuepill"
 PLUGIN_INIT = PLUGIN_DIR / "__init__.py"
 PACKAGE_NAME = "vuepill_lifecycle_under_test"
+MISSING_MODULE = object()
+STUBBED_DEPENDENCY_MODULES = (
+    "requests",
+    "requests.adapters",
+    "urllib3",
+    "urllib3.util",
+    "urllib3.util.connection",
+    "apscheduler",
+    "apscheduler.schedulers",
+    "apscheduler.schedulers.background",
+    "apscheduler.triggers",
+    "apscheduler.triggers.cron",
+    "app",
+    "app.core",
+    "app.core.config",
+    "app.db",
+    "app.db.site_oper",
+    "app.log",
+    "app.plugins",
+    "app.scheduler",
+    "app.schemas",
+)
 
 
 def _install_moviepilot_stubs():
@@ -194,20 +216,33 @@ def _install_moviepilot_stubs():
 
 
 def _load_plugin_module():
+    previous_modules = {
+        name: sys.modules.get(name, MISSING_MODULE)
+        for name in STUBBED_DEPENDENCY_MODULES
+    }
     _install_moviepilot_stubs()
-    for module_name in list(sys.modules):
-        if module_name == PACKAGE_NAME or module_name.startswith(f"{PACKAGE_NAME}."):
-            sys.modules.pop(module_name, None)
-    spec = importlib.util.spec_from_file_location(
-        PACKAGE_NAME,
-        PLUGIN_INIT,
-        submodule_search_locations=[str(PLUGIN_DIR)],
-    )
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    sys.modules[PACKAGE_NAME] = module
-    spec.loader.exec_module(module)
-    return module
+    try:
+        for module_name in list(sys.modules):
+            if module_name == PACKAGE_NAME or module_name.startswith(
+                f"{PACKAGE_NAME}."
+            ):
+                sys.modules.pop(module_name, None)
+        spec = importlib.util.spec_from_file_location(
+            PACKAGE_NAME,
+            PLUGIN_INIT,
+            submodule_search_locations=[str(PLUGIN_DIR)],
+        )
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[PACKAGE_NAME] = module
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        for name, previous in previous_modules.items():
+            if previous is MISSING_MODULE:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
 
 
 def make_plugin(module):
@@ -217,6 +252,37 @@ def make_plugin(module):
     plugin._cookie = ""
     plugin._cookie_source = "未同步"
     return plugin
+
+
+class VuePillDependencyIsolationTests(unittest.TestCase):
+    def test_load_plugin_module_restores_dependency_modules(self):
+        dependency_names = (
+            "requests",
+            "requests.adapters",
+            "urllib3",
+            "urllib3.util",
+            "urllib3.util.connection",
+            "apscheduler",
+            "app",
+        )
+        previous_modules = {
+            name: sys.modules.get(name, MISSING_MODULE)
+            for name in dependency_names
+        }
+
+        try:
+            _load_plugin_module()
+            for name, previous in previous_modules.items():
+                if previous is MISSING_MODULE:
+                    self.assertNotIn(name, sys.modules)
+                else:
+                    self.assertIs(previous, sys.modules.get(name))
+        finally:
+            for name, previous in previous_modules.items():
+                if previous is MISSING_MODULE:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = previous
 
 
 class FakeResponse:
