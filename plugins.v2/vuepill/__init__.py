@@ -108,10 +108,19 @@ def _public_api(method):
     return wrapped
 
 
+class _MigrationActivityStopped(RuntimeError):
+    pass
+
+
 def _migration_activity(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
-        self._enter_migration_activity()
+        try:
+            self._enter_migration_activity()
+        except _MigrationActivityStopped:
+            if method.__name__ == "_refresh_state":
+                raise
+            return self._activity_stopping_response()
         try:
             return method(self, *args, **kwargs)
         finally:
@@ -123,7 +132,10 @@ def _migration_activity(method):
 def _exclusive_action(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
-        self._enter_migration_activity()
+        try:
+            self._enter_migration_activity()
+        except _MigrationActivityStopped:
+            return self._activity_stopping_response()
         try:
             execution_lock = type(self)._execution_lock
             if not execution_lock.acquire(blocking=False):
@@ -255,6 +267,7 @@ class VuePill(_PluginBase):
     _migration_activity_local = threading.local()
     _active_migration_activities: int = 0
     _generation_reset_in_progress: bool = False
+    _migration_stopping: bool = False
     _plan_revision: int = 0
     _pending_execution_retry: Optional[Tuple[int, str]] = None
 
@@ -360,6 +373,8 @@ class VuePill(_PluginBase):
         with cls._migration_barrier:
             while cls._generation_reset_in_progress:
                 cls._migration_barrier.wait()
+            if cls._migration_stopping:
+                raise _MigrationActivityStopped("插件正在停止，已拒绝新任务")
             cls._active_migration_activities += 1
             local.depth = 1
 
@@ -396,6 +411,28 @@ class VuePill(_PluginBase):
         with cls._migration_barrier:
             cls._generation_reset_in_progress = False
             cls._migration_barrier.notify_all()
+
+    def _mark_migration_stopping(self):
+        cls = type(self)
+        with cls._migration_barrier:
+            cls._migration_stopping = True
+
+    def _wait_for_migration_activities(self):
+        cls = type(self)
+        with cls._migration_barrier:
+            while cls._active_migration_activities:
+                cls._migration_barrier.wait()
+
+    def _is_migration_stopping(self) -> bool:
+        cls = type(self)
+        with cls._migration_barrier:
+            return cls._migration_stopping
+
+    def _activity_stopping_response(self) -> Dict[str, Any]:
+        return {
+            "success": False,
+            "message": "插件正在停止，已拒绝新任务",
+        }
 
     def init_plugin(self, config: Optional[dict] = None):
         with self._lifecycle_lock:
@@ -462,7 +499,7 @@ class VuePill(_PluginBase):
             and running_scheduler
         )
         if not keep_running_scheduler:
-            self.stop_service()
+            self._stop_service_locked()
 
         if generation_mode in {"fresh", "reset"}:
             reset_required = generation_mode == "reset"
@@ -608,7 +645,11 @@ class VuePill(_PluginBase):
 
     def stop_service(self):
         with self._lifecycle_lock:
+            # A hot reload creates a new class; this loaded class stays retired.
+            self._mark_migration_stopping()
             self._stop_service_locked()
+        # manual_worker needs lifecycle for cleanup after its activity exits.
+        self._wait_for_migration_activities()
 
     def _stop_service_locked(self):
         scheduler = self._scheduler
@@ -1636,6 +1677,8 @@ class VuePill(_PluginBase):
     def _save_config(self, config_payload: dict):
         activity_entered = False
         with self._lifecycle_lock:
+            if self._is_migration_stopping():
+                return self._activity_stopping_response()
             current = self._get_config(include_options=False)
             normalized_payload, errors = self._validate_save_config_payload(
                 config_payload,

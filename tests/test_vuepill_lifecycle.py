@@ -440,7 +440,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.save_data("history", [{"title": "保留记录"}])
         self.plugin.save_data("next_run_time", "2026-07-30 00:00:00")
         self.plugin.save_data("next_trigger_mode", "run:beach")
-        self.plugin.stop_service = lambda: None
+        self.plugin._stop_service_locked = lambda: None
         config_writes = []
         self.plugin.update_config = lambda value: config_writes.append(dict(value))
 
@@ -469,7 +469,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.save_data("history", [{"title": "小版本记录"}])
         self.plugin.save_data("next_run_time", "2026-07-30 00:00:00")
         self.plugin.save_data("next_trigger_mode", "run:beach")
-        self.plugin.stop_service = lambda: None
+        self.plugin._stop_service_locked = lambda: None
         reset_calls = []
         self.plugin._reset_generation_data = lambda: reset_calls.append(True)
         config = {
@@ -514,7 +514,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 else:
                     plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
                 init_reached = threading.Event()
-                plugin.stop_service = lambda: init_reached.set()
+                plugin._stop_service_locked = lambda: init_reached.set()
                 init_finished = threading.Event()
                 errors = []
 
@@ -540,6 +540,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.assertTrue(finished_while_execution_locked)
                 self.assertFalse(init_thread.is_alive())
                 self.assertEqual([], errors)
+                self.assertIs(type(plugin)._migration_stopping, False)
 
     def test_different_or_invalid_generation_resets_and_records_current_generation(self):
         for stored_generation in (1, True, "invalid", "２", "٢"):
@@ -549,7 +550,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
                 plugin.save_data("history", [{"title": "旧代数据"}])
                 plugin.save_data("next_trigger_mode", "run:beach")
-                plugin.stop_service = lambda: None
+                plugin._stop_service_locked = lambda: None
                 generation_during_write = []
                 original_update_config = plugin.update_config
 
@@ -582,7 +583,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.save_data(self.plugin.CONFIG_GENERATION_KEY, 1)
         self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
         reset_reached = threading.Event()
-        self.plugin.stop_service = lambda: reset_reached.set()
+        self.plugin._stop_service_locked = lambda: reset_reached.set()
         execution_started = threading.Event()
         allow_execution_finish = threading.Event()
         execution_finished = threading.Event()
@@ -684,7 +685,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 init_finished.set()
 
         self.plugin._fetch_page_state = fetch_page
-        self.plugin.stop_service = lambda: reset_reached.set()
+        self.plugin._stop_service_locked = lambda: reset_reached.set()
         refresh_thread = threading.Thread(target=refresh)
         init_thread = threading.Thread(target=initialize)
         reset_finished_while_refreshing = False
@@ -715,11 +716,125 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
         )
 
+    def test_public_stop_drains_old_module_activity_before_hot_reload_reset(self):
+        old_module = _load_plugin_module()
+        old_plugin = make_plugin(old_module)
+        shared_data = {
+            old_plugin.CONFIG_GENERATION_KEY: 1,
+            old_plugin.LEGACY_MIGRATION_KEY: True,
+            "history": [{"title": "旧模块记录"}],
+        }
+        shared_config = {"enabled": True, "enable_beach": True}
+        old_plugin._data_store = shared_data
+        old_plugin._config_store = shared_config
+        old_plugin._enabled = True
+        old_plugin._enable_brick = False
+        old_plugin._enable_beach = True
+        old_plugin._notify = False
+        old_plugin._ensure_cookie = lambda: None
+        old_plugin._build_session = lambda: object()
+        old_plugin._reregister_plugin = lambda reason="": None
+        fetch_started = threading.Event()
+        allow_fetch_return = threading.Event()
+        stop_finished = threading.Event()
+        errors = []
+        refresh_result = {}
+        now_ts = int(old_plugin._aware_now().timestamp())
+        page = self._gift_page()
+        page["server_now"] = now_ts
+        page["brick"] = {"ready": False}
+        page["beach"] = {
+            "ready": False,
+            "next_ready_ts": now_ts + 3600,
+        }
+
+        def update_shared_config(config):
+            shared_config.clear()
+            shared_config.update(config)
+
+        def fetch_page(session):
+            fetch_started.set()
+            if not allow_fetch_return.wait(2):
+                raise RuntimeError("旧模块刷新等待超时")
+            return page
+
+        def refresh_old_module():
+            try:
+                refresh_result["value"] = old_plugin._refresh_data()
+            except BaseException as err:
+                errors.append(err)
+
+        def stop_old_module():
+            try:
+                old_plugin.stop_service()
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                stop_finished.set()
+
+        old_plugin.update_config = update_shared_config
+        old_plugin._fetch_page_state = fetch_page
+        refresh_thread = threading.Thread(target=refresh_old_module)
+        stop_thread = threading.Thread(target=stop_old_module)
+        refresh_thread.start()
+        self.assertTrue(fetch_started.wait(1))
+        stop_thread.start()
+        try:
+            stop_returned_while_refreshing = stop_finished.wait(0.2)
+        finally:
+            allow_fetch_return.set()
+            refresh_thread.join(3)
+            stop_thread.join(3)
+
+        self.assertFalse(stop_returned_while_refreshing)
+        self.assertFalse(refresh_thread.is_alive())
+        self.assertFalse(stop_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertIs(refresh_result["value"]["success"], True)
+        self.assertTrue(shared_data.get("state"))
+        self.assertTrue(shared_data.get("pill_status"))
+        self.assertTrue(shared_data.get("next_run_time"))
+
+        data_after_stop = json.loads(json.dumps(shared_data))
+        config_after_stop = dict(shared_config)
+        stopped_refresh = old_plugin._refresh_data()
+        self.assertIs(stopped_refresh["success"], False)
+        self.assertEqual(data_after_stop, shared_data)
+        stopped_save = old_plugin._save_config({"enabled": False})
+        self.assertIs(stopped_save["success"], False)
+        self.assertEqual(data_after_stop, shared_data)
+        self.assertEqual(config_after_stop, shared_config)
+
+        new_module = _load_plugin_module()
+        new_plugin = make_plugin(new_module)
+        new_plugin._data_store = shared_data
+        new_plugin._config_store = shared_config
+        new_plugin.update_config = update_shared_config
+
+        self.assertIsNot(type(old_plugin), type(new_plugin))
+        self.assertIs(type(new_plugin)._migration_stopping, False)
+        new_plugin.init_plugin({"enabled": True})
+
+        self.assertEqual([], shared_data.get("history"))
+        self.assertEqual({}, shared_data.get("state"))
+        self.assertEqual({}, shared_data.get("pill_status"))
+        self.assertEqual("", shared_data.get("next_run_time"))
+        self.assertEqual("", shared_data.get("next_trigger_time"))
+        self.assertEqual("", shared_data.get("next_trigger_mode"))
+        self.assertEqual(
+            new_plugin.CONFIG_GENERATION,
+            shared_data.get(new_plugin.CONFIG_GENERATION_KEY),
+        )
+        data_after_reset = json.loads(json.dumps(shared_data))
+        late_old_refresh = old_plugin._refresh_data()
+        self.assertIs(late_old_refresh["success"], False)
+        self.assertEqual(data_after_reset, shared_data)
+
     def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
         for config in (None, {}):
             with self.subTest(config=config):
                 plugin = make_plugin(self.module)
-                plugin.stop_service = lambda: None
+                plugin._stop_service_locked = lambda: None
                 reset_calls = []
                 plugin._reset_generation_data = lambda: reset_calls.append(True)
                 generation_during_write = []
@@ -771,7 +886,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             with self.subTest(key=key):
                 plugin = make_plugin(self.module)
                 plugin.save_data(key, old_value)
-                plugin.stop_service = lambda: None
+                plugin._stop_service_locked = lambda: None
 
                 plugin.init_plugin({})
 
@@ -805,7 +920,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.plugin.save_data(key, value)
 
         stop_calls = []
-        self.plugin.stop_service = lambda: stop_calls.append(True)
+        self.plugin._stop_service_locked = lambda: stop_calls.append(True)
         migration_state_during_write = []
         original_update_config = self.plugin.update_config
 
@@ -970,7 +1085,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.save_data("history", old_history)
         self.plugin.save_data("next_run_time", old_next_run)
         self.plugin.save_data("next_trigger_mode", "run:beach")
-        self.plugin.stop_service = lambda: None
+        self.plugin._stop_service_locked = lambda: None
         state_during_write = []
 
         def reject_update_config(config):
@@ -1017,7 +1132,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(self.plugin._config_store["enabled"], True)
 
     def test_migration_runs_once_only(self):
-        self.plugin.stop_service = lambda: None
+        self.plugin._stop_service_locked = lambda: None
         self.plugin.init_plugin({"enabled": True, "reserve_magic_pill_count": 0})
         self.plugin.save_data("history", [{"title": "新记录"}])
 
@@ -1062,7 +1177,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                     plugin.CONFIG_GENERATION_KEY,
                     plugin.CONFIG_GENERATION,
                 )
-                plugin.stop_service = lambda: None
+                plugin._stop_service_locked = lambda: None
 
                 plugin.init_plugin(
                     {
@@ -2219,6 +2334,64 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(1, len(old_scheduler.shutdown_calls))
         self.assertEqual([], replacement_scheduler.shutdown_calls)
         self.assertEqual([], registrations)
+
+    def test_public_stop_waits_without_deadlocking_manual_worker_cleanup(self):
+        scheduler = self.module.BackgroundScheduler()
+        scheduler.start()
+        self.plugin._scheduler = scheduler
+        self.plugin._enabled = True
+        self.plugin._reregister_plugin = lambda reason="": None
+        activity_started = threading.Event()
+        allow_activity_finish = threading.Event()
+        stop_finished = threading.Event()
+        errors = []
+
+        @self.module._migration_activity
+        def blocking_run_job(plugin, force=False, reason="manual"):
+            activity_started.set()
+            if not allow_activity_finish.wait(2):
+                raise RuntimeError("一次性任务等待超时")
+            plugin.save_data("history", [{"title": "旧任务收尾"}])
+            return {"success": True, "message": "任务完成"}
+
+        self.plugin.run_job = types.MethodType(blocking_run_job, self.plugin)
+
+        def run_manual_worker():
+            try:
+                self.plugin._manual_worker()
+            except BaseException as err:
+                errors.append(err)
+
+        def stop_plugin():
+            try:
+                self.plugin.stop_service()
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                stop_finished.set()
+
+        worker_thread = threading.Thread(target=run_manual_worker)
+        stop_thread = threading.Thread(target=stop_plugin)
+        worker_thread.start()
+        self.assertTrue(activity_started.wait(1))
+        stop_thread.start()
+        try:
+            stop_returned_while_worker_active = stop_finished.wait(0.2)
+        finally:
+            allow_activity_finish.set()
+            worker_thread.join(3)
+            stop_thread.join(3)
+
+        self.assertFalse(stop_returned_while_worker_active)
+        self.assertFalse(worker_thread.is_alive())
+        self.assertFalse(stop_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertIs(type(self.plugin)._migration_stopping, True)
+        self.assertIsNone(self.plugin._scheduler)
+        self.assertEqual(
+            [{"title": "旧任务收尾"}],
+            self.plugin.get_data("history"),
+        )
 
     def test_gift_item_rejects_invalid_quantity_stock_and_item(self):
         self._install_valid_site()

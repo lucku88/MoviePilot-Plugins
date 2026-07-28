@@ -393,7 +393,7 @@ class VueAutoCatchupTests(unittest.TestCase):
                 init_finished.set()
 
         plugin.run_job = run_job
-        plugin.stop_service = lambda: reset_reached.set()
+        plugin._stop_service_locked = lambda: reset_reached.set()
         bootstrap_thread = threading.Thread(target=bootstrap)
         init_thread = threading.Thread(target=initialize)
         reset_finished_while_catching_up = False
@@ -434,7 +434,7 @@ class VueAutoCatchupTests(unittest.TestCase):
             plugin.CONFIG_GENERATION,
         )
         plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
-        plugin.stop_service = lambda: None
+        plugin._stop_service_locked = lambda: None
         plugin._reregister_plugin = lambda reason="": None
         plugin._refresh_state = lambda reason, record_run=True: {
             "brick": {"ready": False},
@@ -488,7 +488,7 @@ class VueAutoCatchupTests(unittest.TestCase):
         save_thread.start()
         self.assertTrue(run_started.wait(1))
         plugin.save_data(plugin.CONFIG_GENERATION_KEY, 1)
-        plugin.stop_service = lambda: reset_reached.set()
+        plugin._stop_service_locked = lambda: reset_reached.set()
         init_thread.start()
         try:
             self.assertTrue(reset_reached.wait(1))
