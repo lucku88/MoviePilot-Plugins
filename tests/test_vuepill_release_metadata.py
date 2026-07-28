@@ -31,9 +31,32 @@ BUILD_INPUT_PATHS = (
 )
 EXPECTED_HISTORY = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
-    "加入手动赠送与赠礼统计；首次从 v0.1.x 升级时重置一次，后续小更新保留配置，"
-    "并移除强制 IPv4 限制以支持 IPv4/IPv6 自动访问。"
+    "加入手动赠送与赠礼统计；首次从 v0.1.x 升级到完整重写的 v0.2.0 时会重置旧配置、"
+    "执行历史和动态调度计划，后续小更新会保留配置、执行历史和动态调度计划；"
+    "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
+EXPECTED_HISTORY_KEYS = [
+    "v0.2.0",
+    "v0.1.18",
+    "v0.1.17",
+    "v0.1.16",
+    "v0.1.15",
+    "v0.1.14",
+    "v0.1.13",
+    "v0.1.12",
+    "v0.1.11",
+    "v0.1.10",
+    "v0.1.9",
+    "v0.1.8",
+    "v0.1.7",
+    "v0.1.6",
+    "v0.1.5",
+    "v0.1.4",
+    "v0.1.3",
+    "v0.1.2",
+    "v0.1.1",
+    "v0.1.0",
+]
 
 
 def read_json(path: Path):
@@ -436,8 +459,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
     def test_market_history_and_readme_describe_the_v020_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
-        self.assertEqual("v0.2.0", next(iter(history)))
-        self.assertNotIn("v0.2.1", history)
+        self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
         self.assertEqual(EXPECTED_HISTORY, history["v0.2.0"])
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -455,7 +477,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "赠出",
             "收到",
             "保存配置或 MoviePilot 重启后会自动补跑",
-            "仅首次从 `v0.1.x` 升级到本次完整重写的 `v0.2.0` 时会重置一次旧配置和执行历史",
+            "仅首次从 `v0.1.x` 升级到本次完整重写的 `v0.2.0` 时会重置一次旧配置、执行历史和动态调度计划",
             "完成迁移后，后续小更新会保留配置、执行历史和动态调度计划",
             "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。",
             "默认关闭",
