@@ -4,12 +4,12 @@ import errno
 import math
 import re
 import socket
+import ssl
 import time
-from collections.abc import Mapping
 from typing import Any, Callable, Iterable, Optional
+from urllib.parse import urlsplit
 
 import requests
-import urllib3.util.connection as urllib3_connection
 from requests.adapters import HTTPAdapter
 
 
@@ -48,8 +48,32 @@ class _NullLogger:
         return None
 
 
-def _ipv4_gai_family() -> socket.AddressFamily:
-    return socket.AF_INET
+class _IPv4HTTPAdapter(HTTPAdapter):
+    SOURCE_ADDRESS = ("0.0.0.0", 0)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        pool_kwargs["source_address"] = self.SOURCE_ADDRESS
+        return super().init_poolmanager(
+            connections,
+            maxsize,
+            block=block,
+            **pool_kwargs,
+        )
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        proxy_kwargs["source_address"] = self.SOURCE_ADDRESS
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
+
+
+class _ErrorSnapshot:
+    __slots__ = ("category", "type_name", "status_code", "retryable", "text")
+
+    def __init__(self, category, type_name, status_code, retryable, text):
+        self.category = category
+        self.type_name = type_name
+        self.status_code = status_code
+        self.retryable = retryable
+        self.text = text
 
 
 class VuePillSiteClient:
@@ -66,8 +90,27 @@ class VuePillSiteClient:
         }
     )
     NETWORK_RETRY_ACTIONS = frozenset({"sync_game_state", "move_brick"})
+    ACTION_PAYLOAD_FIELDS = {
+        "sync_game_state": frozenset(),
+        "move_brick": frozenset(),
+        "enter_beach": frozenset(),
+        "collect_all_trash": frozenset(),
+        "craft_item": frozenset({"recipe_id", "quantity"}),
+        "exchange_points": frozenset({"quantity"}),
+        "gift_item": frozenset(
+            {
+                "item_name",
+                "target_uid",
+                "uid",
+                "recipient_uid",
+                "quantity",
+            }
+        ),
+        "gift_stats": frozenset({"direction", "range"}),
+    }
     MAX_REQUEST_TIMES = 5
     DEFAULT_TIMEOUT = 10.0
+    RETRYABLE_HTTP_STATUSES = frozenset({500, 502, 503, 504})
 
     _RETRYABLE_ERRNOS = frozenset(
         value
@@ -116,11 +159,13 @@ class VuePillSiteClient:
             "jwt",
             "password",
             "refresh_token",
+            "recipient_uid",
             "session",
             "session_id",
             "sessionid",
             "sid",
             "token",
+            "target_uid",
             "uid",
             "user_id",
             "userid",
@@ -145,17 +190,39 @@ class VuePillSiteClient:
     _UID_SPACE_PATTERN = re.compile(
         r"(?i)(\b(?:uid|user[_-]?id)\b\s+)[A-Za-z0-9._-]+"
     )
-    _LOGIN_MARKERS = (
-        'type="password"',
-        "type='password'",
-        'name="password"',
-        "name='password'",
+    _LOGIN_TEXT_MARKERS = (
         "please log in",
         "please login",
         "sign in to continue",
         "\u8bf7\u5148\u767b\u5f55",
         "\u8bf7\u767b\u5f55\u540e",
         "\u672a\u767b\u5f55",
+    )
+    _GAME_PAGE_MARKERS = (
+        'id="dailybricks"',
+        "id='dailybricks'",
+        'id="brickfactory"',
+        "id='brickfactory'",
+        'id="inventorygrid"',
+        "id='inventorygrid'",
+        'id="magicpills"',
+        "id='magicpills'",
+        'id="beacharea"',
+        "id='beacharea'",
+    )
+    _PASSWORD_INPUT_PATTERN = re.compile(
+        r"<input\b[^>]*\btype\s*=\s*([\"']?)password\1",
+        re.IGNORECASE,
+    )
+    _LOGIN_FORM_PATTERN = re.compile(
+        r"<form\b[^>]*\baction\s*=\s*(?:"
+        r"[\"'][^\"']*(?:login|signin)[^\"']*[\"']|"
+        r"[^\s>]*(?:login|signin)[^\s>]*)",
+        re.IGNORECASE,
+    )
+    _INTEGER_TEXT_PATTERN = re.compile(r"^[+-]?\d+$")
+    _FLOAT_TEXT_PATTERN = re.compile(
+        r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$"
     )
 
     def __init__(
@@ -171,8 +238,8 @@ class VuePillSiteClient:
         logger,
     ):
         self.site_url = self._normalize_site_url(site_url)
-        self.cookie = self._to_text(cookie)
-        self.user_agent = self._to_text(user_agent)
+        self.cookie = cookie if type(cookie) is str else ""
+        self.user_agent = user_agent if type(user_agent) is str else ""
         self.timeout = self._normalize_positive_float(
             timeout,
             default=self.DEFAULT_TIMEOUT,
@@ -194,11 +261,9 @@ class VuePillSiteClient:
         self._cookie_secrets = self._extract_cookie_secrets(self.cookie)
 
     def build_session(self):
-        if self.force_ipv4:
-            urllib3_connection.allowed_gai_family = _ipv4_gai_family
-
         session = requests.Session()
-        adapter = HTTPAdapter(
+        adapter_class = _IPv4HTTPAdapter if self.force_ipv4 else HTTPAdapter
+        adapter = adapter_class(
             max_retries=0,
             pool_connections=10,
             pool_maxsize=10,
@@ -224,12 +289,14 @@ class VuePillSiteClient:
                 params={"_": int(time.time() * 1000)},
                 headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
                 timeout=self._request_timeout,
+                allow_redirects=False,
             )
             self._raise_for_http_error(response, "fetch_page_html")
             html = getattr(response, "text", None)
             if not isinstance(html, str) or not html.strip():
                 raise VuePillResponseError("fetch_page_html returned an empty response")
-            if self._looks_like_login_page(html):
+            response_url = self._safe_response_attribute(response, "url")
+            if self._looks_like_login_page(html, response_url):
                 raise VuePillResponseError(
                     "fetch_page_html returned an obvious login page"
                 )
@@ -248,20 +315,10 @@ class VuePillSiteClient:
         payload=None,
         retry_network=False,
     ):
-        action_name = action.strip() if isinstance(action, str) else ""
+        action_name = action if type(action) is str else ""
         if action_name not in self.ALLOWED_ACTIONS:
             raise VuePillActionError("Website action is not allowed")
-        if payload is not None and not isinstance(payload, Mapping):
-            raise VuePillConfigurationError("Action payload must be a mapping")
-
-        form = {"action": action_name}
-        sensitive_values = list(self._cookie_secrets)
-        for key, value in (payload or {}).items():
-            if key == "action" or value is None:
-                continue
-            form[key] = value
-            if self._is_sensitive_key(key):
-                sensitive_values.append(self._to_text(value))
+        form, sensitive_values = self._build_action_form(action_name, payload)
 
         allow_retry = (
             self._normalize_bool(retry_network)
@@ -274,27 +331,36 @@ class VuePillSiteClient:
                 self._page_url,
                 data=form,
                 timeout=self._request_timeout,
+                allow_redirects=False,
             )
             self._raise_for_http_error(
                 response,
                 action_name,
                 sensitive_values=sensitive_values,
             )
+            json_failed = False
             try:
                 result = response.json()
-            except ValueError:
+            except Exception:
+                json_failed = True
+                result = None
+            if json_failed:
                 raise VuePillResponseError(
                     f"Action {action_name} returned non-JSON data"
-                ) from None
-            if not isinstance(result, dict):
+                )
+            if type(result) is not dict:
                 raise VuePillResponseError(
                     f"Action {action_name} did not return a JSON object"
                 )
-            if result.get("success") is False:
-                message = result.get("message") or result.get("msg")
-                detail = self._sanitize(
-                    message or "Website rejected the action",
-                    sensitive_values,
+            if "success" not in result or type(result["success"]) is not bool:
+                raise VuePillResponseError(
+                    f"Action {action_name} returned an invalid success field"
+                )
+            if result["success"] is False:
+                detail = self._site_message(
+                    result,
+                    default="Website rejected the action",
+                    sensitive_values=sensitive_values,
                 )
                 raise VuePillActionError(f"Action {action_name} failed: {detail}")
             return result
@@ -305,6 +371,55 @@ class VuePillSiteClient:
             request_func=do_request,
             sensitive_values=sensitive_values,
         )
+
+    def _build_action_form(self, action: str, payload):
+        if payload is None:
+            payload = {}
+        elif type(payload) is not dict:
+            raise VuePillConfigurationError("Action payload must be a plain dict")
+
+        allowed_fields = self.ACTION_PAYLOAD_FIELDS[action]
+        form = {"action": action}
+        sensitive_values = list(self._cookie_secrets)
+        for key, value in payload.items():
+            if type(key) is not str:
+                raise VuePillConfigurationError(
+                    "Action payload keys must be plain strings"
+                )
+            if key.strip().lower() == "action":
+                raise VuePillConfigurationError(
+                    "Action payload must not contain an action field"
+                )
+            if key not in allowed_fields:
+                raise VuePillConfigurationError(
+                    "Action payload contains an unsupported field"
+                )
+            if not self._is_safe_payload_scalar(value):
+                raise VuePillConfigurationError(
+                    "Action payload contains an unsafe value"
+                )
+            form[key] = value
+            if self._is_sensitive_key(key):
+                sensitive_values.append(self._safe_scalar_text(value))
+        return form, tuple(sensitive_values)
+
+    @staticmethod
+    def _is_safe_payload_scalar(value: Any) -> bool:
+        if type(value) not in {str, int, float, bool}:
+            return False
+        return type(value) is not float or math.isfinite(value)
+
+    @staticmethod
+    def _safe_scalar_text(value: Any) -> str:
+        if type(value) is str:
+            return value
+        if type(value) is bool:
+            return "True" if value else "False"
+        if type(value) is int:
+            return str(value)
+        if type(value) is float and math.isfinite(value):
+            return repr(value)
+        return ""
 
     @property
     def _page_url(self) -> str:
@@ -328,22 +443,73 @@ class VuePillSiteClient:
             maximum=self.MAX_REQUEST_TIMES,
         )
         for attempt in range(1, attempts + 1):
+            snapshot = None
             try:
                 return request_func()
             except Exception as error:
-                retryable = self._is_retryable_network_error(error)
-                detail = self._sanitize_error(error, sensitive_values)
-                self._log_failure(operation, attempt, attempts, detail)
-                if not retryable or attempt >= attempts:
-                    if isinstance(error, VuePillSiteClientError):
-                        raise
-                    raise VuePillRequestError(
-                        f"{operation} request failed: {detail}"
-                    ) from None
-                wait_seconds = (self.retry_delay_ms * attempt) / 1000.0
-                if wait_seconds > 0:
-                    time.sleep(wait_seconds)
+                snapshot = self._snapshot_error(
+                    error,
+                    operation,
+                    sensitive_values,
+                )
+
+            self._log_failure(operation, attempt, attempts, snapshot.text)
+            if not snapshot.retryable or attempt >= attempts:
+                safe_error = self._exception_from_snapshot(snapshot)
+                safe_error.__cause__ = None
+                safe_error.__context__ = None
+                safe_error.__suppress_context__ = True
+                raise safe_error
+            wait_seconds = (self.retry_delay_ms * attempt) / 1000.0
+            if wait_seconds > 0:
+                time.sleep(wait_seconds)
         raise VuePillRequestError(f"{operation} request failed")
+
+    def _snapshot_error(
+        self,
+        error: Exception,
+        operation: str,
+        sensitive_values: Iterable[str],
+    ) -> _ErrorSnapshot:
+        if isinstance(error, VuePillConfigurationError):
+            category = "configuration"
+        elif isinstance(error, VuePillResponseError):
+            category = "response"
+        elif isinstance(error, VuePillActionError):
+            category = "action"
+        else:
+            category = "request"
+
+        status_code = None
+        if isinstance(error, VuePillRequestError):
+            status_code = self._valid_status_or_none(
+                self._safe_exception_attribute(error, "status_code")
+            )
+        if status_code is None:
+            status_code = self._response_status_code(
+                self._safe_exception_attribute(error, "response")
+            )
+
+        detail = self._safe_exception_text(error, sensitive_values)
+        if not isinstance(error, VuePillSiteClientError):
+            detail = f"{operation} request failed: {detail}"
+        return _ErrorSnapshot(
+            category=category,
+            type_name=self._sanitize(type(error).__name__, sensitive_values),
+            status_code=status_code,
+            retryable=self._is_retryable_network_error(error),
+            text=detail,
+        )
+
+    @staticmethod
+    def _exception_from_snapshot(snapshot: _ErrorSnapshot):
+        if snapshot.category == "configuration":
+            return VuePillConfigurationError(snapshot.text)
+        if snapshot.category == "response":
+            return VuePillResponseError(snapshot.text)
+        if snapshot.category == "action":
+            return VuePillActionError(snapshot.text)
+        return VuePillRequestError(snapshot.text, status_code=snapshot.status_code)
 
     def _raise_for_http_error(
         self,
@@ -351,28 +517,14 @@ class VuePillSiteClient:
         operation: str,
         sensitive_values: Iterable[str] = (),
     ) -> None:
-        status_code = self._response_status_code(response)
-        if status_code is None:
-            raise_for_status = getattr(response, "raise_for_status", None)
-            if callable(raise_for_status):
-                try:
-                    raise_for_status()
-                except requests.exceptions.RequestException as error:
-                    status_code = self._response_status_code(
-                        getattr(error, "response", None)
-                    )
-                    detail = self._sanitize_error(error, sensitive_values)
-                    raise VuePillRequestError(
-                        f"{operation} request failed: {detail}",
-                        status_code=status_code,
-                    ) from None
-            return
-        if status_code < 400:
+        status_code = self._validated_response_status(response)
+        if 200 <= status_code < 300:
             return
 
         detail = self._response_message(response)
         if not detail:
-            detail = getattr(response, "reason", None) or "HTTP error"
+            reason = self._safe_response_attribute(response, "reason")
+            detail = reason if type(reason) is str and reason.strip() else "HTTP error"
         safe_detail = self._sanitize(detail, sensitive_values)
         raise VuePillRequestError(
             f"{operation} request failed (HTTP {status_code}): {safe_detail}",
@@ -380,84 +532,160 @@ class VuePillSiteClient:
         )
 
     @staticmethod
+    def _validated_response_status(response) -> int:
+        invalid = False
+        try:
+            value = getattr(response, "status_code", None)
+        except Exception:
+            invalid = True
+            value = None
+        if invalid or type(value) is not int or not 100 <= value <= 599:
+            raise VuePillResponseError("Response contains an invalid HTTP status")
+        return value
+
+    @staticmethod
+    def _valid_status_or_none(value) -> Optional[int]:
+        if type(value) is int and 100 <= value <= 599:
+            return value
+        return None
+
+    @staticmethod
     def _response_status_code(response) -> Optional[int]:
         if response is None:
             return None
         try:
             value = getattr(response, "status_code", None)
-            return int(value) if value is not None else None
-        except (TypeError, ValueError):
+            if type(value) is int and 100 <= value <= 599:
+                return value
+            return None
+        except Exception:
             return None
 
-    @staticmethod
-    def _response_message(response) -> str:
+    def _response_message(self, response) -> str:
+        json_failed = False
         try:
             data = response.json()
-        except (AttributeError, TypeError, ValueError):
+        except Exception:
+            json_failed = True
+            data = None
+        if json_failed or type(data) is not dict:
             return ""
-        if not isinstance(data, dict):
-            return ""
-        message = data.get("message") or data.get("msg")
-        return str(message).strip() if message is not None else ""
+        return self._site_message(data, default="", sensitive_values=())
 
     def _is_retryable_network_error(self, error: Exception) -> bool:
-        if isinstance(error, VuePillRequestError):
-            status_code = error.status_code
-            return status_code is not None and 500 <= status_code < 600
         if isinstance(
             error,
             (VuePillConfigurationError, VuePillResponseError, VuePillActionError),
         ):
             return False
-        if isinstance(
-            error,
-            (
-                requests.exceptions.Timeout,
-                requests.exceptions.ConnectionError,
-                TimeoutError,
-                ConnectionError,
-                ConnectionResetError,
-                ConnectionAbortedError,
-                BrokenPipeError,
-            ),
-        ):
-            return True
 
-        status_code = self._response_status_code(getattr(error, "response", None))
-        if status_code is not None:
-            return 500 <= status_code < 600
+        chain = tuple(self._iter_exception_chain(error))
+        if any(self._is_ssl_error(candidate) for candidate in chain):
+            return False
 
-        for candidate in (error, getattr(error, "__cause__", None)):
-            if candidate is None:
-                continue
-            error_number = getattr(candidate, "errno", None)
-            if error_number in self._RETRYABLE_ERRNOS:
+        for candidate in chain:
+            status_code = None
+            if isinstance(candidate, VuePillRequestError):
+                status_code = self._valid_status_or_none(
+                    self._safe_exception_attribute(candidate, "status_code")
+                )
+            if status_code is None:
+                status_code = self._response_status_code(
+                    self._safe_exception_attribute(candidate, "response")
+                )
+            if status_code is not None:
+                return status_code in self.RETRYABLE_HTTP_STATUSES
+
+        request_timeout = getattr(requests.exceptions, "Timeout", ())
+        request_connection = getattr(requests.exceptions, "ConnectionError", ())
+        request_exception = getattr(requests.exceptions, "RequestException", ())
+        for candidate in chain:
+            if isinstance(
+                candidate,
+                (
+                    request_timeout,
+                    request_connection,
+                    TimeoutError,
+                    ConnectionError,
+                    ConnectionResetError,
+                    ConnectionAbortedError,
+                    BrokenPipeError,
+                ),
+            ):
+                return True
+
+            error_number = self._safe_exception_attribute(candidate, "errno")
+            if (
+                type(error_number) is int
+                and error_number in self._RETRYABLE_ERRNOS
+            ):
                 return True
             for attribute in ("code", "winerror"):
-                code = getattr(candidate, attribute, None)
-                if isinstance(code, str) and code.upper() in self._RETRYABLE_CODES:
+                code = self._safe_exception_attribute(candidate, attribute)
+                if type(code) is str and code.upper() in self._RETRYABLE_CODES:
                     return True
-                if code in self._RETRYABLE_ERRNOS:
+                if type(code) is int and code in self._RETRYABLE_ERRNOS:
                     return True
+            if isinstance(candidate, (OSError, request_exception)):
+                message = self._safe_exception_text(candidate).lower()
+                if any(
+                    marker in message
+                    for marker in (
+                        "broken pipe",
+                        "connection aborted",
+                        "connection refused",
+                        "connection reset",
+                        "connection timed out",
+                        "eai_again",
+                        "host unreachable",
+                        "name resolution",
+                        "network is unreachable",
+                        "read timed out",
+                        "remote disconnected",
+                    )
+                ):
+                    return True
+        return False
 
-        message = str(error).lower()
-        return any(
-            marker in message
-            for marker in (
-                "broken pipe",
-                "connection aborted",
-                "connection refused",
-                "connection reset",
-                "connection timed out",
-                "eai_again",
-                "host unreachable",
-                "name resolution",
-                "network is unreachable",
-                "read timed out",
-                "remote disconnected",
-                "temporarily unavailable",
-            )
-        )
+    @staticmethod
+    def _iter_exception_chain(error: Exception):
+        pending = [error]
+        seen = set()
+        while pending and len(seen) < 32:
+            candidate = pending.pop(0)
+            identity = id(candidate)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            yield candidate
+            for attribute in ("__cause__", "__context__"):
+                try:
+                    nested = getattr(candidate, attribute, None)
+                except Exception:
+                    nested = None
+                if isinstance(nested, BaseException):
+                    pending.append(nested)
+
+    @staticmethod
+    def _is_ssl_error(error: Exception) -> bool:
+        requests_ssl_error = getattr(requests.exceptions, "SSLError", None)
+        if requests_ssl_error is not None and isinstance(error, requests_ssl_error):
+            return True
+        return isinstance(error, (ssl.SSLError, ssl.CertificateError))
+
+    @staticmethod
+    def _safe_exception_attribute(error: Exception, attribute: str):
+        try:
+            return getattr(error, attribute, None)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _safe_response_attribute(response, attribute: str):
+        try:
+            return getattr(response, attribute, None)
+        except Exception:
+            return None
 
     def _log_failure(
         self,
@@ -477,25 +705,47 @@ class VuePillSiteClient:
         except Exception:
             return None
 
-    def _sanitize_error(
+    def _safe_exception_text(
         self,
         error: Exception,
         sensitive_values: Iterable[str] = (),
     ) -> str:
-        detail = str(error).strip() or error.__class__.__name__
+        try:
+            detail = str(error)
+        except Exception:
+            detail = type(error).__name__
+        if type(detail) is not str or not detail.strip():
+            detail = type(error).__name__
         return self._sanitize(detail, sensitive_values)
+
+    def _site_message(
+        self,
+        data: dict,
+        default: str,
+        sensitive_values: Iterable[str],
+    ) -> str:
+        for key in ("message", "msg"):
+            value = data.get(key)
+            if type(value) is str and value.strip():
+                return self._sanitize(value, sensitive_values)
+        return default
 
     def _sanitize(
         self,
         value: Any,
         sensitive_values: Iterable[str] = (),
     ) -> str:
-        text = self._to_text(value)
+        if type(value) is str:
+            text = value
+        elif type(value) in {int, float, bool}:
+            text = self._safe_scalar_text(value)
+        else:
+            text = type(value).__name__
         secrets = set(self._cookie_secrets)
         secrets.update(
-            self._to_text(secret)
+            secret
             for secret in sensitive_values
-            if self._to_text(secret)
+            if type(secret) is str and secret
         )
         for secret in sorted(secrets, key=len, reverse=True):
             text = text.replace(secret, "[REDACTED]")
@@ -509,11 +759,32 @@ class VuePillSiteClient:
         return text
 
     @classmethod
-    def _looks_like_login_page(cls, html: str) -> bool:
+    def _looks_like_login_page(cls, html: str, response_url: Any = "") -> bool:
         lowered = html.lower()
-        if any(marker in lowered for marker in cls._LOGIN_MARKERS):
+        if type(response_url) is str:
+            parse_failed = False
+            try:
+                path = urlsplit(response_url).path.lower()
+            except (TypeError, ValueError):
+                parse_failed = True
+                path = ""
+            if not parse_failed:
+                path_parts = {part for part in path.split("/") if part}
+                if path_parts.intersection(
+                    {"login", "login.php", "signin", "signin.php"}
+                ):
+                    return True
+
+        if any(marker in lowered for marker in cls._LOGIN_TEXT_MARKERS):
             return True
-        return "<form" in lowered and "login.php" in lowered
+        game_marker_count = sum(
+            marker in lowered for marker in cls._GAME_PAGE_MARKERS
+        )
+        if game_marker_count >= 2:
+            return False
+        has_password_input = bool(cls._PASSWORD_INPUT_PATTERN.search(html))
+        has_login_form = bool(cls._LOGIN_FORM_PATTERN.search(html))
+        return has_password_input and has_login_form
 
     @classmethod
     def _is_sensitive_key(cls, key: Any) -> bool:
@@ -536,13 +807,56 @@ class VuePillSiteClient:
 
     @staticmethod
     def _normalize_site_url(value: Any) -> str:
-        site_url = VuePillSiteClient._to_text(value).strip().rstrip("/")
-        if not site_url:
-            raise VuePillConfigurationError("site_url must not be empty")
-        return site_url
+        if type(value) is not str:
+            raise VuePillConfigurationError("site_url must be an HTTP origin")
+        site_url = value.strip()
+        parse_failed = False
+        try:
+            parsed = urlsplit(site_url)
+            parsed_port = parsed.port
+        except (TypeError, ValueError):
+            parse_failed = True
+            parsed = None
+            parsed_port = None
+
+        invalid = (
+            parse_failed
+            or not site_url
+            or any(
+                ord(character) < 32 or ord(character) == 127
+                for character in site_url
+            )
+            or any(character.isspace() for character in site_url)
+            or "\\" in site_url
+            or "?" in site_url
+            or "#" in site_url
+            or parsed.scheme.lower() not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query != ""
+            or parsed.fragment != ""
+            or parsed.path not in {"", "/"}
+            or parsed.netloc.endswith(":")
+        )
+        if invalid:
+            raise VuePillConfigurationError("site_url must be an HTTP origin")
+        netloc = parsed.netloc
+        if parsed_port is not None and not 1 <= parsed_port <= 65535:
+            raise VuePillConfigurationError("site_url must be an HTTP origin")
+        return f"{parsed.scheme.lower()}://{netloc}"
 
     @staticmethod
     def _normalize_positive_float(value: Any, default: float) -> float:
+        if type(value) is bool:
+            return float(default)
+        if type(value) is str:
+            stripped = value.strip()
+            if not VuePillSiteClient._FLOAT_TEXT_PATTERN.fullmatch(stripped):
+                return float(default)
+            value = stripped
+        elif type(value) not in {int, float}:
+            return float(default)
         try:
             normalized = float(value)
         except (TypeError, ValueError, OverflowError):
@@ -558,9 +872,25 @@ class VuePillSiteClient:
         minimum: int,
         maximum: Optional[int] = None,
     ) -> int:
-        try:
-            normalized = int(float(value))
-        except (TypeError, ValueError, OverflowError):
+        if type(value) is bool:
+            normalized = default
+        elif type(value) is int:
+            normalized = value
+        elif type(value) is float:
+            if not math.isfinite(value) or not value.is_integer():
+                normalized = default
+            else:
+                normalized = int(value)
+        elif type(value) is str:
+            stripped = value.strip()
+            if VuePillSiteClient._INTEGER_TEXT_PATTERN.fullmatch(stripped):
+                try:
+                    normalized = int(stripped)
+                except (ValueError, OverflowError):
+                    normalized = default
+            else:
+                normalized = default
+        else:
             normalized = default
         normalized = max(minimum, normalized)
         if maximum is not None:
@@ -569,15 +899,23 @@ class VuePillSiteClient:
 
     @staticmethod
     def _normalize_bool(value: Any) -> bool:
-        if isinstance(value, str):
+        if type(value) is bool:
+            return value
+        if type(value) is int:
+            return value == 1 if value in {0, 1} else False
+        if type(value) is str:
             normalized = value.strip().lower()
             if normalized in {"1", "true", "yes", "on", "enabled"}:
                 return True
             if normalized in {"0", "false", "no", "off", "disabled", ""}:
                 return False
             return False
-        return bool(value)
+        return False
 
     @staticmethod
     def _to_text(value: Any) -> str:
-        return "" if value is None else str(value)
+        if type(value) is str:
+            return value
+        if type(value) in {int, float, bool}:
+            return VuePillSiteClient._safe_scalar_text(value)
+        return ""

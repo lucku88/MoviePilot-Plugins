@@ -3,6 +3,7 @@ import socket
 import sys
 import types
 import unittest
+from collections import UserDict
 from pathlib import Path
 from unittest import mock
 
@@ -32,21 +33,54 @@ def _install_http_dependency_stubs():
     class RequestsConnectionError(RequestException):
         pass
 
+    class SSLError(RequestsConnectionError):
+        pass
+
     exceptions_module.RequestException = RequestException
     exceptions_module.Timeout = Timeout
     exceptions_module.ConnectionError = RequestsConnectionError
+    exceptions_module.SSLError = SSLError
     requests_module.exceptions = exceptions_module
     sys.modules["requests.exceptions"] = exceptions_module
 
     adapters_module = types.ModuleType("requests.adapters")
 
     class HTTPAdapter:
-        def __init__(self, max_retries=0, **kwargs):
+        def __init__(
+            self,
+            max_retries=0,
+            pool_connections=10,
+            pool_maxsize=10,
+            pool_block=False,
+            **kwargs,
+        ):
             if hasattr(max_retries, "total"):
                 self.max_retries = max_retries
             else:
                 self.max_retries = types.SimpleNamespace(total=max_retries)
             self.kwargs = kwargs
+            self.proxy_manager = {}
+            self.init_poolmanager(
+                pool_connections,
+                pool_maxsize,
+                block=pool_block,
+            )
+
+        def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+            self.poolmanager = types.SimpleNamespace(
+                connections=connections,
+                maxsize=maxsize,
+                block=block,
+                connection_pool_kw=dict(pool_kwargs),
+            )
+
+        def proxy_manager_for(self, proxy, **proxy_kwargs):
+            manager = types.SimpleNamespace(
+                proxy=proxy,
+                proxy_kwargs=dict(proxy_kwargs),
+            )
+            self.proxy_manager[proxy] = manager
+            return manager
 
     adapters_module.HTTPAdapter = HTTPAdapter
     sys.modules["requests.adapters"] = adapters_module
@@ -103,14 +137,18 @@ class FakeResponse:
         json_data=MISSING,
         json_error=None,
         reason="",
+        url="https://example.test/mowan.php",
     ):
         self.status_code = status_code
         self.text = text
         self._json_data = json_data
         self._json_error = json_error
         self.reason = reason
+        self.url = url
+        self.json_calls = 0
 
     def json(self):
+        self.json_calls += 1
         if self._json_error is not None:
             raise self._json_error
         if self._json_data is MISSING:
@@ -199,6 +237,13 @@ class VuePillSiteClientTests(unittest.TestCase):
         }
         values.update(overrides)
         return self.module.VuePillSiteClient(**values), logger
+
+    def assert_exception_is_fully_redacted(self, error, *secrets):
+        self.assertIsNone(error.__cause__)
+        self.assertIsNone(error.__context__)
+        text = str(error)
+        for secret in secrets:
+            self.assertNotIn(secret, text)
 
     def test_site_client_module_exists(self):
         self.assertTrue(CLIENT_PATH.exists(), "site_client.py has not been created")
@@ -348,6 +393,116 @@ class VuePillSiteClientTests(unittest.TestCase):
 
         self.assertEqual(1, len(session.post_calls))
 
+    def test_post_disables_redirects_and_rejects_307_308(self):
+        client, _ = self.make_client(retry_times=5)
+
+        for status_code in (307, 308):
+            with self.subTest(status_code=status_code):
+                redirect = FakeResponse(
+                    status_code=status_code,
+                    json_data={"message": "redirect refused"},
+                    reason="Temporary Redirect",
+                )
+                session = FakeSession(
+                    post_results=[
+                        redirect,
+                        FakeResponse(json_data={"success": True}),
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    self.module.VuePillSiteClientError,
+                    f"HTTP {status_code}",
+                ):
+                    client.post_action(
+                        session,
+                        "gift_item",
+                        payload={"item_name": "stone"},
+                        retry_network=True,
+                    )
+                self.assertEqual(1, len(session.post_calls))
+                _, kwargs = session.post_calls[0]
+                self.assertIs(kwargs["allow_redirects"], False)
+                self.assertEqual(1, redirect.json_calls)
+
+    def test_get_disables_redirects_and_rejects_3xx(self):
+        client, _ = self.make_client(retry_times=5)
+        redirect = FakeResponse(
+            status_code=302,
+            json_data={"message": "login redirect"},
+            reason="Found",
+            url="https://example.test/login.php",
+        )
+        session = FakeSession(
+            get_results=[redirect, FakeResponse(text="<html>game</html>")]
+        )
+
+        with self.assertRaisesRegex(
+            self.module.VuePillSiteClientError,
+            "HTTP 302",
+        ):
+            client.fetch_page_html(session)
+
+        self.assertEqual(1, len(session.get_calls))
+        _, kwargs = session.get_calls[0]
+        self.assertIs(kwargs["allow_redirects"], False)
+        self.assertEqual(1, redirect.json_calls)
+
+    def test_http_status_must_be_plain_integer_from_100_to_599(self):
+        client, _ = self.make_client(retry_times=5)
+        invalid_statuses = (True, False, 99, 600, "200", None)
+
+        for status_code in invalid_statuses:
+            with self.subTest(status_code=status_code):
+                response = FakeResponse(
+                    status_code=status_code,
+                    json_data={"success": True},
+                )
+                session = FakeSession(post_results=[response])
+                with self.assertRaisesRegex(
+                    self.module.VuePillSiteClientError,
+                    "status",
+                ):
+                    client.post_action(session, "sync_game_state")
+                self.assertEqual(1, len(session.post_calls))
+                self.assertEqual(0, response.json_calls)
+
+    def test_all_non_2xx_statuses_fail_before_success_parsing(self):
+        client, _ = self.make_client(retry_times=1)
+
+        for status_code in (100, 199, 300, 399, 400, 499, 501, 505):
+            with self.subTest(status_code=status_code):
+                response = FakeResponse(
+                    status_code=status_code,
+                    json_data={"success": True, "message": "not successful"},
+                )
+                session = FakeSession(post_results=[response])
+                with self.assertRaisesRegex(
+                    self.module.VuePillSiteClientError,
+                    f"HTTP {status_code}",
+                ):
+                    client.post_action(session, "sync_game_state")
+                self.assertEqual(1, response.json_calls)
+
+    def test_each_post_response_json_is_read_only_once(self):
+        client, _ = self.make_client(retry_times=2)
+        busy = FakeResponse(
+            status_code=503,
+            json_data={"message": "busy"},
+        )
+        success = FakeResponse(json_data={"success": True})
+        session = FakeSession(post_results=[busy, success])
+
+        with mock.patch.object(self.module.time, "sleep"):
+            result = client.post_action(
+                session,
+                "sync_game_state",
+                retry_network=True,
+            )
+
+        self.assertIs(result["success"], True)
+        self.assertEqual(1, busy.json_calls)
+        self.assertEqual(1, success.json_calls)
+
     def test_non_json_response_does_not_retry(self):
         client, _ = self.make_client(retry_times=5)
         session = FakeSession(
@@ -383,6 +538,319 @@ class VuePillSiteClientTests(unittest.TestCase):
             client.post_action(session, "move_brick", retry_network=True)
 
         self.assertEqual(1, len(session.post_calls))
+
+    def test_success_field_must_exist_and_be_plain_bool(self):
+        client, _ = self.make_client(retry_times=5)
+        invalid_results = (
+            {},
+            {"success": 0},
+            {"success": 1},
+            {"success": None},
+            {"success": "false"},
+            {"success": "true"},
+        )
+
+        for result in invalid_results:
+            with self.subTest(result=result):
+                response = FakeResponse(json_data=result)
+                session = FakeSession(
+                    post_results=[
+                        response,
+                        FakeResponse(json_data={"success": True}),
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    self.module.VuePillResponseError,
+                    "success",
+                ):
+                    client.post_action(
+                        session,
+                        "sync_game_state",
+                        retry_network=True,
+                    )
+                self.assertEqual(1, len(session.post_calls))
+                self.assertEqual(1, response.json_calls)
+
+    def test_retry_status_matrix_only_allows_selected_5xx(self):
+        client, _ = self.make_client(retry_times=2)
+
+        for status_code in (500, 502, 503, 504):
+            with self.subTest(status_code=status_code, retryable=True):
+                session = FakeSession(
+                    post_results=[
+                        FakeResponse(
+                            status_code=status_code,
+                            json_data={"message": "retry"},
+                        ),
+                        FakeResponse(json_data={"success": True}),
+                    ]
+                )
+                with mock.patch.object(self.module.time, "sleep"):
+                    result = client.post_action(
+                        session,
+                        "sync_game_state",
+                        retry_network=True,
+                    )
+                self.assertIs(result["success"], True)
+                self.assertEqual(2, len(session.post_calls))
+
+        for status_code in (400, 429, 501, 505):
+            with self.subTest(status_code=status_code, retryable=False):
+                session = FakeSession(
+                    post_results=[
+                        FakeResponse(
+                            status_code=status_code,
+                            json_data={"message": "do not retry"},
+                        ),
+                        FakeResponse(json_data={"success": True}),
+                    ]
+                )
+                with self.assertRaises(self.module.VuePillSiteClientError):
+                    client.post_action(
+                        session,
+                        "sync_game_state",
+                        retry_network=True,
+                    )
+                self.assertEqual(1, len(session.post_calls))
+
+    def test_get_retry_status_matrix_only_allows_selected_5xx(self):
+        client, _ = self.make_client(retry_times=2)
+
+        for status_code in (500, 502, 503, 504):
+            with self.subTest(status_code=status_code, retryable=True):
+                session = FakeSession(
+                    get_results=[
+                        FakeResponse(
+                            status_code=status_code,
+                            json_data={"message": "retry"},
+                        ),
+                        FakeResponse(text="<html>game</html>"),
+                    ]
+                )
+                with mock.patch.object(self.module.time, "sleep"):
+                    result = client.fetch_page_html(session)
+                self.assertEqual("<html>game</html>", result)
+                self.assertEqual(2, len(session.get_calls))
+
+        for status_code in (307, 308, 400, 429, 501, 505):
+            with self.subTest(status_code=status_code, retryable=False):
+                session = FakeSession(
+                    get_results=[
+                        FakeResponse(
+                            status_code=status_code,
+                            json_data={"message": "do not retry"},
+                        ),
+                        FakeResponse(text="<html>game</html>"),
+                    ]
+                )
+                with self.assertRaises(self.module.VuePillSiteClientError):
+                    client.fetch_page_html(session)
+                self.assertEqual(1, len(session.get_calls))
+
+    def test_unsafe_post_actions_do_not_retry_retryable_http_status(self):
+        client, _ = self.make_client(retry_times=5)
+
+        for action in (
+            "enter_beach",
+            "collect_all_trash",
+            "craft_item",
+            "exchange_points",
+            "gift_item",
+            "gift_stats",
+        ):
+            with self.subTest(action=action):
+                session = FakeSession(
+                    post_results=[
+                        FakeResponse(
+                            status_code=503,
+                            json_data={"message": "retryable status"},
+                        ),
+                        FakeResponse(json_data={"success": True}),
+                    ]
+                )
+                with self.assertRaises(self.module.VuePillRequestError):
+                    client.post_action(
+                        session,
+                        action,
+                        retry_network=True,
+                    )
+                self.assertEqual(1, len(session.post_calls))
+
+    def test_ssl_and_non_network_runtime_errors_do_not_retry(self):
+        client, _ = self.make_client(retry_times=5)
+        errors = (
+            self.module.requests.exceptions.SSLError(
+                "certificate verify failed token=SSL-SECRET"
+            ),
+            RuntimeError("temporarily unavailable token=RUNTIME-SECRET"),
+        )
+
+        for error in errors:
+            with self.subTest(error_type=type(error).__name__):
+                logger = CapturingLogger()
+                client, _ = self.make_client(
+                    retry_times=5,
+                    logger=logger,
+                )
+                session = FailingSession(error)
+                with self.assertRaises(self.module.VuePillSiteClientError) as raised:
+                    client.post_action(
+                        session,
+                        "sync_game_state",
+                        retry_network=True,
+                    )
+                self.assertEqual(1, len(session.post_calls))
+                self.assert_exception_is_fully_redacted(
+                    raised.exception,
+                    "SSL-SECRET",
+                    "RUNTIME-SECRET",
+                )
+                combined = "\n".join(logger.messages)
+                self.assertNotIn("SSL-SECRET", combined)
+                self.assertNotIn("RUNTIME-SECRET", combined)
+
+    def test_nested_ssl_error_never_retries_even_with_retryable_status(self):
+        client, _ = self.make_client(retry_times=5)
+        ssl_error = self.module.requests.exceptions.SSLError(
+            "certificate verify failed token=NESTED-SSL-SECRET"
+        )
+        outer = self.module.VuePillRequestError(
+            "request wrapper",
+            status_code=503,
+        )
+        outer.__cause__ = ssl_error
+        session = FailingSession(outer)
+
+        with self.assertRaises(self.module.VuePillRequestError) as raised:
+            client.post_action(
+                session,
+                "sync_game_state",
+                retry_network=True,
+            )
+
+        self.assertEqual(1, len(session.post_calls))
+        self.assert_exception_is_fully_redacted(
+            raised.exception,
+            "NESTED-SSL-SECRET",
+        )
+
+    def test_hostile_network_error_attributes_cannot_escape_or_leak(self):
+        status_secret = "HOSTILE-STATUS-SECRET"
+        errno_secret = "HOSTILE-ERRNO-SECRET"
+
+        class ExplodingHash:
+            def __hash__(self):
+                raise RuntimeError(f"token={errno_secret}")
+
+        class HostileRequestError(self.module.VuePillRequestError):
+            def __init__(self):
+                Exception.__init__(self, "hostile request wrapper")
+
+            @property
+            def status_code(self):
+                raise RuntimeError(f"token={status_secret}")
+
+            @property
+            def errno(self):
+                return ExplodingHash()
+
+        client, logger = self.make_client(retry_times=5)
+        session = FailingSession(HostileRequestError())
+
+        with self.assertRaises(self.module.VuePillRequestError) as raised:
+            client.post_action(
+                session,
+                "sync_game_state",
+                retry_network=True,
+            )
+
+        self.assertEqual(1, len(session.post_calls))
+        self.assert_exception_is_fully_redacted(
+            raised.exception,
+            status_secret,
+            errno_secret,
+        )
+        combined = "\n".join(logger.messages)
+        self.assertNotIn(status_secret, combined)
+        self.assertNotIn(errno_secret, combined)
+
+    def test_nested_timeout_chain_retries_but_outward_error_has_no_raw_chain(self):
+        cookie_secret = "COOKIE-CHAIN-SECRET"
+        token_secret = "TOKEN-CHAIN-SECRET"
+        uid_secret = "UID-CHAIN-SECRET"
+        logger = CapturingLogger()
+        client, _ = self.make_client(
+            cookie=f"session={cookie_secret}",
+            retry_times=3,
+            logger=logger,
+        )
+        timeout = TimeoutError(
+            f"timeout token={token_secret} uid={uid_secret} {cookie_secret}"
+        )
+        middle = RuntimeError("middle wrapper")
+        middle.__cause__ = timeout
+        outer = RuntimeError("outer wrapper")
+        outer.__context__ = middle
+        session = FailingSession(outer)
+
+        with self.assertRaises(self.module.VuePillRequestError) as raised:
+            client.post_action(
+                session,
+                "sync_game_state",
+                retry_network=True,
+            )
+
+        self.assertEqual(3, len(session.post_calls))
+        self.assert_exception_is_fully_redacted(
+            raised.exception,
+            cookie_secret,
+            token_secret,
+            uid_secret,
+        )
+        combined = "\n".join(logger.messages)
+        for secret in (cookie_secret, token_secret, uid_secret):
+            self.assertNotIn(secret, combined)
+
+    def test_request_error_without_status_retries_nested_timeout(self):
+        client, _ = self.make_client(retry_times=3)
+
+        def wrapped_timeout():
+            timeout = TimeoutError("timeout token=WRAPPED-TOKEN uid=WRAPPED-UID")
+            outer = self.module.VuePillRequestError("request wrapper")
+            outer.__cause__ = timeout
+            return outer
+
+        session = FakeSession(
+            post_results=[
+                wrapped_timeout(),
+                wrapped_timeout(),
+                FakeResponse(json_data={"success": True}),
+            ]
+        )
+
+        result = client.post_action(
+            session,
+            "sync_game_state",
+            retry_network=True,
+        )
+
+        self.assertIs(result["success"], True)
+        self.assertEqual(3, len(session.post_calls))
+
+    def test_non_json_error_does_not_survive_in_exception_context(self):
+        json_secret = "JSON-TOKEN-SECRET"
+        logger = CapturingLogger()
+        client, _ = self.make_client(logger=logger)
+        response = FakeResponse(
+            json_error=ValueError(f"invalid json token={json_secret}"),
+        )
+        session = FakeSession(post_results=[response])
+
+        with self.assertRaises(self.module.VuePillResponseError) as raised:
+            client.post_action(session, "sync_game_state")
+
+        self.assert_exception_is_fully_redacted(raised.exception, json_secret)
+        self.assertNotIn(json_secret, "\n".join(logger.messages))
 
     def test_list_json_response_is_rejected(self):
         client, _ = self.make_client()
@@ -421,7 +889,16 @@ class VuePillSiteClientTests(unittest.TestCase):
     def test_reset_settings_and_unknown_actions_are_rejected(self):
         client, _ = self.make_client()
 
-        for action in ("reset_game", "update_settings", "unknown_action"):
+        class ActionSubclass(str):
+            pass
+
+        for action in (
+            "reset_game",
+            "update_settings",
+            "unknown_action",
+            " move_brick ",
+            ActionSubclass("move_brick"),
+        ):
             with self.subTest(action=action):
                 session = FakeSession()
                 with self.assertRaisesRegex(
@@ -431,20 +908,142 @@ class VuePillSiteClientTests(unittest.TestCase):
                     client.post_action(session, action)
                 self.assertEqual(0, len(session.post_calls))
 
-    def test_payload_cannot_override_action_and_none_values_are_ignored(self):
+    def test_payload_action_key_is_rejected_without_request(self):
         client, _ = self.make_client()
-        session = FakeSession(
-            post_results=[FakeResponse(json_data={"success": True})]
-        )
+        for key in ("action", "Action", " action "):
+            with self.subTest(key=key):
+                session = FakeSession()
+                with self.assertRaisesRegex(
+                    self.module.VuePillSiteClientError,
+                    "payload",
+                ):
+                    client.post_action(
+                        session,
+                        "move_brick",
+                        payload={key: "reset_game"},
+                    )
+                self.assertEqual([], session.post_calls)
 
-        client.post_action(
-            session,
-            "move_brick",
-            payload={"action": "reset_game", "quantity": 3, "note": None},
-        )
+    def test_payload_requires_exact_dict_and_plain_string_keys(self):
+        client, _ = self.make_client()
 
-        _, kwargs = session.post_calls[0]
-        self.assertEqual({"action": "move_brick", "quantity": 3}, kwargs["data"])
+        class DictSubclass(dict):
+            pass
+
+        class StringSubclass(str):
+            pass
+
+        invalid_payloads = (
+            UserDict({}),
+            DictSubclass(),
+            {b"quantity": 1},
+            {1: "value"},
+            {StringSubclass("quantity"): 1},
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload_type=type(payload).__name__):
+                session = FakeSession()
+                with self.assertRaises(self.module.VuePillSiteClientError):
+                    client.post_action(session, "exchange_points", payload=payload)
+                self.assertEqual([], session.post_calls)
+
+    def test_each_action_accepts_only_its_known_payload_fields(self):
+        valid_payloads = {
+            "sync_game_state": {},
+            "move_brick": {},
+            "enter_beach": {},
+            "collect_all_trash": {},
+            "craft_item": {"recipe_id": 1, "quantity": 2},
+            "exchange_points": {"quantity": 3},
+            "gift_item": {
+                "item_name": "stone",
+                "target_uid": "1001",
+                "uid": 1001,
+                "recipient_uid": "1002",
+                "quantity": 1,
+            },
+            "gift_stats": {"direction": "sent", "range": "week"},
+        }
+        client, _ = self.make_client()
+
+        for action, payload in valid_payloads.items():
+            with self.subTest(action=action):
+                session = FakeSession(
+                    post_results=[FakeResponse(json_data={"success": True})]
+                )
+                result = client.post_action(session, action, payload=payload)
+                self.assertIs(result["success"], True)
+                _, kwargs = session.post_calls[0]
+                self.assertEqual({"action": action, **payload}, kwargs["data"])
+
+        for action in valid_payloads:
+            with self.subTest(action=action, field="unexpected"):
+                session = FakeSession()
+                with self.assertRaisesRegex(
+                    self.module.VuePillSiteClientError,
+                    "unsupported",
+                ):
+                    client.post_action(
+                        session,
+                        action,
+                        payload={"unexpected": "value"},
+                    )
+                self.assertEqual([], session.post_calls)
+
+    def test_payload_values_require_exact_safe_scalar_types(self):
+        client, logger = self.make_client()
+        safe_values = ("1001", 1001, 1.5, True)
+
+        for value in safe_values:
+            with self.subTest(safe_type=type(value).__name__):
+                session = FakeSession(
+                    post_results=[FakeResponse(json_data={"success": True})]
+                )
+                client.post_action(
+                    session,
+                    "gift_item",
+                    payload={"target_uid": value},
+                )
+                _, kwargs = session.post_calls[0]
+                self.assertIs(kwargs["data"]["target_uid"], value)
+
+        class StringSubclass(str):
+            pass
+
+        class IntSubclass(int):
+            pass
+
+        class ExplodingValue:
+            def __str__(self):
+                raise RuntimeError("VALUE-SECRET")
+
+        invalid_values = (
+            None,
+            b"1001",
+            bytearray(b"1001"),
+            [1001],
+            (1001,),
+            {"uid": 1001},
+            float("nan"),
+            float("inf"),
+            StringSubclass("1001"),
+            IntSubclass(1001),
+            ExplodingValue(),
+        )
+        for value in invalid_values:
+            with self.subTest(value_type=type(value).__name__):
+                session = FakeSession()
+                with self.assertRaises(self.module.VuePillSiteClientError) as raised:
+                    client.post_action(
+                        session,
+                        "gift_item",
+                        payload={"target_uid": value},
+                    )
+                self.assertEqual([], session.post_calls)
+                combined = "\n".join([str(raised.exception), *logger.messages])
+                self.assertNotIn("VALUE-SECRET", combined)
+                self.assertIsNone(raised.exception.__cause__)
+                self.assertIsNone(raised.exception.__context__)
 
     def test_build_session_sets_headers_proxy_and_zero_adapter_retries(self):
         client, _ = self.make_client(use_proxy=True)
@@ -464,37 +1063,58 @@ class VuePillSiteClientTests(unittest.TestCase):
         self.assertEqual(0, session.adapters["http://"].max_retries.total)
         self.assertEqual(0, session.adapters["https://"].max_retries.total)
 
-    def test_force_ipv4_false_does_not_change_global_urllib3_state(self):
-        client, _ = self.make_client(force_ipv4=False)
+    def test_force_ipv4_sessions_are_isolated_without_global_mutation(self):
+        ipv4_client, _ = self.make_client(force_ipv4=True)
+        normal_client, _ = self.make_client(force_ipv4=False)
         sentinel = lambda: socket.AF_UNSPEC
+        connection_module = sys.modules["urllib3.util.connection"]
 
         with mock.patch.object(
-            self.module.urllib3_connection,
+            connection_module,
             "allowed_gai_family",
             sentinel,
         ):
-            session = client.build_session()
-            self.addCleanup(session.close)
-            self.assertIs(
-                sentinel,
-                self.module.urllib3_connection.allowed_gai_family,
-            )
+            ipv4_session = ipv4_client.build_session()
+            normal_session = normal_client.build_session()
+            second_ipv4_session = ipv4_client.build_session()
+            self.addCleanup(ipv4_session.close)
+            self.addCleanup(normal_session.close)
+            self.addCleanup(second_ipv4_session.close)
 
-    def test_force_ipv4_true_uses_project_urllib3_override(self):
-        client, _ = self.make_client(force_ipv4=True)
-        sentinel = lambda: socket.AF_UNSPEC
+            self.assertIs(sentinel, connection_module.allowed_gai_family)
 
-        with mock.patch.object(
-            self.module.urllib3_connection,
-            "allowed_gai_family",
-            sentinel,
-        ):
-            session = client.build_session()
-            self.addCleanup(session.close)
+        for prefix in ("http://", "https://"):
+            ipv4_adapter = ipv4_session.adapters[prefix]
+            normal_adapter = normal_session.adapters[prefix]
+            second_ipv4_adapter = second_ipv4_session.adapters[prefix]
             self.assertEqual(
-                socket.AF_INET,
-                self.module.urllib3_connection.allowed_gai_family(),
+                ("0.0.0.0", 0),
+                ipv4_adapter.poolmanager.connection_pool_kw["source_address"],
             )
+            self.assertNotIn(
+                "source_address",
+                normal_adapter.poolmanager.connection_pool_kw,
+            )
+            self.assertEqual(
+                ("0.0.0.0", 0),
+                second_ipv4_adapter.poolmanager.connection_pool_kw[
+                    "source_address"
+                ],
+            )
+            self.assertEqual(0, ipv4_adapter.max_retries.total)
+            self.assertEqual(0, normal_adapter.max_retries.total)
+
+        ipv4_proxy = ipv4_session.adapters["https://"].proxy_manager_for(
+            "http://proxy.test"
+        )
+        normal_proxy = normal_session.adapters["https://"].proxy_manager_for(
+            "http://proxy.test"
+        )
+        self.assertEqual(
+            ("0.0.0.0", 0),
+            ipv4_proxy.proxy_kwargs["source_address"],
+        )
+        self.assertNotIn("source_address", normal_proxy.proxy_kwargs)
 
     def test_fetch_page_uses_timestamp_no_cache_and_returns_text(self):
         client, _ = self.make_client(timeout=12)
@@ -544,6 +1164,92 @@ class VuePillSiteClientTests(unittest.TestCase):
 
         self.assertEqual(1, len(session.get_calls))
 
+    def test_unquoted_login_form_action_is_rejected(self):
+        client, _ = self.make_client()
+        session = FakeSession(
+            get_results=[
+                FakeResponse(
+                    text="<form action=/login.php><input type=password></form>"
+                )
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            self.module.VuePillSiteClientError,
+            "login",
+        ):
+            client.fetch_page_html(session)
+
+    def test_login_url_is_rejected_even_without_password_input(self):
+        client, _ = self.make_client(retry_times=5)
+        session = FakeSession(
+            get_results=[
+                FakeResponse(
+                    text="<html>Please sign in</html>",
+                    url="https://example.test/login.php",
+                ),
+                FakeResponse(text="<html>game</html>"),
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            self.module.VuePillSiteClientError,
+            "login",
+        ):
+            client.fetch_page_html(session)
+
+        self.assertEqual(1, len(session.get_calls))
+
+    def test_login_url_cannot_be_overridden_by_game_markers(self):
+        client, _ = self.make_client(retry_times=5)
+        session = FakeSession(
+            get_results=[
+                FakeResponse(
+                    text=(
+                        '<span id="dailyBricks">1</span>'
+                        '<div id="brickFactory"></div>'
+                    ),
+                    url="https://example.test/login.php",
+                ),
+                FakeResponse(text="<html>game</html>"),
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            self.module.VuePillSiteClientError,
+            "login",
+        ):
+            client.fetch_page_html(session)
+
+        self.assertEqual(1, len(session.get_calls))
+
+    def test_password_change_form_is_not_mistaken_for_login(self):
+        client, _ = self.make_client()
+        expected = (
+            '<form action="/account/change-password">'
+            '<input type="password" name="new_password">'
+            '<button>Change password</button></form>'
+        )
+        session = FakeSession(get_results=[FakeResponse(text=expected)])
+
+        html = client.fetch_page_html(session)
+
+        self.assertEqual(expected, html)
+
+    def test_game_markers_override_unrelated_password_form(self):
+        client, _ = self.make_client()
+        expected = (
+            '<span id="dailyBricks">1</span>'
+            '<div id="brickFactory"></div>'
+            '<form action="/account/change-password">'
+            '<input type="password"></form>'
+        )
+        session = FakeSession(get_results=[FakeResponse(text=expected)])
+
+        html = client.fetch_page_html(session)
+
+        self.assertEqual(expected, html)
+
     def test_normal_game_page_with_login_link_is_not_rejected(self):
         client, _ = self.make_client()
         expected = '<html><a href="/login.php">Login</a><div id="game">ready</div></html>'
@@ -568,7 +1274,7 @@ class VuePillSiteClientTests(unittest.TestCase):
                         "message": (
                             "cookie=session=COOKIE-SECRET; auth=COOKIE-TWO "
                             "token=TOKEN-SECRET uid=UID-SECRET "
-                            "credential=ACCESS-SECRET "
+                            "access_token=ACCESS-SECRET "
                             "Authorization: Bearer BEARER-SECRET"
                         ),
                     }
@@ -581,9 +1287,7 @@ class VuePillSiteClientTests(unittest.TestCase):
                 session,
                 "gift_item",
                 payload={
-                    "token": "TOKEN-SECRET",
                     "uid": "UID-SECRET",
-                    "access_token": "ACCESS-SECRET",
                 },
             )
 
@@ -620,7 +1324,7 @@ class VuePillSiteClientTests(unittest.TestCase):
 
     def test_invalid_configuration_values_are_safely_normalized(self):
         client, _ = self.make_client(
-            site_url="  https://example.test///  ",
+            site_url="  https://example.test/  ",
             cookie=None,
             user_agent=None,
             timeout="not-a-number",
@@ -658,6 +1362,75 @@ class VuePillSiteClientTests(unittest.TestCase):
         self.assertEqual(10.0, unknown_client.timeout)
         self.assertIs(unknown_client.use_proxy, False)
         self.assertIs(unknown_client.force_ipv4, False)
+
+    def test_site_url_accepts_only_http_https_origin(self):
+        for site_url, expected in (
+            ("http://example.test", "http://example.test"),
+            ("https://example.test/", "https://example.test"),
+            ("https://example.test:8443/", "https://example.test:8443"),
+        ):
+            with self.subTest(site_url=site_url):
+                client, _ = self.make_client(site_url=site_url)
+                self.assertEqual(expected, client.site_url)
+
+        class ExplodingURL:
+            def __str__(self):
+                raise RuntimeError("URL-SECRET")
+
+        invalid_urls = (
+            None,
+            b"https://example.test",
+            ExplodingURL(),
+            "\x00https://example.test",
+            "example.test",
+            "ftp://example.test",
+            "https://user:URL-SECRET@example.test",
+            "https://example.test/path",
+            "https://example.test//",
+            "https://example.test?",
+            "https://example.test?token=URL-SECRET",
+            "https://example.test#",
+            "https://example.test#fragment",
+            "https://example.test\x7f",
+            "https:///missing-host",
+            "https://example.test:bad-port",
+            "https://example.test:/",
+        )
+        for site_url in invalid_urls:
+            with self.subTest(site_url_type=type(site_url).__name__):
+                with self.assertRaises(self.module.VuePillConfigurationError) as raised:
+                    self.make_client(site_url=site_url)
+                self.assert_exception_is_fully_redacted(
+                    raised.exception,
+                    "URL-SECRET",
+                )
+
+    def test_numeric_and_boolean_normalization_rejects_weird_values(self):
+        client, _ = self.make_client(
+            timeout=True,
+            retry_times=3.5,
+            retry_delay_ms=1.5,
+            use_proxy=2,
+            force_ipv4=float("nan"),
+        )
+        valid_numeric_client, _ = self.make_client(
+            timeout="1.5",
+            retry_times=4.0,
+            retry_delay_ms="25",
+            use_proxy=1,
+            force_ipv4=0,
+        )
+
+        self.assertEqual(10.0, client.timeout)
+        self.assertEqual(1, client.retry_times)
+        self.assertEqual(0, client.retry_delay_ms)
+        self.assertIs(client.use_proxy, False)
+        self.assertIs(client.force_ipv4, False)
+        self.assertEqual(1.5, valid_numeric_client.timeout)
+        self.assertEqual(4, valid_numeric_client.retry_times)
+        self.assertEqual(25, valid_numeric_client.retry_delay_ms)
+        self.assertIs(valid_numeric_client.use_proxy, True)
+        self.assertIs(valid_numeric_client.force_ipv4, False)
 
 
 if __name__ == "__main__":
