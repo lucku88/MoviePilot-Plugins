@@ -830,6 +830,115 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(late_old_refresh["success"], False)
         self.assertEqual(data_after_reset, shared_data)
 
+    def test_public_init_is_ignored_after_instance_has_stopped(self):
+        self.plugin.save_data(
+            self.plugin.CONFIG_GENERATION_KEY,
+            self.plugin.CONFIG_GENERATION,
+        )
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        self.plugin.save_data("history", [{"title": "停止前记录"}])
+        self.plugin.save_data("next_run_time", "2026-08-01 00:00:00")
+        self.plugin._config_store = {
+            "enabled": False,
+            "onlyonce": False,
+            "reserve_magic_pill_count": 7,
+        }
+        update_calls = []
+        original_update_config = self.plugin.update_config
+
+        def record_update(config):
+            update_calls.append(dict(config))
+            return original_update_config(config)
+
+        self.plugin.update_config = record_update
+        self.plugin.stop_service()
+        data_before_init = json.loads(json.dumps(self.plugin._data_store))
+        config_before_init = dict(self.plugin._config_store)
+
+        self.plugin.init_plugin({"enabled": True, "onlyonce": True})
+
+        self.assertEqual([], update_calls)
+        self.assertEqual(data_before_init, self.plugin._data_store)
+        self.assertEqual(config_before_init, self.plugin._config_store)
+        self.assertIs(self.plugin._enabled, False)
+        self.assertIs(self.plugin._onlyonce, False)
+        self.assertIsNone(self.plugin._scheduler)
+        self.assertIs(type(self.plugin)._migration_stopping, True)
+
+    def test_public_stop_blocks_concurrent_init_without_side_effects(self):
+        plugin = make_plugin(self.module)
+        plugin.save_data(
+            plugin.CONFIG_GENERATION_KEY,
+            plugin.CONFIG_GENERATION,
+        )
+        plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+        plugin.save_data("history", [{"title": "并发停止前记录"}])
+        plugin._config_store = {
+            "enabled": False,
+            "onlyonce": False,
+            "reserve_magic_pill_count": 7,
+        }
+        stop_entered = threading.Event()
+        allow_stop_finish = threading.Event()
+        init_finished = threading.Event()
+        stop_calls = []
+        update_calls = []
+        errors = []
+        original_update_config = plugin.update_config
+
+        def blocking_stop():
+            stop_calls.append(True)
+            stop_entered.set()
+            if not allow_stop_finish.wait(2):
+                raise RuntimeError("公开停止等待超时")
+
+        def record_update(config):
+            update_calls.append(dict(config))
+            return original_update_config(config)
+
+        def stop_plugin():
+            try:
+                plugin.stop_service()
+            except BaseException as err:
+                errors.append(err)
+
+        def initialize_plugin():
+            try:
+                plugin.init_plugin({"enabled": True, "onlyonce": True})
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                init_finished.set()
+
+        plugin._stop_service_locked = blocking_stop
+        plugin.update_config = record_update
+        data_before = json.loads(json.dumps(plugin._data_store))
+        config_before = dict(plugin._config_store)
+        stop_thread = threading.Thread(target=stop_plugin)
+        init_thread = threading.Thread(target=initialize_plugin)
+        stop_thread.start()
+        self.assertTrue(stop_entered.wait(1))
+        init_thread.start()
+        try:
+            init_finished_while_stop_held_lifecycle = init_finished.wait(0.2)
+        finally:
+            allow_stop_finish.set()
+            stop_thread.join(3)
+            init_thread.join(3)
+
+        self.assertFalse(init_finished_while_stop_held_lifecycle)
+        self.assertFalse(stop_thread.is_alive())
+        self.assertFalse(init_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual([True], stop_calls)
+        self.assertEqual([], update_calls)
+        self.assertEqual(data_before, plugin._data_store)
+        self.assertEqual(config_before, plugin._config_store)
+        self.assertIs(plugin._enabled, False)
+        self.assertIs(plugin._onlyonce, False)
+        self.assertIsNone(plugin._scheduler)
+        self.assertIs(type(plugin)._migration_stopping, True)
+
     def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
         for config in (None, {}):
             with self.subTest(config=config):

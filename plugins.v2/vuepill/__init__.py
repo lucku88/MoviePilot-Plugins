@@ -436,6 +436,9 @@ class VuePill(_PluginBase):
 
     def init_plugin(self, config: Optional[dict] = None):
         with self._lifecycle_lock:
+            if self._is_migration_stopping():
+                logger.warning("%s 已停止，忽略初始化请求", self.plugin_name)
+                return
             self._init_plugin_locked(
                 config,
                 preserve_running_onlyonce=True,
