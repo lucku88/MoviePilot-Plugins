@@ -1,336 +1,367 @@
 <template>
-  <div ref="rootEl" class="vp-config" :class="{ 'is-dark-theme': isDarkTheme }">
-    <div class="vp-shell">
-      <header class="vp-card vp-hero">
-        <div class="vp-copy">
-          <div class="vp-badge">Vue-魔丸</div>
-          <h1 class="vp-title">插件配置</h1>
-          <div class="vp-chip-row">
-            <span class="vp-chip">{{ config.auto_cookie ? '站点 Cookie：自动同步' : '站点 Cookie：手动填写' }}</span>
+  <div class="siqi-config">
+    <div class="siqi-topbar">
+      <div class="siqi-topbar__left">
+        <div class="siqi-topbar__icon">
+          <v-icon icon="mdi-cog-outline" size="24" />
+        </div>
+        <div class="siqi-topbar__copy">
+          <div class="siqi-topbar__title">Vue-魔丸 · 配置</div>
+          <div class="siqi-topbar__sub">管理搬砖、清沙滩、炼造与兑换任务</div>
+        </div>
+      </div>
+      <div class="siqi-topbar__right">
+        <v-btn-group variant="tonal" density="compact" class="elevation-0">
+          <v-btn
+            color="success"
+            size="small"
+            min-width="40"
+            class="px-0 px-sm-3"
+            aria-label="状态页"
+            @click="emit('switch', 'page')"
+          >
+            <v-icon icon="mdi-view-dashboard" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">状态页</span>
+          </v-btn>
+          <v-btn
+            color="success"
+            size="small"
+            min-width="40"
+            class="px-0 px-sm-3"
+            aria-label="保存配置"
+            :loading="saving"
+            :disabled="saving || loading"
+            @click="saveConfig"
+          >
+            <v-icon icon="mdi-content-save" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">保存</span>
+          </v-btn>
+          <v-btn
+            color="success"
+            size="small"
+            min-width="40"
+            class="px-0 px-sm-3"
+            aria-label="关闭配置"
+            @click="emit('close')"
+          >
+            <v-icon icon="mdi-close" size="18" class="mr-sm-1" />
+            <span class="d-none d-sm-inline">关闭</span>
+          </v-btn>
+        </v-btn-group>
+      </div>
+    </div>
+
+    <v-alert
+      v-if="message"
+      :type="messageType"
+      density="compact"
+      class="siqi-toast"
+      closable
+      @click:close="message = ''"
+    >
+      {{ message }}
+    </v-alert>
+
+    <v-alert type="warning" variant="tonal" density="compact" class="siqi-migration-note">
+      <strong>v0.2.0 升级提示：</strong>首次迁移会保持插件关闭。升级后请先检查并保存新版设置，再手动启用任务。
+    </v-alert>
+
+    <v-progress-linear v-if="loading" color="success" indeterminate rounded />
+
+    <div class="siqi-config-col">
+      <div class="siqi-card">
+        <div class="siqi-card__header">
+          <span class="siqi-card__title d-flex align-center">
+            <v-icon icon="mdi-toggle-switch-outline" size="18" color="#22c55e" class="mr-1" />基础设置
+          </span>
+        </div>
+        <div class="siqi-switch-grid">
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enabled}" style="--siqi-accent:34,197,94">
+            <div class="siqi-switch-main"><v-icon icon="mdi-power-plug" size="18" /><div><div class="siqi-switch-label">启用插件</div><div class="siqi-switch-desc">开启定时任务；升级后请确认设置再手动开启</div></div></div>
+            <v-switch v-model="config.enabled" color="green" hide-details density="compact" aria-label="启用插件" />
+          </div>
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.notify}" style="--siqi-accent:59,130,246">
+            <div class="siqi-switch-main"><v-icon icon="mdi-bell-outline" size="18" /><div><div class="siqi-switch-label">通知</div><div class="siqi-switch-desc">任务完成或异常时发送 MoviePilot 通知</div></div></div>
+            <v-switch v-model="config.notify" color="blue" hide-details density="compact" aria-label="通知" />
+          </div>
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.use_proxy}" style="--siqi-accent:139,92,246">
+            <div class="siqi-switch-main"><v-icon icon="mdi-lan-connect" size="18" /><div><div class="siqi-switch-label">代理</div><div class="siqi-switch-desc">使用 MoviePilot 已配置的网络代理访问站点</div></div></div>
+            <v-switch v-model="config.use_proxy" color="purple" hide-details density="compact" aria-label="代理" />
+          </div>
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.force_ipv4}" style="--siqi-accent:14,165,233">
+            <div class="siqi-switch-main"><v-icon icon="mdi-ip-network-outline" size="18" /><div><div class="siqi-switch-label">强制IPv4</div><div class="siqi-switch-desc">强制 IPv4 可减少部分 IPv6 环境连接不稳</div></div></div>
+            <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" aria-label="强制IPv4" />
           </div>
         </div>
-        <div class="vp-action-grid">
-          <v-btn color="warning" variant="flat" :loading="saving" @click="syncCookie">同步 Cookie</v-btn>
-          <v-btn color="primary" variant="flat" :loading="saving" @click="saveConfig">保存</v-btn>
-          <v-btn variant="text" @click="emit('switch', 'page')">返回状态页</v-btn>
-          <v-btn variant="text" @click="closePlugin">关闭</v-btn>
+      </div>
+
+      <div class="siqi-card">
+        <div class="siqi-card__header">
+          <span class="siqi-card__title d-flex align-center">
+            <v-icon icon="mdi-robot-outline" size="18" color="#f59e0b" class="mr-1" />自动化策略
+          </span>
         </div>
-      </header>
-
-      <v-alert v-if="message.text" :type="message.type" variant="tonal" rounded="xl">{{ message.text }}</v-alert>
-
-      <section class="vp-card">
-        <h2 class="vp-section-title">⚙️ 基本设置</h2>
-        <div class="vp-switch-grid">
-          <div class="vp-switch-card">
-            <v-switch v-model="config.enabled" class="vp-switch" label="启用插件" color="#7c5cff" density="compact" hide-details inset />
+        <div class="siqi-switch-grid">
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.onlyonce}" style="--siqi-accent:245,158,11">
+            <div class="siqi-switch-main"><v-icon icon="mdi-play-circle-outline" size="18" /><div><div class="siqi-switch-label">立即运行一次</div><div class="siqi-switch-desc">保存后排队执行一轮，执行后自动关闭此开关</div></div></div>
+            <v-switch v-model="config.onlyonce" color="orange" hide-details density="compact" aria-label="立即运行一次" />
           </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.use_proxy" class="vp-switch" label="使用代理" color="#7c5cff" density="compact" hide-details inset />
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enable_brick}" style="--siqi-accent:34,197,94">
+            <div class="siqi-switch-main"><v-icon icon="mdi-wall" size="18" /><div><div class="siqi-switch-label">自动搬砖</div><div class="siqi-switch-desc">按搬砖 Cron 定时执行搬砖</div></div></div>
+            <v-switch v-model="config.enable_brick" color="green" hide-details density="compact" aria-label="自动搬砖" />
           </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.notify" class="vp-switch" label="开启通知" color="#7c5cff" density="compact" hide-details inset />
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.enable_beach}" style="--siqi-accent:14,165,233">
+            <div class="siqi-switch-main"><v-icon icon="mdi-beach" size="18" /><div><div class="siqi-switch-label">动态清沙滩</div><div class="siqi-switch-desc">根据站点冷却时间动态安排清理</div></div></div>
+            <v-switch v-model="config.enable_beach" color="info" hide-details density="compact" aria-label="动态清沙滩" />
           </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.onlyonce" class="vp-switch" label="立即运行一次" color="#7c5cff" density="compact" hide-details inset />
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.auto_craft}" style="--siqi-accent:239,68,68">
+            <div class="siqi-switch-main"><v-icon icon="mdi-hammer-wrench" size="18" /><div><div class="siqi-switch-label">自动炼造</div><div class="siqi-switch-desc">清沙滩后按可用材料自动炼造</div></div></div>
+            <v-switch v-model="config.auto_craft" color="red" hide-details density="compact" aria-label="自动炼造" />
           </div>
-        </div>
-      </section>
-
-      <section class="vp-card vp-panel">
-        <h2 class="vp-section-title">🧩 功能设置</h2>
-
-        <div class="vp-switch-grid">
-          <div class="vp-switch-card">
-            <v-switch v-model="config.auto_cookie" class="vp-switch" label="使用站点 Cookie" color="#7c5cff" density="compact" hide-details inset />
-          </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.enable_brick" class="vp-switch" label="搬砖" color="#7c5cff" density="compact" hide-details inset />
-          </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.enable_beach" class="vp-switch" label="清沙滩" color="#7c5cff" density="compact" hide-details inset />
-          </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.auto_craft" class="vp-switch" label="炼造" color="#7c5cff" density="compact" hide-details inset />
-          </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.auto_exchange" class="vp-switch" label="兑换" color="#7c5cff" density="compact" hide-details inset />
-          </div>
-          <div class="vp-switch-card">
-            <v-switch v-model="config.force_ipv4" class="vp-switch" label="优先 IPv4" color="#7c5cff" density="compact" hide-details inset />
+          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.auto_exchange}" style="--siqi-accent:236,72,153">
+            <div class="siqi-switch-main"><v-icon icon="mdi-cash-sync" size="18" /><div><div class="siqi-switch-label">自动兑换</div><div class="siqi-switch-desc">保留指定魔丸后自动兑换魔力</div></div></div>
+            <v-switch v-model="config.auto_exchange" color="pink" hide-details density="compact" aria-label="自动兑换" />
           </div>
         </div>
+      </div>
 
-        <div class="vp-field-grid">
-          <div class="vp-field-card">
-            <div class="vp-field-label">站点 Cookie</div>
-            <v-text-field
-              v-model="cookieFieldValue"
-              label="站点 Cookie"
-              variant="outlined"
-              density="comfortable"
-              :disabled="cookieReadonly"
-              :readonly="cookieReadonly"
-              :placeholder="cookieReadonly ? '启用站点 Cookie 后自动同步' : '例如 c_secure_pass=...'"
-              hide-details="auto"
-            />
-            <div class="vp-note">启用【使用站点 Cookie】后自动读取站点配置，关闭后才可手动修改。</div>
+      <div class="siqi-card">
+        <div class="siqi-card__header">
+          <span class="siqi-card__title d-flex align-center">
+            <v-icon icon="mdi-tune-variant" size="18" color="#0ea5e9" class="mr-1" />参数设置
+          </span>
+        </div>
+        <div class="siqi-form-grid">
+          <div class="siqi-field siqi-wide-field">
+            <VCronField v-model="config.brick_cron" label="搬砖Cron" density="compact" class="siqi-input siqi-cron-field" />
+            <div class="siqi-field-hint">搬砖 Cron 是定时规则；默认每天 00:05 执行。</div>
           </div>
-
-          <div class="vp-field-card">
-            <div class="vp-field-label">执行周期</div>
-            <VCronField
-              v-model="config.brick_cron"
-              label="搬砖执行周期(cron)"
-              density="comfortable"
-              class="vp-cron-field"
-            />
+          <div class="siqi-field">
+            <v-text-field v-model.number="config.schedule_buffer_seconds" label="冷却缓冲（秒）" type="number" min="0" max="3600" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-clock-fast" />
+            <div class="siqi-field-hint">站点显示可执行后再等待一小段时间，最小 0 秒。</div>
           </div>
-
-          <div class="vp-field-card">
-            <div class="vp-field-label">保留魔丸数量</div>
-            <v-text-field
-              v-model="config.reserve_magic_pill_count"
-              label="魔丸保留数量"
-              type="number"
-              variant="outlined"
-              density="comfortable"
-              hide-details="auto"
-            />
+          <div class="siqi-field">
+            <v-text-field v-model.number="config.reserve_magic_pill_count" label="保留魔丸" type="number" min="0" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-flask-outline" />
+            <div class="siqi-field-hint">自动兑换前保留的魔丸数量，默认 10。</div>
+          </div>
+          <div class="siqi-field">
+            <v-text-field v-model.number="config.random_delay_max_seconds" label="随机延迟（秒）" type="number" min="0" max="300" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-sand" />
+            <div class="siqi-field-hint">每次操作前随机等待，0 表示不额外等待。</div>
+          </div>
+          <div class="siqi-field">
+            <v-text-field v-model.number="config.http_timeout" label="请求超时（秒）" type="number" min="5" max="120" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" />
+            <div class="siqi-field-hint">单次网络请求最长等待时间，后端最小按 5 秒处理。</div>
+          </div>
+          <div class="siqi-field">
+            <v-text-field v-model.number="config.http_retry_times" label="网络重试次数" type="number" min="1" max="5" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-reload" />
+            <div class="siqi-field-hint">网络失败时重试 1 到 5 次，以后端校验结果为准。</div>
+          </div>
+          <div class="siqi-field">
+            <v-text-field v-model.number="retryDelaySeconds" label="重试间隔（秒）" type="number" min="0.2" max="60" step="0.1" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-outline" />
+            <div class="siqi-field-hint">两次网络重试之间的等待时间，最小 0.2 秒。</div>
           </div>
         </div>
-      </section>
+      </div>
+
+      <div class="siqi-card">
+        <div class="siqi-card__header">
+          <span class="siqi-card__title d-flex align-center">
+            <v-icon icon="mdi-web-sync" size="18" color="#22c55e" class="mr-1" />站点凭据
+          </span>
+        </div>
+        <div class="siqi-site-note">
+          <v-icon icon="mdi-shield-check-outline" size="20" />
+          <div>
+            <div class="siqi-site-note__title">Cookie：从 MoviePilot 站点自动同步。</div>
+            <div class="siqi-site-note__desc">此处无需填写或手动操作，插件每次请求都会读取最新站点凭据。</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import {
+  createLatestRequestGuard,
+  isStrictSuccess,
+  safeResponseMessage,
+} from '../utils/asyncGuards.js'
 
 const props = defineProps({
   api: { type: Object, required: true },
   initialConfig: { type: Object, default: () => ({}) },
 })
-
 const emit = defineEmits(['switch', 'close'])
 
-const saving = ref(false)
-const rootEl = ref(null)
-const isDarkTheme = ref(false)
-const pluginBase = '/plugin/VuePill'
-const message = reactive({ text: '', type: 'success' })
-const config = reactive({
+const CONFIG_ENDPOINT = '/plugin/VuePill/config'
+const CONFIG_FIELDS = Object.freeze([
+  'enabled',
+  'notify',
+  'onlyonce',
+  'use_proxy',
+  'force_ipv4',
+  'enable_brick',
+  'enable_beach',
+  'auto_craft',
+  'auto_exchange',
+  'brick_cron',
+  'schedule_buffer_seconds',
+  'reserve_magic_pill_count',
+  'random_delay_max_seconds',
+  'http_timeout',
+  'http_retry_times',
+  'http_retry_delay',
+])
+const DEFAULT_CONFIG = Object.freeze({
   enabled: false,
   notify: true,
   onlyonce: false,
-  auto_cookie: true,
+  use_proxy: false,
+  force_ipv4: true,
   enable_brick: true,
   enable_beach: true,
   auto_craft: false,
   auto_exchange: false,
-  use_proxy: false,
-  force_ipv4: true,
-  cookie: '',
   brick_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
+  reserve_magic_pill_count: 10,
   random_delay_max_seconds: 3,
   http_timeout: 12,
   http_retry_times: 5,
   http_retry_delay: 1500,
-  move_delay_min_ms: 30,
-  move_delay_max_ms: 80,
-  ready_retry_seconds: 60,
-  reserve_magic_pill_count: 0,
 })
 
-const cookieReadonly = computed(() => !!config.auto_cookie)
-const cookieFieldValue = computed({
-  get() {
-    if (config.auto_cookie) return truncateCookie(config.cookie)
-    return config.cookie
-  },
-  set(value) {
-    if (!config.auto_cookie) config.cookie = value || ''
+const config = reactive({ ...DEFAULT_CONFIG })
+const loading = ref(false)
+const saving = ref(false)
+const message = ref('')
+const messageType = ref('success')
+const loadRequestGuard = createLatestRequestGuard()
+const saveRequestGuard = createLatestRequestGuard()
+let formRevision = 0
+let applyingConfig = false
+let messageTimer = null
+let disposed = false
+
+applyPublicConfig(props.initialConfig)
+watch(config, () => {
+  if (!applyingConfig) formRevision += 1
+}, { deep: true, flush: 'sync' })
+
+const retryDelaySeconds = computed({
+  get: () => Number(config.http_retry_delay || 0) / 1000,
+  set: (value) => {
+    const seconds = Number(value)
+    config.http_retry_delay = Math.max(200, Math.round((Number.isFinite(seconds) ? seconds : 0) * 1000))
   },
 })
 
-let themeObserver = null
-let mediaQuery = null
-
-function flash(text, type = 'success') {
-  message.text = text
-  message.type = type
+function ownDataValue(source, field) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(source, field)
+    return descriptor && Object.prototype.hasOwnProperty.call(descriptor, 'value')
+      ? descriptor.value
+      : undefined
+  } catch {
+    return undefined
+  }
 }
 
-function truncateCookie(value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  return text.length > 36 ? `${text.slice(0, 36)}...` : text
+function applyPublicConfig(source) {
+  applyingConfig = true
+  try {
+    for (const field of CONFIG_FIELDS) {
+      const value = ownDataValue(source, field)
+      if (value !== undefined) config[field] = value
+    }
+  } finally {
+    applyingConfig = false
+  }
 }
 
-function applyConfig(data = {}) {
-  Object.assign(config, {
-    ...config,
-    ...data,
-  })
+function buildConfigPayload() {
+  const payload = {}
+  for (const field of CONFIG_FIELDS) payload[field] = config[field]
+  return payload
+}
+
+function show(text, type = 'success') {
+  if (disposed) return
+  message.value = typeof text === 'string' && text.trim() ? text.trim() : '操作失败'
+  messageType.value = type
+  if (messageTimer) clearTimeout(messageTimer)
+  messageTimer = setTimeout(() => {
+    if (!disposed) message.value = ''
+    messageTimer = null
+  }, 4000)
+}
+
+function errorMessage(error, fallback) {
+  return typeof error?.message === 'string' && error.message.trim()
+    ? error.message.trim()
+    : fallback
 }
 
 async function loadConfig() {
-  const data = await props.api.get(`${pluginBase}/config`)
-  applyConfig(data || {})
+  const requestId = loadRequestGuard.begin()
+  const revisionAtStart = formRevision
+  loading.value = true
+  try {
+    const data = await props.api.get(CONFIG_ENDPOINT)
+    if (!loadRequestGuard.isCurrent(requestId)) return
+    if (formRevision === revisionAtStart) applyPublicConfig(data)
+  } catch (error) {
+    if (loadRequestGuard.isCurrent(requestId)) {
+      show(`加载失败：${errorMessage(error, '请求异常')}`, 'error')
+    }
+  } finally {
+    if (loadRequestGuard.isCurrent(requestId)) loading.value = false
+  }
 }
 
 async function saveConfig() {
+  if (saving.value || loading.value) return
+  const requestId = saveRequestGuard.begin()
+  const revisionAtStart = formRevision
+  const payload = buildConfigPayload()
   saving.value = true
   try {
-    const result = await props.api.post(`${pluginBase}/config`, { ...config })
-    applyConfig(result?.config || {})
-    flash(result?.message || '配置已保存')
-  } catch (error) {
-    flash(error?.message || '保存失败', 'error')
-  } finally {
-    saving.value = false
-  }
-}
-
-async function syncCookie() {
-  saving.value = true
-  try {
-    const result = await props.api.get(`${pluginBase}/cookie`)
-    applyConfig(result?.config || {})
-    flash(result?.message || 'Cookie 已同步')
-  } catch (error) {
-    flash(error?.message || '同步失败', 'error')
-  } finally {
-    saving.value = false
-  }
-}
-
-function findThemeNode() {
-  let current = rootEl.value
-  while (current) {
-    if (current.getAttribute?.('data-theme')) return current
-    const classValue = String(current.className || '').toLowerCase()
-    if (classValue.includes('theme') || classValue.includes('v-theme--') || classValue.includes('dark') || classValue.includes('light')) {
-      return current
+    const result = await props.api.post(CONFIG_ENDPOINT, payload)
+    if (!saveRequestGuard.isCurrent(requestId)) return
+    if (!isStrictSuccess(result)) {
+      show(safeResponseMessage(result, '保存失败'), 'error')
+      return
     }
-    current = current.parentElement
-  }
-  const bodyClass = String(document.body?.className || '').toLowerCase()
-  if (document.body?.getAttribute('data-theme') || bodyClass.includes('theme') || bodyClass.includes('v-theme--') || bodyClass.includes('dark') || bodyClass.includes('light')) {
-    return document.body
-  }
-  const rootClass = String(document.documentElement?.className || '').toLowerCase()
-  if (document.documentElement?.getAttribute('data-theme') || rootClass.includes('theme') || rootClass.includes('v-theme--') || rootClass.includes('dark') || rootClass.includes('light')) {
-    return document.documentElement
-  }
-  return null
-}
-
-function getThemeNodes() {
-  return [...new Set([findThemeNode(), document.documentElement, document.body].filter(Boolean))]
-}
-
-function nodeHasDarkHint(node) {
-  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  const classValue = String(node?.className || '').toLowerCase()
-  return ['dark', 'purple', 'transparent'].includes(themeValue)
-    || classValue.includes('dark')
-    || classValue.includes('theme-dark')
-    || classValue.includes('v-theme--dark')
-}
-
-function nodeHasLightHint(node) {
-  const themeValue = String(node?.getAttribute?.('data-theme') || '').toLowerCase()
-  const classValue = String(node?.className || '').toLowerCase()
-  return themeValue === 'light'
-    || classValue.includes('light')
-    || classValue.includes('theme-light')
-    || classValue.includes('v-theme--light')
-}
-
-function detectTheme() {
-  const nodes = getThemeNodes()
-  if (nodes.some(nodeHasDarkHint)) {
-    isDarkTheme.value = true
-    return
-  }
-  if (nodes.some(nodeHasLightHint)) {
-    isDarkTheme.value = false
-    return
-  }
-  isDarkTheme.value = !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
-}
-
-function bindThemeObserver() {
-  detectTheme()
-  if (window.MutationObserver) {
-    themeObserver = new MutationObserver(detectTheme)
-    getThemeNodes().forEach((node) => {
-      themeObserver.observe(node, { attributes: true, attributeFilter: ['data-theme', 'class'] })
-    })
-  }
-  if (window.matchMedia) {
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener?.('change', detectTheme)
+    if (formRevision === revisionAtStart) applyPublicConfig(result?.config)
+    show(safeResponseMessage(result, '配置已保存'))
+  } catch (error) {
+    if (saveRequestGuard.isCurrent(requestId)) {
+      show(`保存失败：${errorMessage(error, '请求异常')}`, 'error')
+    }
+  } finally {
+    if (saveRequestGuard.isCurrent(requestId)) saving.value = false
   }
 }
 
-function closePlugin() {
-  emit('close')
-}
-
-onMounted(async () => {
-  bindThemeObserver()
-  await loadConfig()
-})
+onMounted(loadConfig)
 
 onBeforeUnmount(() => {
-  themeObserver?.disconnect?.()
-  mediaQuery?.removeEventListener?.('change', detectTheme)
+  disposed = true
+  loadRequestGuard.invalidate()
+  saveRequestGuard.invalidate()
+  if (messageTimer) clearTimeout(messageTimer)
 })
 </script>
 
 <style scoped>
-.vp-config{--panel:rgba(255,255,255,.84);--panel-strong:rgba(255,255,255,.94);--text:#24273a;--muted:#757b92;--border:rgba(125,132,170,.2);--shadow:0 20px 48px rgba(17,24,39,.08);--accent:#7c5cff;--accent-soft:rgba(124,92,255,.1);min-height:100%;padding:10px 0 20px;background:transparent;color:var(--text)}
-.vp-config.is-dark-theme{--panel:rgba(24,26,37,.82);--panel-strong:rgba(19,21,30,.94);--text:#f4f6ff;--muted:#a0a8c5;--border:rgba(124,92,255,.18);--shadow:0 24px 54px rgba(0,0,0,.32);--accent:#8b6cff;--accent-soft:rgba(139,108,255,.16)}
-.vp-config,.vp-config *{box-sizing:border-box}
-.vp-shell{max-width:1180px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
-.vp-card{padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
-.vp-switch-grid,.vp-field-grid{display:grid;gap:12px}
-.vp-hero{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vp-hero{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}
-.vp-copy{flex:1;min-width:0}
-.vp-badge{display:inline-flex;align-items:center;justify-content:center;width:fit-content;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
-.vp-title{margin:10px 0 6px;font-size:clamp(24px,3.7vw,32px);line-height:1.08;font-weight:900}
-.vp-note{color:var(--muted)}
-.vp-chip-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.vp-chip{display:inline-flex;align-items:center;justify-content:flex-start;padding:7px 12px;border:1px solid var(--border);border-radius:999px;background:var(--panel-strong);color:var(--text);font-size:12px;font-weight:600}
-.vp-action-grid{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:nowrap;min-width:min(100%,520px)}
-.vp-action-grid :deep(.v-btn){min-height:42px;border-radius:14px;font-weight:800}
-.vp-action-grid :deep(.v-btn--variant-flat){min-width:132px}
-.vp-action-grid :deep(.v-btn--variant-text){min-width:auto;padding-inline:6px}
-.vp-section-title{margin:0 0 14px;font-size:18px;font-weight:900}
-.vp-panel{background:linear-gradient(135deg,var(--accent-soft) 0%,transparent 42%),var(--panel)}
-.vp-switch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.vp-switch-card,.vp-field-card{padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel-strong)}
-.vp-field-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.vp-field-label{margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
-.vp-note{font-size:12px;line-height:1.65}
-.vp-cron-field{padding:0;background:transparent}
-:deep(.vp-config .v-field),:deep(.vp-config .v-selection-control){color:var(--text)}
-:deep(.vp-config .v-field){background:rgba(255,255,255,.02);border-radius:14px}
-:deep(.vp-config .v-field__input),:deep(.vp-config .v-label),:deep(.vp-config .v-select__selection-text),:deep(.vp-config .v-field__outline),:deep(.vp-config .v-field__append-inner){color:var(--text)}
-:deep(.vp-config .v-field--disabled){opacity:.82}
-:deep(.vp-config .vp-switch){width:100%;margin:0}
-:deep(.vp-config .vp-switch .v-selection-control){min-height:28px}
-:deep(.vp-config .vp-switch .v-label){opacity:1;font-weight:600;font-size:12px;line-height:1.35}
-:deep(.vp-config .vp-switch .v-selection-control__wrapper){width:30px;height:18px;margin-right:6px}
-:deep(.vp-config .vp-switch .v-switch__track){min-width:30px;width:30px;height:18px;border-radius:999px}
-:deep(.vp-config .vp-switch .v-switch__thumb){width:12px;height:12px}
-:deep(.vp-config .v-field__input){min-height:40px;padding-top:0;padding-bottom:0;font-size:13px}
-:deep(.vp-config .v-field__outline){--v-field-border-opacity:1}
-:deep(.vp-config .v-selection-control__input > .v-icon),:deep(.vp-config .v-switch__track){color:var(--accent)}
-@media (max-width:1080px){.vp-switch-grid,.vp-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vp-action-grid{flex-wrap:wrap;justify-content:flex-start;min-width:0}}
-@media (max-width:760px){.vp-shell{padding:0 10px}.vp-card{padding:14px;border-radius:18px}.vp-hero,.vp-switch-grid,.vp-field-grid{grid-template-columns:1fr;display:grid}.vp-action-grid{gap:10px}.vp-action-grid :deep(.v-btn--variant-flat){min-width:0;flex:1 1 calc(50% - 10px)}}
+.siqi-config{width:100%;max-width:100%;min-height:400px;padding:16px 20px;display:flex;flex-direction:column;gap:16px;overflow-x:hidden;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;color:rgba(var(--v-theme-on-surface),.85);border:1px solid rgba(var(--v-theme-on-surface),.12);border-radius:8px;background:linear-gradient(180deg,rgba(var(--v-theme-surface),.22),rgba(76,175,80,.025))}
+.siqi-config *{box-sizing:border-box}.siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px;min-width:0}.siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.siqi-topbar__copy{min-width:0}.siqi-topbar__right{display:flex;align-items:center;gap:10px;flex-shrink:0}.siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}.siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(76,175,80,.14);display:flex;align-items:center;justify-content:center;color:#2e7d32;flex-shrink:0}.siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}.siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.siqi-config :deep(.v-btn){min-height:44px}
+.siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}.siqi-migration-note{border-radius:12px!important;line-height:1.6}.siqi-config-col{display:flex;flex-direction:column;gap:16px;min-width:0}.siqi-card{min-width:0;background:rgba(var(--v-theme-surface),.5);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
+.siqi-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-switch-item{min-width:0;min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:.5px solid rgba(var(--v-theme-on-surface),.06);transition:background .2s ease,border-color .2s ease,transform .2s ease}.siqi-switch-item:hover{transform:translateY(-1px)}.siqi-switch-item--active{background:rgba(var(--siqi-accent,34,197,94),.07);border-color:rgba(var(--siqi-accent,34,197,94),.18)}.siqi-switch-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;color:rgba(var(--v-theme-on-surface),.58)}.siqi-switch-main>div{min-width:0}.siqi-switch-item--active .siqi-switch-main{color:rgb(var(--siqi-accent,34,197,94))}.siqi-switch-label{font-size:13px;font-weight:600;color:rgba(var(--v-theme-on-surface),.86)}.siqi-switch-desc{font-size:11px;color:rgba(var(--v-theme-on-surface),.46);line-height:1.45;margin-top:2px}.siqi-switch-item :deep(.v-switch){flex:0 0 auto}.siqi-switch-item :deep(.v-selection-control){min-width:44px;min-height:44px}.siqi-switch-item :deep(.v-input__details){display:none}
+.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px;background:rgba(var(--v-theme-surface),.34)}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}.siqi-site-note{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border-radius:12px;background:rgba(34,197,94,.07);border:.5px solid rgba(34,197,94,.18);color:rgba(var(--v-theme-on-surface),.7)}.siqi-site-note>div{min-width:0}.siqi-site-note__title{font-size:13px;font-weight:650;color:rgba(var(--v-theme-on-surface),.86)}.siqi-site-note__desc{margin-top:3px;font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5)}
+@media(max-width:900px){.siqi-switch-grid,.siqi-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.siqi-wide-field{grid-column:span 2}}
+@media(max-width:600px){.siqi-config{padding:14px}.siqi-topbar{flex-direction:column;align-items:stretch;gap:10px}.siqi-topbar__left{width:100%;min-width:0}.siqi-topbar__right{width:100%;justify-content:flex-end}.siqi-topbar__right :deep(.v-btn-group){width:100%}.siqi-topbar__right :deep(.v-btn){flex:1 1 0;min-width:44px!important;padding-inline:0!important}.siqi-switch-grid,.siqi-form-grid{grid-template-columns:1fr}.siqi-wide-field{grid-column:span 1}.siqi-switch-item{align-items:center}.siqi-topbar__sub{max-width:100%}}
 </style>

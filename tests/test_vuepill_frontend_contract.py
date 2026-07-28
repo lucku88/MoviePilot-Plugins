@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Page.vue"
+CONFIG_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Config.vue"
 APP_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "App.vue"
 INDEX_PATH = ROOT / "plugins.v2" / "vuepill" / "index.html"
 ASYNC_GUARD_PATH = (
@@ -17,9 +18,11 @@ class VuePillFrontendContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.page = PAGE_PATH.read_text(encoding="utf-8")
+        cls.config = CONFIG_PATH.read_text(encoding="utf-8")
         cls.app = APP_PATH.read_text(encoding="utf-8")
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
         cls.compact_page = re.sub(r"\s+", "", cls.page)
+        cls.compact_config = re.sub(r"\s+", "", cls.config)
         cls.mobile_css = cls.compact_page.split(
             "@media(max-width:600px){", 1
         )[1].rsplit("</style>", 1)[0]
@@ -28,6 +31,164 @@ class VuePillFrontendContractTest(unittest.TestCase):
         for token in tokens:
             with self.subTest(token=token):
                 self.assertIn(token, self.page)
+
+    def assert_config_contains(self, *tokens):
+        for token in tokens:
+            with self.subTest(token=token):
+                self.assertIn(token, self.config)
+
+    def test_config_uses_vuefarm_shell_grids_and_theme_tokens(self):
+        self.assert_config_contains(
+            'class="siqi-config"',
+            'class="siqi-topbar"',
+            "siqi-topbar__left",
+            "siqi-topbar__right",
+            "siqi-switch-grid",
+            "siqi-form-grid",
+            "rgba(var(--v-theme-on-surface)",
+            "rgba(var(--v-theme-surface)",
+        )
+        self.assertNotRegex(self.config, r'class="[^"]*\bvp-')
+        self.assertNotIn("is-dark-theme", self.config)
+
+    def test_config_uses_exact_public_field_whitelist_and_vuefarm_cron(self):
+        expected_fields = {
+            "enabled",
+            "notify",
+            "onlyonce",
+            "use_proxy",
+            "force_ipv4",
+            "enable_brick",
+            "enable_beach",
+            "auto_craft",
+            "auto_exchange",
+            "brick_cron",
+            "schedule_buffer_seconds",
+            "reserve_magic_pill_count",
+            "random_delay_max_seconds",
+            "http_timeout",
+            "http_retry_times",
+            "http_retry_delay",
+        }
+        field_block = re.search(
+            r"const\s+CONFIG_FIELDS\s*=\s*Object\.freeze\(\[(.*?)\]\)",
+            self.config,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(field_block, "配置页必须显式声明提交白名单")
+        actual_fields = set(re.findall(r"['\"]([a-z0-9_]+)['\"]", field_block.group(1)))
+        self.assertEqual(expected_fields, actual_fields)
+        self.assert_config_contains(
+            "VCronField",
+            'v-model="config.brick_cron"',
+            "reserve_magic_pill_count",
+            "启用插件",
+            "通知",
+            "立即运行一次",
+            "代理",
+            "强制 IPv4",
+            "自动搬砖",
+            "动态清沙滩",
+            "自动炼造",
+            "自动兑换",
+            "搬砖 Cron",
+            "冷却缓冲",
+            "保留魔丸",
+            "随机延迟",
+            "请求超时",
+            "网络重试次数",
+            "重试间隔",
+        )
+        self.assertNotIn("保留材料数量", self.config)
+
+    def test_config_cookie_is_read_only_explanation_only(self):
+        self.assertIn("Cookie：从 MoviePilot 站点自动同步。", self.config)
+        self.assertNotIn("auto_cookie", self.config)
+        self.assertNotIn("config.cookie", self.config)
+        self.assertNotRegex(self.config, r"['\"]cookie['\"]")
+        self.assertNotIn("/cookie", self.config)
+        self.assertNotIn("syncCookie", self.config)
+        self.assertNotIn("同步 Cookie", self.config)
+        self.assertNotRegex(
+            self.config,
+            r"<v-(?:text-field|textarea|switch|btn)[^>]*(?:Cookie|cookie)",
+        )
+
+    def test_config_defaults_ranges_and_backend_validation_match(self):
+        self.assertRegex(self.config, r"brick_cron:\s*['\"]5 0 \* \* \*['\"]")
+        self.assertRegex(self.config, r"reserve_magic_pill_count:\s*10\b")
+        self.assertRegex(
+            self.config,
+            r'<v-text-field[^>]+v-model\.number="config\.http_retry_times"[^>]+max="5"',
+        )
+        self.assertRegex(
+            self.config,
+            r'<v-text-field[^>]+v-model\.number="config\.http_timeout"[^>]+min="5"',
+        )
+        self.assertRegex(
+            self.config,
+            r'<v-text-field[^>]+v-model\.number="retryDelaySeconds"[^>]+min="0\.2"',
+        )
+
+    def test_config_save_is_strict_guarded_and_whitelisted(self):
+        self.assert_config_contains(
+            "const CONFIG_ENDPOINT = '/plugin/VuePill/config'",
+            "createLatestRequestGuard",
+            "const loadRequestGuard = createLatestRequestGuard()",
+            "const saveRequestGuard = createLatestRequestGuard()",
+            "loadRequestGuard.begin()",
+            "loadRequestGuard.isCurrent(requestId)",
+            "saveRequestGuard.begin()",
+            "saveRequestGuard.isCurrent(requestId)",
+            "loadRequestGuard.invalidate()",
+            "saveRequestGuard.invalidate()",
+            "buildConfigPayload",
+            "isStrictSuccess(result)",
+            "safeResponseMessage(result, '配置已保存')",
+            "formRevision",
+            ':disabled="saving || loading"',
+            "if (saving.value || loading.value) return",
+        )
+        self.assertRegex(
+            self.config,
+            r"props\.api\.post\(CONFIG_ENDPOINT,\s*payload\)",
+        )
+        self.assertNotIn("success !== false", self.config)
+        self.assertNotRegex(
+            self.config,
+            r"props\.api\.post\([^\n]+\{\s*\.\.\.config",
+        )
+
+    def test_config_shows_migration_warning_without_blocking_content(self):
+        self.assert_config_contains(
+            "v0.2.0 升级提示",
+            "首次迁移会保持插件关闭",
+            "升级后请先检查并保存新版设置，再手动启用任务。",
+        )
+        warning_position = self.config.find("v0.2.0 升级提示")
+        content_position = self.config.find("siqi-config-col")
+        self.assertGreaterEqual(warning_position, 0)
+        self.assertGreater(content_position, warning_position)
+
+    def test_config_responsive_layout_prevents_horizontal_scroll(self):
+        self.assert_config_contains(
+            "@media(max-width:900px)",
+            "@media(max-width:600px)",
+            "overflow-x:hidden",
+            "min-height:44px",
+        )
+        self.assertRegex(
+            self.compact_config,
+            r"@media\(max-width:600px\)\{[^}]*\.siqi-config\{[^}]*padding:14px",
+        )
+        self.assertRegex(
+            self.compact_config,
+            r"@media\(max-width:600px\)\{.*?\.siqi-topbar\{[^}]*flex-direction:column",
+        )
+        self.assertRegex(
+            self.compact_config,
+            r"@media\(max-width:600px\)\{.*?\.siqi-topbar__right\{[^}]*width:100%",
+        )
 
     def test_uses_vuefarm_visual_shell_and_theme_tokens(self):
         self.assert_page_contains(
