@@ -496,6 +496,10 @@ class VuePill(_PluginBase):
             return False
         return self._stored_legacy_restart_process_id() == _PROCESS_INSTANCE_ID
 
+    def _finish_legacy_restart_metadata(self):
+        self.save_data(self.LEGACY_MIGRATION_KEY, True)
+        self.save_data(_LEGACY_RESTART_PROCESS_KEY, None)
+
     def _config_generation_mode(self, config: Optional[dict]) -> str:
         stored = self._stored_config_generation()
         if stored == self.CONFIG_GENERATION:
@@ -524,12 +528,17 @@ class VuePill(_PluginBase):
         preserve_running_onlyonce: bool = False,
     ):
         generation_mode = self._config_generation_mode(config)
+        legacy_restart_finish_pending = bool(
+            generation_mode == "current"
+            and self._stored_legacy_restart_process_id()
+        )
         running_scheduler = bool(
             self._scheduler and self._scheduler.running
         )
         keep_running_scheduler = bool(
             preserve_running_onlyonce
             and generation_mode in {"current", "legacy-current"}
+            and not legacy_restart_finish_pending
             and running_scheduler
         )
         if not keep_running_scheduler:
@@ -563,9 +572,10 @@ class VuePill(_PluginBase):
                     self.CONFIG_GENERATION_KEY,
                     self.CONFIG_GENERATION,
                 )
-                self.save_data(self.LEGACY_MIGRATION_KEY, True)
                 if generation_mode == "legacy-restart-finalize":
-                    self.save_data(_LEGACY_RESTART_PROCESS_KEY, None)
+                    self._finish_legacy_restart_metadata()
+                else:
+                    self.save_data(self.LEGACY_MIGRATION_KEY, True)
             finally:
                 if execution_acquired and execution_lock is not None:
                     execution_lock.release()
@@ -590,6 +600,13 @@ class VuePill(_PluginBase):
             finally:
                 if migration_started:
                     self._end_generation_reset()
+            return
+
+        if legacy_restart_finish_pending:
+            self._reset_runtime_site_credentials()
+            self._bootstrap_pending = False
+            self._apply_config(self._default_config())
+            self._finish_legacy_restart_metadata()
             return
 
         if generation_mode == "legacy-current":

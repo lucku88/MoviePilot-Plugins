@@ -1162,6 +1162,111 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(self.plugin._enabled, False)
         self.assertIsNone(self.plugin._scheduler)
 
+    def test_current_generation_retries_incomplete_legacy_restart_metadata(self):
+        for failing_key in (
+            self.plugin.LEGACY_MIGRATION_KEY,
+            self.module._LEGACY_RESTART_PROCESS_KEY,
+        ):
+            with self.subTest(failing_key=failing_key):
+                plugin = make_plugin(self.module)
+                old_process_id = "previous-moviepilot-process"
+                plugin.save_data(
+                    self.module._LEGACY_RESTART_PROCESS_KEY,
+                    old_process_id,
+                )
+                plugin.save_data("history", [{"title": "旧版记录"}])
+                plugin.save_data("next_run_time", "2026-01-02 00:00:00")
+                original_save_data = plugin.save_data
+                generation_written = False
+                failure_injected = False
+
+                def fail_legacy_restart_finish(key, value):
+                    nonlocal generation_written, failure_injected
+                    if (
+                        generation_written
+                        and key == failing_key
+                        and not failure_injected
+                    ):
+                        failure_injected = True
+                        raise RuntimeError("升级收尾写入失败")
+                    result = original_save_data(key, value)
+                    if (
+                        key == plugin.CONFIG_GENERATION_KEY
+                        and value == plugin.CONFIG_GENERATION
+                    ):
+                        generation_written = True
+                    return result
+
+                plugin.save_data = fail_legacy_restart_finish
+
+                with self.assertRaisesRegex(RuntimeError, "升级收尾写入失败"):
+                    plugin.init_plugin({"enabled": True, "onlyonce": True})
+
+                self.assertTrue(generation_written)
+                self.assertTrue(failure_injected)
+                self.assertEqual(
+                    plugin.CONFIG_GENERATION,
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+                )
+                self.assertEqual(
+                    old_process_id,
+                    plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY),
+                )
+                expected_marker = (
+                    None
+                    if failing_key == plugin.LEGACY_MIGRATION_KEY
+                    else True
+                )
+                self.assertIs(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
+                    expected_marker,
+                )
+
+                plugin.save_data = original_save_data
+                valid_history = [{"title": "收尾失败后的有效记录"}]
+                valid_next_run = "2026-08-01 00:00:00"
+                valid_trigger_mode = "run:beach"
+                plugin.save_data("history", valid_history)
+                plugin.save_data("next_run_time", valid_next_run)
+                plugin.save_data("next_trigger_mode", valid_trigger_mode)
+                reset_calls = []
+                plugin._reset_generation_data = lambda: reset_calls.append(True)
+                register_calls = []
+
+                class RecordingScheduler:
+                    def update_plugin_job(self, *args, **kwargs):
+                        register_calls.append("update")
+
+                    def reload_plugin_job(self, *args, **kwargs):
+                        register_calls.append("reload")
+
+                    def remove_plugin_job(self, *args, **kwargs):
+                        return None
+
+                self.module.Scheduler = RecordingScheduler
+
+                plugin.init_plugin({"enabled": True, "onlyonce": True})
+
+                self.assertEqual([], reset_calls)
+                self.assertEqual(valid_history, plugin.get_data("history"))
+                self.assertEqual(valid_next_run, plugin.get_data("next_run_time"))
+                self.assertEqual(
+                    valid_trigger_mode,
+                    plugin.get_data("next_trigger_mode"),
+                )
+                self.assertIs(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
+                    True,
+                )
+                self.assertIsNone(
+                    plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY)
+                )
+                self.assertEqual([], register_calls)
+                self.assertIs(plugin._enabled, False)
+                self.assertIsNone(plugin._scheduler)
+                self.assertIs(plugin._config_store["enabled"], False)
+                self.assertIs(plugin._config_store["onlyonce"], False)
+
     def test_upgrade_restart_pending_rejects_config_save(self):
         self.plugin.save_data("history", [{"title": "等待重启记录"}])
         self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
