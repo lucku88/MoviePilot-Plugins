@@ -30,7 +30,10 @@ from .page_parser import parse_page
 from .site_client import VuePillActionError, VuePillSiteClient
 
 
-MIGRATION_KEY = "v020_initialized"
+LEGACY_MIGRATION_KEY = "v020_initialized"
+CONFIG_GENERATION_KEY = "config_generation"
+CONFIG_GENERATION = 2
+MIGRATION_KEY = LEGACY_MIGRATION_KEY
 _DROP_PUBLIC_VALUE = object()
 
 
@@ -147,7 +150,10 @@ class VuePill(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     SUMMARY_LINE = "━━━━━━━━━━━━━━"
-    MIGRATION_KEY = MIGRATION_KEY
+    LEGACY_MIGRATION_KEY = LEGACY_MIGRATION_KEY
+    CONFIG_GENERATION_KEY = CONFIG_GENERATION_KEY
+    CONFIG_GENERATION = CONFIG_GENERATION
+    MIGRATION_KEY = LEGACY_MIGRATION_KEY
     _BEARER_PATTERN = re.compile(r"(?i)(\bbearer\s+)[A-Za-z0-9._~+/=-]+")
     _SENSITIVE_HEADER_PATTERN = re.compile(
         r"(?im)(\b(?:cookie|set-cookie|authorization|proxy-authorization)"
@@ -331,31 +337,61 @@ class VuePill(_PluginBase):
                 preserve_running_onlyonce=True,
             )
 
+    def _stored_config_generation(self) -> Optional[int]:
+        raw = self.get_data(self.CONFIG_GENERATION_KEY)
+        if raw in (None, ""):
+            return None
+        if isinstance(raw, bool):
+            return -1
+        if isinstance(raw, int):
+            return raw
+        if isinstance(raw, str) and raw.strip().isdecimal():
+            try:
+                return int(raw.strip())
+            except ValueError:
+                return -1
+        return -1
+
+    def _config_generation_mode(self, config: Optional[dict]) -> str:
+        stored = self._stored_config_generation()
+        if stored == self.CONFIG_GENERATION:
+            return "current"
+        if stored is None and self.get_data(self.LEGACY_MIGRATION_KEY):
+            return "legacy-current"
+        if stored is None and not config:
+            return "fresh"
+        return "reset"
+
     def _init_plugin_locked(
         self,
         config: Optional[dict] = None,
         preserve_running_onlyonce: bool = False,
     ):
-        migration_required = not self.get_data(self.MIGRATION_KEY)
+        generation_mode = self._config_generation_mode(config)
         running_scheduler = bool(
             self._scheduler and self._scheduler.running
         )
         keep_running_scheduler = bool(
             preserve_running_onlyonce
-            and not migration_required
+            and generation_mode in {"current", "legacy-current"}
             and running_scheduler
         )
         if not keep_running_scheduler:
             self.stop_service()
 
-        if migration_required:
-            self._reset_v020_data()
+        if generation_mode in {"fresh", "reset"}:
+            if generation_mode == "reset":
+                self._reset_v020_data()
             self._reset_runtime_site_credentials()
             self._bootstrap_pending = False
             self._apply_config(self._default_config())
             self._update_config()
-            self.save_data(self.MIGRATION_KEY, True)
+            self.save_data(self.CONFIG_GENERATION_KEY, self.CONFIG_GENERATION)
+            self.save_data(self.LEGACY_MIGRATION_KEY, True)
             return
+
+        if generation_mode == "legacy-current":
+            self.save_data(self.CONFIG_GENERATION_KEY, self.CONFIG_GENERATION)
 
         self._reset_runtime_site_credentials()
         merged = self._merge_public_config(config)

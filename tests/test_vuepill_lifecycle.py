@@ -392,6 +392,187 @@ class VuePillLifecycleTests(unittest.TestCase):
         for secret in secrets:
             self.assertNotIn(secret, encoded)
 
+    def test_config_generation_reader_is_strict(self):
+        self.assertEqual("v020_initialized", self.module.LEGACY_MIGRATION_KEY)
+        self.assertEqual("config_generation", self.module.CONFIG_GENERATION_KEY)
+        self.assertEqual(2, self.module.CONFIG_GENERATION)
+        self.assertEqual(
+            self.plugin.LEGACY_MIGRATION_KEY,
+            self.plugin.MIGRATION_KEY,
+        )
+
+        cases = (
+            (None, None),
+            ("", None),
+            (0, 0),
+            (2, 2),
+            ("002", 2),
+            (" 2 ", 2),
+            (True, -1),
+            (False, -1),
+            (" ", -1),
+            ("2.0", -1),
+            ("\u00b2", -1),
+            ("invalid", -1),
+            ([], -1),
+        )
+        for stored, expected in cases:
+            with self.subTest(stored=stored):
+                plugin = make_plugin(self.module)
+                if stored is not None:
+                    plugin.save_data(plugin.CONFIG_GENERATION_KEY, stored)
+
+                self.assertEqual(expected, plugin._stored_config_generation())
+
+    def test_legacy_v020_marker_is_promoted_without_clearing_data(self):
+        config = {
+            "enabled": True,
+            "notify": False,
+            "reserve_magic_pill_count": 7,
+        }
+        self.plugin.save_data("v020_initialized", True)
+        self.plugin.save_data("history", [{"title": "保留记录"}])
+        self.plugin.save_data("next_run_time", "2026-07-30 00:00:00")
+        self.plugin.save_data("next_trigger_mode", "run:beach")
+        self.plugin.stop_service = lambda: None
+        config_writes = []
+        self.plugin.update_config = lambda value: config_writes.append(dict(value))
+
+        self.plugin.init_plugin(config)
+
+        self.assertEqual([], config_writes)
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
+        self.assertEqual([{"title": "保留记录"}], self.plugin.get_data("history"))
+        self.assertEqual(
+            "2026-07-30 00:00:00",
+            self.plugin.get_data("next_run_time"),
+        )
+        self.assertEqual("run:beach", self.plugin.get_data("next_trigger_mode"))
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._notify, False)
+        self.assertEqual(7, self.plugin._reserve_magic_pill_count)
+
+    def test_current_generation_minor_update_preserves_config_history_and_plan(self):
+        self.plugin.save_data(
+            self.plugin.CONFIG_GENERATION_KEY,
+            self.plugin.CONFIG_GENERATION,
+        )
+        self.plugin.save_data("history", [{"title": "小版本记录"}])
+        self.plugin.save_data("next_run_time", "2026-07-30 00:00:00")
+        self.plugin.save_data("next_trigger_mode", "run:beach")
+        self.plugin.stop_service = lambda: None
+        reset_calls = []
+        self.plugin._reset_v020_data = lambda: reset_calls.append(True)
+        config = {
+            "enabled": True,
+            "notify": False,
+            "reserve_magic_pill_count": 7,
+        }
+
+        self.plugin.init_plugin(config)
+        self.plugin.init_plugin(config)
+
+        self.assertEqual([], reset_calls)
+        self.assertEqual(
+            [{"title": "小版本记录"}],
+            self.plugin.get_data("history"),
+        )
+        self.assertEqual(
+            "2026-07-30 00:00:00",
+            self.plugin.get_data("next_run_time"),
+        )
+        self.assertEqual("run:beach", self.plugin.get_data("next_trigger_mode"))
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._notify, False)
+        self.assertEqual(7, self.plugin._reserve_magic_pill_count)
+
+    def test_different_or_invalid_generation_resets_and_records_current_generation(self):
+        for stored_generation in (1, True, "invalid"):
+            with self.subTest(stored_generation=stored_generation):
+                plugin = make_plugin(self.module)
+                plugin.save_data(plugin.CONFIG_GENERATION_KEY, stored_generation)
+                plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+                plugin.save_data("history", [{"title": "旧代数据"}])
+                plugin.save_data("next_trigger_mode", "run:beach")
+                plugin.stop_service = lambda: None
+                generation_during_write = []
+                original_update_config = plugin.update_config
+
+                def record_update(config):
+                    generation_during_write.append(
+                        plugin.get_data(plugin.CONFIG_GENERATION_KEY)
+                    )
+                    original_update_config(config)
+
+                plugin.update_config = record_update
+                plugin.init_plugin(
+                    {"enabled": True, "reserve_magic_pill_count": 3}
+                )
+
+                self.assertEqual([stored_generation], generation_during_write)
+                self.assertEqual([], plugin.get_data("history"))
+                self.assertEqual("", plugin.get_data("next_trigger_mode"))
+                self.assertIs(plugin._enabled, False)
+                self.assertEqual(10, plugin._reserve_magic_pill_count)
+                self.assertEqual(
+                    plugin.CONFIG_GENERATION,
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+                )
+                self.assertIs(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
+                    True,
+                )
+
+    def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
+        for config in (None, {}):
+            with self.subTest(config=config):
+                plugin = make_plugin(self.module)
+                plugin.stop_service = lambda: None
+                reset_calls = []
+                plugin._reset_v020_data = lambda: reset_calls.append(True)
+                generation_during_write = []
+                original_update_config = plugin.update_config
+
+                def record_update(defaults):
+                    generation_during_write.append(
+                        plugin.get_data(plugin.CONFIG_GENERATION_KEY)
+                    )
+                    original_update_config(defaults)
+
+                plugin.update_config = record_update
+                plugin.init_plugin(config)
+
+                self.assertEqual([], reset_calls)
+                self.assertEqual([None], generation_during_write)
+                self.assertIs(plugin._enabled, False)
+                self.assertIs(plugin._notify, True)
+                self.assertEqual(10, plugin._reserve_magic_pill_count)
+                self.assertIs(plugin._config_store["enabled"], False)
+                self.assertIs(plugin._config_store["notify"], True)
+                self.assertEqual(
+                    plugin.CONFIG_GENERATION,
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+                )
+                self.assertIs(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
+                    True,
+                )
+
+                plugin.save_data(plugin.LEGACY_MIGRATION_KEY, False)
+                plugin.save_data("history", [{"title": "后续记录"}])
+                plugin.init_plugin({"enabled": True, "notify": False})
+
+                self.assertEqual([], reset_calls)
+                self.assertEqual(
+                    [{"title": "后续记录"}],
+                    plugin.get_data("history"),
+                )
+                self.assertIs(plugin._enabled, True)
+                self.assertIs(plugin._notify, False)
+
     def test_first_v020_init_resets_old_state_and_stays_disabled(self):
         old_values = {
             "history": [{"title": "旧记录"}],
@@ -409,6 +590,19 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         stop_calls = []
         self.plugin.stop_service = lambda: stop_calls.append(True)
+        migration_state_during_write = []
+        original_update_config = self.plugin.update_config
+
+        def record_update(config):
+            migration_state_during_write.append(
+                (
+                    self.plugin.get_data("v020_initialized"),
+                    self.plugin.get_data("config_generation"),
+                )
+            )
+            original_update_config(config)
+
+        self.plugin.update_config = record_update
         self.plugin.init_plugin(
             {
                 "enabled": True,
@@ -419,7 +613,12 @@ class VuePillLifecycleTests(unittest.TestCase):
         )
 
         self.assertEqual([True], stop_calls)
+        self.assertEqual([(None, None)], migration_state_during_write)
         self.assertIs(self.plugin.get_data("v020_initialized"), True)
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
         self.assertEqual([], self.plugin.get_data("history"))
         self.assertEqual({}, self.plugin.get_data("state"))
         self.assertEqual({}, self.plugin.get_data("pill_status"))
@@ -499,17 +698,24 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual([], errors)
         self.assertFalse(saving_wrote_before_migration_finished)
         self.assertIs(shared_data.get("v020_initialized"), True)
+        self.assertEqual(
+            migration_plugin.CONFIG_GENERATION,
+            shared_data.get(migration_plugin.CONFIG_GENERATION_KEY),
+        )
         self.assertIs(shared_config.get("enabled"), True)
         self.assertEqual(7, shared_config.get("reserve_magic_pill_count"))
 
     def test_failed_default_config_write_leaves_migration_retryable(self):
         self.plugin.save_data("history", [{"title": "旧记录"}])
         original_update_config = self.plugin.update_config
-        marker_during_write = []
+        migration_state_during_write = []
 
         def fail_update_config(config):
-            marker_during_write.append(
-                self.plugin.get_data(self.plugin.MIGRATION_KEY)
+            migration_state_during_write.append(
+                (
+                    self.plugin.get_data("v020_initialized"),
+                    self.plugin.get_data("config_generation"),
+                )
             )
             raise RuntimeError("默认配置写入失败")
 
@@ -517,14 +723,21 @@ class VuePillLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "默认配置写入失败"):
             self.plugin.init_plugin({"enabled": True})
 
-        self.assertEqual([None], marker_during_write)
+        self.assertEqual([(None, None)], migration_state_during_write)
         self.assertIsNone(self.plugin.get_data(self.plugin.MIGRATION_KEY))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
+        )
 
         self.plugin.save_data("history", [{"title": "失败后的脏数据"}])
         self.plugin.update_config = original_update_config
         self.plugin.init_plugin({"enabled": True})
 
         self.assertIs(self.plugin.get_data(self.plugin.MIGRATION_KEY), True)
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
         self.assertEqual([], self.plugin.get_data("history"))
         self.assertIs(self.plugin._enabled, False)
         self.assertIs(self.plugin._config_store["enabled"], False)
@@ -555,6 +768,10 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual([{"title": "新记录"}], self.plugin.get_data("history"))
         self.assertIs(self.plugin._enabled, True)
         self.assertEqual(7, self.plugin._reserve_magic_pill_count)
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
 
     def test_defaults_use_safe_v020_values(self):
         defaults = self.plugin._default_config()
