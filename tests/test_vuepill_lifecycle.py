@@ -735,6 +735,34 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual("普通状态 true", public_value["common"]["true_text"])
         self.assertEqual("普通状态 false", public_value["common"]["false_text"])
 
+    def test_public_filter_fails_closed_when_secret_limit_is_exceeded(self):
+        sensitive_rows = [
+            {
+                "token": f"ZXQ-SENSITIVE-{index * 2:04d}",
+                "session": f"ZXQ-SENSITIVE-{index * 2 + 1:04d}",
+            }
+            for index in range(251)
+        ]
+        overflow_secret = sensitive_rows[-1]["token"]
+        raw_value = {
+            "audit": sensitive_rows,
+            "message": f"服务端回显 {overflow_secret}",
+            "safe": "普通公开字段",
+        }
+
+        public_value = self.plugin._sanitize_public_response(raw_value)
+        encoded = json.dumps(public_value, ensure_ascii=False, allow_nan=False)
+
+        self.assertEqual(
+            {
+                "success": False,
+                "message": self.plugin.PUBLIC_LIMIT_MESSAGE,
+            },
+            public_value,
+        )
+        self.assertNotIn(overflow_secret, encoded)
+        self.assertNotIn(f"服务端回显 {overflow_secret}", encoded)
+
     def test_public_filter_emits_bounded_json_safe_acyclic_values(self):
         class CustomValue:
             pass
@@ -1848,6 +1876,77 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.assertNotIn(secret, rendered_logs)
             self.assertNotIn(secret, raw_log_calls)
         self.assertEqual("", self.plugin._cookie)
+
+    def test_site_getter_cookie_error_persists_only_sanitized_retry_state(self):
+        raw_cookie = "theme=blue; account=PERSISTED-RAW-COOKIE-SECRET"
+        logger = RecordingLogger()
+        self.module.logger = logger
+
+        class BrokenSite:
+            @property
+            def cookie(self):
+                return raw_cookie
+
+            @property
+            def url(self):
+                raise RuntimeError(
+                    f"读取 URL 失败，服务端直接回显 {raw_cookie}"
+                )
+
+            @property
+            def ua(self):
+                return "New UA"
+
+        class BrokenSiteOper:
+            def get_by_domain(self, domain):
+                return BrokenSite()
+
+        self.module.SiteOper = BrokenSiteOper
+        self.plugin._enabled = True
+        self.plugin._notify = False
+
+        warning_result = self.plugin._move_bricks_api({})
+        run_result = self.plugin._run_now()
+
+        self.assertIs(warning_result["success"], False)
+        self.assertIs(run_result["success"], False)
+        self.assertEqual(
+            1,
+            self.plugin.get_data("consecutive_error_retries"),
+        )
+        self.assertIn(
+            "[REDACTED]",
+            self.plugin.get_data("last_error_retry_detail"),
+        )
+        persisted = {
+            "last_error_retry_detail": self.plugin.get_data(
+                "last_error_retry_detail"
+            ),
+            "history": self.plugin.get_data("history"),
+            "status": self.plugin._build_status(auto_refresh=False),
+        }
+        public_payloads = {
+            "warning_result": warning_result,
+            "run_result": run_result,
+            "persisted": persisted,
+        }
+        encoded_payloads = json.dumps(
+            public_payloads,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        rendered_logs = "\n".join(logger.entries)
+        raw_log_calls = json.dumps(
+            logger.calls,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        self.assertTrue(any(call[0] == "warning" for call in logger.calls))
+        self.assertTrue(any("异常堆栈" in str(call[1]) for call in logger.calls))
+        for secret in (raw_cookie, "PERSISTED-RAW-COOKIE-SECRET"):
+            self.assertNotIn(secret, encoded_payloads)
+            self.assertNotIn(secret, rendered_logs)
+            self.assertNotIn(secret, raw_log_calls)
 
 
 if __name__ == "__main__":

@@ -185,6 +185,11 @@ class VuePill(_PluginBase):
     PUBLIC_MAX_ITEMS = 500
     PUBLIC_MAX_DEPTH = 20
     PUBLIC_MAX_SECRETS = 500
+    # Scan beyond the public output bounds so omitted branches can redact echoes.
+    PUBLIC_SECRET_SCAN_MAX_ITEMS = 1000
+    PUBLIC_SECRET_SCAN_MAX_DEPTH = 64
+    PUBLIC_SECRET_SCAN_MAX_NODES = 10000
+    PUBLIC_LIMIT_MESSAGE = "响应数据超过安全限制，已省略"
 
     def __init__(self):
         super().__init__()
@@ -839,7 +844,10 @@ class VuePill(_PluginBase):
             (
                 result_sensitive_values,
                 result_sensitive_scalars,
+                result_secrets_complete,
             ) = self._collect_sensitive_public_data(result)
+            if not result_secrets_complete:
+                raise ValueError(self.PUBLIC_LIMIT_MESSAGE)
             result_sensitive_values = tuple(result_sensitive_values)
             return {
                 "success": True,
@@ -953,8 +961,13 @@ class VuePill(_PluginBase):
         default: str,
         sensitive_values: Tuple[str, ...] = (),
     ) -> str:
+        collected_values, _, collection_complete = (
+            self._collect_sensitive_public_data(result)
+        )
+        if not collection_complete:
+            return self.PUBLIC_LIMIT_MESSAGE
         combined_sensitive_values = tuple(sensitive_values) + tuple(
-            self._collect_sensitive_public_values(result)
+            collected_values
         )
         if isinstance(result, dict):
             for key in ("message", "msg"):
@@ -997,9 +1010,11 @@ class VuePill(_PluginBase):
         for raw_row in self._take_public_items(source_rows):
             if not isinstance(raw_row, dict):
                 continue
-            row_values, row_scalars = self._collect_sensitive_public_data(
-                raw_row
+            row_values, row_scalars, row_complete = (
+                self._collect_sensitive_public_data(raw_row)
             )
+            if not row_complete:
+                continue
             row_sensitive_values = tuple(sensitive_values) + tuple(row_values)
             row_sensitive_scalars = set(sensitive_scalar_values or ())
             row_sensitive_scalars.update(row_scalars)
@@ -3088,13 +3103,37 @@ class VuePill(_PluginBase):
             return "number", value
         return None
 
-    def _collect_sensitive_public_data(self, value: Any) -> Tuple[List[str], set]:
+    def _collect_sensitive_public_data(
+        self,
+        value: Any,
+    ) -> Tuple[List[str], set, bool]:
         secrets: List[str] = []
         scalar_values = set()
         known_secrets = set()
         active_containers = set()
+        collection_complete = True
+        scanned_nodes = 0
+
+        def scan_items(raw_container: Any, iterable):
+            nonlocal collection_complete, scanned_nodes
+            item_count = len(raw_container)
+            if item_count > self.PUBLIC_SECRET_SCAN_MAX_ITEMS:
+                collection_complete = False
+                return
+            iterator = iter(iterable)
+            for _ in range(item_count):
+                if scanned_nodes >= self.PUBLIC_SECRET_SCAN_MAX_NODES:
+                    collection_complete = False
+                    return
+                try:
+                    item = next(iterator)
+                except StopIteration:
+                    return
+                scanned_nodes += 1
+                yield item
 
         def add_scalar(raw_value: Any):
+            nonlocal collection_complete
             if type(raw_value) is str:
                 texts = (raw_value,)
             elif raw_value is None:
@@ -3108,26 +3147,35 @@ class VuePill(_PluginBase):
             else:
                 return
             for text in texts:
+                if not text or text in known_secrets:
+                    continue
                 if len(secrets) >= self.PUBLIC_MAX_SECRETS:
+                    collection_complete = False
                     return
-                if text and text not in known_secrets:
-                    known_secrets.add(text)
-                    secrets.append(text)
+                known_secrets.add(text)
+                secrets.append(text)
             marker = self._sensitive_public_scalar_marker(raw_value)
-            if (
-                marker is not None
-                and len(scalar_values) < self.PUBLIC_MAX_SECRETS
-            ):
-                scalar_values.add(marker)
+            if marker is None or marker in scalar_values:
+                return
+            if len(scalar_values) >= self.PUBLIC_MAX_SECRETS:
+                collection_complete = False
+                return
+            scalar_values.add(marker)
 
         def collect_scalars(raw_value: Any, depth: int):
-            if (
-                depth > self.PUBLIC_MAX_DEPTH
-                or (
-                    len(secrets) >= self.PUBLIC_MAX_SECRETS
-                    and len(scalar_values) >= self.PUBLIC_MAX_SECRETS
-                )
-            ):
+            nonlocal collection_complete
+            if not collection_complete:
+                return
+            if depth > self.PUBLIC_SECRET_SCAN_MAX_DEPTH:
+                if (
+                    raw_value is None
+                    or type(raw_value) in {bool, int, float, str}
+                    or (
+                        type(raw_value) in {dict, list, tuple}
+                        and bool(raw_value)
+                    )
+                ):
+                    collection_complete = False
                 return
             if (
                 raw_value is None
@@ -3147,19 +3195,23 @@ class VuePill(_PluginBase):
                     if type(raw_value) is dict
                     else raw_value
                 )
-                for nested in self._take_public_items(iterable):
+                for nested in scan_items(raw_value, iterable):
                     collect_scalars(nested, depth + 1)
+                    if not collection_complete:
+                        break
             finally:
                 active_containers.discard(container_id)
 
         def walk(raw_value: Any, depth: int):
-            if (
-                depth > self.PUBLIC_MAX_DEPTH
-                or (
-                    len(secrets) >= self.PUBLIC_MAX_SECRETS
-                    and len(scalar_values) >= self.PUBLIC_MAX_SECRETS
-                )
-            ):
+            nonlocal collection_complete
+            if not collection_complete:
+                return
+            if depth > self.PUBLIC_SECRET_SCAN_MAX_DEPTH:
+                if (
+                    type(raw_value) in {dict, list, tuple}
+                    and bool(raw_value)
+                ):
+                    collection_complete = False
                 return
             if type(raw_value) not in {dict, list, tuple}:
                 return
@@ -3169,25 +3221,28 @@ class VuePill(_PluginBase):
             active_containers.add(container_id)
             try:
                 if type(raw_value) is dict:
-                    for key, nested in self._take_public_items(raw_value.items()):
+                    for key, nested in scan_items(raw_value, raw_value.items()):
                         if type(key) is not str:
+                            walk(nested, depth + 1)
+                            if not collection_complete:
+                                break
                             continue
                         if self._is_sensitive_public_key(key):
                             collect_scalars(nested, depth + 1)
                         else:
                             walk(nested, depth + 1)
+                        if not collection_complete:
+                            break
                 else:
-                    for nested in self._take_public_items(raw_value):
+                    for nested in scan_items(raw_value, raw_value):
                         walk(nested, depth + 1)
+                        if not collection_complete:
+                            break
             finally:
                 active_containers.discard(container_id)
 
         walk(value, 0)
-        return secrets, scalar_values
-
-    def _collect_sensitive_public_values(self, value: Any) -> List[str]:
-        secrets, _ = self._collect_sensitive_public_data(value)
-        return secrets
+        return secrets, scalar_values, collection_complete
 
     def _public_value(
         self,
@@ -3198,9 +3253,11 @@ class VuePill(_PluginBase):
         active_containers: Optional[set] = None,
     ) -> Any:
         if sensitive_values is None or sensitive_scalar_values is None:
-            collected_values, collected_scalars = (
+            collected_values, collected_scalars, collection_complete = (
                 self._collect_sensitive_public_data(value)
             )
+            if not collection_complete:
+                return _DROP_PUBLIC_VALUE
             if sensitive_values is None:
                 sensitive_values = tuple(collected_values)
             if sensitive_scalar_values is None:
@@ -3269,9 +3326,14 @@ class VuePill(_PluginBase):
             active_containers.discard(container_id)
 
     def _sanitize_public_response(self, value: Any) -> Any:
-        sensitive_values, sensitive_scalar_values = (
+        sensitive_values, sensitive_scalar_values, collection_complete = (
             self._collect_sensitive_public_data(value)
         )
+        if not collection_complete:
+            return {
+                "success": False,
+                "message": self.PUBLIC_LIMIT_MESSAGE,
+            }
         public_value = self._public_value(
             value,
             tuple(sensitive_values),
