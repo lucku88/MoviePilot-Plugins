@@ -142,15 +142,15 @@
                 </div>
               </div>
               <div class="schedule-state-row">
-                <v-chip size="small" :color="beach.ready === true ? 'success' : 'grey'" variant="tonal">
-                  {{ beach.ready === true ? '后端标记可执行' : '后端标记不可执行' }}
+                <v-chip size="small" :color="beachActionable ? 'success' : 'grey'" variant="tonal">
+                  {{ beach.has_trash === true ? '垃圾待收集' : beachActionable ? '后端标记可执行' : '后端标记不可执行' }}
                 </v-chip>
                 <v-btn
                   color="teal"
                   variant="tonal"
                   class="schedule-action"
                   :loading="actionLoading === 'beach'"
-                  :disabled="writeActionsDisabled || beach.ready !== true"
+                  :disabled="writeActionsDisabled || !beachActionable"
                   @click="cleanBeach"
                 >清理沙滩</v-btn>
               </div>
@@ -491,6 +491,12 @@ const pill = computed(() => status.pill_status || {})
 const overview = computed(() => Array.isArray(pill.value.overview) ? pill.value.overview.slice(0, 4) : [])
 const brick = computed(() => pill.value.brick || {})
 const beach = computed(() => pill.value.beach || {})
+const beachActionable = computed(() => (
+  beach.value.ready === true
+  || beach.value.can_collect === true
+  || beach.value.has_trash === true
+  || beach.value.collect_enabled === true
+))
 const exchange = computed(() => pill.value.exchange || {})
 const inventoryItems = computed(() => {
   const inventory = pill.value.inventory || {}

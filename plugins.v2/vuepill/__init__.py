@@ -542,7 +542,7 @@ class VuePill(_PluginBase):
             run_brick = self._enable_brick and scheduled_action in {"all", "brick"}
             run_beach = self._enable_beach and scheduled_action in {"all", "beach"}
             beach_due_action = not force and base_reason == "schedule" and scheduled_action == "beach" and run_beach
-            if beach_due_action and not (page.get("beach") or {}).get("ready"):
+            if beach_due_action and not self._is_beach_ready(page.get("beach") or {}):
                 page = self._refresh_beach_due_page(session, page)
 
             brick_result: Dict[str, Any] = {}
@@ -555,9 +555,12 @@ class VuePill(_PluginBase):
             elif run_brick:
                 brick_result = {"message": page.get("brick", {}).get("status_text") or "今日搬砖已满"}
 
-            if run_beach and page.get("beach", {}).get("ready"):
+            if run_beach and self._is_beach_ready(page.get("beach") or {}):
                 beach_flow_attempted = True
-                beach_result = self._run_beach_flow(session)
+                beach_result = self._execute_beach_flow(
+                    session,
+                    page.get("beach") or {},
+                )
             elif run_beach:
                 beach_result = {"message": page.get("beach", {}).get("status_text") or "沙滩冷却中"}
 
@@ -571,10 +574,13 @@ class VuePill(_PluginBase):
             if (
                 beach_due_action
                 and not beach_flow_attempted
-                and (final_page.get("beach") or {}).get("ready")
+                and self._is_beach_ready(final_page.get("beach") or {})
             ):
                 beach_flow_attempted = True
-                beach_result = self._run_beach_flow(session)
+                beach_result = self._execute_beach_flow(
+                    session,
+                    final_page.get("beach") or {},
+                )
                 final_page = self._fetch_stable_page_state(
                     session,
                     previous_page=final_page,
@@ -640,7 +646,7 @@ class VuePill(_PluginBase):
                     text=self._build_notify_text(lines, next_run),
                 )
 
-            if not has_warning:
+            if not has_warning and not retry_action:
                 self._reset_error_retry_count()
             message = lines[0]
             if auto_failed:
@@ -881,6 +887,8 @@ class VuePill(_PluginBase):
             beach.get("ready")
             or beach.get("can_clean")
             or beach.get("can_collect")
+            or beach.get("has_trash")
+            or beach.get("collect_enabled")
             or str(beach.get("action_kind") or "").lower() in {"ready", "run", "clean"}
         )
 
@@ -2107,7 +2115,7 @@ class VuePill(_PluginBase):
         except Exception as err:
             logger.warning("%s 沙滩到点重刷状态失败：%s", self.plugin_name, self._get_error_detail(err))
             return current
-        if (current.get("beach") or {}).get("ready"):
+        if self._is_beach_ready(current.get("beach") or {}):
             return current
 
         for wait_seconds in (0.8, 1.5):
@@ -2117,7 +2125,7 @@ class VuePill(_PluginBase):
             except Exception as err:
                 logger.warning("%s 沙滩到点延迟重刷状态失败：%s", self.plugin_name, self._get_error_detail(err))
                 break
-            if (current.get("beach") or {}).get("ready"):
+            if self._is_beach_ready(current.get("beach") or {}):
                 break
         return current
 
@@ -2243,16 +2251,51 @@ class VuePill(_PluginBase):
         try:
             enter = self._post_action(session, "enter_beach", retry_network=False)
         except Exception as err:
-            return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
+            return {
+                "items": [],
+                "message": "",
+                "warning": self._get_error_detail(err),
+                "done": False,
+                "attempted": True,
+            }
 
         if not enter or not enter.get("success", False):
             message = self._safe_result_message(enter, "沙滩冷却中")
-            return {"items": [], "message": message, "warning": "", "done": False}
+            return {
+                "items": [],
+                "message": "",
+                "warning": message,
+                "done": False,
+                "attempted": True,
+            }
 
+        return self._collect_beach_trash(session)
+
+    def _execute_beach_flow(
+        self,
+        session,
+        beach_state: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        beach = beach_state if isinstance(beach_state, dict) else {}
+        if bool(
+            beach.get("can_collect")
+            or beach.get("has_trash")
+            or beach.get("collect_enabled")
+        ):
+            return self._collect_beach_trash(session)
+        return self._run_beach_flow(session)
+
+    def _collect_beach_trash(self, session) -> Dict[str, Any]:
         try:
             result = self._post_action(session, "collect_all_trash", retry_network=False)
         except Exception as err:
-            return {"items": [], "message": "", "warning": self._get_error_detail(err), "done": False}
+            return {
+                "items": [],
+                "message": "",
+                "warning": self._get_error_detail(err),
+                "done": False,
+                "attempted": True,
+            }
 
         if result and result.get("success", False):
             public_result = self._safe_result_data(result)
@@ -2262,12 +2305,14 @@ class VuePill(_PluginBase):
                 "message": self._safe_result_message(result, "").strip(),
                 "warning": "",
                 "done": True,
+                "attempted": True,
             }
         return {
             "items": [],
-            "message": self._safe_result_message(result, "一键收集失败"),
-            "warning": "",
+            "message": "",
+            "warning": self._safe_result_message(result, "一键收集失败"),
             "done": False,
+            "attempted": True,
         }
 
     def _manual_move_bricks(self) -> Dict[str, Any]:
@@ -2344,13 +2389,13 @@ class VuePill(_PluginBase):
         self._ensure_cookie()
         session = self._build_session()
         page = self._fetch_page_state(session)
-        if not page.get("beach", {}).get("ready"):
+        if not self._is_beach_ready(page.get("beach") or {}):
             lines = [f"ℹ️ 沙滩：{page.get('beach', {}).get('status_text') or '沙滩冷却中'}"]
             next_run, next_action = self._compute_next_plan(page)
             pill_status = self._refresh_and_store_status(page, next_run, lines, next_action=next_action)
             return {"pill_status": pill_status, "lines": lines}
 
-        result = self._run_beach_flow(session)
+        result = self._execute_beach_flow(session, page.get("beach") or {})
         page = self._fetch_stable_page_state(
             session,
             previous_page=page,
@@ -2361,7 +2406,7 @@ class VuePill(_PluginBase):
             auto_result, page = self._run_auto_post_beach(session, page)
             page = self._fetch_stable_page_state(session, previous_page=page)
         next_run, next_action = self._compute_next_plan(page)
-        if page.get("beach", {}).get("ready") and result.get("warning"):
+        if self._should_retry_beach(page.get("beach") or {}, result):
             retry_ts = int(time.time()) + self._ready_retry_seconds
             if not next_run or retry_ts < next_run:
                 next_run, next_action = retry_ts, "beach"
@@ -2810,7 +2855,10 @@ class VuePill(_PluginBase):
 
     def _get_retry_action(self, page: Dict[str, Any], brick_result: Dict[str, Any], beach_result: Dict[str, Any]) -> str:
         brick_retry = page.get("brick", {}).get("ready") and bool(brick_result.get("warning") or brick_result.get("attempted"))
-        beach_retry = bool(beach_result.get("warning")) and page.get("beach", {}).get("ready")
+        beach_retry = self._should_retry_beach(
+            page.get("beach") or {},
+            beach_result,
+        )
         if brick_retry and beach_retry:
             return "all"
         if brick_retry:
@@ -2818,6 +2866,18 @@ class VuePill(_PluginBase):
         if beach_retry:
             return "beach"
         return ""
+
+    def _should_retry_beach(
+        self,
+        beach_state: Dict[str, Any],
+        beach_result: Dict[str, Any],
+    ) -> bool:
+        if not beach_result:
+            return False
+        return bool(
+            beach_result.get("attempted") and not beach_result.get("done")
+            or beach_state.get("has_trash")
+        )
 
     def _should_skip_run(self) -> bool:
         next_trigger = self._load_saved_next_trigger()

@@ -356,3 +356,149 @@ class VueRetryLimitTests(unittest.TestCase):
         self.assertEqual(now + 24 * 3600, next_run)
         self.assertEqual("brick", next_action)
         self.assertEqual(6, plugin.get_data("consecutive_error_retries"))
+
+    def test_vuepill_business_failure_counts_toward_short_retry_limit(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._notify = False
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+        plugin._random_delay_max_seconds = 0
+        plugin._ready_retry_seconds = 60
+        plugin.save_data("consecutive_error_retries", 5)
+        now = int(time.time())
+        future_run = now + 24 * 3600
+        pending_page = {
+            "server_now": now,
+            "stats": {},
+            "brick": {"ready": False},
+            "beach": {
+                "ready": False,
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            },
+            "exchange": {},
+            "inventory": [],
+            "recipes": [],
+        }
+        scheduled = []
+        plugin._ensure_cookie = lambda: None
+        plugin._build_session = lambda: object()
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: pending_page
+        plugin._post_action = lambda *args, **kwargs: {
+            "success": False,
+            "message": "一键收集失败",
+        }
+        plugin._compute_next_plan = lambda page: (future_run, "beach")
+        plugin._schedule_next_run = lambda *args, **kwargs: scheduled.append(args)
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        result = plugin.run_job(force=True, reason="manual-api")
+
+        self.assertEqual(6, plugin.get_data("consecutive_error_retries"))
+        self.assertTrue(any(line.startswith("⚠️") for line in result["lines"]))
+        self.assertEqual(future_run, scheduled[0][0])
+
+    def test_vuepill_enter_failure_counts_toward_short_retry_limit(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._notify = False
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+        plugin._random_delay_max_seconds = 0
+        plugin._ready_retry_seconds = 60
+        plugin.save_data("consecutive_error_retries", 5)
+        now = int(time.time())
+        future_run = now + 24 * 3600
+        ready_page = {
+            "server_now": now,
+            "stats": {},
+            "brick": {"ready": False},
+            "beach": {
+                "ready": True,
+                "can_collect": False,
+                "has_trash": False,
+                "collect_enabled": False,
+                "status_text": "可以进入清理",
+            },
+            "exchange": {},
+            "inventory": [],
+            "recipes": [],
+        }
+        scheduled = []
+        plugin._ensure_cookie = lambda: None
+        plugin._build_session = lambda: object()
+        plugin._fetch_page_state = lambda session: ready_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: ready_page
+        plugin._post_action = lambda *args, **kwargs: {
+            "success": False,
+            "message": "沙滩暂时无法进入",
+        }
+        plugin._compute_next_plan = lambda page: (future_run, "beach")
+        plugin._schedule_next_run = lambda *args, **kwargs: scheduled.append(args)
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        result = plugin.run_job(force=True, reason="manual-api")
+
+        self.assertEqual(6, plugin.get_data("consecutive_error_retries"))
+        self.assertTrue(any(line.startswith("⚠️") for line in result["lines"]))
+        self.assertEqual(future_run, scheduled[0][0])
+
+    def test_vuepill_stale_trash_retry_counts_toward_short_retry_limit(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._notify = False
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+        plugin._random_delay_max_seconds = 0
+        plugin._ready_retry_seconds = 60
+        plugin.save_data("consecutive_error_retries", 5)
+        now = int(time.time())
+        future_run = now + 24 * 3600
+        pending_page = {
+            "server_now": now,
+            "stats": {},
+            "brick": {"ready": False},
+            "beach": {
+                "ready": False,
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            },
+            "exchange": {},
+            "inventory": [],
+            "recipes": [],
+        }
+        scheduled = []
+        plugin._ensure_cookie = lambda: None
+        plugin._build_session = lambda: object()
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: pending_page
+        plugin._post_action = lambda *args, **kwargs: {
+            "success": True,
+            "collected_items": {"木材": 1},
+        }
+        plugin._compute_next_plan = lambda page: (future_run, "beach")
+        plugin._schedule_next_run = lambda *args, **kwargs: scheduled.append(args)
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        plugin.run_job(force=True, reason="manual-api")
+
+        self.assertEqual(6, plugin.get_data("consecutive_error_retries"))
+        self.assertEqual(future_run, scheduled[0][0])

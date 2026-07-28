@@ -570,6 +570,188 @@ class VueAutoCatchupTests(unittest.TestCase):
         self.assertIn("沙滩", result["message"])
         self.assertNotEqual("ℹ️ 本次无可执行动作", result["message"])
 
+    def test_run_beach_collects_pending_trash_without_reentering(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+
+        pending_page = self._vuepill_page(beach_ready=False)
+        pending_page["beach"].update(
+            {
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        final_page = self._vuepill_page(
+            beach_ready=False,
+            beach_next_ts=int(time.time()) + 7200,
+        )
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._refresh_beach_due_page = lambda session, page: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: final_page
+        action_calls = []
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append(action)
+            return {
+                "success": True,
+                "collected_items": {"木材": 1},
+            }
+
+        plugin._post_action = post_action
+        plugin._compute_next_plan = lambda page: (
+            int(time.time()) + 7200,
+            "beach",
+        )
+        plugin._schedule_next_run = lambda *args, **kwargs: None
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        result = plugin.run_job(force=False, reason="schedule")
+
+        self.assertTrue(result["success"])
+        self.assertEqual(["collect_all_trash"], action_calls)
+
+    def test_failed_pending_trash_collection_keeps_short_beach_retry(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+
+        pending_page = self._vuepill_page(beach_ready=False)
+        pending_page["beach"].update(
+            {
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        action_calls = []
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._refresh_beach_due_page = lambda session, page: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: pending_page
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append(action)
+            raise RuntimeError("收集失败")
+
+        plugin._post_action = post_action
+        plugin._compute_next_plan = lambda page: (
+            int(time.time()) + 7200,
+            "beach",
+        )
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        plugin.run_job(force=False, reason="schedule")
+        next_run = plugin._load_saved_next_run()
+
+        self.assertEqual(["collect_all_trash"], action_calls)
+        self.assertIsNotNone(next_run)
+        self.assertLessEqual(
+            next_run.timestamp(),
+            time.time() + plugin._ready_retry_seconds + 5,
+        )
+        self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
+
+    def test_successful_collection_does_not_retry_empty_enabled_button(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+
+        pending_page = self._vuepill_page(beach_ready=False)
+        pending_page["beach"].update(
+            {
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        future_run = int(time.time()) + 7200
+        final_page = self._vuepill_page(
+            beach_ready=False,
+            beach_next_ts=future_run,
+        )
+        final_page["beach"].update(
+            {
+                "can_collect": True,
+                "has_trash": False,
+                "collect_enabled": True,
+                "status_text": "垃圾已清理",
+            }
+        )
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._refresh_beach_due_page = lambda session, page: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: final_page
+        plugin._post_action = lambda *args, **kwargs: {
+            "success": True,
+            "collected_items": {"木材": 1},
+        }
+        plugin._compute_next_plan = lambda page: (future_run, "beach")
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        plugin.run_job(force=False, reason="schedule")
+        next_run = plugin._load_saved_next_run()
+
+        self.assertIsNotNone(next_run)
+        self.assertGreater(next_run.timestamp(), time.time() + 3600)
+
+    def test_successful_collection_retries_when_trash_still_remains(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        self._ready_vuepill_for_scheduled_action(plugin, module, action="beach")
+        plugin._enable_beach = True
+        plugin._enable_brick = False
+        plugin._auto_craft = False
+        plugin._auto_exchange = False
+
+        pending_page = self._vuepill_page(beach_ready=False)
+        pending_page["beach"].update(
+            {
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        future_run = int(time.time()) + 7200
+        plugin._fetch_page_state = lambda session: pending_page
+        plugin._refresh_beach_due_page = lambda session, page: pending_page
+        plugin._fetch_stable_page_state = lambda *args, **kwargs: pending_page
+        plugin._post_action = lambda *args, **kwargs: {
+            "success": True,
+            "collected_items": {"木材": 1},
+        }
+        plugin._compute_next_plan = lambda page: (future_run, "beach")
+        plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        plugin._append_history = lambda *args, **kwargs: None
+
+        plugin.run_job(force=False, reason="schedule")
+        next_run = plugin._load_saved_next_run()
+
+        self.assertIsNotNone(next_run)
+        self.assertLessEqual(
+            next_run.timestamp(),
+            time.time() + plugin._ready_retry_seconds + 5,
+        )
+        self.assertEqual("run:beach", plugin.get_data("next_trigger_mode"))
+
     def test_run_beach_stays_short_retry_when_every_refresh_is_not_ready(self):
         module = _load_plugin("vuepill")
         plugin = module.VuePill()

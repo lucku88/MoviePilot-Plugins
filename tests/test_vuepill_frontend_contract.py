@@ -736,6 +736,15 @@ try {
         )
         self.assertGreaterEqual(self.page.count("writeActionsDisabled"), 8)
 
+    def test_pending_beach_trash_remains_manually_actionable(self):
+        self.assert_page_contains(
+            "const beachActionable = computed(",
+            "beach.value.ready === true",
+            "beach.value.can_collect === true",
+            "beach.value.has_trash === true",
+            ':disabled="writeActionsDisabled || !beachActionable"',
+        )
+
     def test_post_actions_require_explicit_success(self):
         self.assertGreaterEqual(self.page.count("isStrictSuccess(result)"), 3)
         self.assertIn("safeResponseMessage", self.page)

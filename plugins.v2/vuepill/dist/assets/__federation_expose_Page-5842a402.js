@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-41a74a79.js';
 
-const Page_vue_vue_type_style_index_0_scoped_2492d16e_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_943992d9_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-2492d16e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-943992d9"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -219,6 +219,12 @@ const pill = computed(() => status.pill_status || {});
 const overview = computed(() => Array.isArray(pill.value.overview) ? pill.value.overview.slice(0, 4) : []);
 const brick = computed(() => pill.value.brick || {});
 const beach = computed(() => pill.value.beach || {});
+const beachActionable = computed(() => (
+  beach.value.ready === true
+  || beach.value.can_collect === true
+  || beach.value.has_trash === true
+  || beach.value.collect_enabled === true
+));
 const exchange = computed(() => pill.value.exchange || {});
 const inventoryItems = computed(() => {
   const inventory = pill.value.inventory || {};
@@ -858,11 +864,11 @@ return (_ctx, _cache) => {
                       _createElementVNode("div", _hoisted_38, [
                         _createVNode(_component_v_chip, {
                           size: "small",
-                          color: beach.value.ready === true ? 'success' : 'grey',
+                          color: beachActionable.value ? 'success' : 'grey',
                           variant: "tonal"
                         }, {
                           default: _withCtx(() => [
-                            _createTextVNode(_toDisplayString(beach.value.ready === true ? '后端标记可执行' : '后端标记不可执行'), 1)
+                            _createTextVNode(_toDisplayString(beach.value.has_trash === true ? '垃圾待收集' : beachActionable.value ? '后端标记可执行' : '后端标记不可执行'), 1)
                           ]),
                           _: 1
                         }, 8, ["color"]),
@@ -871,7 +877,7 @@ return (_ctx, _cache) => {
                           variant: "tonal",
                           class: "schedule-action",
                           loading: actionLoading.value === 'beach',
-                          disabled: writeActionsDisabled.value || beach.value.ready !== true,
+                          disabled: writeActionsDisabled.value || !beachActionable.value,
                           onClick: cleanBeach
                         }, {
                           default: _withCtx(() => [
@@ -1498,6 +1504,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-2492d16e"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-943992d9"]]);
 
 export { PageView as default };

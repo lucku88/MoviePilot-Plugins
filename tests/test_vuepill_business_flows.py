@@ -341,6 +341,96 @@ class VuePillBusinessFlowTests(unittest.TestCase):
             "正在执行" in busy["message"] or "稍后重试" in busy["message"]
         )
 
+    def test_manual_beach_collects_pending_trash_without_reentering(self):
+        pending_page = self._page({"木材": 0, "魔丸": 10})
+        pending_page["beach"].update(
+            {
+                "ready": False,
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        final_page = self._page({"木材": 1, "魔丸": 10})
+        action_calls = []
+        self.plugin._auto_craft = False
+        self.plugin._auto_exchange = False
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: pending_page
+        self.plugin._fetch_stable_page_state = lambda *args, **kwargs: final_page
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append(action)
+            return {
+                "success": True,
+                "collected_items": {"木材": 1},
+            }
+
+        self.plugin._post_action = post_action
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda *args, **kwargs: None
+
+        result = self.plugin._manual_clean_beach()
+
+        self.assertEqual(["collect_all_trash"], action_calls)
+        self.assertTrue(any("沙滩" in line for line in result["lines"]))
+
+    def test_manual_beach_failure_keeps_short_retry_when_refresh_misses_trash(self):
+        pending_page = self._page({"木材": 0, "魔丸": 10})
+        pending_page["beach"].update(
+            {
+                "ready": False,
+                "can_collect": True,
+                "has_trash": True,
+                "collect_enabled": True,
+                "status_text": "沙滩有垃圾待收集",
+            }
+        )
+        future_run = int(self.module.time.time()) + 7200
+        final_page = self._page({"木材": 0, "魔丸": 10})
+        final_page["beach"].update(
+            {
+                "ready": False,
+                "can_collect": False,
+                "has_trash": False,
+                "collect_enabled": False,
+                "next_ready_ts": future_run,
+                "status_text": "沙滩冷却中",
+            }
+        )
+        action_calls = []
+        self.plugin._auto_craft = False
+        self.plugin._auto_exchange = False
+        self.plugin._ready_retry_seconds = 60
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_page_state = lambda session: pending_page
+        self.plugin._fetch_stable_page_state = lambda *args, **kwargs: final_page
+
+        def post_action(session, action, payload=None, retry_network=False):
+            action_calls.append(action)
+            raise RuntimeError("收集失败")
+
+        self.plugin._post_action = post_action
+        self.plugin._compute_next_plan = lambda page: (future_run, "beach")
+        self.plugin._reregister_plugin = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda *args, **kwargs: None
+
+        self.plugin._manual_clean_beach()
+        next_run = self.plugin._load_saved_next_run()
+
+        self.assertEqual(["collect_all_trash"], action_calls)
+        self.assertIsNotNone(next_run)
+        self.assertLessEqual(
+            next_run.timestamp(),
+            self.module.time.time() + self.plugin._ready_retry_seconds + 5,
+        )
+
     def test_gift_success_appends_one_history_entry_after_single_post(self):
         stock = {"木材": 5, "魔丸": 10}
         pages = [self._page(stock), self._page(stock)]
