@@ -1081,10 +1081,10 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.module._PROCESS_INSTANCE_ID,
             self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY),
         )
-        self.assertIs(self.plugin._enabled, False)
-        self.assertEqual(10, self.plugin._reserve_magic_pill_count)
-        self.assertIs(self.plugin._config_store["enabled"], False)
-        self.assertEqual(10, self.plugin._config_store["reserve_magic_pill_count"])
+        self.assertIs(self.plugin._enabled, True)
+        self.assertEqual(0, self.plugin._reserve_magic_pill_count)
+        self.assertIs(self.plugin._config_store["enabled"], True)
+        self.assertEqual(0, self.plugin._config_store["reserve_magic_pill_count"])
 
     def test_legacy_upgrade_same_process_reinit_stays_pending_without_scheduler(self):
         waiting_key = getattr(
@@ -1125,13 +1125,13 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(2, len(config_writes))
         self.assertTrue(
             all(
-                write.get("enabled") is False
-                and write.get("onlyonce") is False
+                write.get("enabled") is True
+                and write.get("onlyonce") is True
                 for write in config_writes
             )
         )
-        self.assertIs(self.plugin._enabled, False)
-        self.assertIs(self.plugin._onlyonce, False)
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._onlyonce, True)
         self.assertIsNone(self.plugin._scheduler)
 
     def test_legacy_upgrade_finalizes_after_process_id_changes(self):
@@ -1398,7 +1398,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.module._PROCESS_INSTANCE_ID,
             shared_data.get(self.module._LEGACY_RESTART_PROCESS_KEY),
         )
-        self.assertIs(shared_config.get("enabled"), False)
+        self.assertIs(shared_config.get("enabled"), True)
         self.assertEqual(10, shared_config.get("reserve_magic_pill_count"))
 
     def test_failed_default_config_write_leaves_migration_retryable(self):
@@ -1450,8 +1450,8 @@ class VuePillLifecycleTests(unittest.TestCase):
             "2026-01-02 00:00:00",
             self.plugin.get_data("next_run_time"),
         )
-        self.assertIs(self.plugin._enabled, False)
-        self.assertIs(self.plugin._config_store["enabled"], False)
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._config_store["enabled"], True)
 
         self.plugin.save_data(
             self.module._LEGACY_RESTART_PROCESS_KEY,
@@ -1519,6 +1519,43 @@ class VuePillLifecycleTests(unittest.TestCase):
             old_process_id,
             self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY)
         )
+
+    def test_restart_prepare_keeps_existing_runtime_config_until_restart(self):
+        self.plugin._stop_service_locked = lambda: None
+        self.plugin.save_data("history", [{"title": "旧记录"}])
+
+        self.plugin.init_plugin(
+            {"enabled": True, "reserve_magic_pill_count": 7}
+        )
+
+        self.assertEqual(7, self.plugin._reserve_magic_pill_count)
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._upgrade_restart_required(), True)
+        self.assertEqual(
+            [{"title": "旧记录"}],
+            self.plugin.get_data("history"),
+        )
+
+    def test_upgrade_restart_gate_blocks_force_actions(self):
+        self.plugin.save_data(
+            self.module._LEGACY_RESTART_PROCESS_KEY,
+            self.module._PROCESS_INSTANCE_ID,
+        )
+        self.plugin._enabled = True
+        self.plugin._manual_move_bricks = lambda: self.fail("升级重启前不应执行搬砖")
+
+        result = self.plugin._move_bricks_api({})
+
+        self.assertIs(result["success"], False)
+        self.assertIn("重启 MoviePilot", result["message"])
+
+    def test_stopped_plugin_does_not_expose_a_service(self):
+        self.plugin._enabled = True
+        self.plugin._bootstrap_pending = True
+
+        self.plugin.stop_service()
+
+        self.assertEqual([], self.plugin.get_service())
 
     def test_saved_config_after_migration_can_enable_plugin(self):
         self.plugin.save_data("v020_initialized", True)

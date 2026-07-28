@@ -122,6 +122,10 @@ class _MigrationActivityStopped(RuntimeError):
     pass
 
 
+class _UpgradeRestartRequired(RuntimeError):
+    pass
+
+
 def _migration_activity(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
@@ -131,6 +135,8 @@ def _migration_activity(method):
             if method.__name__ == "_refresh_state":
                 raise
             return self._activity_stopping_response()
+        except _UpgradeRestartRequired:
+            return self._upgrade_restart_response()
         try:
             return method(self, *args, **kwargs)
         finally:
@@ -146,6 +152,8 @@ def _exclusive_action(method):
             self._enter_migration_activity()
         except _MigrationActivityStopped:
             return self._activity_stopping_response()
+        except _UpgradeRestartRequired:
+            return self._upgrade_restart_response()
         try:
             execution_lock = type(self)._execution_lock
             if not execution_lock.acquire(blocking=False):
@@ -385,6 +393,8 @@ class VuePill(_PluginBase):
                 cls._migration_barrier.wait()
             if cls._migration_stopping:
                 raise _MigrationActivityStopped("插件正在停止，已拒绝新任务")
+            if self._upgrade_restart_required():
+                raise _UpgradeRestartRequired("插件升级需要重启 MoviePilot")
             cls._active_migration_activities += 1
             local.depth = 1
 
@@ -442,6 +452,12 @@ class VuePill(_PluginBase):
         return {
             "success": False,
             "message": "插件正在停止，已拒绝新任务",
+        }
+
+    def _upgrade_restart_response(self) -> Dict[str, Any]:
+        return {
+            "success": False,
+            "message": "Vue-魔丸升级尚未完成，请重启 MoviePilot 后再执行",
         }
 
     def init_plugin(self, config: Optional[dict] = None):
@@ -591,7 +607,21 @@ class VuePill(_PluginBase):
             try:
                 self._begin_generation_reset()
                 migration_started = True
-                self._persist_safe_default_config()
+                # 升级重启前只挂起旧实例，不覆盖用户现有配置；真正的重置
+                # 在检测到新 MoviePilot 进程后再执行。
+                previous_runtime_config = self._get_config(include_options=False)
+                self._reset_runtime_site_credentials()
+                self._bootstrap_pending = False
+                preserved_config = self._merge_public_config(
+                    config if config is not None else self._config_store
+                )
+                try:
+                    self._apply_config(preserved_config)
+                    if self._update_config() is False:
+                        raise RuntimeError("升级等待状态配置写入失败")
+                except Exception:
+                    self._apply_config(previous_runtime_config)
+                    raise
                 if generation_mode == "legacy-restart-prepare":
                     self.save_data(
                         _LEGACY_RESTART_PROCESS_KEY,
@@ -709,6 +739,8 @@ class VuePill(_PluginBase):
 
     def get_service(self) -> List[Dict[str, Any]]:
         services: List[Dict[str, Any]] = []
+        if self._is_migration_stopping():
+            return services
         if self._scheduler and self._scheduler.running:
             return services
         if self._enabled:
