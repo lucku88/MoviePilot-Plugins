@@ -1,6 +1,8 @@
+import math
 import random
 import re
 import socket
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -25,6 +27,7 @@ from app.schemas import NotificationType
 
 
 MIGRATION_KEY = "v020_initialized"
+_DROP_PUBLIC_VALUE = object()
 
 
 def _public_api(method):
@@ -144,6 +147,8 @@ class VuePill(_PluginBase):
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
+    _lifecycle_lock = threading.RLock()
+    _site_credentials_lock = threading.RLock()
 
     _enabled: bool = False
     _notify: bool = True
@@ -176,45 +181,53 @@ class VuePill(_PluginBase):
     _next_trigger_mode: str = "run"
     _bootstrap_pending: bool = False
 
+    JS_SAFE_INTEGER_MAX = (1 << 53) - 1
+    PUBLIC_MAX_ITEMS = 500
+    PUBLIC_MAX_DEPTH = 20
+    PUBLIC_MAX_SECRETS = 500
+
     def __init__(self):
         super().__init__()
 
     def init_plugin(self, config: Optional[dict] = None):
         self.stop_service()
-        self._siteoper = None
+        with self._lifecycle_lock:
+            if not self.get_data(self.MIGRATION_KEY):
+                self._reset_v020_data()
+                self._reset_runtime_site_credentials()
+                self._next_run_time = None
+                self._next_trigger_time = None
+                self._next_trigger_mode = "run"
+                self._bootstrap_pending = False
+                self._apply_config(self._default_config())
+                self._update_config()
+                self.save_data(self.MIGRATION_KEY, True)
+                return
 
-        if not self.get_data(self.MIGRATION_KEY):
-            self._reset_v020_data()
             self._reset_runtime_site_credentials()
-            self._next_run_time = None
-            self._next_trigger_time = None
-            self._next_trigger_mode = "run"
-            self._bootstrap_pending = False
-            self._apply_config(self._default_config())
-            self._update_config()
-            self.save_data(self.MIGRATION_KEY, True)
-            return
+            merged = self._merge_public_config(config)
+            self._apply_config(merged)
 
-        self._reset_runtime_site_credentials()
-        merged = self._merge_public_config(config)
-        self._apply_config(merged)
-
-        self._load_saved_next_run()
-        self._load_saved_next_trigger()
-        self._bootstrap_pending = self._enabled and (self._enable_brick or self._enable_beach) and not self._onlyonce
-
-        if self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-            self._scheduler.add_job(
-                func=self._manual_worker,
-                trigger="date",
-                run_date=self._aware_now() + timedelta(seconds=3),
-                name=self.plugin_name,
+            self._load_saved_next_run()
+            self._load_saved_next_trigger()
+            self._bootstrap_pending = (
+                self._enabled
+                and (self._enable_brick or self._enable_beach)
+                and not self._onlyonce
             )
-            self._onlyonce = False
-            self._update_config()
-            self._scheduler.start()
-            logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+            if self._onlyonce:
+                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+                self._scheduler.add_job(
+                    func=self._manual_worker,
+                    trigger="date",
+                    run_date=self._aware_now() + timedelta(seconds=3),
+                    name=self.plugin_name,
+                )
+                self._onlyonce = False
+                self._update_config()
+                self._scheduler.start()
+                logger.info("%s 已注册一次性执行任务", self.plugin_name)
 
     def _reset_v020_data(self):
         reset_values = {
@@ -265,6 +278,8 @@ class VuePill(_PluginBase):
 
     def get_service(self) -> List[Dict[str, Any]]:
         services: List[Dict[str, Any]] = []
+        if self._scheduler and self._scheduler.running:
+            return services
         if self._enabled:
             next_run = self._get_next_run_for_service()
             if next_run:
@@ -449,7 +464,39 @@ class VuePill(_PluginBase):
             logger.info("## 执行结束... %s  耗时 %s 秒", self._format_time(self._aware_now()), cost_sec)
 
     def _manual_worker(self):
-        return self.run_job(force=True, reason="onlyonce")
+        scheduler = self._scheduler
+        try:
+            return self.run_job(force=True, reason="onlyonce")
+        finally:
+            with self._lifecycle_lock:
+                owns_scheduler_slot = self._scheduler is scheduler
+                if owns_scheduler_slot:
+                    self._scheduler = None
+                if scheduler:
+                    try:
+                        scheduler.remove_all_jobs()
+                    except Exception:
+                        pass
+                    try:
+                        if scheduler.running:
+                            scheduler.shutdown(wait=False)
+                    except Exception as err:
+                        logger.warning(
+                            "%s 关闭一次性调度失败：%s",
+                            self.plugin_name,
+                            self._get_error_detail(err),
+                        )
+
+                if owns_scheduler_slot and self._enabled:
+                    next_trigger = (
+                        self._next_trigger_time
+                        or self._load_saved_next_trigger()
+                    )
+                    self._bootstrap_pending = (
+                        (self._enable_brick or self._enable_beach)
+                        and not bool(next_trigger)
+                    )
+                    self._reregister_plugin("onlyonce-complete")
 
     def _auto_worker(self):
         return self.run_job(force=False, reason="schedule")
@@ -752,6 +799,9 @@ class VuePill(_PluginBase):
                 summary = result.get("stats")
             if not isinstance(summary, dict):
                 summary = result
+            result_sensitive_values = tuple(
+                self._collect_sensitive_public_values(result)
+            )
             return {
                 "success": True,
                 "message": self._safe_result_message(result, "统计加载完成"),
@@ -763,11 +813,13 @@ class VuePill(_PluginBase):
                     summary.get("users"),
                     self._USER_SUMMARY_FIELDS,
                     "uid",
+                    result_sensitive_values,
                 ),
                 "items": self._whitelist_summary_rows(
                     summary.get("items"),
                     self._ITEM_SUMMARY_FIELDS,
                     "item_name",
+                    result_sensitive_values,
                 ),
                 "status": self._build_status(auto_refresh=False),
             }
@@ -852,36 +904,46 @@ class VuePill(_PluginBase):
         default: str,
         sensitive_values: Tuple[str, ...] = (),
     ) -> str:
+        combined_sensitive_values = tuple(sensitive_values) + tuple(
+            self._collect_sensitive_public_values(result)
+        )
         if isinstance(result, dict):
             for key in ("message", "msg"):
                 value = result.get(key)
                 if type(value) is str and value.strip():
-                    return self._sanitize_sensitive_text(value, sensitive_values)
-        return default
+                    return self._sanitize_sensitive_text(
+                        value,
+                        combined_sensitive_values,
+                    )
+        return self._sanitize_sensitive_text(default, combined_sensitive_values)
 
     def _whitelist_summary_rows(
         self,
         value: Any,
         allowed_fields: Tuple[str, ...],
         identity_field: str,
+        sensitive_values: Tuple[str, ...] = (),
     ) -> List[Dict[str, Any]]:
         if isinstance(value, dict):
             if any(key in value for key in allowed_fields):
-                source_rows = [value]
+                source_rows = iter((value,))
             else:
-                source_rows = [
+                source_rows = (
                     {identity_field: key, "quantity": nested}
                     for key, nested in value.items()
-                ]
+                )
         elif isinstance(value, list):
-            source_rows = value
+            source_rows = iter(value)
         else:
             return []
 
         rows: List[Dict[str, Any]] = []
-        for raw_row in source_rows[:500]:
+        for raw_row in self._take_public_items(source_rows):
             if not isinstance(raw_row, dict):
                 continue
+            row_sensitive_values = tuple(sensitive_values) + tuple(
+                self._collect_sensitive_public_values(raw_row)
+            )
             row: Dict[str, Any] = {}
             for key in allowed_fields:
                 if key not in raw_row:
@@ -892,20 +954,26 @@ class VuePill(_PluginBase):
                 elif type(raw_value) in {str, int} and type(raw_value) is not bool:
                     text = str(raw_value).strip()
                     if text and len(text) <= 200 and not self._contains_control_characters(text):
-                        row[key] = self._sanitize_sensitive_text(text)
+                        row[key] = self._sanitize_sensitive_text(
+                            text,
+                            row_sensitive_values,
+                        )
             if row:
                 rows.append(row)
         return rows
 
-    @staticmethod
-    def _summary_int(value: Any) -> int:
+    @classmethod
+    def _summary_int(cls, value: Any) -> int:
         if type(value) is bool:
             return 0
         if type(value) is int:
-            return max(0, value)
+            return min(cls.JS_SAFE_INTEGER_MAX, max(0, value))
         if type(value) is str and value.strip().isdigit():
             try:
-                return max(0, int(value.strip()))
+                return min(
+                    cls.JS_SAFE_INTEGER_MAX,
+                    max(0, int(value.strip())),
+                )
             except (TypeError, ValueError, OverflowError):
                 return 0
         return 0
@@ -929,13 +997,14 @@ class VuePill(_PluginBase):
 
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
+        _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
         return self._sanitize_public_response({
             "enabled": self._enabled,
             "notify": self._notify,
             "enable_brick": self._enable_brick,
             "enable_beach": self._enable_beach,
-            "cookie_source": self._cookie_source,
-            "cookie_ready": self._has_valid_cookie(),
+            "cookie_source": cookie_source,
+            "cookie_ready": self._is_valid_cookie_value(cookie),
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
             "next_trigger_action": self._get_scheduled_action_label(),
@@ -1016,13 +1085,32 @@ class VuePill(_PluginBase):
 
     @_public_api
     def _save_config(self, config_payload: dict):
-        before_refresh = self._capture_refresh_catchup_state()
-        merged = self._merge_public_config(
-            self._get_config(include_options=False),
-            config_payload,
-        )
-        self.init_plugin(merged)
-        self._update_config()
+        with self._lifecycle_lock:
+            before_refresh = self._capture_refresh_catchup_state()
+            merged = self._merge_public_config(
+                self._get_config(include_options=False),
+                config_payload,
+            )
+            requested_onlyonce = self._to_bool(merged.get("onlyonce", False))
+            self.init_plugin(merged)
+            onlyonce_queued = bool(
+                requested_onlyonce
+                and self._scheduler
+                and self._scheduler.running
+            )
+            if not onlyonce_queued:
+                self._update_config()
+
+        if onlyonce_queued:
+            status = self.get_data("pill_status") or {}
+            return {
+                "success": True,
+                "message": "配置已保存，已排队一次性执行",
+                "config": self._get_config(),
+                "pill_status": status,
+                "status": self._build_status(auto_refresh=False),
+            }
+
         catchup_result: Optional[Dict[str, Any]] = None
         try:
             status = self._refresh_state(reason="save-config")
@@ -1177,11 +1265,33 @@ class VuePill(_PluginBase):
         self._sync_site_credentials()
 
     def _reset_runtime_site_credentials(self):
-        self._cookie = ""
-        self._cookie_source = "未同步"
-        self._site_domain = self.DEFAULT_SITE_DOMAIN
-        self._site_url = self.DEFAULT_SITE_URL
-        self._user_agent = self.DEFAULT_USER_AGENT
+        with self._site_credentials_lock:
+            (
+                self._siteoper,
+                self._cookie,
+                self._cookie_source,
+                self._site_domain,
+                self._site_url,
+                self._user_agent,
+            ) = (
+                None,
+                "",
+                "未同步",
+                self.DEFAULT_SITE_DOMAIN,
+                self.DEFAULT_SITE_URL,
+                self.DEFAULT_USER_AGENT,
+            )
+
+    def _site_credentials_snapshot(self) -> Tuple[Any, str, str, str, str, str]:
+        with self._site_credentials_lock:
+            return (
+                self._siteoper,
+                self._cookie,
+                self._cookie_source,
+                self._site_domain,
+                self._site_url,
+                self._user_agent,
+            )
 
     @staticmethod
     def _site_value(site: Any, key: str) -> Any:
@@ -1189,45 +1299,77 @@ class VuePill(_PluginBase):
             return site.get(key)
         return getattr(site, key, None)
 
-    def _has_valid_cookie(self) -> bool:
+    @staticmethod
+    def _is_valid_cookie_value(cookie: Any) -> bool:
         return (
-            isinstance(self._cookie, str)
-            and bool(self._cookie.strip())
-            and self._cookie.strip().lower() != "cookie"
+            isinstance(cookie, str)
+            and bool(cookie.strip())
+            and cookie.strip().lower() != "cookie"
         )
+
+    def _has_valid_cookie(self) -> bool:
+        _, cookie, _, _, _, _ = self._site_credentials_snapshot()
+        return self._is_valid_cookie_value(cookie)
 
     def _sync_site_credentials(self):
-        self._reset_runtime_site_credentials()
+        with self._site_credentials_lock:
+            self._sync_site_credentials_locked()
+
+    def _sync_site_credentials_locked(self):
+        siteoper = None
+        site = None
+        site_found = False
+        raw_cookie = None
+        raw_site_url = None
+        raw_user_agent = None
         try:
             siteoper = SiteOper()
-            self._siteoper = siteoper
             site = siteoper.get_by_domain(self.DEFAULT_SITE_DOMAIN)
+            site_found = bool(site)
+            if site_found:
+                raw_cookie = self._site_value(site, "cookie")
+                raw_site_url = self._site_value(site, "url")
+                raw_user_agent = self._site_value(site, "ua")
         except Exception as err:
+            detail = self._get_error_detail(err)
+            self._reset_runtime_site_credentials()
             raise ValueError(
-                f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{self._get_error_detail(err)}"
+                f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{detail}"
             ) from err
 
-        if not site:
+        if not site_found:
+            self._reset_runtime_site_credentials()
             raise ValueError(f"未找到站点 {self.DEFAULT_SITE_DOMAIN} 的配置")
 
-        cookie = self._site_value(site, "cookie")
-        cookie = cookie.strip() if isinstance(cookie, str) else ""
-        if not cookie or cookie.lower() == "cookie":
+        cookie = raw_cookie.strip() if isinstance(raw_cookie, str) else ""
+        if not self._is_valid_cookie_value(cookie):
+            self._reset_runtime_site_credentials()
             raise ValueError(f"站点 {self.DEFAULT_SITE_DOMAIN} 未配置有效 Cookie")
 
-        site_url = self._site_value(site, "url")
-        user_agent = self._site_value(site, "ua")
-        self._cookie = cookie
-        self._cookie_source = f"站点同步：{self.DEFAULT_SITE_DOMAIN}"
-        self._site_url = (
-            site_url.strip().rstrip("/")
-            if isinstance(site_url, str) and site_url.strip()
+        site_url = (
+            raw_site_url.strip().rstrip("/")
+            if isinstance(raw_site_url, str) and raw_site_url.strip()
             else self.DEFAULT_SITE_URL
         )
-        self._user_agent = (
-            user_agent.strip()
-            if isinstance(user_agent, str) and user_agent.strip()
+        user_agent = (
+            raw_user_agent.strip()
+            if isinstance(raw_user_agent, str) and raw_user_agent.strip()
             else self.DEFAULT_USER_AGENT
+        )
+        (
+            self._siteoper,
+            self._cookie,
+            self._cookie_source,
+            self._site_domain,
+            self._site_url,
+            self._user_agent,
+        ) = (
+            siteoper,
+            cookie,
+            f"站点同步：{self.DEFAULT_SITE_DOMAIN}",
+            self.DEFAULT_SITE_DOMAIN,
+            site_url,
+            user_agent,
         )
 
     def _resolve_site_profile(self):
@@ -1255,11 +1397,12 @@ class VuePill(_PluginBase):
                 self._update_config()
             if not silent:
                 logger.info("%s 已同步站点 Cookie", self.plugin_name)
+            _, _, cookie_source, _, _, _ = self._site_credentials_snapshot()
             return {
                 "success": True,
                 "message": f"已同步站点 Cookie：{self.DEFAULT_SITE_DOMAIN}",
                 "cookie_ready": True,
-                "cookie_source": self._cookie_source,
+                "cookie_source": cookie_source,
             }
         except Exception as err:
             detail = self._get_error_detail(err)
@@ -1267,6 +1410,7 @@ class VuePill(_PluginBase):
             return {"success": False, "message": detail}
 
     def _build_session(self) -> requests.Session:
+        _, cookie, _, _, site_url, user_agent = self._site_credentials_snapshot()
         session = requests.Session()
         retry_strategy = Retry(
             total=self._http_retry_times,
@@ -1283,9 +1427,9 @@ class VuePill(_PluginBase):
         session.mount("https://", adapter)
         session.trust_env = self._use_proxy
         session.headers.update({
-            "User-Agent": self._user_agent,
-            "Cookie": self._cookie,
-            "Referer": f"{self._site_url}/mowan.php",
+            "User-Agent": user_agent,
+            "Cookie": cookie,
+            "Referer": f"{site_url}/mowan.php",
             "X-Requested-With": "XMLHttpRequest",
             "Connection": "keep-alive",
         })
@@ -1293,19 +1437,21 @@ class VuePill(_PluginBase):
 
     def _refresh_session_credentials(self, session: requests.Session):
         self._ensure_cookie()
+        _, cookie, _, _, site_url, user_agent = self._site_credentials_snapshot()
         headers = getattr(session, "headers", None)
         if hasattr(headers, "update"):
             headers.update({
-                "User-Agent": self._user_agent,
-                "Cookie": self._cookie,
-                "Referer": f"{self._site_url}/mowan.php",
+                "User-Agent": user_agent,
+                "Cookie": cookie,
+                "Referer": f"{site_url}/mowan.php",
             })
+        return site_url
 
     def _fetch_page_state(self, session: requests.Session) -> Dict[str, Any]:
         def fetch_page():
-            self._refresh_session_credentials(session)
+            site_url = self._refresh_session_credentials(session)
             return session.get(
-                f"{self._site_url}/mowan.php",
+                f"{site_url}/mowan.php",
                 params={"_": int(time.time() * 1000)},
                 headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
                 timeout=(self._http_timeout, self._http_timeout),
@@ -1527,9 +1673,9 @@ class VuePill(_PluginBase):
             form[key] = value
 
         def do_request():
-            self._refresh_session_credentials(session)
+            site_url = self._refresh_session_credentials(session)
             response = session.post(
-                f"{self._site_url}/mowan.php",
+                f"{site_url}/mowan.php",
                 data=form,
                 timeout=(self._http_timeout, self._http_timeout),
             )
@@ -2337,6 +2483,7 @@ class VuePill(_PluginBase):
         inventory = data.get("inventory") or []
         recipes = data.get("recipes") or []
         next_trigger = self._load_saved_next_trigger()
+        _, _, cookie_source, _, _, _ = self._site_credentials_snapshot()
         pill_plan = self._compute_magic_pill_plan(inventory)
         pill_recipe = next((recipe for recipe in recipes if self._safe_int(recipe.get("craft_id"), 0) == 6), {})
 
@@ -2354,7 +2501,7 @@ class VuePill(_PluginBase):
                 "beach": "清沙滩",
                 "all": "整轮执行",
             }.get(next_action, "整轮执行"),
-            "cookie_source": self._cookie_source,
+            "cookie_source": cookie_source,
             "page_note": (
                 f"搬砖按 CRON {self._brick_cron} 独立调度，沙滩按冷却时间独立调度。"
                 f"{' 清沙滩后会自动炼造魔丸。' if self._auto_craft else ''}"
@@ -2770,9 +2917,10 @@ class VuePill(_PluginBase):
             text = type(value).__name__
 
         secrets: List[str] = []
-        if isinstance(self._cookie, str) and self._cookie:
-            secrets.append(self._cookie)
-            for part in self._cookie.split(";"):
+        _, cookie, _, _, _, _ = self._site_credentials_snapshot()
+        if isinstance(cookie, str) and cookie:
+            secrets.append(cookie)
+            for part in cookie.split(";"):
                 _, separator, raw_value = part.partition("=")
                 if separator:
                     secret = raw_value.strip().strip("\"'")
@@ -2802,23 +2950,161 @@ class VuePill(_PluginBase):
             for fragment in self._PUBLIC_SENSITIVE_KEY_FRAGMENTS
         )
 
-    def _public_value(self, value: Any) -> Any:
-        if isinstance(value, dict):
-            return {
-                key: self._public_value(nested)
-                for key, nested in value.items()
-                if not self._is_sensitive_public_key(key)
-            }
-        if isinstance(value, list):
-            return [self._public_value(nested) for nested in value]
-        if isinstance(value, tuple):
-            return tuple(self._public_value(nested) for nested in value)
-        if isinstance(value, str):
-            return self._sanitize_sensitive_text(value)
-        return value
+    @classmethod
+    def _take_public_items(cls, iterable):
+        iterator = iter(iterable)
+        for _ in range(cls.PUBLIC_MAX_ITEMS):
+            try:
+                yield next(iterator)
+            except StopIteration:
+                return
+
+    def _collect_sensitive_public_values(self, value: Any) -> List[str]:
+        secrets: List[str] = []
+        known_secrets = set()
+        active_containers = set()
+
+        def add_scalar(raw_value: Any):
+            if len(secrets) >= self.PUBLIC_MAX_SECRETS:
+                return
+            if type(raw_value) is str:
+                texts = (raw_value,)
+            elif raw_value is None:
+                texts = ("None", "null")
+            elif type(raw_value) is bool:
+                texts = (str(raw_value), str(raw_value).lower())
+            elif type(raw_value) in {int, float}:
+                texts = (str(raw_value),)
+            else:
+                return
+            for text in texts:
+                if len(secrets) >= self.PUBLIC_MAX_SECRETS:
+                    return
+                if text and text not in known_secrets:
+                    known_secrets.add(text)
+                    secrets.append(text)
+
+        def collect_scalars(raw_value: Any, depth: int):
+            if depth > self.PUBLIC_MAX_DEPTH or len(secrets) >= self.PUBLIC_MAX_SECRETS:
+                return
+            if (
+                raw_value is None
+                or type(raw_value) in {bool, int, float, str}
+            ):
+                add_scalar(raw_value)
+                return
+            if type(raw_value) not in {dict, list, tuple}:
+                return
+            container_id = id(raw_value)
+            if container_id in active_containers:
+                return
+            active_containers.add(container_id)
+            try:
+                iterable = (
+                    raw_value.values()
+                    if type(raw_value) is dict
+                    else raw_value
+                )
+                for nested in self._take_public_items(iterable):
+                    collect_scalars(nested, depth + 1)
+            finally:
+                active_containers.discard(container_id)
+
+        def walk(raw_value: Any, depth: int):
+            if depth > self.PUBLIC_MAX_DEPTH or len(secrets) >= self.PUBLIC_MAX_SECRETS:
+                return
+            if type(raw_value) not in {dict, list, tuple}:
+                return
+            container_id = id(raw_value)
+            if container_id in active_containers:
+                return
+            active_containers.add(container_id)
+            try:
+                if type(raw_value) is dict:
+                    for key, nested in self._take_public_items(raw_value.items()):
+                        if type(key) is not str:
+                            continue
+                        if self._is_sensitive_public_key(key):
+                            collect_scalars(nested, depth + 1)
+                        else:
+                            walk(nested, depth + 1)
+                else:
+                    for nested in self._take_public_items(raw_value):
+                        walk(nested, depth + 1)
+            finally:
+                active_containers.discard(container_id)
+
+        walk(value, 0)
+        return secrets
+
+    def _public_value(
+        self,
+        value: Any,
+        sensitive_values: Optional[Tuple[str, ...]] = None,
+        depth: int = 0,
+        active_containers: Optional[set] = None,
+    ) -> Any:
+        if sensitive_values is None:
+            sensitive_values = tuple(self._collect_sensitive_public_values(value))
+        if active_containers is None:
+            active_containers = set()
+        if depth > self.PUBLIC_MAX_DEPTH:
+            return _DROP_PUBLIC_VALUE
+        if value is None or type(value) is bool:
+            return value
+        if type(value) is str:
+            return self._sanitize_sensitive_text(value, sensitive_values)
+        if type(value) is int:
+            if abs(value) <= self.JS_SAFE_INTEGER_MAX:
+                return value
+            return _DROP_PUBLIC_VALUE
+        if type(value) is float:
+            return value if math.isfinite(value) else _DROP_PUBLIC_VALUE
+        if type(value) not in {dict, list, tuple}:
+            return _DROP_PUBLIC_VALUE
+
+        container_id = id(value)
+        if container_id in active_containers:
+            return _DROP_PUBLIC_VALUE
+        active_containers.add(container_id)
+        try:
+            if type(value) is dict:
+                public_dict: Dict[str, Any] = {}
+                for key, nested in self._take_public_items(value.items()):
+                    if type(key) is not str or self._is_sensitive_public_key(key):
+                        continue
+                    public_nested = self._public_value(
+                        nested,
+                        sensitive_values,
+                        depth + 1,
+                        active_containers,
+                    )
+                    if public_nested is not _DROP_PUBLIC_VALUE:
+                        public_dict[key] = public_nested
+                if depth and value and not public_dict:
+                    return _DROP_PUBLIC_VALUE
+                return public_dict
+
+            public_items = []
+            for nested in self._take_public_items(value):
+                public_nested = self._public_value(
+                    nested,
+                    sensitive_values,
+                    depth + 1,
+                    active_containers,
+                )
+                if public_nested is not _DROP_PUBLIC_VALUE:
+                    public_items.append(public_nested)
+            if depth and value and not public_items:
+                return _DROP_PUBLIC_VALUE
+            return public_items if type(value) is list else tuple(public_items)
+        finally:
+            active_containers.discard(container_id)
 
     def _sanitize_public_response(self, value: Any) -> Any:
-        return self._public_value(value)
+        sensitive_values = tuple(self._collect_sensitive_public_values(value))
+        public_value = self._public_value(value, sensitive_values)
+        return None if public_value is _DROP_PUBLIC_VALUE else public_value
 
     def _get_error_detail(
         self,

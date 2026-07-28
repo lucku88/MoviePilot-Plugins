@@ -1,6 +1,8 @@
 import importlib.util
 import json
+import math
 import sys
+import threading
 import types
 import unittest
 from pathlib import Path
@@ -82,6 +84,7 @@ def _install_moviepilot_stubs():
         def __init__(self, *args, **kwargs):
             self.running = False
             self.jobs = []
+            self.shutdown_calls = []
 
         def add_job(self, *args, **kwargs):
             self.jobs.append((args, kwargs))
@@ -89,7 +92,8 @@ def _install_moviepilot_stubs():
         def remove_all_jobs(self):
             self.jobs.clear()
 
-        def shutdown(self):
+        def shutdown(self, *args, **kwargs):
+            self.shutdown_calls.append((args, kwargs))
             self.running = False
 
         def start(self):
@@ -318,7 +322,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                     assert_safe(child)
 
         assert_safe(value)
-        encoded = json.dumps(value, ensure_ascii=False, default=str)
+        encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
         for secret in secrets:
             self.assertNotIn(secret, encoded)
 
@@ -363,6 +367,101 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(10, self.plugin._reserve_magic_pill_count)
         self.assertIs(self.plugin._config_store["enabled"], False)
         self.assertEqual(10, self.plugin._config_store["reserve_magic_pill_count"])
+
+    def test_v020_migration_and_save_config_are_serialized_across_instances(self):
+        migration_plugin = make_plugin(self.module)
+        saving_plugin = make_plugin(self.module)
+        shared_data = {}
+        shared_config = {}
+        migration_plugin._data_store = shared_data
+        saving_plugin._data_store = shared_data
+        migration_plugin._config_store = shared_config
+        saving_plugin._config_store = shared_config
+
+        migration_write_started = threading.Event()
+        allow_migration_write = threading.Event()
+        saving_write_started = threading.Event()
+        errors = []
+
+        def migration_update_config(config):
+            migration_write_started.set()
+            if not allow_migration_write.wait(2):
+                raise RuntimeError("迁移写入等待超时")
+            shared_config.clear()
+            shared_config.update(config)
+
+        def saving_update_config(config):
+            saving_write_started.set()
+            shared_config.clear()
+            shared_config.update(config)
+
+        migration_plugin.update_config = migration_update_config
+        saving_plugin.update_config = saving_update_config
+        saving_plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        saving_plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        saving_plugin._reregister_plugin = lambda reason="": None
+
+        def run_in_thread(action):
+            try:
+                action()
+            except BaseException as err:
+                errors.append(err)
+
+        migration_thread = threading.Thread(
+            target=run_in_thread,
+            args=(lambda: migration_plugin.init_plugin({"enabled": True}),),
+        )
+        saving_thread = threading.Thread(
+            target=run_in_thread,
+            args=(
+                lambda: saving_plugin._save_config(
+                    {"enabled": True, "reserve_magic_pill_count": 7}
+                ),
+            ),
+        )
+
+        migration_thread.start()
+        self.assertTrue(migration_write_started.wait(1))
+        saving_thread.start()
+        saving_wrote_before_migration_finished = saving_write_started.wait(0.2)
+        allow_migration_write.set()
+        migration_thread.join(2)
+        saving_thread.join(2)
+
+        self.assertFalse(migration_thread.is_alive())
+        self.assertFalse(saving_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertFalse(saving_wrote_before_migration_finished)
+        self.assertIs(shared_data.get("v020_initialized"), True)
+        self.assertIs(shared_config.get("enabled"), True)
+        self.assertEqual(7, shared_config.get("reserve_magic_pill_count"))
+
+    def test_failed_default_config_write_leaves_migration_retryable(self):
+        self.plugin.save_data("history", [{"title": "旧记录"}])
+        original_update_config = self.plugin.update_config
+        marker_during_write = []
+
+        def fail_update_config(config):
+            marker_during_write.append(
+                self.plugin.get_data(self.plugin.MIGRATION_KEY)
+            )
+            raise RuntimeError("默认配置写入失败")
+
+        self.plugin.update_config = fail_update_config
+        with self.assertRaisesRegex(RuntimeError, "默认配置写入失败"):
+            self.plugin.init_plugin({"enabled": True})
+
+        self.assertEqual([None], marker_during_write)
+        self.assertIsNone(self.plugin.get_data(self.plugin.MIGRATION_KEY))
+
+        self.plugin.save_data("history", [{"title": "失败后的脏数据"}])
+        self.plugin.update_config = original_update_config
+        self.plugin.init_plugin({"enabled": True})
+
+        self.assertIs(self.plugin.get_data(self.plugin.MIGRATION_KEY), True)
+        self.assertEqual([], self.plugin.get_data("history"))
+        self.assertIs(self.plugin._enabled, False)
+        self.assertIs(self.plugin._config_store["enabled"], False)
 
     def test_saved_config_after_migration_can_enable_plugin(self):
         self.plugin.save_data("v020_initialized", True)
@@ -452,7 +551,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         for value in public_values:
             with self.subTest(value_type=type(value).__name__):
                 assert_no_secret_fields(value)
-                encoded = json.dumps(value, ensure_ascii=False, default=str)
+                encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
                 self.assertNotIn("manual-cookie-secret", encoded)
                 self.assertNotIn("manual-token-secret", encoded)
         self.assertNotEqual(secret, self.plugin._cookie)
@@ -521,6 +620,158 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIn("普通中文状态", status["pill_status"]["nested"][0]["message"])
         self.assertIn("处理失败", status["history"][0]["message"])
         self.assertIn("请稍后重试", status["history"][0]["message"])
+
+    def test_sensitive_key_values_redact_sibling_messages_status_and_logs(self):
+        public_value = self.plugin._sanitize_public_response(
+            {
+                "token": "S",
+                "message": "server echoed S",
+                "nested": {
+                    "password": 42,
+                    "message": "server echoed code 42",
+                },
+                "session": float("inf"),
+                "float_message": "server echoed inf",
+                "authorization": True,
+                "bool_message": "server echoed true",
+                "client_secret": None,
+                "none_message": "server echoed null",
+            }
+        )
+
+        self.assertNotIn("token", public_value)
+        self.assertEqual("server echoed [REDACTED]", public_value["message"])
+        self.assertNotIn("password", public_value["nested"])
+        self.assertEqual(
+            "server echoed code [REDACTED]",
+            public_value["nested"]["message"],
+        )
+        self.assertEqual(
+            "server echoed [REDACTED]",
+            public_value["float_message"],
+        )
+        self.assertEqual(
+            "server echoed [REDACTED]",
+            public_value["bool_message"],
+        )
+        self.assertEqual(
+            "server echoed [REDACTED]",
+            public_value["none_message"],
+        )
+
+        self.plugin.save_data(
+            "pill_status",
+            {
+                "schema_version": self.plugin.plugin_version,
+                "access_token": "STATUS-SECRET",
+                "message": "status echoed STATUS-SECRET",
+            },
+        )
+        status = self.plugin._build_status(auto_refresh=False)
+        self.assertEqual(
+            "status echoed [REDACTED]",
+            status["pill_status"]["message"],
+        )
+
+        self._install_valid_site("sid=safe-site-cookie")
+        logger = RecordingLogger()
+        self.module.logger = logger
+        session = FakeSession(
+            {
+                "success": False,
+                "token": "LOG-SECRET",
+                "message": "server echoed LOG-SECRET",
+            }
+        )
+        self.plugin._build_session = lambda: session
+        self.plugin._fetch_page_state = lambda current_session: self._gift_page()
+
+        result = self.plugin._gift_item_api(
+            {"item_name": "木材", "target_uid": "12345", "quantity": 1}
+        )
+
+        self.assertEqual("server echoed [REDACTED]", result["message"])
+        rendered_logs = "\n".join(logger.entries)
+        raw_calls = json.dumps(logger.calls, ensure_ascii=False, allow_nan=False)
+        self.assertNotIn("LOG-SECRET", rendered_logs)
+        self.assertNotIn("LOG-SECRET", raw_calls)
+
+    def test_public_filter_emits_bounded_json_safe_acyclic_values(self):
+        class CustomValue:
+            pass
+
+        cycle = {}
+        cycle["self"] = cycle
+        deep = {}
+        cursor = deep
+        for _ in range(40):
+            cursor["next"] = {}
+            cursor = cursor["next"]
+
+        max_safe_integer = (1 << 53) - 1
+        raw_value = {
+            "none": None,
+            "bool": True,
+            "string": "safe",
+            "float": 1.25,
+            "safe_integer": max_safe_integer,
+            "safe_negative_integer": -max_safe_integer,
+            "tuple": ("safe", 2),
+            "nan": float("nan"),
+            "infinity": float("inf"),
+            "unsafe_integer": max_safe_integer + 1,
+            "unsafe_negative_integer": -max_safe_integer - 1,
+            "set": {"unsafe"},
+            "object": CustomValue(),
+            7: "non-string-key",
+            "cycle": cycle,
+            "deep": deep,
+            "large_list": list(range(600)),
+            "large_dict": {str(index): index for index in range(600)},
+        }
+
+        public_value = self.plugin._sanitize_public_response(raw_value)
+        encoded = json.dumps(
+            public_value,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+
+        def assert_json_safe(value, depth=0):
+            self.assertLessEqual(depth, 25)
+            if type(value) is dict:
+                self.assertLessEqual(len(value), 500)
+                for key, nested in value.items():
+                    self.assertIs(type(key), str)
+                    assert_json_safe(nested, depth + 1)
+            elif type(value) in {list, tuple}:
+                self.assertLessEqual(len(value), 500)
+                for nested in value:
+                    assert_json_safe(nested, depth + 1)
+            elif type(value) is float:
+                self.assertTrue(math.isfinite(value))
+            elif type(value) is int:
+                self.assertLessEqual(abs(value), max_safe_integer)
+            else:
+                self.assertIn(type(value), {type(None), bool, str})
+
+        assert_json_safe(public_value)
+        self.assertTrue(encoded)
+        self.assertEqual(max_safe_integer, public_value["safe_integer"])
+        self.assertEqual(-max_safe_integer, public_value["safe_negative_integer"])
+        self.assertEqual(500, len(public_value["large_list"]))
+        self.assertEqual(500, len(public_value["large_dict"]))
+        for unsafe_key in (
+            "nan",
+            "infinity",
+            "unsafe_integer",
+            "unsafe_negative_integer",
+            "set",
+            "object",
+            "cycle",
+        ):
+            self.assertNotIn(unsafe_key, public_value)
+        self.assertNotIn(7, public_value)
 
     def test_refresh_store_and_api_responses_use_deep_public_filter(self):
         secrets = (
@@ -598,7 +849,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         for response in responses:
             with self.subTest(response_keys=tuple(response)):
                 self._assert_public_value_has_no_secrets(response, secrets)
-                encoded = json.dumps(response, ensure_ascii=False, default=str)
+                encoded = json.dumps(response, ensure_ascii=False, allow_nan=False)
                 self.assertIn("api-visible-uid", encoded)
                 self.assertIn("api-visible-target", encoded)
                 self.assertIn("普通中文保留", encoded)
@@ -685,6 +936,112 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.plugin._ensure_cookie()
             self.assertEqual("", self.plugin._cookie)
 
+    def test_sync_site_credentials_property_failure_has_no_partial_update(self):
+        class BrokenSite:
+            @property
+            def cookie(self):
+                return "sid=new-site-cookie"
+
+            @property
+            def url(self):
+                raise RuntimeError("读取 URL 失败 token=site-read-secret")
+
+            @property
+            def ua(self):
+                return "New UA"
+
+        class BrokenSiteOper:
+            def get_by_domain(self, domain):
+                return BrokenSite()
+
+        self.module.SiteOper = BrokenSiteOper
+        self.plugin._siteoper = object()
+        self.plugin._cookie = "sid=old-cookie"
+        self.plugin._cookie_source = "旧来源"
+        self.plugin._site_url = "https://old.example"
+        self.plugin._user_agent = "Old UA"
+
+        with self.assertRaisesRegex(ValueError, "读取站点 si-qi.xyz 配置失败") as caught:
+            self.plugin._sync_site_credentials()
+
+        self.assertNotIn("site-read-secret", str(caught.exception))
+        self.assertIsNone(self.plugin._siteoper)
+        self.assertEqual("", self.plugin._cookie)
+        self.assertEqual("未同步", self.plugin._cookie_source)
+        self.assertEqual(self.plugin.DEFAULT_SITE_URL, self.plugin._site_url)
+        self.assertEqual(self.plugin.DEFAULT_USER_AGENT, self.plugin._user_agent)
+
+    def test_concurrent_site_syncs_commit_credentials_in_request_order(self):
+        first_read_started = threading.Event()
+        allow_first_read = threading.Event()
+        second_sync_finished = threading.Event()
+        call_lock = threading.Lock()
+        call_count = 0
+        errors = []
+
+        class SlowFirstSite:
+            @property
+            def cookie(self):
+                first_read_started.set()
+                if not allow_first_read.wait(2):
+                    raise RuntimeError("首个站点读取等待超时")
+                return "sid=first-cookie"
+
+            @property
+            def url(self):
+                return "https://first.example"
+
+            @property
+            def ua(self):
+                return "First UA"
+
+        class OrderedSiteOper:
+            def get_by_domain(self, domain):
+                nonlocal call_count
+                with call_lock:
+                    call_count += 1
+                    current_call = call_count
+                if current_call == 1:
+                    return SlowFirstSite()
+                return {
+                    "cookie": "sid=second-cookie",
+                    "url": "https://second.example",
+                    "ua": "Second UA",
+                }
+
+        self.module.SiteOper = OrderedSiteOper
+
+        def run_sync(done_event=None):
+            try:
+                self.plugin._sync_site_credentials()
+            except BaseException as err:
+                errors.append(err)
+            finally:
+                if done_event:
+                    done_event.set()
+
+        first_thread = threading.Thread(target=run_sync)
+        second_thread = threading.Thread(
+            target=run_sync,
+            args=(second_sync_finished,),
+        )
+
+        first_thread.start()
+        self.assertTrue(first_read_started.wait(1))
+        second_thread.start()
+        second_finished_before_first = second_sync_finished.wait(0.2)
+        allow_first_read.set()
+        first_thread.join(2)
+        second_thread.join(2)
+
+        self.assertFalse(first_thread.is_alive())
+        self.assertFalse(second_thread.is_alive())
+        self.assertEqual([], errors)
+        self.assertFalse(second_finished_before_first)
+        self.assertEqual("sid=second-cookie", self.plugin._cookie)
+        self.assertEqual("https://second.example", self.plugin._site_url)
+        self.assertEqual("Second UA", self.plugin._user_agent)
+
     def test_synced_cookie_is_never_persisted_or_previewed(self):
         secret = "sid=site-cookie-secret; token=site-token-secret"
 
@@ -707,9 +1064,9 @@ class VuePillLifecycleTests(unittest.TestCase):
         encoded_config = json.dumps(
             self.plugin._config_store,
             ensure_ascii=False,
-            default=str,
+            allow_nan=False,
         )
-        encoded_result = json.dumps(sync_result, ensure_ascii=False, default=str)
+        encoded_result = json.dumps(sync_result, ensure_ascii=False, allow_nan=False)
         self.assertNotIn("cookie", encoded_config.lower())
         self.assertNotIn(secret, encoded_config)
         self.assertNotIn("preview", encoded_result.lower())
@@ -756,25 +1113,81 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.assertEqual(1, len(registrations))
 
-    def test_save_onlyonce_does_not_also_register_bootstrap(self):
+    def test_save_onlyonce_queues_one_run_and_restores_normal_service(self):
         self.plugin.save_data("v020_initialized", True)
         registrations = []
+        refresh_calls = []
+        run_calls = []
         self.plugin._reregister_plugin = lambda reason="": registrations.append(
             reason
         )
 
         def refresh_state(**kwargs):
-            self.plugin._schedule_next_run(None, "save-config", "all")
-            return {"inventory": []}
+            refresh_calls.append(kwargs)
+            return {"beach": {"ready": True}}
 
         self.plugin._refresh_state = refresh_state
-        self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        self.plugin.run_job = lambda force=False, reason="manual": run_calls.append(
+            (force, reason)
+        ) or {"success": True, "message": "执行完成"}
 
-        self.plugin._save_config({"enabled": True, "onlyonce": True})
+        result = self.plugin._save_config(
+            {"enabled": True, "enable_beach": True, "onlyonce": True}
+        )
 
+        self.assertIs(result["success"], True)
+        self.assertEqual([], refresh_calls)
+        self.assertEqual([], run_calls)
         self.assertIsNotNone(self.plugin._scheduler)
         self.assertIs(self.plugin._scheduler.running, True)
         self.assertEqual(1, len(self.plugin._scheduler.jobs))
+        self.assertEqual([], registrations)
+
+        temporary_scheduler = self.plugin._scheduler
+        self.plugin._next_trigger_time = self.plugin._aware_now() + self.module.timedelta(
+            minutes=5
+        )
+        self.plugin._bootstrap_pending = False
+        self.assertEqual([], self.plugin.get_service())
+
+        job_func = temporary_scheduler.jobs[0][1]["func"]
+        worker_result = job_func()
+
+        self.assertIs(worker_result["success"], True)
+        self.assertEqual([(True, "onlyonce")], run_calls)
+        self.assertIsNone(self.plugin._scheduler)
+        self.assertIs(temporary_scheduler.running, False)
+        self.assertEqual([], temporary_scheduler.jobs)
+        self.assertEqual(1, len(temporary_scheduler.shutdown_calls))
+        self.assertEqual(1, len(registrations))
+        self.assertEqual(1, len(self.plugin.get_service()))
+
+    def test_manual_worker_does_not_clear_a_replacement_scheduler(self):
+        old_scheduler = self.module.BackgroundScheduler()
+        old_scheduler.start()
+        replacement_scheduler = self.module.BackgroundScheduler()
+        replacement_scheduler.start()
+        self.plugin._scheduler = old_scheduler
+        self.plugin._enabled = True
+        registrations = []
+        self.plugin._reregister_plugin = lambda reason="": registrations.append(
+            reason
+        )
+
+        def run_job(force=False, reason="manual"):
+            self.plugin._scheduler = replacement_scheduler
+            return {"success": True, "message": "执行完成"}
+
+        self.plugin.run_job = run_job
+
+        result = self.plugin._manual_worker()
+
+        self.assertIs(result["success"], True)
+        self.assertIs(self.plugin._scheduler, replacement_scheduler)
+        self.assertIs(replacement_scheduler.running, True)
+        self.assertIs(old_scheduler.running, False)
+        self.assertEqual(1, len(old_scheduler.shutdown_calls))
+        self.assertEqual([], replacement_scheduler.shutdown_calls)
         self.assertEqual([], registrations)
 
     def test_gift_item_rejects_invalid_quantity_stock_and_item(self):
@@ -793,6 +1206,15 @@ class VuePillLifecycleTests(unittest.TestCase):
             ({"item_name": "木材", "target_uid": "123", "quantity": 0}, "正整数"),
             ({"item_name": "木材", "target_uid": "123", "quantity": -1}, "正整数"),
             ({"item_name": "木材", "target_uid": "123", "quantity": True}, "正整数"),
+            (
+                {
+                    "item_name": "木材",
+                    "uid": "123",
+                    "target_uid": "456",
+                    "quantity": 1,
+                },
+                "不一致",
+            ),
             ({"item_name": "木材", "target_uid": "123", "quantity": 6}, "库存"),
             ({"item_name": "砖块", "target_uid": "123", "quantity": 501}, "500"),
             ({"item_name": "魔丸", "target_uid": "123", "quantity": 1}, "不可赠送"),
@@ -806,6 +1228,59 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.assertIn(expected_message, result["message"])
 
         self.assertEqual([], action_calls)
+
+    def test_gift_item_accepts_500_and_rejects_more_than_500(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        pages = [self._gift_page(), self._gift_page(), self._gift_page()]
+        self.plugin._fetch_page_state = lambda session: pages.pop(0)
+        action_calls = []
+        self.plugin._post_action = lambda *args, **kwargs: action_calls.append(
+            (args, kwargs)
+        ) or {"success": True, "message": "赠送成功"}
+        self.plugin._compute_next_plan = lambda page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+
+        too_many = self.plugin._gift_item_api(
+            {"item_name": "砖块", "target_uid": "123", "quantity": 501}
+        )
+        exact_limit = self.plugin._gift_item_api(
+            {"item_name": "砖块", "target_uid": "123", "quantity": 500}
+        )
+
+        self.assertIs(too_many["success"], False)
+        self.assertIn("500", too_many["message"])
+        self.assertIs(exact_limit["success"], True)
+        self.assertEqual(1, len(action_calls))
+        self.assertEqual(500, action_calls[0][0][2]["quantity"])
+
+    def test_gift_item_stays_successful_when_post_refresh_fails(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        fetch_calls = []
+
+        def fetch_page(session):
+            fetch_calls.append(True)
+            if len(fetch_calls) == 1:
+                return self._gift_page()
+            raise RuntimeError("刷新失败 token=refresh-secret")
+
+        action_calls = []
+        self.plugin._fetch_page_state = fetch_page
+        self.plugin._post_action = lambda *args, **kwargs: action_calls.append(
+            (args, kwargs)
+        ) or {"success": True, "message": "赠送成功"}
+
+        result = self.plugin._gift_item_api(
+            {"item_name": "木材", "target_uid": "123", "quantity": 1}
+        )
+
+        self.assertIs(result["success"], True)
+        self.assertEqual(1, len(action_calls))
+        self.assertEqual(2, len(fetch_calls))
+        self.assertIn("状态刷新失败", result["message"])
+        self.assertNotIn("refresh-secret", result["message"])
 
     def test_gift_item_cookie_failure_blocks_request(self):
         class MissingSiteOper:
@@ -872,7 +1347,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             session.post_calls[0]["data"],
         )
         self.assertEqual([], pages)
-        encoded = json.dumps(result, ensure_ascii=False, default=str)
+        encoded = json.dumps(result, ensure_ascii=False, allow_nan=False)
         self.assertNotIn("site-cookie-secret", encoded)
         self.assertNotIn("site-token-secret", encoded)
         self.assertNotIn("website-token-secret", encoded)
@@ -976,7 +1451,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             {"action": "gift_stats", "direction": "in", "range": "all"},
             session.post_calls[0]["data"],
         )
-        encoded = json.dumps(result, ensure_ascii=False, default=str)
+        encoded = json.dumps(result, ensure_ascii=False, allow_nan=False)
         for secret in (
             "stats-cookie-secret",
             "user-token-secret",
@@ -985,6 +1460,51 @@ class VuePillLifecycleTests(unittest.TestCase):
             "root-token-secret",
         ):
             self.assertNotIn(secret, encoded)
+
+    def test_gift_stats_stops_at_500_rows_and_caps_js_safe_integers(self):
+        max_safe_integer = (1 << 53) - 1
+        huge_integer = max_safe_integer + 1000
+
+        class GuardedUsers(dict):
+            def items(self):
+                for index in range(500):
+                    yield str(index), huge_integer
+                raise AssertionError("统计遍历超过 500 行")
+
+        self._install_valid_site()
+        raw_result = {
+            "success": True,
+            "message": "统计完成",
+            "data": {
+                "total_events": huge_integer,
+                "total_quantity": str(huge_integer),
+                "users": GuardedUsers(),
+                "items": [
+                    {
+                        "item_name": f"物品-{index}",
+                        "quantity": huge_integer,
+                        "events": huge_integer,
+                    }
+                    for index in range(501)
+                ],
+            },
+        }
+        session = FakeSession(raw_result)
+        self.plugin._build_session = lambda: session
+
+        result = self.plugin._gift_stats_api(
+            {"direction": "out", "range": "30"}
+        )
+
+        self.assertIs(result["success"], True)
+        self.assertEqual(max_safe_integer, result["total_events"])
+        self.assertEqual(max_safe_integer, result["total_quantity"])
+        self.assertEqual(500, len(result["users"]))
+        self.assertEqual(500, len(result["items"]))
+        self.assertEqual(max_safe_integer, result["users"][0]["quantity"])
+        self.assertEqual(max_safe_integer, result["items"][0]["quantity"])
+        self.assertEqual(max_safe_integer, result["items"][0]["events"])
+        json.dumps(result, ensure_ascii=False, allow_nan=False)
 
     def test_gift_api_error_and_logs_are_sanitized(self):
         cookie = "sid=error-cookie-secret; token=error-token-secret"
@@ -1017,7 +1537,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(result["success"], False)
         self.assertEqual(1, len(session.post_calls))
         self.assertTrue(logger.entries)
-        encoded = json.dumps(result, ensure_ascii=False, default=str)
+        encoded = json.dumps(result, ensure_ascii=False, allow_nan=False)
         log_text = "\n".join(logger.entries)
         for secret in (
             "error-cookie-secret",
@@ -1055,7 +1575,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIn("处理失败", result["message"])
         self.assertIn("请稍后重试", result["message"])
         rendered_logs = "\n".join(logger.entries)
-        raw_calls = json.dumps(logger.calls, ensure_ascii=False, default=str)
+        raw_calls = json.dumps(logger.calls, ensure_ascii=False, allow_nan=False)
         for secret in (
             "single-cookie-secret",
             "single-token-secret",
@@ -1089,14 +1609,17 @@ class VuePillLifecycleTests(unittest.TestCase):
         raw_traceback_call = json.dumps(
             traceback_calls,
             ensure_ascii=False,
-            default=str,
+            allow_nan=False,
         )
         self.assertIn("执行崩溃", rendered_logs)
         for secret in (
             "traceback-cookie-secret",
             "traceback-token-secret",
         ):
-            self.assertNotIn(secret, json.dumps(result, ensure_ascii=False, default=str))
+            self.assertNotIn(
+                secret,
+                json.dumps(result, ensure_ascii=False, allow_nan=False),
+            )
             self.assertNotIn(secret, rendered_logs)
             self.assertNotIn(secret, raw_traceback_call)
 
