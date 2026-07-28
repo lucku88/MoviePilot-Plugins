@@ -593,7 +593,7 @@ async function runAction(key, request, fallbackMessage) {
     if (!actionRequestGuard.isCurrent(requestId)) return null
     statusRequestGuard.invalidate()
     const statusApplied = applyStatusPayload(result)
-    if (!statusApplied || !isStrictSuccess(result)) {
+    if (!isStrictSuccess(result)) {
       flash(safeResponseMessage(result, `${fallbackMessage}失败`), 'error')
       if (!statusApplied) await loadStatus({ silent: true })
       return null
@@ -711,7 +711,7 @@ async function submitGift() {
     if (!giftRequestGuard.isCurrent(requestId)) return
     statusRequestGuard.invalidate()
     const statusApplied = applyStatusPayload(result)
-    if (!statusApplied || !isStrictSuccess(result)) {
+    if (!isStrictSuccess(result)) {
       flash(safeResponseMessage(result, '赠送失败'), 'error')
       if (!statusApplied) await loadStatus({ silent: true })
       return

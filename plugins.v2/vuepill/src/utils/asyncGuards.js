@@ -1,19 +1,88 @@
 const GIFT_STATS_DIRECTIONS = new Set(['out', 'in'])
 const GIFT_STATS_RANGES = new Set(['30', 'all'])
+const MISSING = Symbol('missing')
 
-function isRecord(value) {
-  return !!value && typeof value === 'object' && !Array.isArray(value)
+function ownDataValue(record, key) {
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key)
+    return descriptor && Object.prototype.hasOwnProperty.call(descriptor, 'value')
+      ? descriptor.value
+      : MISSING
+  } catch {
+    return MISSING
+  }
 }
 
-function isValidPillStatus(value) {
-  return isRecord(value) && (
-    Array.isArray(value.overview)
-    || isRecord(value.brick)
-    || isRecord(value.beach)
-    || isRecord(value.exchange)
-    || (isRecord(value.inventory) && Array.isArray(value.inventory.items))
-    || Array.isArray(value.recipes)
-  )
+function isPlainDataObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  try {
+    if (Object.getPrototypeOf(value) !== Object.prototype) return false
+    const descriptors = Object.getOwnPropertyDescriptors(value)
+    return Reflect.ownKeys(descriptors).every((key) => {
+      const descriptor = descriptors[key]
+      return typeof key === 'string'
+        && descriptor.enumerable === true
+        && Object.prototype.hasOwnProperty.call(descriptor, 'value')
+    })
+  } catch {
+    return false
+  }
+}
+
+function isPlainDataArray(value, itemValidator) {
+  if (!Array.isArray(value)) return false
+  try {
+    if (Object.getPrototypeOf(value) !== Array.prototype) return false
+    const descriptors = Object.getOwnPropertyDescriptors(value)
+    const length = descriptors.length?.value
+    if (!Number.isSafeInteger(length) || length < 0) return false
+
+    let itemCount = 0
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (key === 'length') continue
+      const descriptor = descriptors[key]
+      if (
+        typeof key !== 'string'
+        || !/^(0|[1-9]\d*)$/.test(key)
+        || Number(key) >= length
+        || descriptor.enumerable !== true
+        || !Object.prototype.hasOwnProperty.call(descriptor, 'value')
+        || !itemValidator(descriptor.value)
+      ) return false
+      itemCount += 1
+    }
+    return itemCount === length
+  } catch {
+    return false
+  }
+}
+
+function isPlainObjectArray(value) {
+  return isPlainDataArray(value, isPlainDataObject)
+}
+
+function isCompletePillStatus(value) {
+  if (!isPlainDataObject(value)) return false
+
+  const overview = ownDataValue(value, 'overview')
+  const brick = ownDataValue(value, 'brick')
+  const beach = ownDataValue(value, 'beach')
+  const exchange = ownDataValue(value, 'exchange')
+  const inventory = ownDataValue(value, 'inventory')
+  const recipes = ownDataValue(value, 'recipes')
+  const history = ownDataValue(value, 'history')
+  const inventoryItems = isPlainDataObject(inventory)
+    ? ownDataValue(inventory, 'items')
+    : MISSING
+
+  return isPlainObjectArray(overview)
+    && isPlainDataObject(brick)
+    && isPlainDataObject(beach)
+    && isPlainDataObject(exchange)
+    && isPlainDataObject(inventory)
+    && isPlainObjectArray(inventoryItems)
+    && isPlainObjectArray(recipes)
+    && isPlainObjectArray(history)
 }
 
 export function createLatestRequestGuard() {
@@ -39,20 +108,25 @@ export function isStrictSuccess(response) {
 }
 
 export function extractStatusPayload(response) {
-  if (!isRecord(response)) return null
+  if (!isPlainDataObject(response)) return null
 
-  const nestedStatus = isRecord(response.status) ? response.status : null
-  const pillStatus = [response.pill_status, nestedStatus?.pill_status]
-    .find(isValidPillStatus)
+  const statusCandidate = ownDataValue(response, 'status')
+  const nestedStatus = isPlainDataObject(statusCandidate) ? statusCandidate : null
+  const directPillStatus = ownDataValue(response, 'pill_status')
+  const nestedPillStatus = nestedStatus
+    ? ownDataValue(nestedStatus, 'pill_status')
+    : MISSING
+  const pillStatus = [directPillStatus, nestedPillStatus]
+    .find(isCompletePillStatus)
   if (!pillStatus) return null
 
-  const history = Array.isArray(response.history)
-    ? response.history
-    : Array.isArray(nestedStatus?.history)
-      ? nestedStatus.history
-      : Array.isArray(pillStatus.history)
-        ? pillStatus.history
-        : null
+  const directHistory = ownDataValue(response, 'history')
+  const nestedHistory = nestedStatus
+    ? ownDataValue(nestedStatus, 'history')
+    : MISSING
+  const pillHistory = ownDataValue(pillStatus, 'history')
+  const history = [directHistory, nestedHistory, pillHistory]
+    .find(isPlainObjectArray)
 
   return { pillStatus, history }
 }

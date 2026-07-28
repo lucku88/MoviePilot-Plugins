@@ -147,8 +147,9 @@ class VuePillFrontendContractTest(unittest.TestCase):
         run_action = self.page.split("async function runAction", 1)[1].split(
             "function quantityError", 1
         )[0]
-        strict_action_check = "if (!statusApplied || !isStrictSuccess(result))"
+        strict_action_check = "if (!isStrictSuccess(result))"
         self.assertIn(strict_action_check, run_action)
+        self.assertNotIn("!statusApplied ||", run_action)
         self.assertLess(
             run_action.index("applyStatusPayload(result)"),
             run_action.index(strict_action_check),
@@ -160,6 +161,7 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "async function openGiftStats", 1
         )[0]
         self.assertIn(strict_action_check, submit_gift)
+        self.assertNotIn("!statusApplied ||", submit_gift)
         self.assertLess(
             submit_gift.index("applyStatusPayload(result)"),
             submit_gift.index(strict_action_check),
@@ -242,9 +244,13 @@ import {{
 
 const latestPillStatus = {{
   schema_version: '0.2.0',
+  overview: [{{ label: '当前魔丸数', value: 2 }}],
+  brick: {{}},
+  beach: {{}},
+  exchange: {{ max_count: 3, reserve: 10 }},
   inventory: {{ items: [{{ name: '魔丸', count: 2 }}] }},
   recipes: [{{ craft_id: 6, max_count: 1, enabled: true }}],
-  exchange: {{ max_count: 3, reserve: 10 }},
+  history: [{{ text: '旧记录', time: '11:59' }}],
 }}
 const response = {{
   success: false,
@@ -266,15 +272,76 @@ assert.equal(current.pill_status.exchange.max_count, 3)
 assert.equal(isStrictSuccess(response), false)
 assert.equal(safeResponseMessage(response, '炼造失败'), '部分完成')
 
+const emptyFullStatus = {{
+  overview: [],
+  brick: {{}},
+  beach: {{}},
+  exchange: {{}},
+  inventory: {{ items: [] }},
+  recipes: [],
+  history: [],
+}}
+assert.deepEqual(
+  extractStatusPayload({{ pill_status: emptyFullStatus }}),
+  {{ pillStatus: emptyFullStatus, history: [] }},
+)
+
 assert.equal(extractStatusPayload(null), null)
 assert.equal(extractStatusPayload({{}}), null)
+assert.equal(extractStatusPayload({{ pill_status: {{ overview: [] }} }}), null)
+assert.equal(extractStatusPayload({{ pill_status: {{ exchange: {{}} }} }}), null)
+assert.equal(extractStatusPayload({{
+  pill_status: {{ overview: [{{ label: '魔力', value: 1 }}] }},
+}}), null)
 assert.equal(extractStatusPayload({{ success: false, pill_status: {{ forged: true }} }}), null)
 assert.equal(extractStatusPayload({{ success: false, status: {{ pill_status: [] }} }}), null)
-const forgedSuccess = {{ success: true, pill_status: {{ forged: true }} }}
+
+const mismatches = [
+  {{ ...emptyFullStatus, overview: {{}} }},
+  {{ ...emptyFullStatus, overview: [null] }},
+  {{ ...emptyFullStatus, brick: [] }},
+  {{ ...emptyFullStatus, beach: null }},
+  {{ ...emptyFullStatus, exchange: [] }},
+  {{ ...emptyFullStatus, inventory: [] }},
+  {{ ...emptyFullStatus, inventory: {{ items: {{}} }} }},
+  {{ ...emptyFullStatus, inventory: {{ items: [[]] }} }},
+  {{ ...emptyFullStatus, recipes: {{}} }},
+  {{ ...emptyFullStatus, recipes: [null] }},
+  {{ ...emptyFullStatus, history: {{}} }},
+  {{ ...emptyFullStatus, history: ['bad'] }},
+]
+for (const pillStatus of mismatches) {{
+  assert.equal(extractStatusPayload({{ pill_status: pillStatus }}), null)
+}}
+
+const customPrototype = Object.assign(Object.create({{ inherited: true }}), emptyFullStatus)
+assert.equal(extractStatusPayload({{ pill_status: customPrototype }}), null)
+const nullPrototype = Object.assign(Object.create(null), emptyFullStatus)
+assert.equal(extractStatusPayload({{ pill_status: nullPrototype }}), null)
+const oddRecipes = []
+Object.setPrototypeOf(oddRecipes, {{}})
 assert.equal(
-  isStrictSuccess(forgedSuccess) && extractStatusPayload(forgedSuccess) !== null,
-  false,
+  extractStatusPayload({{ pill_status: {{ ...emptyFullStatus, recipes: oddRecipes }} }}),
+  null,
 )
+let getterReads = 0
+const accessorStatus = {{ ...emptyFullStatus }}
+Object.defineProperty(accessorStatus, 'overview', {{
+  enumerable: true,
+  get() {{
+    getterReads += 1
+    return []
+  }},
+}})
+assert.equal(extractStatusPayload({{ pill_status: accessorStatus }}), null)
+assert.equal(getterReads, 0)
+
+const forgedSuccess = {{ success: true, pill_status: {{ forged: true }} }}
+assert.equal(isStrictSuccess(forgedSuccess), true)
+assert.equal(extractStatusPayload(forgedSuccess), null)
+const incompleteFailure = {{ success: false, pill_status: {{ overview: [] }} }}
+assert.equal(isStrictSuccess(incompleteFailure), false)
+assert.equal(extractStatusPayload(incompleteFailure), null)
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
