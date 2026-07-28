@@ -430,6 +430,19 @@ class VuePillLifecycleTests(unittest.TestCase):
 
                 self.assertEqual(expected, plugin._stored_config_generation())
 
+    def test_process_instance_id_survives_plugin_module_reload(self):
+        first_process_id = getattr(self.module, "_PROCESS_INSTANCE_ID", None)
+        reloaded_module = _load_plugin_module()
+        reloaded_process_id = getattr(
+            reloaded_module,
+            "_PROCESS_INSTANCE_ID",
+            None,
+        )
+
+        self.assertIsInstance(first_process_id, str)
+        self.assertTrue(first_process_id)
+        self.assertEqual(first_process_id, reloaded_process_id)
+
     def test_legacy_v020_marker_is_promoted_without_clearing_data(self):
         config = {
             "enabled": True,
@@ -986,12 +999,12 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.assertIs(plugin._enabled, True)
                 self.assertIs(plugin._notify, False)
 
-    def test_empty_config_with_legacy_runtime_data_resets_instead_of_fresh(self):
+    def test_empty_config_with_legacy_runtime_data_waits_instead_of_fresh(self):
         cases = (
-            ("history", [{"title": "旧记录"}], []),
-            ("next_run_time", "2026-01-02 00:00:00", ""),
+            ("history", [{"title": "旧记录"}]),
+            ("next_run_time", "2026-01-02 00:00:00"),
         )
-        for key, old_value, reset_value in cases:
+        for key, old_value in cases:
             with self.subTest(key=key):
                 plugin = make_plugin(self.module)
                 plugin.save_data(key, old_value)
@@ -999,21 +1012,23 @@ class VuePillLifecycleTests(unittest.TestCase):
 
                 plugin.init_plugin({})
 
-                self.assertEqual(reset_value, plugin.get_data(key))
+                self.assertEqual(old_value, plugin.get_data(key))
                 self.assertIs(plugin._enabled, False)
                 self.assertIs(plugin._notify, True)
                 self.assertEqual(10, plugin._reserve_magic_pill_count)
                 self.assertIs(plugin._config_store["enabled"], False)
-                self.assertEqual(
-                    plugin.CONFIG_GENERATION,
-                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+                self.assertIsNone(
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY)
                 )
-                self.assertIs(
-                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
-                    True,
+                self.assertIsNone(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY)
+                )
+                self.assertEqual(
+                    self.module._PROCESS_INSTANCE_ID,
+                    plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY),
                 )
 
-    def test_first_v020_init_resets_old_state_and_stays_disabled(self):
+    def test_legacy_upgrade_waits_for_restart_before_final_reset(self):
         old_values = {
             "history": [{"title": "旧记录"}],
             "state": {"old": True},
@@ -1054,26 +1069,153 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.assertEqual([True], stop_calls)
         self.assertEqual([(None, None)], migration_state_during_write)
-        self.assertIs(self.plugin.get_data("v020_initialized"), True)
-        self.assertEqual(
-            self.plugin.CONFIG_GENERATION,
-            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        for key, value in old_values.items():
+            self.assertEqual(value, self.plugin.get_data(key))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
         )
-        self.assertEqual([], self.plugin.get_data("history"))
-        self.assertEqual({}, self.plugin.get_data("state"))
-        self.assertEqual({}, self.plugin.get_data("pill_status"))
-        self.assertEqual("", self.plugin.get_data("last_run"))
-        self.assertEqual("", self.plugin.get_data("next_run_time"))
-        self.assertEqual("", self.plugin.get_data("next_trigger_time"))
-        self.assertEqual("", self.plugin.get_data("next_trigger_mode"))
-        self.assertEqual(0, self.plugin.get_data("consecutive_error_retries"))
-        self.assertEqual("", self.plugin.get_data("last_error_retry_detail"))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY)
+        )
+        self.assertEqual(
+            self.module._PROCESS_INSTANCE_ID,
+            self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY),
+        )
         self.assertIs(self.plugin._enabled, False)
         self.assertEqual(10, self.plugin._reserve_magic_pill_count)
         self.assertIs(self.plugin._config_store["enabled"], False)
         self.assertEqual(10, self.plugin._config_store["reserve_magic_pill_count"])
 
-    def test_v020_migration_and_save_config_are_serialized_across_instances(self):
+    def test_legacy_upgrade_same_process_reinit_stays_pending_without_scheduler(self):
+        waiting_key = getattr(
+            self.module,
+            "_LEGACY_RESTART_PROCESS_KEY",
+            "legacy_upgrade_restart_process",
+        )
+        process_id = getattr(self.module, "_PROCESS_INSTANCE_ID", None)
+        old_history = [{"title": "等待重启记录"}]
+        old_state = {"old": True}
+        old_next_run = "2026-01-02 00:00:00"
+        self.plugin.save_data("history", old_history)
+        self.plugin.save_data("state", old_state)
+        self.plugin.save_data("next_run_time", old_next_run)
+        config_writes = []
+        original_update_config = self.plugin.update_config
+
+        def record_update(config):
+            config_writes.append(dict(config))
+            return original_update_config(config)
+
+        self.plugin.update_config = record_update
+        config = {"enabled": True, "onlyonce": True}
+
+        self.plugin.init_plugin(config)
+        self.plugin.init_plugin(config)
+
+        self.assertEqual(old_history, self.plugin.get_data("history"))
+        self.assertEqual(old_state, self.plugin.get_data("state"))
+        self.assertEqual(old_next_run, self.plugin.get_data("next_run_time"))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
+        )
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY)
+        )
+        self.assertEqual(process_id, self.plugin.get_data(waiting_key))
+        self.assertEqual(2, len(config_writes))
+        self.assertTrue(
+            all(
+                write.get("enabled") is False
+                and write.get("onlyonce") is False
+                for write in config_writes
+            )
+        )
+        self.assertIs(self.plugin._enabled, False)
+        self.assertIs(self.plugin._onlyonce, False)
+        self.assertIsNone(self.plugin._scheduler)
+
+    def test_legacy_upgrade_finalizes_after_process_id_changes(self):
+        waiting_key = "legacy_upgrade_restart_process"
+        self.plugin.save_data(waiting_key, "previous-moviepilot-process")
+        self.plugin.save_data("history", [{"title": "旧进程记录"}])
+        self.plugin.save_data("state", {"old": True})
+        self.plugin.save_data("pill_status", {"old": True})
+        self.plugin.save_data("next_run_time", "2026-01-02 00:00:00")
+        self.plugin.save_data("next_trigger_mode", "run:beach")
+
+        self.plugin.init_plugin({"enabled": True, "onlyonce": True})
+
+        self.assertEqual([], self.plugin.get_data("history"))
+        self.assertEqual({}, self.plugin.get_data("state"))
+        self.assertEqual({}, self.plugin.get_data("pill_status"))
+        self.assertEqual("", self.plugin.get_data("next_run_time"))
+        self.assertEqual("", self.plugin.get_data("next_trigger_mode"))
+        self.assertEqual(
+            self.plugin.CONFIG_GENERATION,
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
+        )
+        self.assertIs(
+            self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY),
+            True,
+        )
+        self.assertIsNone(self.plugin.get_data(waiting_key))
+        self.assertIs(self.plugin._enabled, False)
+        self.assertIsNone(self.plugin._scheduler)
+
+    def test_upgrade_restart_pending_rejects_config_save(self):
+        self.plugin.save_data("history", [{"title": "等待重启记录"}])
+        self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        self.plugin._reregister_plugin = lambda reason="": None
+        self.plugin.init_plugin({"enabled": True})
+        config_before_save = dict(self.plugin._config_store)
+
+        result = self.plugin._save_config({"enabled": True})
+
+        self.assertIs(result["success"], False)
+        self.assertIn("重启 MoviePilot", result["message"])
+        self.assertEqual(config_before_save, self.plugin._config_store)
+        self.assertEqual(
+            [{"title": "等待重启记录"}],
+            self.plugin.get_data("history"),
+        )
+        self.assertIsNone(self.plugin._scheduler)
+
+    def test_public_config_exposes_restart_boolean_without_persisting_token(self):
+        waiting_key = getattr(
+            self.module,
+            "_LEGACY_RESTART_PROCESS_KEY",
+            "legacy_upgrade_restart_process",
+        )
+        self.plugin.save_data("history", [{"title": "等待重启记录"}])
+        self.plugin.init_plugin({"enabled": True})
+
+        public_config = self.plugin._get_config()
+        persisted_payload = self.plugin._get_config(include_options=False)
+        process_id = getattr(self.module, "_PROCESS_INSTANCE_ID", None)
+
+        self.assertIs(public_config.get("upgrade_restart_required"), True)
+        self.assertNotIn("upgrade_restart_required", persisted_payload)
+        self.assertNotIn(waiting_key, public_config)
+        self.assertIsInstance(process_id, str)
+        self.assertNotIn(
+            process_id,
+            json.dumps(public_config, ensure_ascii=False),
+        )
+
+        self.plugin._update_config()
+
+        self.assertNotIn(
+            "upgrade_restart_required",
+            self.plugin._config_store,
+        )
+        self.assertNotIn(waiting_key, self.plugin._config_store)
+        self.assertNotIn(
+            process_id,
+            json.dumps(self.plugin._config_store, ensure_ascii=False),
+        )
+
+    def test_legacy_restart_prepare_and_save_are_serialized_across_instances(self):
         migration_plugin = make_plugin(self.module)
         saving_plugin = make_plugin(self.module)
         shared_data = {}
@@ -1087,6 +1229,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         allow_migration_write = threading.Event()
         saving_write_started = threading.Event()
         errors = []
+        save_result = {}
 
         def migration_update_config(config):
             migration_write_started.set()
@@ -1108,7 +1251,9 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         def run_in_thread(action):
             try:
-                action()
+                result = action()
+                if isinstance(result, dict):
+                    save_result.update(result)
             except BaseException as err:
                 errors.append(err)
 
@@ -1137,13 +1282,19 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertFalse(saving_thread.is_alive())
         self.assertEqual([], errors)
         self.assertFalse(saving_wrote_before_migration_finished)
-        self.assertIs(shared_data.get("v020_initialized"), True)
-        self.assertEqual(
-            migration_plugin.CONFIG_GENERATION,
-            shared_data.get(migration_plugin.CONFIG_GENERATION_KEY),
+        self.assertFalse(saving_write_started.is_set())
+        self.assertIs(save_result.get("success"), False)
+        self.assertIn("重启 MoviePilot", save_result.get("message", ""))
+        self.assertIsNone(shared_data.get("v020_initialized"))
+        self.assertIsNone(
+            shared_data.get(migration_plugin.CONFIG_GENERATION_KEY)
         )
-        self.assertIs(shared_config.get("enabled"), True)
-        self.assertEqual(7, shared_config.get("reserve_magic_pill_count"))
+        self.assertEqual(
+            self.module._PROCESS_INSTANCE_ID,
+            shared_data.get(self.module._LEGACY_RESTART_PROCESS_KEY),
+        )
+        self.assertIs(shared_config.get("enabled"), False)
+        self.assertEqual(10, shared_config.get("reserve_magic_pill_count"))
 
     def test_failed_default_config_write_leaves_migration_retryable(self):
         self.plugin.save_data("history", [{"title": "旧记录"}])
@@ -1169,6 +1320,9 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIsNone(
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
         )
+        self.assertIsNone(
+            self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY)
+        )
         self.assertEqual([{"title": "旧记录"}], self.plugin.get_data("history"))
         self.assertEqual(
             "2026-01-02 00:00:00",
@@ -1178,19 +1332,47 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.update_config = original_update_config
         self.plugin.init_plugin({"enabled": True})
 
+        self.assertIsNone(self.plugin.get_data(self.plugin.MIGRATION_KEY))
+        self.assertIsNone(
+            self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY)
+        )
+        self.assertEqual(
+            self.module._PROCESS_INSTANCE_ID,
+            self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY),
+        )
+        self.assertEqual([{"title": "旧记录"}], self.plugin.get_data("history"))
+        self.assertEqual(
+            "2026-01-02 00:00:00",
+            self.plugin.get_data("next_run_time"),
+        )
+        self.assertIs(self.plugin._enabled, False)
+        self.assertIs(self.plugin._config_store["enabled"], False)
+
+        self.plugin.save_data(
+            self.module._LEGACY_RESTART_PROCESS_KEY,
+            "previous-moviepilot-process",
+        )
+        self.plugin.init_plugin({"enabled": True})
+
         self.assertIs(self.plugin.get_data(self.plugin.MIGRATION_KEY), True)
         self.assertEqual(
             self.plugin.CONFIG_GENERATION,
             self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
         )
+        self.assertIsNone(
+            self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY)
+        )
         self.assertEqual([], self.plugin.get_data("history"))
         self.assertEqual("", self.plugin.get_data("next_run_time"))
-        self.assertIs(self.plugin._enabled, False)
-        self.assertIs(self.plugin._config_store["enabled"], False)
 
-    def test_false_default_config_write_preserves_data_and_markers(self):
+    def test_false_default_config_write_keeps_finalization_retryable(self):
         old_history = [{"title": "旧记录"}]
         old_next_run = "2026-01-02 00:00:00"
+        old_process_id = "previous-moviepilot-process"
+        self.plugin.save_data(
+            self.module._LEGACY_RESTART_PROCESS_KEY,
+            old_process_id,
+        )
         self.plugin.save_data("history", old_history)
         self.plugin.save_data("next_run_time", old_next_run)
         self.plugin.save_data("next_trigger_mode", "run:beach")
@@ -1204,6 +1386,9 @@ class VuePillLifecycleTests(unittest.TestCase):
                     self.plugin.get_data("next_run_time"),
                     self.plugin.get_data(self.plugin.CONFIG_GENERATION_KEY),
                     self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY),
+                    self.plugin.get_data(
+                        self.module._LEGACY_RESTART_PROCESS_KEY
+                    ),
                 )
             )
             return False
@@ -1213,7 +1398,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             self.plugin.init_plugin({"enabled": True})
 
         self.assertEqual(
-            [(old_history, old_next_run, None, None)],
+            [(old_history, old_next_run, None, None, old_process_id)],
             state_during_write,
         )
         self.assertEqual(old_history, self.plugin.get_data("history"))
@@ -1224,6 +1409,10 @@ class VuePillLifecycleTests(unittest.TestCase):
         )
         self.assertIsNone(
             self.plugin.get_data(self.plugin.LEGACY_MIGRATION_KEY)
+        )
+        self.assertEqual(
+            old_process_id,
+            self.plugin.get_data(self.module._LEGACY_RESTART_PROCESS_KEY)
         )
 
     def test_saved_config_after_migration_can_enable_plugin(self):
@@ -1242,6 +1431,11 @@ class VuePillLifecycleTests(unittest.TestCase):
 
     def test_migration_runs_once_only(self):
         self.plugin._stop_service_locked = lambda: None
+        self.plugin.init_plugin({"enabled": True, "reserve_magic_pill_count": 0})
+        self.plugin.save_data(
+            self.module._LEGACY_RESTART_PROCESS_KEY,
+            "previous-moviepilot-process",
+        )
         self.plugin.init_plugin({"enabled": True, "reserve_magic_pill_count": 0})
         self.plugin.save_data("history", [{"title": "新记录"}])
 

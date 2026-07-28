@@ -2,6 +2,8 @@ import inspect
 import math
 import random
 import re
+import secrets
+import sys
 import threading
 import time
 import traceback
@@ -35,6 +37,14 @@ CONFIG_GENERATION_KEY = "config_generation"
 CONFIG_GENERATION = 2
 MIGRATION_KEY = LEGACY_MIGRATION_KEY
 _DROP_PUBLIC_VALUE = object()
+_PROCESS_INSTANCE_ID_ATTRIBUTE = "_moviepilot_vuepill_process_id"
+_LEGACY_RESTART_PROCESS_KEY = "legacy_upgrade_restart_process"
+
+# sys survives plugin module reloads and is recreated on MoviePilot restart.
+_PROCESS_INSTANCE_ID = getattr(sys, _PROCESS_INSTANCE_ID_ATTRIBUTE, None)
+if not isinstance(_PROCESS_INSTANCE_ID, str) or not _PROCESS_INSTANCE_ID:
+    _PROCESS_INSTANCE_ID = secrets.token_hex(16)
+    setattr(sys, _PROCESS_INSTANCE_ID_ATTRIBUTE, _PROCESS_INSTANCE_ID)
 
 
 class _SiteResponseAdapter:
@@ -473,18 +483,39 @@ class VuePill(_PluginBase):
         )
         return any(bool(self.get_data(key)) for key in keys)
 
+    def _stored_legacy_restart_process_id(self) -> Optional[str]:
+        raw = self.get_data(_LEGACY_RESTART_PROCESS_KEY)
+        if isinstance(raw, str) and raw:
+            return raw
+        return None
+
+    def _upgrade_restart_required(self) -> bool:
+        if self._stored_config_generation() is not None:
+            return False
+        if self.get_data(self.LEGACY_MIGRATION_KEY):
+            return False
+        return self._stored_legacy_restart_process_id() == _PROCESS_INSTANCE_ID
+
     def _config_generation_mode(self, config: Optional[dict]) -> str:
         stored = self._stored_config_generation()
         if stored == self.CONFIG_GENERATION:
             return "current"
         if stored is None and self.get_data(self.LEGACY_MIGRATION_KEY):
             return "legacy-current"
+        if stored is None:
+            restart_process_id = self._stored_legacy_restart_process_id()
+            if restart_process_id:
+                if restart_process_id == _PROCESS_INSTANCE_ID:
+                    return "legacy-restart-pending"
+                return "legacy-restart-finalize"
         if (
             stored is None
             and not config
             and not self._has_meaningful_generation_data()
         ):
             return "fresh"
+        if stored is None:
+            return "legacy-restart-prepare"
         return "reset"
 
     def _init_plugin_locked(
@@ -504,8 +535,15 @@ class VuePill(_PluginBase):
         if not keep_running_scheduler:
             self._stop_service_locked()
 
-        if generation_mode in {"fresh", "reset"}:
-            reset_required = generation_mode == "reset"
+        if generation_mode in {
+            "fresh",
+            "reset",
+            "legacy-restart-finalize",
+        }:
+            reset_required = generation_mode in {
+                "reset",
+                "legacy-restart-finalize",
+            }
             execution_lock = (
                 type(self)._execution_lock if reset_required else None
             )
@@ -518,13 +556,7 @@ class VuePill(_PluginBase):
                 if execution_lock is not None:
                     execution_lock.acquire()
                     execution_acquired = True
-                self._reset_runtime_site_credentials()
-                self._bootstrap_pending = False
-                self._apply_config(self._default_config())
-                if self._update_config() is False:
-                    raise RuntimeError(
-                        "默认配置写入失败，配置迁移未完成"
-                    )
+                self._persist_safe_default_config()
                 if reset_required:
                     self._reset_generation_data()
                 self.save_data(
@@ -532,9 +564,30 @@ class VuePill(_PluginBase):
                     self.CONFIG_GENERATION,
                 )
                 self.save_data(self.LEGACY_MIGRATION_KEY, True)
+                if generation_mode == "legacy-restart-finalize":
+                    self.save_data(_LEGACY_RESTART_PROCESS_KEY, None)
             finally:
                 if execution_acquired and execution_lock is not None:
                     execution_lock.release()
+                if migration_started:
+                    self._end_generation_reset()
+            return
+
+        if generation_mode in {
+            "legacy-restart-prepare",
+            "legacy-restart-pending",
+        }:
+            migration_started = False
+            try:
+                self._begin_generation_reset()
+                migration_started = True
+                self._persist_safe_default_config()
+                if generation_mode == "legacy-restart-prepare":
+                    self.save_data(
+                        _LEGACY_RESTART_PROCESS_KEY,
+                        _PROCESS_INSTANCE_ID,
+                    )
+            finally:
                 if migration_started:
                     self._end_generation_reset()
             return
@@ -573,6 +626,13 @@ class VuePill(_PluginBase):
             self._update_config()
             self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+    def _persist_safe_default_config(self):
+        self._reset_runtime_site_credentials()
+        self._bootstrap_pending = False
+        self._apply_config(self._default_config())
+        if self._update_config() is False:
+            raise RuntimeError("默认配置写入失败，配置迁移未完成")
 
     def _reset_generation_data(self):
         reset_values = {
@@ -1674,6 +1734,9 @@ class VuePill(_PluginBase):
         }
         if include_options:
             config["capture_tips"] = []
+            config["upgrade_restart_required"] = (
+                self._upgrade_restart_required()
+            )
         return config
 
     @_public_api
@@ -1682,6 +1745,11 @@ class VuePill(_PluginBase):
         with self._lifecycle_lock:
             if self._is_migration_stopping():
                 return self._activity_stopping_response()
+            if self._upgrade_restart_required():
+                return {
+                    "success": False,
+                    "message": "Vue-魔丸升级尚未完成，请重启 MoviePilot 后再保存配置",
+                }
             current = self._get_config(include_options=False)
             normalized_payload, errors = self._validate_save_config_payload(
                 config_payload,
