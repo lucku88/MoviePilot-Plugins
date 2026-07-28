@@ -27,14 +27,14 @@ import { createRequest } from './utils/request'
 
 const tab = ref('page')
 const pluginConfig = reactive({})
-const request = createRequest(import.meta.env.VITE_API_BASE || 'http://localhost:3000')
+const request = createRequest()
 const api = {
   get: (url, config) => request.get(url, config),
   post: (url, data, config) => request.post(url, data, config),
 }
 
 function handleClose() {
-  console.log('VuePill dev shell close event')
+  tab.value = 'page'
 }
 </script>
 

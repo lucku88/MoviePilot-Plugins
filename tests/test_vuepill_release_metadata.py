@@ -16,20 +16,18 @@ DIST_ASSETS_DIR = DIST_DIR / "assets"
 EXPECTED_VERSION = "0.2.0"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
-GENERATED_COPY_NAMES = frozenset(
-    {
-        ".nyc_output",
-        ".playwright-cli",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".vite",
-        "__pycache__",
-        "coverage",
-        "dist",
-        "node_modules",
-        "playwright-report",
-        "test-results",
-    }
+BUILD_INPUT_PATHS = (
+    "package.json",
+    "package-lock.json",
+    "index.html",
+    "vite.config.js",
+    "src/App.vue",
+    "src/main.js",
+    "src/components/Config.vue",
+    "src/components/Page.vue",
+    "src/utils/asyncGuards.js",
+    "src/utils/configValidation.js",
+    "src/utils/request.js",
 )
 EXPECTED_HISTORY = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
@@ -89,18 +87,83 @@ def format_tree_difference(difference, *, expected_label, actual_label):
     return "\n".join(lines)
 
 
-def ignore_generated_copy_paths(_directory, names):
-    ignored = []
-    for name in names:
-        if name in GENERATED_COPY_NAMES:
-            ignored.append(name)
-            continue
-        if name.endswith((".pyc", ".pyo", ".log")):
-            ignored.append(name)
-            continue
-        if name.startswith(".Config.") and name.endswith(".mjs"):
-            ignored.append(name)
-    return ignored
+def path_is_link_like(path: Path):
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    return bool(is_junction and is_junction())
+
+
+def normalize_build_input_path(relative_path):
+    normalized = Path(relative_path)
+    if (
+        normalized.is_absolute()
+        or not normalized.parts
+        or any(part == ".." for part in normalized.parts)
+    ):
+        raise AssertionError(f"构建输入路径逃逸：{relative_path}")
+    return normalized
+
+
+def stage_build_inputs(
+    source_root: Path,
+    staged_root: Path,
+    *,
+    build_inputs=BUILD_INPUT_PATHS,
+):
+    source_root = Path(source_root)
+    staged_root = Path(staged_root)
+    if not source_root.is_dir():
+        raise AssertionError(f"构建输入根目录不存在：{source_root}")
+    if path_is_link_like(source_root):
+        raise AssertionError(f"构建输入根目录禁止符号链接或目录联接：{source_root}")
+    if staged_root.exists() or path_is_link_like(staged_root):
+        raise AssertionError(f"临时构建目录必须不存在：{staged_root}")
+
+    source_root_resolved = source_root.resolve(strict=True)
+    validated_inputs = []
+    seen_inputs = set()
+    for relative_text in build_inputs:
+        relative_path = normalize_build_input_path(relative_text)
+        relative_posix = relative_path.as_posix()
+        if relative_posix in seen_inputs:
+            raise AssertionError(f"构建输入白名单包含重复路径：{relative_posix}")
+        seen_inputs.add(relative_posix)
+
+        current_path = source_root
+        for part in relative_path.parts:
+            current_path = current_path / part
+            if path_is_link_like(current_path):
+                raise AssertionError(
+                    f"构建输入禁止符号链接或目录联接：{relative_posix}"
+                )
+
+        source_path = source_root / relative_path
+        if not source_path.exists():
+            raise AssertionError(f"缺少必要构建文件：{relative_posix}")
+        if not source_path.is_file():
+            raise AssertionError(f"必要构建输入不是普通文件：{relative_posix}")
+
+        resolved_source = source_path.resolve(strict=True)
+        try:
+            resolved_source.relative_to(source_root_resolved)
+        except ValueError as error:
+            raise AssertionError(f"构建输入路径逃逸：{relative_posix}") from error
+        validated_inputs.append((relative_path, source_path))
+
+    staged_root.mkdir(parents=True)
+    staged_root_resolved = staged_root.resolve(strict=True)
+    for relative_path, source_path in validated_inputs:
+        destination_path = staged_root / relative_path
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved_parent = destination_path.parent.resolve(strict=True)
+        try:
+            resolved_parent.relative_to(staged_root_resolved)
+        except ValueError as error:
+            raise AssertionError(
+                f"临时构建目标路径逃逸：{relative_path.as_posix()}"
+            ) from error
+        shutil.copy2(source_path, destination_path)
 
 
 def find_npm_executable():
@@ -153,6 +216,41 @@ def run_checked_command(command, *, cwd: Path, timeout_seconds: int, label: str)
 
 
 class VuePillReleaseMetadataTest(unittest.TestCase):
+    @staticmethod
+    def write_build_input_fixture(root: Path):
+        for relative_path in BUILD_INPUT_PATHS:
+            target = root / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"fixture:{relative_path}\n", encoding="utf-8")
+
+    @staticmethod
+    def replace_directory_with_test_link(link_path: Path, target_path: Path):
+        shutil.rmtree(link_path)
+        if os.name == "nt":
+            result = subprocess.run(
+                ["cmd.exe", "/d", "/c", "mklink", "/J", link_path, target_path],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
+            if result.returncode != 0:
+                raise AssertionError(
+                    "当前 Windows 测试环境无法创建目录联接。\n"
+                    f"stdout:\n{result.stdout}\n"
+                    f"stderr:\n{result.stderr}"
+                )
+            return
+        link_path.symlink_to(target_path, target_is_directory=True)
+
+    @staticmethod
+    def remove_test_directory_link(link_path: Path):
+        if os.name == "nt":
+            link_path.rmdir()
+            return
+        link_path.unlink()
+
     def assert_tree_snapshots_equal(
         self,
         expected,
@@ -228,6 +326,87 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         self.assertIn("missing.txt", message)
         self.assertIn("extra.txt", message)
         self.assertIn("changed.bin", message)
+
+    def test_build_input_staging_uses_only_the_explicit_whitelist(self):
+        with TemporaryDirectory(prefix="vuepill-staging-whitelist-") as temp_dir:
+            temp_root = Path(temp_dir)
+            source_dir = temp_root / "source"
+            staged_dir = temp_root / "staged"
+            source_dir.mkdir()
+            self.write_build_input_fixture(source_dir)
+
+            secret_paths = (
+                ".env.local",
+                ".npmrc",
+                "dist/secret.txt",
+                "node_modules/secret.txt",
+                "tests/secret.txt",
+                ".git/config",
+                ".playwright-cli/session.json",
+                "src/.env.development.local",
+                "src/untracked-secret.txt",
+            )
+            for relative_path in secret_paths:
+                secret_path = source_dir / relative_path
+                secret_path.parent.mkdir(parents=True, exist_ok=True)
+                secret_path.write_text("must-not-copy", encoding="utf-8")
+
+            stage_build_inputs(source_dir, staged_dir)
+            staged_snapshot = snapshot_tree(staged_dir)
+
+        self.assertEqual(sorted(BUILD_INPUT_PATHS), sorted(staged_snapshot))
+        for secret_path in secret_paths:
+            with self.subTest(secret_path=secret_path):
+                self.assertNotIn(secret_path, staged_snapshot)
+
+    def test_build_input_staging_rejects_symlink_missing_file_and_escape(self):
+        with TemporaryDirectory(prefix="vuepill-staging-guards-") as temp_dir:
+            temp_root = Path(temp_dir)
+            source_dir = temp_root / "source"
+            source_dir.mkdir()
+            self.write_build_input_fixture(source_dir)
+
+            outside_secret = temp_root / "outside-secret.txt"
+            outside_secret.write_text("must-not-follow", encoding="utf-8")
+            outside_utils = temp_root / "outside-utils"
+            outside_utils.mkdir()
+            for filename in (
+                "asyncGuards.js",
+                "configValidation.js",
+                "request.js",
+            ):
+                (outside_utils / filename).write_text(
+                    f"outside:{filename}\n",
+                    encoding="utf-8",
+                )
+            (outside_utils / ".env.local").write_text(
+                "must-not-follow",
+                encoding="utf-8",
+            )
+            linked_input = source_dir / "src" / "utils"
+            self.replace_directory_with_test_link(linked_input, outside_utils)
+
+            with self.assertRaisesRegex(
+                AssertionError,
+                r"符号链接或目录联接.*src/utils",
+            ):
+                stage_build_inputs(source_dir, temp_root / "staged-symlink")
+
+            self.remove_test_directory_link(linked_input)
+            self.write_build_input_fixture(source_dir)
+            (source_dir / "vite.config.js").unlink()
+            with self.assertRaisesRegex(
+                AssertionError,
+                r"缺少必要构建文件.*vite\.config\.js",
+            ):
+                stage_build_inputs(source_dir, temp_root / "staged-missing")
+
+            with self.assertRaisesRegex(AssertionError, r"路径逃逸"):
+                stage_build_inputs(
+                    source_dir,
+                    temp_root / "staged-escape",
+                    build_inputs=("../outside-secret.txt",),
+                )
 
     def test_release_versions_are_consistently_v020(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
@@ -310,6 +489,42 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             r"<v-(?:text-field|textarea|switch|btn)\b[^>]*(?:Cookie|cookie)",
         )
 
+    def test_application_entry_and_dist_have_no_development_api_or_debug_log(self):
+        application_source = "\n".join(
+            (
+                (PLUGIN_DIR / "src" / "App.vue").read_text(encoding="utf-8"),
+                (PLUGIN_DIR / "src" / "main.js").read_text(encoding="utf-8"),
+                (PLUGIN_DIR / "src" / "utils" / "request.js").read_text(
+                    encoding="utf-8"
+                ),
+            )
+        )
+        application_dist = (DIST_ASSETS_DIR / "index.js").read_text(
+            encoding="utf-8",
+            errors="replace",
+        )
+
+        targets = {
+            "VuePill 应用入口源码": application_source,
+            "VuePill 正式入口产物 dist/assets/index.js": application_dist,
+        }
+        for label, target_text in targets.items():
+            with self.subTest(target=label, forbidden="http://localhost"):
+                self.assertNotIn("http://localhost", target_text)
+            with self.subTest(target=label, forbidden="localhost:3000"):
+                self.assertNotIn("localhost:3000", target_text)
+            with self.subTest(target=label, forbidden="10.x development API"):
+                self.assertNotRegex(
+                    target_text,
+                    r"https?://10(?:\.\d{1,3}){3}(?::\d+)?",
+                )
+            with self.subTest(target=label, forbidden="VITE_API_BASE"):
+                self.assertNotIn("VITE_API_BASE", target_text)
+            with self.subTest(target=label, forbidden="debug console message"):
+                self.assertNotIn("VuePill dev shell close event", target_text)
+
+        self.assertNotRegex(application_source, r"console\.log\s*\(")
+
     def test_dist_federation_references_current_page_and_config_assets(self):
         self.assert_federation_references_resolve(DIST_ASSETS_DIR)
 
@@ -336,32 +551,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         npm_executable = find_npm_executable()
         with TemporaryDirectory(prefix="vuepill-clean-build-") as temp_dir:
             temp_plugin_dir = Path(temp_dir) / "vuepill"
-            shutil.copytree(
-                PLUGIN_DIR,
-                temp_plugin_dir,
-                ignore=ignore_generated_copy_paths,
-            )
-
-            required_paths = (
-                "package.json",
-                "package-lock.json",
-                "vite.config.js",
-                "index.html",
-                "src",
-            )
-            for relative_path in required_paths:
-                with self.subTest(required_path=relative_path):
-                    self.assertTrue((temp_plugin_dir / relative_path).exists())
-
-            copied_generated_paths = sorted(
-                path.relative_to(temp_plugin_dir).as_posix()
-                for path in temp_plugin_dir.rglob("*")
-                if path.name in GENERATED_COPY_NAMES
-            )
+            stage_build_inputs(PLUGIN_DIR, temp_plugin_dir)
             self.assertEqual(
-                [],
-                copied_generated_paths,
-                "临时工程复制进了应排除的生成目录",
+                sorted(BUILD_INPUT_PATHS),
+                sorted(snapshot_tree(temp_plugin_dir)),
+                "临时工程必须只包含显式构建输入白名单",
             )
 
             temp_lock_path = temp_plugin_dir / "package-lock.json"

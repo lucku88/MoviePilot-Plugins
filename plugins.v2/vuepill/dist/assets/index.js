@@ -17668,7 +17668,7 @@ function createRequest(baseURL = '') {
   }
 }
 
-const App_vue_vue_type_style_index_0_scoped_4ba50a38_lang = '';
+const App_vue_vue_type_style_index_0_scoped_24243561_lang = '';
 
 const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock} = await importShared('vue');
 
@@ -17682,14 +17682,14 @@ const _sfc_main = {
 
 const tab = ref('page');
 const pluginConfig = reactive({});
-const request = createRequest(({}).VITE_API_BASE || 'http://localhost:3000');
+const request = createRequest();
 const api = {
   get: (url, config) => request.get(url, config),
   post: (url, data, config) => request.post(url, data, config),
 };
 
 function handleClose() {
-  console.log('VuePill dev shell close event');
+  tab.value = 'page';
 }
 
 return (_ctx, _cache) => {
@@ -17772,7 +17772,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4ba50a38"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-24243561"]]);
 
 const {createApp} = await importShared('vue');
 
