@@ -469,17 +469,24 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.plugin.save_data("next_trigger_mode", "run:beach")
         self.plugin.stop_service = lambda: None
         reset_calls = []
-        self.plugin._reset_v020_data = lambda: reset_calls.append(True)
+        self.plugin._reset_generation_data = lambda: reset_calls.append(True)
         config = {
             "enabled": True,
             "notify": False,
             "reserve_magic_pill_count": 7,
         }
+        persisted_config = {
+            "enabled": True,
+            "notify": False,
+            "reserve_magic_pill_count": 7,
+        }
+        self.plugin._config_store = dict(persisted_config)
 
         self.plugin.init_plugin(config)
         self.plugin.init_plugin(config)
 
         self.assertEqual([], reset_calls)
+        self.assertEqual(persisted_config, self.plugin._config_store)
         self.assertEqual(
             [{"title": "小版本记录"}],
             self.plugin.get_data("history"),
@@ -536,7 +543,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 plugin = make_plugin(self.module)
                 plugin.stop_service = lambda: None
                 reset_calls = []
-                plugin._reset_v020_data = lambda: reset_calls.append(True)
+                plugin._reset_generation_data = lambda: reset_calls.append(True)
                 generation_during_write = []
                 original_update_config = plugin.update_config
 
@@ -576,6 +583,33 @@ class VuePillLifecycleTests(unittest.TestCase):
                 )
                 self.assertIs(plugin._enabled, True)
                 self.assertIs(plugin._notify, False)
+
+    def test_empty_config_with_legacy_runtime_data_resets_instead_of_fresh(self):
+        cases = (
+            ("history", [{"title": "旧记录"}], []),
+            ("next_run_time", "2026-01-02 00:00:00", ""),
+        )
+        for key, old_value, reset_value in cases:
+            with self.subTest(key=key):
+                plugin = make_plugin(self.module)
+                plugin.save_data(key, old_value)
+                plugin.stop_service = lambda: None
+
+                plugin.init_plugin({})
+
+                self.assertEqual(reset_value, plugin.get_data(key))
+                self.assertIs(plugin._enabled, False)
+                self.assertIs(plugin._notify, True)
+                self.assertEqual(10, plugin._reserve_magic_pill_count)
+                self.assertIs(plugin._config_store["enabled"], False)
+                self.assertEqual(
+                    plugin.CONFIG_GENERATION,
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
+                )
+                self.assertIs(
+                    plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
+                    True,
+                )
 
     def test_first_v020_init_resets_old_state_and_stays_disabled(self):
         old_values = {

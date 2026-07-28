@@ -352,13 +352,31 @@ class VuePill(_PluginBase):
                 return -1
         return -1
 
+    def _has_meaningful_generation_data(self) -> bool:
+        keys = (
+            "history",
+            "state",
+            "pill_status",
+            "last_run",
+            "next_run_time",
+            "next_trigger_time",
+            "next_trigger_mode",
+            "consecutive_error_retries",
+            "last_error_retry_detail",
+        )
+        return any(bool(self.get_data(key)) for key in keys)
+
     def _config_generation_mode(self, config: Optional[dict]) -> str:
         stored = self._stored_config_generation()
         if stored == self.CONFIG_GENERATION:
             return "current"
         if stored is None and self.get_data(self.LEGACY_MIGRATION_KEY):
             return "legacy-current"
-        if stored is None and not config:
+        if (
+            stored is None
+            and not config
+            and not self._has_meaningful_generation_data()
+        ):
             return "fresh"
         return "reset"
 
@@ -381,7 +399,7 @@ class VuePill(_PluginBase):
 
         if generation_mode in {"fresh", "reset"}:
             if generation_mode == "reset":
-                self._reset_v020_data()
+                self._reset_generation_data()
             self._reset_runtime_site_credentials()
             self._bootstrap_pending = False
             self._apply_config(self._default_config())
@@ -425,7 +443,7 @@ class VuePill(_PluginBase):
             self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
 
-    def _reset_v020_data(self):
+    def _reset_generation_data(self):
         reset_values = {
             "history": [],
             "state": {},
