@@ -418,7 +418,11 @@ class VuePill(_PluginBase):
 
             if not force and reason == "schedule" and self._is_pre_refresh_trigger():
                 before_refresh = self._capture_refresh_catchup_state()
-                pill_status = self._refresh_state(reason="pre-run-refresh", record_run=False)
+                pill_status = self._refresh_state(
+                    reason="pre-run-refresh",
+                    record_run=False,
+                    commit_plan=False,
+                )
                 catchup_result = self._run_after_refresh_if_due(
                     pill_status,
                     run_reason="schedule",
@@ -427,6 +431,7 @@ class VuePill(_PluginBase):
                 )
                 if catchup_result:
                     return catchup_result
+                self._restore_pre_refresh_plan(before_refresh)
                 logger.info("%s 已完成运行前 1 分钟预刷新", self.plugin_name)
                 return {
                     "success": True,
@@ -497,6 +502,7 @@ class VuePill(_PluginBase):
             if beach_due_action and not beach_result.get("done"):
                 retry_action = "beach"
             next_run, next_action = self._compute_next_plan(final_page)
+            force_run_trigger = False
             if retry_action:
                 retry_ts = int(time.time()) + max(10, self._ready_retry_seconds)
                 next_run, next_action = self._limit_retry_plan_if_needed(
@@ -505,6 +511,10 @@ class VuePill(_PluginBase):
                     next_run,
                     next_action,
                     reason,
+                )
+                force_run_trigger = bool(
+                    next_run == retry_ts
+                    and next_action in {retry_action, "all"}
                 )
             lines, has_action, has_warning = self._build_result_lines(brick_result, beach_result, auto_result)
             if brick_result.get("attempted") and final_page.get("brick", {}).get("ready"):
@@ -519,7 +529,12 @@ class VuePill(_PluginBase):
             if not has_action and not has_warning:
                 lines = ["ℹ️ 本次无可执行动作"]
 
-            self._schedule_next_run(next_run, reason, next_action)
+            self._schedule_next_run(
+                next_run,
+                reason,
+                next_action,
+                force_run=force_run_trigger,
+            )
             pill_status = self._refresh_and_store_status(final_page, next_run, lines, next_action=next_action)
             self._append_history("⚗️ Vue-魔丸运行", lines)
 
@@ -624,11 +639,37 @@ class VuePill(_PluginBase):
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
         trigger_mode = self._load_saved_next_trigger_mode()
+        _, trigger_action = self._parse_trigger_mode(trigger_mode)
         return {
+            "next_run": next_run,
+            "next_trigger": next_trigger,
             "next_run_overdue": bool(next_run and next_run <= now),
             "next_trigger_overdue": bool(next_trigger and next_trigger <= now),
             "trigger_mode": trigger_mode,
+            "trigger_action": trigger_action,
         }
+
+    def _restore_pre_refresh_plan(self, before_refresh: Dict[str, Any]) -> bool:
+        planned_run = before_refresh.get("next_run")
+        if not isinstance(planned_run, datetime):
+            return False
+
+        with self._lifecycle_lock:
+            current_run = self._load_saved_next_run()
+            current_mode = self._load_saved_next_trigger_mode()
+            if (
+                current_run != planned_run
+                or current_mode != before_refresh.get("trigger_mode")
+            ):
+                logger.info("%s 预刷新期间计划已更新，跳过恢复旧计划", self.plugin_name)
+                return False
+            self._schedule_next_run(
+                int(planned_run.timestamp()),
+                "pre-run-refresh",
+                before_refresh.get("trigger_action") or "all",
+                force_run=True,
+            )
+        return True
 
     def _run_after_refresh_if_due(
         self,
@@ -1410,12 +1451,24 @@ class VuePill(_PluginBase):
             return retry_ts, retry_action
         return next_run, next_action
 
-    def _refresh_state(self, reason: str = "refresh", record_run: bool = True) -> Dict[str, Any]:
+    def _refresh_state(
+        self,
+        reason: str = "refresh",
+        record_run: bool = True,
+        commit_plan: bool = True,
+    ) -> Dict[str, Any]:
         self._ensure_cookie()
         session = self._build_session()
         data = self._fetch_page_state(session)
-        next_run, next_action = self._compute_next_plan(data)
-        self._schedule_next_run(next_run, reason, next_action)
+        if commit_plan:
+            next_run, next_action = self._compute_next_plan(data)
+            self._schedule_next_run(next_run, reason, next_action)
+        else:
+            planned_run = self._load_saved_next_run()
+            next_run = int(planned_run.timestamp()) if planned_run else None
+            _, next_action = self._parse_trigger_mode(
+                self._load_saved_next_trigger_mode()
+            )
         status = self._refresh_and_store_status(data, next_run, [], record_run=record_run, next_action=next_action)
         self._reset_error_retry_count()
         return status
@@ -2309,7 +2362,13 @@ class VuePill(_PluginBase):
         now = self._aware_now()
         return next_trigger if next_trigger > now else now + timedelta(seconds=5)
 
-    def _schedule_next_run(self, next_run_ts: Optional[int], reason: str = "", next_action: str = "all"):
+    def _schedule_next_run(
+        self,
+        next_run_ts: Optional[int],
+        reason: str = "",
+        next_action: str = "all",
+        force_run: bool = False,
+    ):
         next_run_ts = self._normalize_timestamp(next_run_ts, 0)
         if next_run_ts and not self._is_reasonable_future_ts(next_run_ts, int(time.time()) - 1):
             next_run_ts = 0
@@ -2318,7 +2377,13 @@ class VuePill(_PluginBase):
             next_run = self._aware_from_timestamp(next_run_ts)
             now = self._aware_now()
             pre_refresh_time = next_run - timedelta(seconds=self.PRE_REFRESH_SECONDS)
-            if pre_refresh_time > now + timedelta(seconds=5):
+            if force_run:
+                next_trigger = next_run + timedelta(seconds=self._schedule_buffer_seconds)
+                min_trigger = now + timedelta(seconds=5)
+                if next_trigger < min_trigger:
+                    next_trigger = min_trigger
+                trigger_mode = f"run:{next_action}"
+            elif pre_refresh_time > now + timedelta(seconds=5):
                 next_trigger = pre_refresh_time
                 trigger_mode = f"refresh:{next_action}"
             else:
