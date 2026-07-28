@@ -23,6 +23,9 @@ from app.scheduler import Scheduler
 from app.schemas import NotificationType
 
 
+MIGRATION_KEY = "v020_initialized"
+
+
 class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "兑换、搬砖、清沙滩、炼造、获取执行记录。"
@@ -45,6 +48,45 @@ class VuePill(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     SUMMARY_LINE = "━━━━━━━━━━━━━━"
+    MIGRATION_KEY = MIGRATION_KEY
+    _BEARER_PATTERN = re.compile(r"(?i)(\bbearer\s+)[A-Za-z0-9._~+/=-]+")
+    _SENSITIVE_HEADER_PATTERN = re.compile(
+        r"(?im)(\b(?:cookie|set-cookie|authorization|proxy-authorization)"
+        r"\s*:\s*)[^\r\n]+"
+    )
+    _SENSITIVE_VALUE_PATTERN = re.compile(
+        r"(?i)(\b(?:cookie|set-cookie|authorization|proxy-authorization|"
+        r"access[_-]?token|auth[_-]?token|csrf[_-]?token|refresh[_-]?token|"
+        r"token|session(?:[_-]?id)?|sid|target[_-]?uid|uid|user[_-]?id)\b"
+        r"\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|[^;,\s]+)"
+    )
+    _SAFE_UID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+    _SUMMARY_COUNT_FIELDS = {
+        "count",
+        "events",
+        "quantity",
+        "total_events",
+        "total_quantity",
+    }
+    _USER_SUMMARY_FIELDS = (
+        "uid",
+        "name",
+        "display_name",
+        "count",
+        "events",
+        "quantity",
+        "total_events",
+        "total_quantity",
+    )
+    _ITEM_SUMMARY_FIELDS = (
+        "item_name",
+        "name",
+        "count",
+        "events",
+        "quantity",
+        "total_events",
+        "total_quantity",
+    )
 
     ITEM_ICON_MAP = {
         "砖块": "🧱",
@@ -78,7 +120,6 @@ class VuePill(_PluginBase):
     _enabled: bool = False
     _notify: bool = True
     _onlyonce: bool = False
-    _auto_cookie: bool = True
     _enable_brick: bool = True
     _enable_beach: bool = True
     _auto_craft: bool = False
@@ -86,7 +127,7 @@ class VuePill(_PluginBase):
     _use_proxy: bool = False
     _force_ipv4: bool = True
     _cookie: str = ""
-    _cookie_source: str = "未配置"
+    _cookie_source: str = "未同步"
     _site_domain: str = DEFAULT_SITE_DOMAIN
     _site_url: str = DEFAULT_SITE_URL
     _user_agent: str = DEFAULT_USER_AGENT
@@ -100,7 +141,7 @@ class VuePill(_PluginBase):
     _move_delay_min_ms: int = 30
     _move_delay_max_ms: int = 80
     _ready_retry_seconds: int = 60
-    _reserve_magic_pill_count: int = 0
+    _reserve_magic_pill_count: int = 10
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -112,18 +153,23 @@ class VuePill(_PluginBase):
 
     def init_plugin(self, config: Optional[dict] = None):
         self.stop_service()
-        self._siteoper = SiteOper()
+        self._siteoper = None
 
-        merged = self._default_config()
-        if config:
-            merged.update(config)
+        if not self.get_data(self.MIGRATION_KEY):
+            self._reset_v020_data()
+            self._reset_runtime_site_credentials()
+            self._next_run_time = None
+            self._next_trigger_time = None
+            self._next_trigger_mode = "run"
+            self._bootstrap_pending = False
+            self._apply_config(self._default_config())
+            self._update_config()
+            self.save_data(self.MIGRATION_KEY, True)
+            return
+
+        self._reset_runtime_site_credentials()
+        merged = self._merge_public_config(config)
         self._apply_config(merged)
-        self._resolve_site_profile()
-
-        if self._auto_cookie:
-            self._sync_cookie_from_site(silent=True)
-        else:
-            self._cookie_source = "手动配置" if self._cookie else "未配置"
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
@@ -141,6 +187,21 @@ class VuePill(_PluginBase):
             self._update_config()
             self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+    def _reset_v020_data(self):
+        reset_values = {
+            "history": [],
+            "state": {},
+            "pill_status": {},
+            "last_run": "",
+            "next_run_time": "",
+            "next_trigger_time": "",
+            "next_trigger_mode": "",
+            "consecutive_error_retries": 0,
+            "last_error_retry_detail": "",
+        }
+        for key, value in reset_values.items():
+            self.save_data(key, value)
 
     def get_state(self) -> bool:
         return bool(self._enabled)
@@ -161,7 +222,8 @@ class VuePill(_PluginBase):
             {"path": "/exchange-points", "endpoint": self._exchange_points_api, "methods": ["POST"], "auth": "bear", "summary": "兑换魔力"},
             {"path": "/craft-item", "endpoint": self._craft_item_api, "methods": ["POST"], "auth": "bear", "summary": "炼造指定配方"},
             {"path": "/craft-max-pill", "endpoint": self._craft_max_pill_api, "methods": ["POST"], "auth": "bear", "summary": "一键炼造魔丸"},
-            {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
+            {"path": "/gift-item", "endpoint": self._gift_item_api, "methods": ["POST"], "auth": "bear", "summary": "赠送物品"},
+            {"path": "/gift-stats", "endpoint": self._gift_stats_api, "methods": ["POST"], "auth": "bear", "summary": "获取赠礼统计"},
         ]
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
@@ -195,7 +257,11 @@ class VuePill(_PluginBase):
                     self._scheduler.shutdown()
                 self._scheduler = None
         except Exception as err:
-            logger.warning("%s 停止一次性调度失败：%s", self.plugin_name, err)
+            logger.warning(
+                "%s 停止一次性调度失败：%s",
+                self.plugin_name,
+                self._get_error_detail(err),
+            )
 
         try:
             Scheduler().remove_plugin_job(self.__class__.__name__)
@@ -519,6 +585,293 @@ class VuePill(_PluginBase):
             logger.warning("%s 一键炼造魔丸失败：%s", self.plugin_name, detail)
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
 
+    def _gift_item_api(self, payload: Optional[dict] = None):
+        target_uid = ""
+        try:
+            item_name, target_uid, quantity = self._validate_gift_item_payload(payload)
+            self._ensure_cookie()
+            if self._force_ipv4:
+                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+
+            session = self._build_session()
+            page = self._fetch_page_state(session)
+            inventory = page.get("inventory") or []
+            item = next(
+                (
+                    row
+                    for row in inventory
+                    if isinstance(row, dict)
+                    and str(row.get("name") or "").strip() == item_name
+                ),
+                None,
+            )
+            if not item:
+                raise ValueError(f"物品 {item_name} 不存在")
+            if item.get("giftable") is not True:
+                raise ValueError(f"物品 {item_name} 当前不可赠送")
+
+            from . import crafting
+
+            max_quantity = crafting.max_gift_quantity(
+                inventory,
+                item_name,
+                cap=500,
+            )
+            if quantity > max_quantity:
+                if quantity > 500:
+                    raise ValueError("赠送数量不能超过 500")
+                raise ValueError(
+                    f"赠送数量超过当前库存，最多可赠送 {max_quantity}"
+                )
+
+            result = self._post_action(
+                session,
+                "gift_item",
+                {
+                    "item_name": item_name,
+                    "target_uid": target_uid,
+                    "quantity": quantity,
+                },
+                retry_network=False,
+            )
+            if not isinstance(result, dict) or result.get("success") is not True:
+                raise ValueError(
+                    self._safe_result_message(
+                        result,
+                        "网站拒绝了赠送请求",
+                        (target_uid,),
+                    )
+                )
+
+            refresh_error = ""
+            try:
+                refreshed_page = self._fetch_page_state(session)
+                next_run, next_action = self._compute_next_plan(refreshed_page)
+                self._schedule_next_run(next_run, "gift-item", next_action)
+                self._refresh_and_store_status(
+                    refreshed_page,
+                    next_run,
+                    [],
+                    record_run=False,
+                    next_action=next_action,
+                )
+            except Exception as err:
+                refresh_error = self._get_error_detail(err, (target_uid,))
+                logger.warning(
+                    "%s 赠送成功后刷新状态失败：%s",
+                    self.plugin_name,
+                    refresh_error,
+                )
+
+            message = self._safe_result_message(
+                result,
+                "赠送成功",
+                (target_uid,),
+            )
+            if refresh_error:
+                message = f"{message}，但状态刷新失败，请稍后手动刷新"
+            return {
+                "success": True,
+                "message": message,
+                "item_name": item_name,
+                "quantity": quantity,
+                "target_uid": target_uid,
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err, (target_uid,))
+            logger.warning("%s 赠送物品失败：%s", self.plugin_name, detail)
+            return {
+                "success": False,
+                "message": detail,
+                "status": self._build_status(auto_refresh=False),
+            }
+
+    def _gift_stats_api(self, payload: Optional[dict] = None):
+        try:
+            direction, range_value = self._validate_gift_stats_payload(payload)
+            self._ensure_cookie()
+            if self._force_ipv4:
+                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
+
+            session = self._build_session()
+            result = self._post_action(
+                session,
+                "gift_stats",
+                {"direction": direction, "range": range_value},
+                retry_network=False,
+            )
+            if not isinstance(result, dict) or result.get("success") is not True:
+                raise ValueError(
+                    self._safe_result_message(
+                        result,
+                        "网站返回赠礼统计失败",
+                    )
+                )
+
+            summary = result.get("data")
+            if not isinstance(summary, dict):
+                summary = result.get("stats")
+            if not isinstance(summary, dict):
+                summary = result
+            return {
+                "success": True,
+                "message": self._safe_result_message(result, "统计加载完成"),
+                "direction": direction,
+                "range": range_value,
+                "total_events": self._summary_int(summary.get("total_events")),
+                "total_quantity": self._summary_int(summary.get("total_quantity")),
+                "users": self._whitelist_summary_rows(
+                    summary.get("users"),
+                    self._USER_SUMMARY_FIELDS,
+                    "uid",
+                ),
+                "items": self._whitelist_summary_rows(
+                    summary.get("items"),
+                    self._ITEM_SUMMARY_FIELDS,
+                    "item_name",
+                ),
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 获取赠礼统计失败：%s", self.plugin_name, detail)
+            return {
+                "success": False,
+                "message": detail,
+                "status": self._build_status(auto_refresh=False),
+            }
+
+    def _validate_gift_item_payload(self, payload: Optional[dict]) -> Tuple[str, str, int]:
+        if type(payload) is not dict:
+            raise ValueError("赠送请求必须是普通字典")
+        allowed_fields = {"item_name", "uid", "target_uid", "quantity"}
+        if any(type(key) is not str or key not in allowed_fields for key in payload):
+            raise ValueError("赠送请求包含不支持的字段")
+
+        item_name = payload.get("item_name")
+        if type(item_name) is not str or not item_name.strip():
+            raise ValueError("物品名称不能为空")
+        item_name = item_name.strip()
+        if len(item_name) > 100 or self._contains_control_characters(item_name):
+            raise ValueError("物品名称包含不安全字符")
+
+        raw_target = payload.get("target_uid")
+        if raw_target is None or (type(raw_target) is str and not raw_target.strip()):
+            raw_target = payload.get("uid")
+        target_uid = self._normalize_uid(raw_target)
+        if "uid" in payload and "target_uid" in payload:
+            second_uid = self._normalize_uid(payload.get("uid"))
+            if target_uid != second_uid:
+                raise ValueError("uid 和 target_uid 不一致")
+
+        quantity = payload.get("quantity")
+        if type(quantity) is not int or quantity <= 0:
+            raise ValueError("赠送数量必须是正整数")
+        return item_name, target_uid, quantity
+
+    def _validate_gift_stats_payload(self, payload: Optional[dict]) -> Tuple[str, str]:
+        if type(payload) is not dict:
+            raise ValueError("统计请求必须是普通字典")
+        if any(
+            type(key) is not str or key not in {"direction", "range"}
+            for key in payload
+        ):
+            raise ValueError("统计请求包含不支持的字段")
+
+        direction = payload.get("direction")
+        direction = direction.strip().lower() if type(direction) is str else ""
+        if direction not in {"out", "in"}:
+            raise ValueError("direction 只允许 out 或 in")
+
+        range_value = payload.get("range")
+        if type(range_value) is not str:
+            raise ValueError("range 必须是字符串")
+        range_value = range_value.strip().lower()
+        if range_value not in {"30", "all"}:
+            raise ValueError('range 只允许 "30" 或 "all"')
+        return direction, range_value
+
+    def _normalize_uid(self, value: Any) -> str:
+        if type(value) is bool or type(value) not in {str, int}:
+            raise ValueError("目标 UID 不能为空且必须是安全字符串")
+        uid = str(value).strip()
+        if (
+            not uid
+            or len(uid) > 128
+            or not self._SAFE_UID_PATTERN.fullmatch(uid)
+        ):
+            raise ValueError("目标 UID 不能为空且必须是安全字符串")
+        return uid
+
+    @staticmethod
+    def _contains_control_characters(value: str) -> bool:
+        return any(ord(character) < 32 or ord(character) == 127 for character in value)
+
+    def _safe_result_message(
+        self,
+        result: Any,
+        default: str,
+        sensitive_values: Tuple[str, ...] = (),
+    ) -> str:
+        if isinstance(result, dict):
+            for key in ("message", "msg"):
+                value = result.get(key)
+                if type(value) is str and value.strip():
+                    return self._sanitize_sensitive_text(value, sensitive_values)
+        return default
+
+    def _whitelist_summary_rows(
+        self,
+        value: Any,
+        allowed_fields: Tuple[str, ...],
+        identity_field: str,
+    ) -> List[Dict[str, Any]]:
+        if isinstance(value, dict):
+            if any(key in value for key in allowed_fields):
+                source_rows = [value]
+            else:
+                source_rows = [
+                    {identity_field: key, "quantity": nested}
+                    for key, nested in value.items()
+                ]
+        elif isinstance(value, list):
+            source_rows = value
+        else:
+            return []
+
+        rows: List[Dict[str, Any]] = []
+        for raw_row in source_rows[:500]:
+            if not isinstance(raw_row, dict):
+                continue
+            row: Dict[str, Any] = {}
+            for key in allowed_fields:
+                if key not in raw_row:
+                    continue
+                raw_value = raw_row.get(key)
+                if key in self._SUMMARY_COUNT_FIELDS:
+                    row[key] = self._summary_int(raw_value)
+                elif type(raw_value) in {str, int} and type(raw_value) is not bool:
+                    text = str(raw_value).strip()
+                    if text and len(text) <= 200 and not self._contains_control_characters(text):
+                        row[key] = self._sanitize_sensitive_text(text)
+            if row:
+                rows.append(row)
+        return rows
+
+    @staticmethod
+    def _summary_int(value: Any) -> int:
+        if type(value) is bool:
+            return 0
+        if type(value) is int:
+            return max(0, value)
+        if type(value) is str and value.strip().isdigit():
+            try:
+                return max(0, int(value.strip()))
+            except (TypeError, ValueError, OverflowError):
+                return 0
+        return 0
+
     def _get_status(self):
         return self._build_status(auto_refresh=True)
 
@@ -529,17 +882,21 @@ class VuePill(_PluginBase):
             try:
                 pill_status = self._refresh_state(reason="status-init")
             except Exception as err:
-                logger.warning("%s 初始化状态刷新失败：%s", self.plugin_name, err)
+                logger.warning(
+                    "%s 初始化状态刷新失败：%s",
+                    self.plugin_name,
+                    self._get_error_detail(err),
+                )
 
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
         return {
             "enabled": self._enabled,
             "notify": self._notify,
-            "auto_cookie": self._auto_cookie,
             "enable_brick": self._enable_brick,
             "enable_beach": self._enable_beach,
             "cookie_source": self._cookie_source,
+            "cookie_ready": self._has_valid_cookie(),
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
             "next_trigger_action": self._get_scheduled_action_label(),
@@ -592,18 +949,16 @@ class VuePill(_PluginBase):
         return "all"
 
     def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
-        return {
+        config = {
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "enable_brick": self._enable_brick,
             "enable_beach": self._enable_beach,
             "auto_craft": self._auto_craft,
             "auto_exchange": self._auto_exchange,
             "use_proxy": self._use_proxy,
             "force_ipv4": self._force_ipv4,
-            "cookie": self._cookie,
             "brick_cron": self._brick_cron,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -614,17 +969,19 @@ class VuePill(_PluginBase):
             "move_delay_max_ms": self._move_delay_max_ms,
             "ready_retry_seconds": self._ready_retry_seconds,
             "reserve_magic_pill_count": self._reserve_magic_pill_count,
-            "capture_tips": [] if include_options else None,
         }
+        if include_options:
+            config["capture_tips"] = []
+        return config
 
     def _save_config(self, config_payload: dict):
         before_refresh = self._capture_refresh_catchup_state()
-        merged = self._default_config()
-        merged.update(self._get_config(include_options=False))
-        merged.update(config_payload or {})
+        merged = self._merge_public_config(
+            self._get_config(include_options=False),
+            config_payload,
+        )
         self.init_plugin(merged)
         self._update_config()
-        self._reregister_plugin("save-config")
         catchup_result: Optional[Dict[str, Any]] = None
         try:
             status = self._refresh_state(reason="save-config")
@@ -635,8 +992,14 @@ class VuePill(_PluginBase):
                 before_refresh=before_refresh,
             )
         except Exception as err:
-            logger.warning("%s 保存配置后刷新失败：%s", self.plugin_name, err)
+            logger.warning(
+                "%s 保存配置后刷新失败：%s",
+                self.plugin_name,
+                self._get_error_detail(err),
+            )
             status = self.get_data("pill_status") or {}
+            if self._enabled and not (self._scheduler and self._scheduler.running):
+                self._reregister_plugin("save-config")
         message = "配置已保存"
         if catchup_result:
             message = "配置已保存，已执行补跑" if catchup_result.get("success", True) else f"配置已保存，补跑失败：{catchup_result.get('message') or '未知原因'}"
@@ -659,14 +1022,12 @@ class VuePill(_PluginBase):
             "enabled": False,
             "notify": True,
             "onlyonce": False,
-            "auto_cookie": True,
             "enable_brick": True,
             "enable_beach": True,
             "auto_craft": False,
             "auto_exchange": False,
             "use_proxy": False,
             "force_ipv4": True,
-            "cookie": "",
             "brick_cron": self.DEFAULT_BRICK_CRON,
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 3,
@@ -676,21 +1037,30 @@ class VuePill(_PluginBase):
             "move_delay_min_ms": 30,
             "move_delay_max_ms": 80,
             "ready_retry_seconds": 60,
-            "reserve_magic_pill_count": 0,
+            "reserve_magic_pill_count": 10,
         }
+
+    def _merge_public_config(self, *configs: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        merged = self._default_config()
+        allowed_keys = set(merged)
+        for config in configs:
+            if not isinstance(config, dict):
+                continue
+            for key in allowed_keys:
+                if key in config:
+                    merged[key] = config[key]
+        return merged
 
     def _apply_config(self, config: Dict[str, Any]):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
-        self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
         self._enable_brick = self._to_bool(config.get("enable_brick", True))
         self._enable_beach = self._to_bool(config.get("enable_beach", True))
         self._auto_craft = self._to_bool(config.get("auto_craft", False))
         self._auto_exchange = self._to_bool(config.get("auto_exchange", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
-        self._cookie = (config.get("cookie") or "").strip()
         self._brick_cron = (config.get("brick_cron") or self.DEFAULT_BRICK_CRON).strip() or self.DEFAULT_BRICK_CRON
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 3))
@@ -700,7 +1070,7 @@ class VuePill(_PluginBase):
         self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
         self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
         self._ready_retry_seconds = max(10, self._safe_int(config.get("ready_retry_seconds"), 60))
-        self._reserve_magic_pill_count = max(0, self._safe_int(config.get("reserve_magic_pill_count"), 0))
+        self._reserve_magic_pill_count = max(0, self._safe_int(config.get("reserve_magic_pill_count"), 10))
 
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))
@@ -763,14 +1133,61 @@ class VuePill(_PluginBase):
         return status
 
     def _ensure_cookie(self):
-        if self._auto_cookie:
-            result = self._sync_cookie_from_site(save_config=False, silent=True)
-            if result.get("success"):
-                return
-        if self._cookie and self._cookie.strip().lower() != "cookie":
-            self._cookie_source = self._cookie_source or "手动配置"
-            return
-        raise ValueError("未配置有效 Cookie，请手动填写或开启自动同步")
+        self._sync_site_credentials()
+
+    def _reset_runtime_site_credentials(self):
+        self._cookie = ""
+        self._cookie_source = "未同步"
+        self._site_domain = self.DEFAULT_SITE_DOMAIN
+        self._site_url = self.DEFAULT_SITE_URL
+        self._user_agent = self.DEFAULT_USER_AGENT
+
+    @staticmethod
+    def _site_value(site: Any, key: str) -> Any:
+        if isinstance(site, dict):
+            return site.get(key)
+        return getattr(site, key, None)
+
+    def _has_valid_cookie(self) -> bool:
+        return (
+            isinstance(self._cookie, str)
+            and bool(self._cookie.strip())
+            and self._cookie.strip().lower() != "cookie"
+        )
+
+    def _sync_site_credentials(self):
+        self._reset_runtime_site_credentials()
+        try:
+            siteoper = SiteOper()
+            self._siteoper = siteoper
+            site = siteoper.get_by_domain(self.DEFAULT_SITE_DOMAIN)
+        except Exception as err:
+            raise ValueError(
+                f"读取站点 {self.DEFAULT_SITE_DOMAIN} 配置失败：{self._get_error_detail(err)}"
+            ) from err
+
+        if not site:
+            raise ValueError(f"未找到站点 {self.DEFAULT_SITE_DOMAIN} 的配置")
+
+        cookie = self._site_value(site, "cookie")
+        cookie = cookie.strip() if isinstance(cookie, str) else ""
+        if not cookie or cookie.lower() == "cookie":
+            raise ValueError(f"站点 {self.DEFAULT_SITE_DOMAIN} 未配置有效 Cookie")
+
+        site_url = self._site_value(site, "url")
+        user_agent = self._site_value(site, "ua")
+        self._cookie = cookie
+        self._cookie_source = f"站点同步：{self.DEFAULT_SITE_DOMAIN}"
+        self._site_url = (
+            site_url.strip().rstrip("/")
+            if isinstance(site_url, str) and site_url.strip()
+            else self.DEFAULT_SITE_URL
+        )
+        self._user_agent = (
+            user_agent.strip()
+            if isinstance(user_agent, str) and user_agent.strip()
+            else self.DEFAULT_USER_AGENT
+        )
 
     def _resolve_site_profile(self):
         site_url = self.DEFAULT_SITE_URL
@@ -782,32 +1199,27 @@ class VuePill(_PluginBase):
                     site_url = (getattr(site, "url", None) or site_url).rstrip("/")
                     user_agent = (getattr(site, "ua", None) or user_agent).strip()
         except Exception as err:
-            logger.warning("%s 获取站点配置失败：%s", self.plugin_name, err)
+            logger.warning(
+                "%s 获取站点配置失败：%s",
+                self.plugin_name,
+                self._get_error_detail(err),
+            )
         self._site_url = site_url.rstrip("/")
         self._user_agent = user_agent or self.DEFAULT_USER_AGENT
 
     def _sync_cookie_from_site(self, save_config: bool = False, silent: bool = True) -> Dict[str, Any]:
         try:
-            if not self._siteoper:
-                self._siteoper = SiteOper()
-            site = self._siteoper.get_by_domain(self._site_domain)
-            if not site:
-                return {"success": False, "message": f"未找到站点 {self._site_domain} 的配置"}
-
-            cookie = (getattr(site, "cookie", None) or "").strip()
-            if not cookie or cookie.lower() == "cookie":
-                return {"success": False, "message": f"站点 {self._site_domain} 未配置有效 Cookie"}
-
-            self._cookie = cookie
-            self._cookie_source = f"站点同步：{self._site_domain}"
-            self._site_url = (getattr(site, "url", None) or self.DEFAULT_SITE_URL).rstrip("/")
-            self._user_agent = (getattr(site, "ua", None) or self.DEFAULT_USER_AGENT).strip() or self.DEFAULT_USER_AGENT
-
+            self._sync_site_credentials()
             if save_config:
                 self._update_config()
             if not silent:
-                logger.info("%s 已同步站点 Cookie：%s", self.plugin_name, self._mask_cookie(cookie))
-            return {"success": True, "message": f"已同步站点 Cookie：{self._site_domain}", "cookie_preview": self._mask_cookie(cookie)}
+                logger.info("%s 已同步站点 Cookie", self.plugin_name)
+            return {
+                "success": True,
+                "message": f"已同步站点 Cookie：{self.DEFAULT_SITE_DOMAIN}",
+                "cookie_ready": True,
+                "cookie_source": self._cookie_source,
+            }
         except Exception as err:
             detail = self._get_error_detail(err)
             logger.warning("%s 同步站点 Cookie 失败：%s", self.plugin_name, detail)
@@ -838,15 +1250,29 @@ class VuePill(_PluginBase):
         })
         return session
 
+    def _refresh_session_credentials(self, session: requests.Session):
+        self._ensure_cookie()
+        headers = getattr(session, "headers", None)
+        if hasattr(headers, "update"):
+            headers.update({
+                "User-Agent": self._user_agent,
+                "Cookie": self._cookie,
+                "Referer": f"{self._site_url}/mowan.php",
+            })
+
     def _fetch_page_state(self, session: requests.Session) -> Dict[str, Any]:
-        response = self._request_with_retry(
-            "fetchMowanPage",
-            lambda: session.get(
+        def fetch_page():
+            self._refresh_session_credentials(session)
+            return session.get(
                 f"{self._site_url}/mowan.php",
                 params={"_": int(time.time() * 1000)},
                 headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
                 timeout=(self._http_timeout, self._http_timeout),
-            ),
+            )
+
+        response = self._request_with_retry(
+            "fetchMowanPage",
+            fetch_page,
         )
         response.raise_for_status()
         html = response.text
@@ -1060,6 +1486,7 @@ class VuePill(_PluginBase):
             form[key] = value
 
         def do_request():
+            self._refresh_session_credentials(session)
             response = session.post(
                 f"{self._site_url}/mowan.php",
                 data=form,
@@ -1751,7 +2178,7 @@ class VuePill(_PluginBase):
             self.save_data("next_trigger_mode", "")
             logger.info("INFO 当前没有已识别的下一次执行时间")
 
-        if self._enabled:
+        if self._enabled and not (self._scheduler and self._scheduler.running):
             self._bootstrap_pending = not bool(next_run_ts)
             self._reregister_plugin(reason)
 
@@ -1764,7 +2191,11 @@ class VuePill(_PluginBase):
                 Scheduler().reload_plugin_job(self.__class__.__name__)
                 logger.info("%s 已重新加载调度：%s", self.plugin_name, reason or "reload")
             except Exception as err:
-                logger.warning("%s 重新注册调度失败：%s", self.plugin_name, err)
+                logger.warning(
+                    "%s 重新注册调度失败：%s",
+                    self.plugin_name,
+                    self._get_error_detail(err),
+                )
 
     def _load_saved_next_run(self) -> Optional[datetime]:
         if self._next_run_time:
@@ -1815,7 +2246,12 @@ class VuePill(_PluginBase):
             next_fire = trigger.get_next_fire_time(None, now_dt)
             return int(next_fire.timestamp()) if next_fire else None
         except Exception as err:
-            logger.warning("%s CRON 表达式无效：%s | %s", self.plugin_name, expr, err)
+            logger.warning(
+                "%s CRON 表达式无效：%s | %s",
+                self.plugin_name,
+                expr,
+                self._get_error_detail(err),
+            )
             return None
 
     def _refresh_and_store_status(
@@ -2260,12 +2696,6 @@ class VuePill(_PluginBase):
             return ""
         return self._format_time(self._aware_from_timestamp(int(ts)))
 
-    @staticmethod
-    def _mask_cookie(cookie: str) -> str:
-        if not cookie:
-            return ""
-        return cookie if len(cookie) <= 18 else f"{cookie[:10]}...{cookie[-6:]}"
-
     def _aware_now(self) -> datetime:
         return datetime.now(tz=pytz.timezone(settings.TZ))
 
@@ -2283,9 +2713,55 @@ class VuePill(_PluginBase):
         except Exception:
             return None
 
-    @staticmethod
-    def _get_error_detail(err: Exception) -> str:
-        code = getattr(err, "code", None) or getattr(getattr(err, "cause", None), "code", None)
-        message = str(err)
-        return " | ".join([str(part) for part in [code, message] if part]) or "UNKNOWN"
+    def _sanitize_sensitive_text(
+        self,
+        value: Any,
+        sensitive_values: Tuple[str, ...] = (),
+    ) -> str:
+        try:
+            text = str(value)
+        except Exception:
+            text = type(value).__name__
+
+        secrets: List[str] = []
+        if isinstance(self._cookie, str) and self._cookie:
+            secrets.append(self._cookie)
+            for part in self._cookie.split(";"):
+                _, separator, raw_value = part.partition("=")
+                if separator:
+                    secret = raw_value.strip().strip("\"'")
+                    if len(secret) >= 4:
+                        secrets.append(secret)
+        secrets.extend(
+            secret
+            for secret in sensitive_values
+            if isinstance(secret, str) and secret
+        )
+        for secret in sorted(set(secrets), key=len, reverse=True):
+            text = text.replace(secret, "[REDACTED]")
+        text = self._SENSITIVE_HEADER_PATTERN.sub(r"\1[REDACTED]", text)
+        text = self._BEARER_PATTERN.sub(r"\1[REDACTED]", text)
+        return self._SENSITIVE_VALUE_PATTERN.sub(r"\1[REDACTED]", text)
+
+    def _get_error_detail(
+        self,
+        err: Exception,
+        sensitive_values: Tuple[str, ...] = (),
+    ) -> str:
+        try:
+            code = getattr(err, "code", None) or getattr(
+                getattr(err, "cause", None),
+                "code",
+                None,
+            )
+        except Exception:
+            code = None
+        try:
+            message = str(err)
+        except Exception:
+            message = type(err).__name__
+        detail = " | ".join(
+            str(part) for part in (code, message) if part
+        ) or "UNKNOWN"
+        return self._sanitize_sensitive_text(detail, sensitive_values)
 
