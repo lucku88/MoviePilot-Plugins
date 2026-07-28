@@ -18,7 +18,7 @@
             min-width="44"
             aria-label="立即执行 Vue-魔丸"
             :loading="actionLoading === 'run'"
-            :disabled="isBusy && actionLoading !== 'run'"
+            :disabled="writeActionsDisabled"
             @click="runNow"
           >
             <v-icon icon="mdi-play" size="18" class="mr-sm-1" />
@@ -30,7 +30,7 @@
             min-width="44"
             aria-label="刷新 Vue-魔丸状态"
             :loading="actionLoading === 'refresh'"
-            :disabled="isBusy && actionLoading !== 'refresh'"
+            :disabled="writeActionsDisabled"
             @click="refreshData"
           >
             <v-icon icon="mdi-refresh" size="18" class="mr-sm-1" />
@@ -120,7 +120,7 @@
                   variant="tonal"
                   class="schedule-action"
                   :loading="actionLoading === 'brick'"
-                  :disabled="isBusy || brick.ready !== true"
+                  :disabled="writeActionsDisabled || brick.ready !== true"
                   @click="moveBricks"
                 >立即搬砖</v-btn>
               </div>
@@ -150,7 +150,7 @@
                   variant="tonal"
                   class="schedule-action"
                   :loading="actionLoading === 'beach'"
-                  :disabled="isBusy || beach.ready !== true"
+                  :disabled="writeActionsDisabled || beach.ready !== true"
                   @click="cleanBeach"
                 >清理沙滩</v-btn>
               </div>
@@ -190,7 +190,7 @@
                 color="amber-darken-2"
                 variant="tonal"
                 :loading="actionLoading === 'exchange'"
-                :disabled="isBusy || exchange.enabled !== true || exchange.action_ready !== true || !!exchangeQuantityError"
+                :disabled="writeActionsDisabled || exchange.enabled !== true || exchange.action_ready !== true || !!exchangeQuantityError"
                 @click="exchangePoints"
               >兑换魔力</v-btn>
             </div>
@@ -208,7 +208,7 @@
               prepend-icon="mdi-chart-box-outline"
               aria-label="查看赠送统计"
               :loading="giftStatsLoading"
-              :disabled="giftStatsLoading"
+              :disabled="initialLoading || giftStatsLoading"
               @click="openGiftStats"
             >赠送统计</v-btn>
           </v-card-title>
@@ -249,7 +249,7 @@
               variant="tonal"
               prepend-icon="mdi-flask-round-bottom"
               :loading="actionLoading === 'craft-max'"
-              :disabled="isBusy"
+              :disabled="writeActionsDisabled"
               @click="craftMaxPill"
             >一键炼造魔丸</v-btn>
           </v-card-title>
@@ -282,13 +282,13 @@
                     density="compact"
                     hide-details="auto"
                     :error-messages="recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : []"
-                    :disabled="recipe.enabled !== true || Number(recipe.max_count || 0) <= 0"
+                    :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0"
                   />
                   <v-btn
                     color="cyan-darken-1"
                     variant="tonal"
                     :loading="actionLoading === `craft-${recipe.craft_id}`"
-                    :disabled="isBusy || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe)"
+                    :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe)"
                     @click="craftRecipe(recipe)"
                   >炼造</v-btn>
                 </div>
@@ -317,7 +317,7 @@
       </template>
     </div>
 
-    <v-dialog v-model="showGiftDialog" max-width="560">
+    <v-dialog v-model="showGiftDialog" max-width="560" :persistent="giftLoading">
       <v-card flat class="siqi-dialog gift-dialog">
         <v-card-title class="dialog-header">
           <div class="dialog-avatar">{{ selectedGiftItem?.icon || '🎁' }}</div>
@@ -390,20 +390,21 @@
         </v-card-title>
         <v-card-text class="stats-dialog-body">
           <div class="stats-filters">
-            <v-btn-toggle v-model="giftStatsDirection" mandatory color="blue" variant="tonal" divided>
+            <v-btn-toggle v-model="giftStatsDraftDirection" mandatory :disabled="giftStatsLoading" color="blue" variant="tonal" divided>
               <v-btn value="out">赠出</v-btn>
               <v-btn value="in">收到</v-btn>
             </v-btn-toggle>
-            <v-btn-toggle v-model="giftStatsRange" mandatory color="blue" variant="tonal" divided>
+            <v-btn-toggle v-model="giftStatsDraftRange" mandatory :disabled="giftStatsLoading" color="blue" variant="tonal" divided>
               <v-btn value="30">最近30天</v-btn>
               <v-btn value="all">全部</v-btn>
             </v-btn-toggle>
-            <v-btn color="blue" variant="tonal" :loading="giftStatsLoading" :disabled="giftStatsLoading" @click="loadGiftStats">查询统计</v-btn>
+            <v-btn color="blue" variant="tonal" :loading="giftStatsLoading" :disabled="initialLoading || giftStatsLoading" @click="loadGiftStats">查询统计</v-btn>
           </div>
 
           <v-alert v-if="giftStatsError" type="error" variant="tonal" density="compact" class="mb-3">{{ giftStatsError }}</v-alert>
           <div v-else-if="giftStatsLoading && !giftStats" class="empty-state">正在加载赠送统计...</div>
           <template v-else-if="giftStats">
+            <div class="stats-applied-filter">当前数据：{{ giftStatsAppliedDirectionLabel }} · {{ giftStatsAppliedRangeLabel }}</div>
             <div class="gift-stats summary-grid">
               <div class="summary-stat"><span>总事件数</span><strong>{{ giftStats.total_events ?? 0 }}</strong></div>
               <div class="summary-stat"><span>总数量</span><strong>{{ giftStats.total_quantity ?? 0 }}</strong></div>
@@ -444,6 +445,12 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import {
+  createLatestRequestGuard,
+  isStrictSuccess,
+  resolveGiftStatsFilters,
+  safeResponseMessage,
+} from '../utils/asyncGuards'
 
 const props = defineProps({ api: { type: Object, required: true }, initialConfig: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['switch', 'close'])
@@ -462,13 +469,20 @@ const showGiftDialog = ref(false)
 const selectedGiftItem = ref(null)
 const giftForm = reactive({ target_uid: '', quantity: '1' })
 const giftConfirming = ref(false)
+const giftConfirmationSnapshot = ref(null)
 const giftLoading = ref(false)
 const showGiftStatsDialog = ref(false)
-const giftStatsDirection = ref('out')
-const giftStatsRange = ref('30')
+const giftStatsDraftDirection = ref('out')
+const giftStatsDraftRange = ref('30')
+const giftStatsAppliedDirection = ref('')
+const giftStatsAppliedRange = ref('')
 const giftStats = ref(null)
 const giftStatsLoading = ref(false)
 const giftStatsError = ref('')
+const statusRequestGuard = createLatestRequestGuard()
+const giftRequestGuard = createLatestRequestGuard()
+const giftStatsRequestGuard = createLatestRequestGuard()
+let giftDialogToken = 0
 let messageTimer = null
 
 const pill = computed(() => status.pill_status || {})
@@ -483,6 +497,7 @@ const inventoryItems = computed(() => {
 const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : [])
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : [])
 const isBusy = computed(() => !!actionLoading.value)
+const writeActionsDisabled = computed(() => initialLoading.value || isBusy.value || giftLoading.value || showGiftDialog.value)
 
 const exchangeReserveHint = computed(() => `后端保留 ${exchange.value.reserve} 个魔丸，实际兑换以后端校验为准。`)
 const exchangeQuantityError = computed(() => quantityError(exchangeQuantity.value, Number(exchange.value.max_count || 0), '兑换'))
@@ -499,6 +514,8 @@ const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.
 const giftStatsUsers = computed(() => Array.isArray(giftStats.value?.users) ? giftStats.value.users : [])
 const giftStatsItems = computed(() => Array.isArray(giftStats.value?.items) ? giftStats.value.items : [])
 const giftStatsEmpty = computed(() => Number(giftStats.value?.total_events || 0) <= 0 && !giftStatsUsers.value.length && !giftStatsItems.value.length)
+const giftStatsAppliedDirectionLabel = computed(() => giftStatsAppliedDirection.value === 'in' ? '收到' : '赠出')
+const giftStatsAppliedRangeLabel = computed(() => giftStatsAppliedRange.value === 'all' ? '全部' : '最近30天')
 
 watch(() => exchange.value.max_count, (maxCount) => {
   const maximum = Number(maxCount || 0)
@@ -515,7 +532,18 @@ watch(recipes, (rows) => {
   })
 }, { immediate: true })
 
-watch(() => [giftForm.target_uid, giftForm.quantity], () => { giftConfirming.value = false })
+watch(() => [giftForm.target_uid, giftForm.quantity], () => {
+  giftConfirming.value = false
+  giftConfirmationSnapshot.value = null
+})
+
+watch(() => [giftStatsDraftDirection.value, giftStatsDraftRange.value], ([direction, range]) => {
+  if (direction === giftStatsAppliedDirection.value && range === giftStatsAppliedRange.value) return
+  giftStatsRequestGuard.invalidate()
+  giftStatsLoading.value = false
+  giftStats.value = null
+  giftStatsError.value = ''
+})
 
 function flash(text, type = 'success') {
   message.text = String(text || '')
@@ -543,32 +571,39 @@ function applyStatusPayload(payload = {}) {
 }
 
 async function loadStatus({ silent = false } = {}) {
+  const requestId = statusRequestGuard.begin()
   try {
     const result = await apiGet('/status')
-    if (result?.success === false) throw new Error(result.message || '状态加载失败')
+    if (!statusRequestGuard.isCurrent(requestId)) return false
+    if (!result || typeof result !== 'object') throw new Error('状态响应无效')
+    if (result.success === false) throw new Error(safeResponseMessage(result, '状态加载失败'))
     applyStatusPayload(result)
+    return true
   } catch (error) {
-    if (!silent) flash(error?.message || '状态加载失败', 'error')
+    if (!statusRequestGuard.isCurrent(requestId)) return false
+    if (!silent) flash(safeResponseMessage(error, '状态加载失败'), 'error')
+    return false
   } finally {
-    initialLoading.value = false
+    if (statusRequestGuard.isCurrent(requestId)) initialLoading.value = false
   }
 }
 
 async function runAction(key, request, fallbackMessage) {
-  if (actionLoading.value) return null
+  if (initialLoading.value || actionLoading.value) return null
   actionLoading.value = key
   try {
     const result = await request()
-    applyStatusPayload(result)
-    if (result?.success === false) {
-      flash(result.message || `${fallbackMessage}失败`, 'error')
-      return result
+    if (!isStrictSuccess(result)) {
+      flash(safeResponseMessage(result, `${fallbackMessage}失败`), 'error')
+      return null
     }
-    flash(result?.message || fallbackMessage)
+    statusRequestGuard.invalidate()
+    applyStatusPayload(result)
+    flash(safeResponseMessage(result, fallbackMessage))
     await loadStatus({ silent: true })
     return result
   } catch (error) {
-    flash(error?.message || `${fallbackMessage}失败`, 'error')
+    flash(safeResponseMessage(error, `${fallbackMessage}失败`), 'error')
     return null
   } finally {
     actionLoading.value = ''
@@ -600,76 +635,141 @@ function overviewIcon(item) {
 }
 
 function canGiftItem(item) {
-  return item?.giftable === true && Number(item?.count || 0) > 0
+  return !writeActionsDisabled.value && item?.giftable === true && Number(item?.count || 0) > 0
 }
 
 function openGiftDialog(item) {
+  if (initialLoading.value || isBusy.value || giftLoading.value || showGiftDialog.value) return
   if (!canGiftItem(item)) return
+  giftRequestGuard.invalidate()
+  giftDialogToken += 1
   selectedGiftItem.value = item
   giftForm.target_uid = ''
   giftForm.quantity = '1'
   giftConfirming.value = false
+  giftConfirmationSnapshot.value = null
   showGiftDialog.value = true
 }
 
 function closeGiftDialog() {
   if (giftLoading.value) return
+  giftRequestGuard.invalidate()
+  giftDialogToken += 1
   showGiftDialog.value = false
   giftConfirming.value = false
+  giftConfirmationSnapshot.value = null
   selectedGiftItem.value = null
 }
 
+function currentGiftSnapshot() {
+  return {
+    dialogToken: giftDialogToken,
+    itemName: String(selectedGiftItem.value?.name || '').trim(),
+    targetUid: String(giftForm.target_uid || '').trim(),
+    quantity: normalizedGiftQuantity.value,
+  }
+}
+
+function sameGiftSnapshot(left, right) {
+  return !!left && !!right
+    && left.dialogToken === right.dialogToken
+    && left.itemName === right.itemName
+    && left.targetUid === right.targetUid
+    && left.quantity === right.quantity
+}
+
 function requestGiftConfirmation() {
+  if (initialLoading.value || !showGiftDialog.value) return
   if (giftFormError.value) return flash(giftFormError.value, 'warning')
+  giftConfirmationSnapshot.value = currentGiftSnapshot()
   giftConfirming.value = true
 }
 
 async function submitGift() {
+  if (giftLoading.value) return
+  if (initialLoading.value || !showGiftDialog.value) return
   if (giftFormError.value) return flash(giftFormError.value, 'warning')
+  const snapshot = currentGiftSnapshot()
+  if (!giftConfirming.value || !sameGiftSnapshot(snapshot, giftConfirmationSnapshot.value)) {
+    giftConfirming.value = false
+    giftConfirmationSnapshot.value = null
+    flash('赠送信息已变化，请重新确认', 'warning')
+    return
+  }
+
+  const requestId = giftRequestGuard.begin()
+  const requestDialogToken = snapshot.dialogToken
   giftLoading.value = true
   try {
     const result = await apiPost('/gift-item', {
-      item_name: selectedGiftItem.value.name,
-      target_uid: giftForm.target_uid.trim(),
-      quantity: normalizedGiftQuantity.value,
+      item_name: snapshot.itemName,
+      target_uid: snapshot.targetUid,
+      quantity: snapshot.quantity,
     })
-    applyStatusPayload(result)
-    if (result?.success === false) {
-      flash(result.message || '赠送失败', 'error')
+    if (!giftRequestGuard.isCurrent(requestId)) return
+    if (!isStrictSuccess(result)) {
+      flash(safeResponseMessage(result, '赠送失败'), 'error')
       return
     }
-    flash(result?.message || '赠送成功')
-    showGiftDialog.value = false
-    giftConfirming.value = false
-    selectedGiftItem.value = null
+
+    statusRequestGuard.invalidate()
+    applyStatusPayload(result)
+    flash(safeResponseMessage(result, '赠送成功'))
+    if (
+      showGiftDialog.value
+      && giftDialogToken === requestDialogToken
+      && sameGiftSnapshot(currentGiftSnapshot(), snapshot)
+    ) {
+      showGiftDialog.value = false
+      giftConfirming.value = false
+      giftConfirmationSnapshot.value = null
+      selectedGiftItem.value = null
+      giftDialogToken += 1
+    }
     await loadStatus({ silent: true })
   } catch (error) {
-    flash(error?.message || '赠送失败', 'error')
+    if (giftRequestGuard.isCurrent(requestId)) {
+      flash(safeResponseMessage(error, '赠送失败'), 'error')
+    }
   } finally {
-    giftLoading.value = false
+    if (giftRequestGuard.isCurrent(requestId)) giftLoading.value = false
   }
 }
 
 async function openGiftStats() {
+  if (initialLoading.value) return
   showGiftStatsDialog.value = true
   await loadGiftStats()
 }
 
 async function loadGiftStats() {
-  if (giftStatsLoading.value) return
+  if (initialLoading.value) return
+  const requestedFilters = resolveGiftStatsFilters(null, {
+    direction: giftStatsDraftDirection.value,
+    range: giftStatsDraftRange.value,
+  })
+  const requestId = giftStatsRequestGuard.begin()
   giftStatsLoading.value = true
   giftStatsError.value = ''
+  giftStats.value = null
+  giftStatsAppliedDirection.value = ''
+  giftStatsAppliedRange.value = ''
   try {
     const result = await apiPost('/gift-stats', {
-      direction: giftStatsDirection.value,
-      range: giftStatsRange.value,
+      direction: requestedFilters.direction,
+      range: requestedFilters.range,
     })
-    applyStatusPayload(result)
-    if (result?.success === false) {
-      giftStats.value = null
-      giftStatsError.value = result.message || '赠送统计加载失败'
+    if (!giftStatsRequestGuard.isCurrent(requestId)) return
+    if (!isStrictSuccess(result)) {
+      giftStatsError.value = safeResponseMessage(result, '赠送统计加载失败')
       return
     }
+
+    const appliedFilters = resolveGiftStatsFilters(result, requestedFilters)
+    giftStatsAppliedDirection.value = appliedFilters.direction
+    giftStatsAppliedRange.value = appliedFilters.range
+    giftStatsDraftDirection.value = appliedFilters.direction
+    giftStatsDraftRange.value = appliedFilters.range
     giftStats.value = {
       total_events: Number(result?.total_events || 0),
       total_quantity: Number(result?.total_quantity || 0),
@@ -677,10 +777,11 @@ async function loadGiftStats() {
       items: Array.isArray(result?.items) ? result.items : [],
     }
   } catch (error) {
-    giftStats.value = null
-    giftStatsError.value = error?.message || '赠送统计加载失败'
+    if (giftStatsRequestGuard.isCurrent(requestId)) {
+      giftStatsError.value = safeResponseMessage(error, '赠送统计加载失败')
+    }
   } finally {
-    giftStatsLoading.value = false
+    if (giftStatsRequestGuard.isCurrent(requestId)) giftStatsLoading.value = false
   }
 }
 
@@ -738,6 +839,9 @@ async function craftMaxPill() {
 onMounted(loadStatus)
 
 onBeforeUnmount(() => {
+  statusRequestGuard.invalidate()
+  giftRequestGuard.invalidate()
+  giftStatsRequestGuard.invalidate()
   if (messageTimer) window.clearTimeout(messageTimer)
 })
 </script>
@@ -781,7 +885,7 @@ onBeforeUnmount(() => {
 .recipe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.recipe-card{padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:start}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
 .history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
 .empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
-.siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
+.siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats-applied-filter{margin:-2px 0 10px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
 .page-skeleton{display:flex;flex-direction:column}.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
 @media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-grid,.recipe-grid,.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
 @media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.schedule-state-row{align-items:stretch;flex-direction:column}.schedule-state-row :deep(.v-chip){align-self:flex-start}.schedule-action{width:100%}.schedule-meta span{width:100%}.exchange-summary{grid-template-columns:1fr}.inventory-grid{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}

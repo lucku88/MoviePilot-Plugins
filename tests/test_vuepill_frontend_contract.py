@@ -1,4 +1,5 @@
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PAGE_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Page.vue"
 APP_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "App.vue"
 INDEX_PATH = ROOT / "plugins.v2" / "vuepill" / "index.html"
+ASYNC_GUARD_PATH = (
+    ROOT / "plugins.v2" / "vuepill" / "src" / "utils" / "asyncGuards.js"
+)
 
 
 class VuePillFrontendContractTest(unittest.TestCase):
@@ -81,12 +85,26 @@ class VuePillFrontendContractTest(unittest.TestCase):
             ":disabled=",
         )
         self.assertRegex(self.page, r'aria-label="[^"]+"')
+        self.assert_page_contains(
+            ':persistent="giftLoading"',
+            "if (giftLoading.value) return",
+            "giftConfirmationSnapshot",
+            "giftDialogToken",
+            "giftRequestGuard",
+            "sameGiftSnapshot",
+        )
 
     def test_gift_stats_supports_direction_range_and_summaries(self):
         self.assert_page_contains(
             "gift-stats",
-            "giftStatsDirection",
-            "giftStatsRange",
+            "giftStatsDraftDirection",
+            "giftStatsDraftRange",
+            "giftStatsAppliedDirection",
+            "giftStatsAppliedRange",
+            "giftStatsRequestGuard",
+            "resolveGiftStatsFilters",
+            'v-model="giftStatsDraftDirection"',
+            'v-model="giftStatsDraftRange"',
             "最近30天",
             "全部",
             "赠出",
@@ -96,6 +114,98 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "用户汇总",
             "物品汇总",
         )
+        self.assertRegex(
+            self.page,
+            r'<v-btn-toggle[^>]+v-model="giftStatsDraftDirection"[^>]+:disabled="giftStatsLoading"',
+        )
+        self.assertRegex(
+            self.page,
+            r'<v-btn-toggle[^>]+v-model="giftStatsDraftRange"[^>]+:disabled="giftStatsLoading"',
+        )
+        self.assertIn("giftStatsRequestGuard.isCurrent(requestId)", self.page)
+
+    def test_initial_loading_and_status_requests_are_guarded(self):
+        self.assert_page_contains(
+            "createLatestRequestGuard",
+            "const statusRequestGuard = createLatestRequestGuard()",
+            "const writeActionsDisabled = computed(() => initialLoading.value",
+            "statusRequestGuard.begin()",
+            "statusRequestGuard.isCurrent(requestId)",
+            "statusRequestGuard.invalidate()",
+            "if (initialLoading.value || actionLoading.value) return null",
+            ':disabled="initialLoading || giftStatsLoading"',
+        )
+        self.assertGreaterEqual(self.page.count("writeActionsDisabled"), 8)
+
+    def test_post_actions_require_explicit_success(self):
+        self.assertGreaterEqual(self.page.count("isStrictSuccess(result)"), 3)
+        self.assertIn("safeResponseMessage", self.page)
+        self.assertNotRegex(self.page, r"\.success\s*!==\s*false")
+
+    def test_async_guard_runtime_rejects_stale_requests_and_invalid_success(self):
+        script = f"""
+import assert from 'node:assert/strict'
+import {{
+  createLatestRequestGuard,
+  isStrictSuccess,
+  resolveGiftStatsFilters,
+  safeResponseMessage,
+}} from {ASYNC_GUARD_PATH.as_uri()!r}
+
+const guard = createLatestRequestGuard()
+const first = guard.begin()
+const second = guard.begin()
+assert.equal(guard.isCurrent(first), false)
+assert.equal(guard.isCurrent(second), true)
+guard.invalidate()
+assert.equal(guard.isCurrent(second), false)
+
+const responseGuard = createLatestRequestGuard()
+const applied = []
+let resolveOld
+let resolveNew
+const oldResponse = new Promise(resolve => {{ resolveOld = resolve }})
+const newResponse = new Promise(resolve => {{ resolveNew = resolve }})
+const applyLatest = async promise => {{
+  const requestId = responseGuard.begin()
+  const value = await promise
+  if (responseGuard.isCurrent(requestId)) applied.push(value)
+}}
+const oldRun = applyLatest(oldResponse)
+const newRun = applyLatest(newResponse)
+resolveNew('new-filter')
+await newRun
+resolveOld('old-filter')
+await oldRun
+assert.deepEqual(applied, ['new-filter'])
+
+assert.equal(isStrictSuccess(null), false)
+assert.equal(isStrictSuccess({{}}), false)
+assert.equal(isStrictSuccess({{ success: 'true' }}), false)
+assert.equal(isStrictSuccess({{ success: false }}), false)
+assert.equal(isStrictSuccess({{ success: true }}), true)
+
+const requested = {{ direction: 'out', range: '30' }}
+assert.deepEqual(
+  resolveGiftStatsFilters({{ direction: 'in', range: 'all' }}, requested),
+  {{ direction: 'in', range: 'all' }},
+)
+assert.deepEqual(
+  resolveGiftStatsFilters({{ direction: 'sideways', range: 30 }}, requested),
+  requested,
+)
+assert.equal(safeResponseMessage({{ message: {{ bad: true }} }}, 'fallback'), 'fallback')
+assert.equal(safeResponseMessage({{ message: '  ok  ' }}, 'fallback'), 'ok')
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
 
     def test_inventory_recipes_and_exchange_use_backend_limits(self):
         self.assert_page_contains(
