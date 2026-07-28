@@ -264,6 +264,24 @@ class VuePill(_PluginBase):
     _bootstrap_pending: bool = False
 
     JS_SAFE_INTEGER_MAX = (1 << 53) - 1
+    CONFIG_INTEGER_RULES = {
+        "schedule_buffer_seconds": ("冷却缓冲", 0, 3600, 5),
+        "random_delay_max_seconds": ("随机延迟", 0, 300, 3),
+        "http_timeout": ("请求超时", 5, 120, 12),
+        "http_retry_times": (
+            "网络重试次数",
+            1,
+            MAX_NETWORK_RETRY_TIMES,
+            MAX_NETWORK_RETRY_TIMES,
+        ),
+        "http_retry_delay": ("重试间隔", 200, 60000, 1500),
+        "move_delay_min_ms": ("搬砖最小延迟", 0, 60000, 30),
+        "move_delay_max_ms": ("搬砖最大延迟", 0, 60000, 80),
+        "ready_retry_seconds": ("临界状态重试间隔", 10, 3600, 60),
+        "reserve_magic_pill_count": ("保留魔丸", 0, JS_SAFE_INTEGER_MAX, 10),
+    }
+    _CANONICAL_CONFIG_INTEGER_PATTERN = re.compile(r"^(?:0|[1-9]\d*)$")
+    _SAFE_CRON_FIELD_PATTERN = re.compile(r"^[0-9A-Za-z*/,\-]+$")
     PUBLIC_MAX_ITEMS = 500
     PUBLIC_MAX_DEPTH = 20
     PUBLIC_MAX_SECRETS = 500
@@ -1433,10 +1451,21 @@ class VuePill(_PluginBase):
     @_public_api
     def _save_config(self, config_payload: dict):
         with self._lifecycle_lock:
+            current = self._get_config(include_options=False)
+            normalized_payload, errors = self._validate_save_config_payload(
+                config_payload,
+                current,
+            )
+            if errors:
+                return {
+                    "success": False,
+                    "message": next(iter(errors.values())),
+                    "errors": errors,
+                }
             before_refresh = self._capture_refresh_catchup_state()
             merged = self._merge_public_config(
-                self._get_config(include_options=False),
-                config_payload,
+                current,
+                normalized_payload,
             )
             requested_onlyonce = self._to_bool(merged.get("onlyonce", False))
             self._init_plugin_locked(
@@ -1530,6 +1559,102 @@ class VuePill(_PluginBase):
                     merged[key] = config[key]
         return merged
 
+    @classmethod
+    def _parse_config_integer(
+        cls,
+        field: str,
+        value: Any,
+    ) -> Tuple[Optional[int], str]:
+        label, minimum, maximum, _ = cls.CONFIG_INTEGER_RULES[field]
+        parsed: Optional[int] = None
+        if type(value) is int:
+            parsed = value
+        elif type(value) is float and math.isfinite(value) and value.is_integer():
+            parsed = int(value)
+        elif (
+            type(value) is str
+            and cls._CANONICAL_CONFIG_INTEGER_PATTERN.fullmatch(value)
+        ):
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError, OverflowError):
+                parsed = None
+
+        if parsed is None or abs(parsed) > cls.JS_SAFE_INTEGER_MAX:
+            return None, f"{label}必须填写规范整数"
+        if parsed < minimum or parsed > maximum:
+            return None, f"{label}必须在 {minimum} 到 {maximum} 之间"
+        return parsed, ""
+
+    @classmethod
+    def _parse_config_cron(cls, value: Any) -> Tuple[Optional[str], str]:
+        if not isinstance(value, str) or not value.strip():
+            return None, "搬砖 Cron 不能为空"
+        if "\r" in value or "\n" in value:
+            return None, "搬砖 Cron 不能包含换行"
+
+        fields = re.split(r"[ \t]+", value.strip())
+        if len(fields) != 5:
+            return None, "搬砖 Cron 必须是 5 段表达式"
+        if any(
+            not cls._SAFE_CRON_FIELD_PATTERN.fullmatch(field)
+            for field in fields
+        ):
+            return None, "搬砖 Cron 包含不支持的字符"
+
+        normalized = " ".join(fields)
+        try:
+            CronTrigger.from_crontab(normalized, timezone=settings.TZ)
+        except Exception:
+            return None, "搬砖 Cron 不是有效表达式"
+        return normalized, ""
+
+    def _validate_save_config_payload(
+        self,
+        payload: Any,
+        current: Dict[str, Any],
+    ) -> Tuple[Dict[str, Any], Dict[str, str]]:
+        if not isinstance(payload, dict):
+            return {}, {"config": "配置内容格式不正确"}
+
+        allowed_keys = set(self._default_config())
+        normalized = {
+            key: payload[key]
+            for key in allowed_keys
+            if key in payload
+        }
+        errors: Dict[str, str] = {}
+        for field in self.CONFIG_INTEGER_RULES:
+            if field not in normalized:
+                continue
+            parsed, error = self._parse_config_integer(field, normalized[field])
+            if error:
+                errors[field] = error
+            else:
+                normalized[field] = parsed
+
+        if "brick_cron" in normalized:
+            cron, error = self._parse_config_cron(normalized["brick_cron"])
+            if error:
+                errors["brick_cron"] = error
+            else:
+                normalized["brick_cron"] = cron
+
+        if not errors:
+            merged = self._merge_public_config(current, normalized)
+            if merged["move_delay_max_ms"] < merged["move_delay_min_ms"]:
+                errors["move_delay_max_ms"] = "搬砖最大延迟不能小于最小延迟"
+        return normalized, errors
+
+    def _coerce_stored_config_integer(self, field: str, value: Any) -> int:
+        _, minimum, maximum, default = self.CONFIG_INTEGER_RULES[field]
+        parsed = self._safe_int(value, default)
+        return min(maximum, max(minimum, parsed))
+
+    def _coerce_stored_config_cron(self, value: Any) -> str:
+        normalized, error = self._parse_config_cron(value)
+        return self.DEFAULT_BRICK_CRON if error else normalized
+
     def _apply_config(self, config: Dict[str, Any]):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
@@ -1540,16 +1665,35 @@ class VuePill(_PluginBase):
         self._auto_exchange = self._to_bool(config.get("auto_exchange", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
-        self._brick_cron = (config.get("brick_cron") or self.DEFAULT_BRICK_CRON).strip() or self.DEFAULT_BRICK_CRON
-        self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
-        self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 3))
-        self._http_timeout = max(5, self._safe_int(config.get("http_timeout"), 12))
-        self._http_retry_times = max(1, min(self.MAX_NETWORK_RETRY_TIMES, self._safe_int(config.get("http_retry_times"), self.MAX_NETWORK_RETRY_TIMES)))
-        self._http_retry_delay = max(200, self._safe_int(config.get("http_retry_delay"), 1500))
-        self._move_delay_min_ms = max(0, self._safe_int(config.get("move_delay_min_ms"), 30))
-        self._move_delay_max_ms = max(self._move_delay_min_ms, self._safe_int(config.get("move_delay_max_ms"), 80))
-        self._ready_retry_seconds = max(10, self._safe_int(config.get("ready_retry_seconds"), 60))
-        self._reserve_magic_pill_count = max(0, self._safe_int(config.get("reserve_magic_pill_count"), 10))
+        self._brick_cron = self._coerce_stored_config_cron(config.get("brick_cron"))
+        self._schedule_buffer_seconds = self._coerce_stored_config_integer(
+            "schedule_buffer_seconds", config.get("schedule_buffer_seconds")
+        )
+        self._random_delay_max_seconds = self._coerce_stored_config_integer(
+            "random_delay_max_seconds", config.get("random_delay_max_seconds")
+        )
+        self._http_timeout = self._coerce_stored_config_integer(
+            "http_timeout", config.get("http_timeout")
+        )
+        self._http_retry_times = self._coerce_stored_config_integer(
+            "http_retry_times", config.get("http_retry_times")
+        )
+        self._http_retry_delay = self._coerce_stored_config_integer(
+            "http_retry_delay", config.get("http_retry_delay")
+        )
+        self._move_delay_min_ms = self._coerce_stored_config_integer(
+            "move_delay_min_ms", config.get("move_delay_min_ms")
+        )
+        move_delay_max = self._coerce_stored_config_integer(
+            "move_delay_max_ms", config.get("move_delay_max_ms")
+        )
+        self._move_delay_max_ms = max(self._move_delay_min_ms, move_delay_max)
+        self._ready_retry_seconds = self._coerce_stored_config_integer(
+            "ready_retry_seconds", config.get("ready_retry_seconds")
+        )
+        self._reserve_magic_pill_count = self._coerce_stored_config_integer(
+            "reserve_magic_pill_count", config.get("reserve_magic_pill_count")
+        )
 
     def _update_config(self):
         self.update_config(self._get_config(include_options=False))

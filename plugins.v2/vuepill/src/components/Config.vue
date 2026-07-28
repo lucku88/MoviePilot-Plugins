@@ -142,33 +142,43 @@
           </span>
         </div>
         <div class="siqi-form-grid">
-          <div class="siqi-field siqi-wide-field">
-            <VCronField v-model="config.brick_cron" label="搬砖Cron" density="compact" class="siqi-input siqi-cron-field" :disabled="formLocked" />
+          <div class="siqi-field siqi-wide-field" data-config-field="brick_cron">
+            <VCronField
+              v-model="config.brick_cron"
+              label="搬砖Cron"
+              density="compact"
+              class="siqi-input siqi-cron-field"
+              :disabled="formLocked"
+              :error="Boolean(fieldErrors.brick_cron)"
+              :aria-invalid="Boolean(fieldErrors.brick_cron)"
+              @update:model-value="clearFieldError('brick_cron')"
+            />
+            <div v-if="fieldErrors.brick_cron" class="siqi-field-error" role="alert">{{ fieldErrors.brick_cron }}</div>
             <div class="siqi-field-hint">搬砖 Cron 是定时规则；默认每天 00:05 执行。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="config.schedule_buffer_seconds" label="冷却缓冲（秒）" type="number" min="0" max="3600" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-clock-fast" :disabled="formLocked" />
-            <div class="siqi-field-hint">站点显示可执行后再等待一小段时间，最小 0 秒。</div>
+          <div class="siqi-field" data-config-field="schedule_buffer_seconds">
+            <v-text-field v-model="config.schedule_buffer_seconds" label="冷却缓冲（秒）" type="text" inputmode="numeric" min="0" max="3600" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-clock-fast" :disabled="formLocked" :error-messages="fieldErrors.schedule_buffer_seconds ? [fieldErrors.schedule_buffer_seconds] : []" :aria-invalid="Boolean(fieldErrors.schedule_buffer_seconds)" @update:model-value="clearFieldError('schedule_buffer_seconds')" />
+            <div class="siqi-field-hint">填写 0 到 3600 的整数；站点显示可执行后再等待这段时间。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="config.reserve_magic_pill_count" label="保留魔丸" type="number" min="0" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-flask-outline" :disabled="formLocked" />
-            <div class="siqi-field-hint">自动兑换前保留的魔丸数量，默认 10。</div>
+          <div class="siqi-field" data-config-field="reserve_magic_pill_count">
+            <v-text-field v-model="config.reserve_magic_pill_count" label="保留魔丸" type="text" inputmode="numeric" min="0" max="9007199254740991" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-flask-outline" :disabled="formLocked" :error-messages="fieldErrors.reserve_magic_pill_count ? [fieldErrors.reserve_magic_pill_count] : []" :aria-invalid="Boolean(fieldErrors.reserve_magic_pill_count)" @update:model-value="clearFieldError('reserve_magic_pill_count')" />
+            <div class="siqi-field-hint">填写不小于 0 的整数；自动兑换前默认保留 10 个魔丸。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="config.random_delay_max_seconds" label="随机延迟（秒）" type="number" min="0" max="300" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-sand" :disabled="formLocked" />
-            <div class="siqi-field-hint">每次操作前随机等待，0 表示不额外等待。</div>
+          <div class="siqi-field" data-config-field="random_delay_max_seconds">
+            <v-text-field v-model="config.random_delay_max_seconds" label="随机延迟（秒）" type="text" inputmode="numeric" min="0" max="300" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-timer-sand" :disabled="formLocked" :error-messages="fieldErrors.random_delay_max_seconds ? [fieldErrors.random_delay_max_seconds] : []" :aria-invalid="Boolean(fieldErrors.random_delay_max_seconds)" @update:model-value="clearFieldError('random_delay_max_seconds')" />
+            <div class="siqi-field-hint">填写 0 到 300 的整数；0 表示不额外等待。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="config.http_timeout" label="请求超时（秒）" type="number" min="5" max="120" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" :disabled="formLocked" />
-            <div class="siqi-field-hint">单次网络请求最长等待时间，后端最小按 5 秒处理。</div>
+          <div class="siqi-field" data-config-field="http_timeout">
+            <v-text-field v-model="config.http_timeout" label="请求超时（秒）" type="text" inputmode="numeric" min="5" max="120" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-timer-alert-outline" :disabled="formLocked" :error-messages="fieldErrors.http_timeout ? [fieldErrors.http_timeout] : []" :aria-invalid="Boolean(fieldErrors.http_timeout)" @update:model-value="clearFieldError('http_timeout')" />
+            <div class="siqi-field-hint">填写 5 到 120 的整数；表示单次网络请求最长等待秒数。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="config.http_retry_times" label="网络重试次数" type="number" min="1" max="5" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-reload" :disabled="formLocked" />
-            <div class="siqi-field-hint">网络失败时重试 1 到 5 次，以后端校验结果为准。</div>
+          <div class="siqi-field" data-config-field="http_retry_times">
+            <v-text-field v-model="config.http_retry_times" label="网络重试次数" type="text" inputmode="numeric" min="1" max="5" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-reload" :disabled="formLocked" :error-messages="fieldErrors.http_retry_times ? [fieldErrors.http_retry_times] : []" :aria-invalid="Boolean(fieldErrors.http_retry_times)" @update:model-value="clearFieldError('http_retry_times')" />
+            <div class="siqi-field-hint">填写 1 到 5 的整数；网络失败时最多按此次数重试。</div>
           </div>
-          <div class="siqi-field">
-            <v-text-field v-model.number="retryDelaySeconds" label="重试间隔（秒）" type="number" min="0.2" max="60" step="0.1" density="compact" variant="outlined" hide-details class="siqi-input" prepend-inner-icon="mdi-timer-outline" :disabled="formLocked" />
-            <div class="siqi-field-hint">两次网络重试之间的等待时间，最小 0.2 秒。</div>
+          <div class="siqi-field" data-config-field="http_retry_delay">
+            <v-text-field v-model="config.http_retry_delay" label="重试间隔（毫秒）" type="text" inputmode="numeric" min="200" max="60000" density="compact" variant="outlined" hide-details="auto" class="siqi-input" prepend-inner-icon="mdi-timer-outline" :disabled="formLocked" :error-messages="fieldErrors.http_retry_delay ? [fieldErrors.http_retry_delay] : []" :aria-invalid="Boolean(fieldErrors.http_retry_delay)" @update:model-value="clearFieldError('http_retry_delay')" />
+            <div class="siqi-field-hint">填写 200 到 60000 的整数；默认 1500 毫秒（1.5 秒）。</div>
           </div>
         </div>
       </div>
@@ -193,12 +203,13 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import {
   createLatestRequestGuard,
   isStrictSuccess,
   safeResponseMessage,
 } from '../utils/asyncGuards.js'
+import { validateVuePillConfig } from '../utils/configValidation.js'
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -248,6 +259,7 @@ const config = reactive({ ...DEFAULT_CONFIG })
 const configLoading = ref(false)
 const configSaving = ref(false)
 const formLocked = computed(() => configLoading.value || configSaving.value)
+const fieldErrors = reactive({})
 const message = ref('')
 const messageType = ref('success')
 const loadRequestGuard = createLatestRequestGuard()
@@ -256,14 +268,6 @@ let messageTimer = null
 let disposed = false
 
 applyPublicConfig(props.initialConfig)
-
-const retryDelaySeconds = computed({
-  get: () => Number(config.http_retry_delay || 0) / 1000,
-  set: (value) => {
-    const seconds = Number(value)
-    config.http_retry_delay = Math.max(200, Math.round((Number.isFinite(seconds) ? seconds : 0) * 1000))
-  },
-})
 
 function ownDataValue(source, field) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined
@@ -282,6 +286,7 @@ function applyPublicConfig(source) {
     const value = ownDataValue(source, field)
     config[field] = value === undefined ? DEFAULT_CONFIG[field] : value
   }
+  clearFieldErrors()
 }
 
 function isCompletePublicConfig(source) {
@@ -289,9 +294,43 @@ function isCompletePublicConfig(source) {
 }
 
 function buildConfigPayload() {
-  const payload = {}
-  for (const field of CONFIG_FIELDS) payload[field] = config[field]
-  return payload
+  const validation = validateVuePillConfig(config)
+  replaceFieldErrors(validation.errors)
+  return validation
+}
+
+function clearFieldError(field) {
+  if (fieldErrors[field]) delete fieldErrors[field]
+}
+
+function clearFieldErrors() {
+  for (const field of Object.keys(fieldErrors)) delete fieldErrors[field]
+}
+
+function replaceFieldErrors(errors) {
+  clearFieldErrors()
+  for (const [field, error] of Object.entries(errors || {})) {
+    if (typeof error === 'string' && error) fieldErrors[field] = error
+  }
+}
+
+function publicResponseErrors(result) {
+  const source = ownDataValue(result, 'errors')
+  const errors = {}
+  for (const field of CONFIG_FIELDS) {
+    const error = ownDataValue(source, field)
+    if (typeof error === 'string' && error.trim()) errors[field] = error.trim()
+  }
+  return errors
+}
+
+async function focusFirstError(field) {
+  if (!field) return
+  await nextTick()
+  if (typeof document === 'undefined') return
+  const container = document.querySelector(`[data-config-field="${field}"]`)
+  const control = container?.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])')
+  if (typeof control?.focus === 'function') control.focus()
 }
 
 function show(text, type = 'success') {
@@ -329,14 +368,27 @@ async function loadConfig({ silent = false } = {}) {
 
 async function saveConfig() {
   if (formLocked.value) return
+  const validation = buildConfigPayload()
+  if (!validation.valid) {
+    show('请检查标红的配置项后再保存', 'error')
+    await focusFirstError(validation.firstErrorField)
+    return
+  }
   const requestId = saveRequestGuard.begin()
   configSaving.value = true
-  const payload = buildConfigPayload()
+  const payload = validation.payload
   try {
     const result = await props.api.post(CONFIG_ENDPOINT, payload)
     if (!saveRequestGuard.isCurrent(requestId)) return
     if (!isStrictSuccess(result)) {
+      const backendErrors = publicResponseErrors(result)
+      replaceFieldErrors(backendErrors)
       show(safeResponseMessage(result, '保存失败'), 'error')
+      const firstErrorField = Object.keys(backendErrors)[0]
+      if (firstErrorField) {
+        configSaving.value = false
+        await focusFirstError(firstErrorField)
+      }
       return
     }
     if (isCompletePublicConfig(result?.config)) {
@@ -370,7 +422,7 @@ onBeforeUnmount(() => {
 .siqi-config *{box-sizing:border-box}.siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px;min-width:0}.siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.siqi-topbar__copy{min-width:0}.siqi-topbar__right{display:flex;align-items:center;gap:10px;flex-shrink:0}.siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}.siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(76,175,80,.14);display:flex;align-items:center;justify-content:center;color:#2e7d32;flex-shrink:0}.siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}.siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.siqi-config :deep(.v-btn){min-height:44px}
 .siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}.siqi-migration-note{border-radius:12px!important;line-height:1.6}.siqi-loading-state{display:flex;flex-direction:column;gap:7px;font-size:11px;color:rgba(var(--v-theme-on-surface),.58)}.siqi-form-lock{min-inline-size:0;margin:0;padding:0;border:0}.siqi-config-col{display:flex;flex-direction:column;gap:16px;min-width:0}.siqi-card{min-width:0;background:rgba(var(--v-theme-surface),.5);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
 .siqi-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-switch-item{min-width:0;min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:.5px solid rgba(var(--v-theme-on-surface),.06);transition:background .2s ease,border-color .2s ease,transform .2s ease}.siqi-switch-item:hover{transform:translateY(-1px)}.siqi-switch-item--active{background:rgba(var(--siqi-accent,34,197,94),.07);border-color:rgba(var(--siqi-accent,34,197,94),.18)}.siqi-switch-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;color:rgba(var(--v-theme-on-surface),.58)}.siqi-switch-main>div{min-width:0}.siqi-switch-item--active .siqi-switch-main{color:rgb(var(--siqi-accent,34,197,94))}.siqi-switch-label{font-size:13px;font-weight:600;color:rgba(var(--v-theme-on-surface),.86)}.siqi-switch-desc{font-size:11px;color:rgba(var(--v-theme-on-surface),.46);line-height:1.45;margin-top:2px}.siqi-switch-item :deep(.v-switch){flex:0 0 auto}.siqi-switch-item :deep(.v-selection-control){min-width:44px;min-height:44px}.siqi-switch-item :deep(.v-input__details){display:none}
-.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px;background:rgba(var(--v-theme-surface),.34)}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}.siqi-site-note{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border-radius:12px;background:rgba(34,197,94,.07);border:.5px solid rgba(34,197,94,.18);color:rgba(var(--v-theme-on-surface),.7)}.siqi-site-note>div{min-width:0}.siqi-site-note__title{font-size:13px;font-weight:650;color:rgba(var(--v-theme-on-surface),.86)}.siqi-site-note__desc{margin-top:3px;font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5)}
+.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px;background:rgba(var(--v-theme-surface),.34)}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-field-error{font-size:12px;line-height:1.45;color:rgb(var(--v-theme-error));padding-inline:12px}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}.siqi-site-note{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border-radius:12px;background:rgba(34,197,94,.07);border:.5px solid rgba(34,197,94,.18);color:rgba(var(--v-theme-on-surface),.7)}.siqi-site-note>div{min-width:0}.siqi-site-note__title{font-size:13px;font-weight:650;color:rgba(var(--v-theme-on-surface),.86)}.siqi-site-note__desc{margin-top:3px;font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5)}
 @media(max-width:900px){.siqi-switch-grid,.siqi-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.siqi-wide-field{grid-column:span 2}}
 @media(max-width:600px){.siqi-config{padding:14px}.siqi-topbar{flex-direction:column;align-items:stretch;gap:10px}.siqi-topbar__left{width:100%;min-width:0}.siqi-topbar__right{width:100%;justify-content:flex-end}.siqi-topbar__right :deep(.v-btn-group){width:100%}.siqi-topbar__right :deep(.v-btn){flex:1 1 0;min-width:44px!important;padding-inline:0!important}.siqi-switch-grid,.siqi-form-grid{grid-template-columns:1fr}.siqi-wide-field{grid-column:span 1}.siqi-switch-item{align-items:center}.siqi-topbar__sub{max-width:100%}}
 </style>

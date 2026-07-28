@@ -13,6 +13,9 @@ INDEX_PATH = ROOT / "plugins.v2" / "vuepill" / "index.html"
 ASYNC_GUARD_PATH = (
     ROOT / "plugins.v2" / "vuepill" / "src" / "utils" / "asyncGuards.js"
 )
+CONFIG_VALIDATION_PATH = (
+    ROOT / "plugins.v2" / "vuepill" / "src" / "utils" / "configValidation.js"
+)
 
 
 class VuePillFrontendContractTest(unittest.TestCase):
@@ -120,16 +123,279 @@ class VuePillFrontendContractTest(unittest.TestCase):
         self.assertRegex(self.config, r"reserve_magic_pill_count:\s*10\b")
         self.assertRegex(
             self.config,
-            r'<v-text-field[^>]+v-model\.number="config\.http_retry_times"[^>]+max="5"',
+            r'<v-text-field[^>]+v-model="config\.http_retry_times"[^>]+max="5"',
         )
         self.assertRegex(
             self.config,
-            r'<v-text-field[^>]+v-model\.number="config\.http_timeout"[^>]+min="5"',
+            r'<v-text-field[^>]+v-model="config\.http_timeout"[^>]+min="5"',
         )
         self.assertRegex(
             self.config,
-            r'<v-text-field[^>]+v-model\.number="retryDelaySeconds"[^>]+min="0\.2"',
+            r'<v-text-field[^>]+v-model="config\.http_retry_delay"[^>]+min="200"[^>]+max="60000"',
         )
+
+    def test_config_uses_executable_validation_and_field_errors(self):
+        validation_source = (
+            CONFIG_VALIDATION_PATH.read_text(encoding="utf-8")
+            if CONFIG_VALIDATION_PATH.exists()
+            else ""
+        )
+        self.assert_config_contains(
+            "validateVuePillConfig",
+            "const fieldErrors = reactive({})",
+            "focusFirstError",
+            "validation.firstErrorField",
+            "if (!validation.valid)",
+            "data-config-field=\"brick_cron\"",
+            "fieldErrors.brick_cron",
+        )
+        self.assertIn("export function parseStrictInteger", validation_source)
+        self.assertIn("export function validateCronExpression", validation_source)
+        self.assertIn("export function validateVuePillConfig", validation_source)
+        self.assertNotIn("v-model.number", self.config)
+
+    def test_config_validation_runtime_rejects_noncanonical_values(self):
+        script = r"""
+import assert from 'node:assert/strict'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+const validationUrl = pathToFileURL(
+  path.resolve('src/utils/configValidation.js'),
+).href
+const {
+  DEFAULT_CONFIG,
+  INTEGER_CONFIG_RULES,
+  parseStrictInteger,
+  validateCronExpression,
+  validateVuePillConfig,
+} = await import(`${validationUrl}?t=${Date.now()}`)
+
+const sampleRule = { label: '测试字段', min: 0, max: 100 }
+for (const value of ['', ' ', '1.5', '1e2', 'NaN', '0x10', '+12', '-1', '01', '12 ']) {
+  assert.equal(parseStrictInteger(value, sampleRule).valid, false, String(value))
+}
+for (const value of [NaN, Infinity, -Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+  assert.equal(parseStrictInteger(value, sampleRule).valid, false, String(value))
+}
+assert.deepEqual(parseStrictInteger('12', sampleRule), { valid: true, value: 12, error: '' })
+assert.deepEqual(parseStrictInteger(12, sampleRule), { valid: true, value: 12, error: '' })
+assert.equal(parseStrictInteger(-1, sampleRule).valid, false)
+assert.equal(parseStrictInteger(101, sampleRule).valid, false)
+
+for (const [field, rule] of Object.entries(INTEGER_CONFIG_RULES)) {
+  for (const value of [rule.min, String(rule.min), rule.max, String(rule.max)]) {
+    const parsed = parseStrictInteger(value, rule)
+    assert.equal(parsed.valid, true, `${field}: ${String(value)}`)
+    assert.equal(typeof parsed.value, 'number')
+  }
+  assert.equal(parseStrictInteger(rule.min - 1, rule).valid, false, `${field}: min`)
+  assert.equal(parseStrictInteger(rule.max + 1, rule).valid, false, `${field}: max`)
+}
+
+for (const value of ['', ' ', '* * * *', '* * * * * *', '* * * * *\n']) {
+  assert.equal(validateCronExpression(value).valid, false, JSON.stringify(value))
+}
+assert.deepEqual(
+  validateCronExpression('  5   0 * * *  '),
+  { valid: true, value: '5 0 * * *', error: '' },
+)
+
+const source = {
+  ...DEFAULT_CONFIG,
+  enabled: true,
+  notify: false,
+  brick_cron: ' 5 0 * * * ',
+  schedule_buffer_seconds: '12',
+  reserve_magic_pill_count: '10',
+  random_delay_max_seconds: '3',
+  http_timeout: '12',
+  http_retry_times: '5',
+  http_retry_delay: '1500',
+  cookie: 'must-not-leak',
+  unknown_secret: 'must-not-leak',
+}
+const validation = validateVuePillConfig(source)
+assert.equal(validation.valid, true)
+assert.equal(validation.payload.brick_cron, '5 0 * * *')
+for (const field of Object.keys(INTEGER_CONFIG_RULES)) {
+  assert.equal(typeof validation.payload[field], 'number', field)
+}
+for (const field of [
+  'enabled', 'notify', 'onlyonce', 'use_proxy', 'force_ipv4',
+  'enable_brick', 'enable_beach', 'auto_craft', 'auto_exchange',
+]) {
+  assert.equal(typeof validation.payload[field], 'boolean', field)
+}
+assert.equal(Object.hasOwn(validation.payload, 'cookie'), false)
+assert.equal(Object.hasOwn(validation.payload, 'unknown_secret'), false)
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=VUEPILL_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+    def test_config_runtime_blocks_invalid_save_and_reloads_missing_config(self):
+        script = r"""
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { compileScript, parse } from '@vue/compiler-sfc'
+
+const filename = path.resolve('src/components/Config.vue')
+const source = await fs.readFile(filename, 'utf8')
+const parsed = parse(source, { filename })
+assert.deepEqual(parsed.errors, [])
+const compiled = compileScript(parsed.descriptor, { id: 'vuepill-config-validation-runtime' })
+const tempFile = path.join(
+  path.dirname(filename),
+  `.Config.validation-runtime-${process.pid}-${Date.now()}.mjs`,
+)
+
+const normalizedConfig = {
+  enabled: false,
+  notify: true,
+  onlyonce: false,
+  use_proxy: false,
+  force_ipv4: true,
+  enable_brick: true,
+  enable_beach: true,
+  auto_craft: false,
+  auto_exchange: false,
+  brick_cron: '5 0 * * *',
+  schedule_buffer_seconds: 5,
+  reserve_magic_pill_count: 10,
+  random_delay_max_seconds: 3,
+  http_timeout: 12,
+  http_retry_times: 5,
+  http_retry_delay: 1500,
+}
+const posts = []
+let getCalls = 0
+const api = {
+  get: async () => {
+    getCalls += 1
+    return { ...normalizedConfig }
+  },
+  post: async (url, payload) => {
+    posts.push({ url, payload: { ...payload } })
+    if (posts.length === 1) return { success: true, message: '配置已保存' }
+    if (posts.length === 2) {
+      return {
+        success: false,
+        message: '搬砖 Cron 不是有效表达式',
+        errors: { brick_cron: '搬砖 Cron 不是有效表达式' },
+      }
+    }
+    return {
+      success: true,
+      message: '配置已保存',
+      config: { ...payload, onlyonce: false },
+    }
+  },
+}
+
+let focused = 0
+let focusedSelector = ''
+const originalDocument = globalThis.document
+const originalWarn = console.warn
+const originalSetTimeout = globalThis.setTimeout
+const originalClearTimeout = globalThis.clearTimeout
+try {
+  await fs.writeFile(tempFile, compiled.content, 'utf8')
+  const component = (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`)).default
+  console.warn = () => {}
+  const bindings = component.setup(
+    { api, initialConfig: {} },
+    { attrs: {}, slots: {}, emit() {}, expose() {} },
+  )
+  console.warn = originalWarn
+  globalThis.setTimeout = callback => { callback(); return 1 }
+  globalThis.clearTimeout = () => {}
+  globalThis.document = {
+    querySelector(selector) {
+      focusedSelector = selector
+      return {
+        querySelector() {
+          return { focus() { focused += 1 } }
+        },
+      }
+    },
+  }
+
+  bindings.config.schedule_buffer_seconds = '1.5'
+  await bindings.saveConfig()
+  assert.equal(posts.length, 0)
+  assert.match(bindings.fieldErrors.schedule_buffer_seconds, /整数/)
+  assert.equal(focused, 1)
+  assert.match(focusedSelector, /schedule_buffer_seconds/)
+  assert.equal(bindings.config.schedule_buffer_seconds, '1.5')
+
+  bindings.config.schedule_buffer_seconds = '5'
+  bindings.config.brick_cron = '* * * *'
+  await bindings.saveConfig()
+  assert.equal(posts.length, 0)
+  assert.match(bindings.fieldErrors.brick_cron, /5 段/)
+
+  Object.assign(bindings.config, {
+    ...normalizedConfig,
+    onlyonce: true,
+    brick_cron: ' 5 0 * * * ',
+    schedule_buffer_seconds: '5',
+    reserve_magic_pill_count: '10',
+    random_delay_max_seconds: '3',
+    http_timeout: '12',
+    http_retry_times: '5',
+    http_retry_delay: '1500',
+    cookie: 'must-not-leak',
+  })
+  await bindings.saveConfig()
+  assert.equal(posts.length, 1)
+  assert.equal(getCalls, 1)
+  assert.equal(posts[0].payload.onlyonce, true)
+  assert.equal(posts[0].payload.brick_cron, '5 0 * * *')
+  assert.equal(typeof posts[0].payload.schedule_buffer_seconds, 'number')
+  assert.equal(Object.hasOwn(posts[0].payload, 'cookie'), false)
+  assert.equal(bindings.config.onlyonce, false)
+
+  await bindings.saveConfig()
+  assert.equal(posts.length, 2)
+  assert.equal(posts[1].payload.onlyonce, false)
+  assert.equal(bindings.fieldErrors.brick_cron, '搬砖 Cron 不是有效表达式')
+  assert.equal(focused, 3)
+  assert.match(focusedSelector, /brick_cron/)
+  assert.equal(bindings.config.onlyonce, false)
+
+  await bindings.saveConfig()
+  assert.equal(posts.length, 3)
+  assert.equal(posts[2].payload.onlyonce, false)
+} finally {
+  globalThis.document = originalDocument
+  console.warn = originalWarn
+  globalThis.setTimeout = originalSetTimeout
+  globalThis.clearTimeout = originalClearTimeout
+  await fs.rm(tempFile, { force: true })
+}
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=VUEPILL_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
 
     def test_config_save_is_strict_guarded_and_whitelisted(self):
         self.assert_config_contains(

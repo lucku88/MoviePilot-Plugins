@@ -511,6 +511,115 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(1500, defaults["http_retry_delay"])
         self.assertEqual(60, defaults["ready_retry_seconds"])
 
+    def test_save_config_rejects_invalid_numbers_and_cron_without_side_effects(self):
+        expected_ranges = {
+            "schedule_buffer_seconds": (0, 3600),
+            "random_delay_max_seconds": (0, 300),
+            "http_timeout": (5, 120),
+            "http_retry_times": (1, 5),
+            "http_retry_delay": (200, 60000),
+            "move_delay_min_ms": (0, 60000),
+            "move_delay_max_ms": (0, 60000),
+            "ready_retry_seconds": (10, 3600),
+            "reserve_magic_pill_count": (0, self.plugin.JS_SAFE_INTEGER_MAX),
+        }
+        cases = [
+            ("schedule_buffer_seconds", value)
+            for value in (
+                "",
+                " ",
+                "1.5",
+                "1e2",
+                "NaN",
+                math.nan,
+                math.inf,
+                "0x10",
+                "+12",
+                "-1",
+                "01",
+            )
+        ]
+        for field, (minimum, maximum) in expected_ranges.items():
+            cases.extend(((field, minimum - 1), (field, maximum + 1)))
+        cases.extend(
+            ("brick_cron", value)
+            for value in ("", " ", "* * * *", "* * * * * *", "* * * * *\n")
+        )
+
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                plugin = make_plugin(self.module)
+                plugin.save_data(plugin.MIGRATION_KEY, True)
+                plugin._apply_config(plugin._default_config())
+                plugin._update_config()
+                before = plugin._get_config(include_options=False)
+                before_store = dict(plugin._config_store)
+                refresh_calls = []
+                registrations = []
+                plugin._refresh_state = lambda **kwargs: refresh_calls.append(kwargs) or {}
+                plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+                plugin._reregister_plugin = lambda reason="": registrations.append(reason)
+
+                result = plugin._save_config({"enabled": True, field: value})
+
+                self.assertIs(result["success"], False)
+                self.assertIn(field, result.get("errors", {}))
+                self.assertEqual(before, plugin._get_config(include_options=False))
+                self.assertEqual(before_store, plugin._config_store)
+                self.assertEqual([], refresh_calls)
+                self.assertEqual([], registrations)
+                self.assertIs(plugin._bootstrap_pending, False)
+                self.assertIsNone(plugin._scheduler)
+
+    def test_save_config_accepts_integer_boundaries_and_normalizes_strings(self):
+        boundary_payloads = (
+            {
+                "brick_cron": " 5 0 * * * ",
+                "schedule_buffer_seconds": "0",
+                "random_delay_max_seconds": "0",
+                "http_timeout": "5",
+                "http_retry_times": "1",
+                "http_retry_delay": "200",
+                "move_delay_min_ms": "0",
+                "move_delay_max_ms": "0",
+                "ready_retry_seconds": "10",
+                "reserve_magic_pill_count": "0",
+            },
+            {
+                "brick_cron": "5 0 * * *",
+                "schedule_buffer_seconds": 3600,
+                "random_delay_max_seconds": 300,
+                "http_timeout": 120,
+                "http_retry_times": 5,
+                "http_retry_delay": 60000,
+                "move_delay_min_ms": 60000,
+                "move_delay_max_ms": 60000,
+                "ready_retry_seconds": 3600,
+                "reserve_magic_pill_count": self.plugin.JS_SAFE_INTEGER_MAX,
+            },
+        )
+
+        for payload in boundary_payloads:
+            with self.subTest(payload=payload):
+                plugin = make_plugin(self.module)
+                plugin.save_data(plugin.MIGRATION_KEY, True)
+                plugin._apply_config(plugin._default_config())
+                refresh_calls = []
+                plugin._refresh_state = lambda **kwargs: refresh_calls.append(kwargs) or {}
+                plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+                plugin._reregister_plugin = lambda reason="": None
+
+                result = plugin._save_config(payload)
+
+                self.assertIs(result["success"], True)
+                self.assertEqual(1, len(refresh_calls))
+                self.assertEqual("5 0 * * *", result["config"]["brick_cron"])
+                for field, value in payload.items():
+                    if field == "brick_cron":
+                        continue
+                    self.assertIs(type(result["config"][field]), int)
+                    self.assertEqual(int(value), result["config"][field])
+
     def test_status_exchange_reserve_uses_default_and_configured_value(self):
         cases = (
             ({}, 10),
