@@ -10,6 +10,7 @@ PAGE_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Page.vue"
 CONFIG_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "components" / "Config.vue"
 APP_PATH = ROOT / "plugins.v2" / "vuepill" / "src" / "App.vue"
 INDEX_PATH = ROOT / "plugins.v2" / "vuepill" / "index.html"
+DIST_STYLE_PATH = ROOT / "plugins.v2" / "vuepill" / "dist" / "assets" / "style.css"
 ASYNC_GUARD_PATH = (
     ROOT / "plugins.v2" / "vuepill" / "src" / "utils" / "asyncGuards.js"
 )
@@ -26,8 +27,10 @@ class VuePillFrontendContractTest(unittest.TestCase):
         cls.config_validation = CONFIG_VALIDATION_PATH.read_text(encoding="utf-8")
         cls.app = APP_PATH.read_text(encoding="utf-8")
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
+        cls.dist_style = DIST_STYLE_PATH.read_text(encoding="utf-8")
         cls.compact_page = re.sub(r"\s+", "", cls.page)
         cls.compact_config = re.sub(r"\s+", "", cls.config)
+        cls.compact_dist_style = re.sub(r"\s+", "", cls.dist_style)
         cls.mobile_css = cls.compact_page.split(
             "@media(max-width:600px){", 1
         )[1].rsplit("</style>", 1)[0]
@@ -907,7 +910,7 @@ try {
         self.assertNotRegex(self.page, r'class="[^"]*\bvp-')
         self.assertNotIn("#f8f7ff", self.app)
 
-    def test_visual_shell_stays_neutral_and_matches_vuefarm_theme(self):
+    def test_visual_shell_matches_siqifram_theme(self):
         topbar = self.page.split('<div class="siqi-content">', 1)[0]
         self.assertIn('color="success"', topbar)
         self.assertNotIn('color="orange-darken-1"', topbar)
@@ -922,7 +925,7 @@ try {
         self.assertNotIn("rgba(245,158,11,.035)", self.compact_page)
         for tone in ("orange", "green", "blue", "red"):
             with self.subTest(tone=tone):
-                self.assertNotRegex(
+                self.assertRegex(
                     self.compact_page,
                     rf"\.stat-{tone}\{{[^}}]*background:",
                 )
@@ -942,7 +945,7 @@ try {
         markers = (
             "siqi-topbar",
             'v-for="item in overview"',
-            "dynamic-schedule-card",
+            "/>动态任务",
             "兑换魔力",
             "物品栏",
             "炼造工坊",
@@ -951,6 +954,58 @@ try {
         positions = [self.page.find(marker) for marker in markers]
         self.assertNotIn(-1, positions, f"页面缺少分区标记：{markers}")
         self.assertEqual(positions, sorted(positions))
+
+    def test_dynamic_tasks_use_siqifarm_interaction_card_style(self):
+        self.assert_page_contains(
+            'class="siqi-card schedule-board mb-3"',
+            'class="schedule-action-list"',
+            "neu-action-card--brick",
+            "neu-action-card--beach",
+            "今日已完成",
+            "冷却中",
+            "可以搬砖",
+            "可以清理",
+        )
+        for forbidden in (
+            "dynamic-schedule-card",
+            "schedule-card--brick",
+            "schedule-card--beach",
+            "后端标记可执行",
+            "后端标记不可执行",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, self.page)
+
+    def test_page_matches_siqifram_card_density(self):
+        self.assertRegex(
+            self.compact_page,
+            r"\.siqi-card-title\{[^}]*min-height:44px",
+        )
+        for tone in ("orange", "green", "blue", "red"):
+            with self.subTest(tone=tone):
+                self.assertRegex(
+                    self.compact_page,
+                    rf"\.stat-{tone}\{{[^}}]*background:rgba\(",
+                )
+
+    def test_numeric_config_fields_are_vertically_centered(self):
+        self.assertGreaterEqual(self.config.count("siqi-number-input"), 6)
+        self.assertRegex(
+            self.config,
+            r'<style>[\s\S]*?\.siqi-config\s+\.siqi-number-input\s+\[class~="v-field__input"\]\{[^}]*align-items:center',
+        )
+        self.assertRegex(
+            self.config,
+            r'<style>[\s\S]*?\.siqi-config\s+\.siqi-number-input\s+\[class~="v-field__prepend-inner"\]\{[^}]*align-self:center',
+        )
+        self.assertRegex(
+            self.dist_style,
+            r'\.siqi-config\s+\.siqi-number-input\s+\[class~="v-field__input"\]\{[^}]*align-items:center',
+        )
+        self.assertRegex(
+            self.dist_style,
+            r'\.siqi-config\s+\.siqi-number-input\s+\[class~="v-field__prepend-inner"\]\{[^}]*align-self:center',
+        )
 
     def test_uses_vuepill_api_namespace_and_real_action_paths(self):
         self.assertRegex(self.page, r"const\s+PLUGIN_ID\s*=\s*['\"]VuePill['\"]")

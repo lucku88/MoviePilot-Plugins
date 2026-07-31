@@ -71,9 +71,12 @@
             <div class="stat-card skeleton-card"><div class="sk sk-icon" /><div class="sk-lines"><div class="sk sk-line short" /><div class="sk sk-line" /></div></div>
           </v-col>
         </v-row>
-        <div class="schedule-grid mb-3">
-          <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="siqi-card skeleton-panel"><div class="sk sk-title" /><div class="sk sk-line" /><div class="sk sk-line short" /></div>
-        </div>
+        <v-card flat class="siqi-card schedule-board mb-3 skeleton-shell">
+          <v-card-title class="siqi-card-title"><div class="sk sk-title" /></v-card-title>
+          <v-card-text class="schedule-board-body">
+            <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="sk sk-action" />
+          </v-card-text>
+        </v-card>
         <div v-for="index in 4" :key="`panel-skeleton-${index}`" class="siqi-card skeleton-panel mb-3"><div class="sk sk-title" /><div class="sk sk-row" /><div class="sk sk-row" /></div>
       </div>
 
@@ -92,69 +95,78 @@
           </v-col>
         </v-row>
 
-        <div class="schedule-grid mb-3">
-          <v-card flat class="siqi-card dynamic-schedule-card schedule-card schedule-card--brick">
-            <v-card-text class="dynamic-schedule-body">
-              <div class="dynamic-schedule-main">
-                <span class="dynamic-schedule-icon"><v-icon icon="mdi-wall" size="20" /></span>
-                <div class="dynamic-schedule-copy">
-                  <strong>搬砖动态调度</strong>
-                  <small>{{ brick.status_text || '等待后端刷新搬砖状态' }}</small>
+        <div class="primary-grid mb-3">
+          <v-card flat class="siqi-card schedule-board mb-3">
+            <v-card-title class="siqi-card-title d-flex align-center">
+              <v-icon icon="mdi-calendar-clock" class="mr-2" color="green" />动态任务
+              <span class="card-subtitle">搬砖与沙滩</span>
+            </v-card-title>
+            <v-card-text class="schedule-board-body">
+              <div class="schedule-action-list">
+                <div class="neu-action-card neu-action-card--brick">
+                  <div class="neu-action-icon"><v-icon icon="mdi-wall" size="19" /></div>
+                  <div class="neu-action-content">
+                    <div class="neu-action-heading">
+                      <div class="neu-action-label">搬砖</div>
+                      <span
+                        class="schedule-status"
+                        :class="{
+                          'schedule-status--ready': brick.ready === true,
+                          'schedule-status--done': brickStatusLabel === '今日已完成',
+                        }"
+                      >{{ brickStatusLabel }}</span>
+                    </div>
+                    <div class="neu-action-desc">{{ brick.status_text || '等待刷新搬砖状态' }}</div>
+                    <div class="schedule-meta">
+                      <span>今日 {{ brick.daily_bricks ?? 0 }}/{{ brick.daily_limit ?? 50 }}</span>
+                      <span>可搬 {{ brick.available_count ?? 0 }}</span>
+                      <span>重置 {{ brick.next_reset_time || '等待刷新' }}</span>
+                    </div>
+                  </div>
+                  <v-btn
+                    color="deep-orange"
+                    size="small"
+                    class="neu-btn schedule-action"
+                    :loading="actionLoading === 'brick'"
+                    :disabled="writeActionsDisabled || brick.ready !== true"
+                    @click="moveBricks"
+                  >立即搬砖</v-btn>
                 </div>
-              </div>
-              <div class="schedule-state-row">
-                <v-chip size="small" :color="brick.ready === true ? 'success' : 'grey'" variant="tonal">
-                  {{ brick.ready === true ? '后端标记可执行' : '后端标记不可执行' }}
-                </v-chip>
-                <v-btn
-                  color="deep-orange"
-                  variant="tonal"
-                  class="schedule-action"
-                  :loading="actionLoading === 'brick'"
-                  :disabled="writeActionsDisabled || brick.ready !== true"
-                  @click="moveBricks"
-                >立即搬砖</v-btn>
-              </div>
-              <div class="schedule-meta">
-                <span>今日搬砖 {{ brick.daily_bricks ?? 0 }}/{{ brick.daily_limit ?? 50 }}</span>
-                <span>可搬数量 {{ brick.available_count ?? 0 }}</span>
-                <span>下次重置 {{ brick.next_reset_time || '等待后端刷新' }}</span>
+
+                <div class="neu-action-card neu-action-card--beach">
+                  <div class="neu-action-icon"><v-icon icon="mdi-beach" size="19" /></div>
+                  <div class="neu-action-content">
+                    <div class="neu-action-heading">
+                      <div class="neu-action-label">沙滩</div>
+                      <span
+                        class="schedule-status"
+                        :class="{
+                          'schedule-status--ready': beachActionable,
+                          'schedule-status--cooldown': beachStatusLabel === '冷却中',
+                        }"
+                      >{{ beachStatusLabel }}</span>
+                    </div>
+                    <div class="neu-action-desc">{{ beach.status_text || '等待刷新沙滩状态' }}</div>
+                    <div class="schedule-meta">
+                      <span>{{ beach.level_text || '等级待刷新' }}</span>
+                      <span>{{ beach.hnr_text || 'HNR 待刷新' }}</span>
+                      <span>可用 {{ beach.next_ready_time || '等待刷新' }}</span>
+                    </div>
+                  </div>
+                  <v-btn
+                    color="teal"
+                    size="small"
+                    class="neu-btn schedule-action"
+                    :loading="actionLoading === 'beach'"
+                    :disabled="writeActionsDisabled || !beachActionable"
+                    @click="cleanBeach"
+                  >清理沙滩</v-btn>
+                </div>
               </div>
             </v-card-text>
           </v-card>
 
-          <v-card flat class="siqi-card dynamic-schedule-card schedule-card schedule-card--beach">
-            <v-card-text class="dynamic-schedule-body">
-              <div class="dynamic-schedule-main">
-                <span class="dynamic-schedule-icon"><v-icon icon="mdi-beach" size="20" /></span>
-                <div class="dynamic-schedule-copy">
-                  <strong>沙滩动态调度</strong>
-                  <small>{{ beach.status_text || '等待后端刷新沙滩状态' }}</small>
-                </div>
-              </div>
-              <div class="schedule-state-row">
-                <v-chip size="small" :color="beachActionable ? 'success' : 'grey'" variant="tonal">
-                  {{ beach.has_trash === true ? '垃圾待收集' : beachActionable ? '后端标记可执行' : '后端标记不可执行' }}
-                </v-chip>
-                <v-btn
-                  color="teal"
-                  variant="tonal"
-                  class="schedule-action"
-                  :loading="actionLoading === 'beach'"
-                  :disabled="writeActionsDisabled || !beachActionable"
-                  @click="cleanBeach"
-                >清理沙滩</v-btn>
-              </div>
-              <div class="schedule-meta">
-                <span>{{ beach.level_text || '等级信息待刷新' }}</span>
-                <span>{{ beach.hnr_text || 'HNR 信息待刷新' }}</span>
-                <span>下次可用 {{ beach.next_ready_time || '等待后端刷新' }}</span>
-              </div>
-            </v-card-text>
-          </v-card>
-        </div>
-
-        <v-card flat class="siqi-card exchange-card mb-3">
+          <v-card flat class="siqi-card exchange-card mb-3">
           <v-card-title class="siqi-card-title siqi-card-title--exchange d-flex align-center">
             <v-icon icon="mdi-swap-horizontal-circle" class="mr-2" color="amber-darken-2" />兑换魔力
           </v-card-title>
@@ -187,9 +199,11 @@
             </div>
             <div v-if="exchange.note" class="backend-note">{{ exchange.note }}</div>
           </v-card-text>
-        </v-card>
+          </v-card>
+        </div>
 
-        <v-card flat class="siqi-card inventory-card mb-3">
+        <div class="resource-grid mb-3">
+          <v-card flat class="siqi-card inventory-card">
           <v-card-title class="siqi-card-title siqi-card-title--inventory d-flex align-center">
             <v-icon icon="mdi-package-variant-closed" class="mr-2" color="orange" />物品栏
             <v-spacer />
@@ -229,9 +243,9 @@
               </button>
             </div>
           </v-card-text>
-        </v-card>
+          </v-card>
 
-        <v-card flat class="siqi-card workshop-card mb-3">
+          <v-card flat class="siqi-card workshop-card">
           <v-card-title class="siqi-card-title siqi-card-title--workshop d-flex align-center">
             <v-icon icon="mdi-anvil" class="mr-2" color="cyan-darken-1" />炼造工坊
             <v-spacer />
@@ -292,7 +306,8 @@
               </article>
             </div>
           </v-card-text>
-        </v-card>
+          </v-card>
+        </div>
 
         <v-card flat class="siqi-card history-card">
           <v-card-title class="siqi-card-title siqi-card-title--logs d-flex align-center">
@@ -491,6 +506,23 @@ const beachActionable = computed(() => (
   || beach.value.has_trash === true
   || beach.value.collect_enabled === true
 ))
+const brickStatusLabel = computed(() => {
+  if (brick.value.ready === true) return '可以搬砖'
+  const daily = Number(brick.value.daily_bricks || 0)
+  const limit = Number(brick.value.daily_limit || 0)
+  if (limit > 0 && daily >= limit) return '今日已完成'
+  if (
+    Object.prototype.hasOwnProperty.call(brick.value, 'available_count')
+    && Number(brick.value.available_count || 0) <= 0
+  ) return '暂无砖块'
+  return '等待刷新'
+})
+const beachStatusLabel = computed(() => {
+  if (beachActionable.value) return '可以清理'
+  const statusText = String(beach.value.status_text || '')
+  if (beach.value.next_ready_time || statusText.includes('冷却')) return '冷却中'
+  return '等待刷新'
+})
 const exchange = computed(() => pill.value.exchange || {})
 const inventoryItems = computed(() => {
   const inventory = pill.value.inventory || {}
@@ -871,25 +903,26 @@ onBeforeUnmount(() => {
 .siqi-content{display:flex;flex-direction:column;gap:0}
 .siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}
 .siqi-card{background:rgba(var(--v-theme-on-surface),.03)!important;backdrop-filter:blur(20px) saturate(150%);border-radius:14px!important;border:.5px solid rgba(var(--v-theme-on-surface),.08)!important;box-shadow:0 2px 10px rgba(0,0,0,.05)!important;overflow:hidden}
-.siqi-card-title{min-height:52px;padding:8px 16px!important;font-size:13px!important;font-weight:700!important;background:rgba(76,175,80,.08);border-bottom:.5px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84)}
+.siqi-card-title{min-height:44px;padding:10px 16px!important;font-size:13px!important;font-weight:700!important;background:rgba(76,175,80,.08);border-bottom:.5px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84)}
 .siqi-card-title :deep(.v-spacer){flex:1 1 auto!important}
+.siqi-card-title--exchange{background:rgba(245,158,11,.09)}.siqi-card-title--inventory{background:rgba(251,146,60,.10)}.siqi-card-title--workshop{background:rgba(6,182,212,.09)}.siqi-card-title--logs{background:rgba(59,130,246,.09)}
 .stat-card{--stat-rgb:76,175,80;--stat-color:#2e7d32;min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
 .stat-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(var(--stat-rgb),.14);color:var(--stat-color);flex:0 0 38px}
 .stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;color:rgba(var(--v-theme-on-surface),.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;color:rgba(var(--v-theme-on-surface),.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444}
+.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.24)}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.24)}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6;background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.24)}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.24)}
+.stat-orange .stat-icon,.stat-orange .stat-title,.stat-orange .stat-value{color:#f59e0b}.stat-green .stat-icon,.stat-green .stat-title,.stat-green .stat-value{color:#10b981}.stat-blue .stat-icon,.stat-blue .stat-title,.stat-blue .stat-value{color:#3b82f6}.stat-red .stat-icon,.stat-red .stat-title,.stat-red .stat-value{color:#ef4444}
 .overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px!important}
 .overview-grid>*{width:auto!important;max-width:none!important;padding:0!important}
-.schedule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
-.schedule-card{height:100%}.dynamic-schedule-body{height:100%;display:flex;flex-direction:column;gap:13px;padding:14px 16px!important;background:linear-gradient(90deg,rgba(34,197,94,.09),rgba(14,165,233,.05))}.schedule-card--beach .dynamic-schedule-body{background:linear-gradient(90deg,rgba(34,197,94,.07),rgba(14,165,233,.07))}
-.dynamic-schedule-main{display:flex;align-items:center;gap:10px}.dynamic-schedule-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:rgba(76,175,80,.14);color:#2e7d32;flex:0 0 36px}.schedule-card--beach .dynamic-schedule-icon{background:rgba(14,165,233,.12);color:#0ea5e9}.dynamic-schedule-copy{min-width:0}.dynamic-schedule-copy strong{display:block;font-size:13px;color:rgba(var(--v-theme-on-surface),.86)}.dynamic-schedule-copy small{display:block;margin-top:2px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.schedule-state-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.schedule-action{min-width:108px}.schedule-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.schedule-meta span{padding:5px 9px;border-radius:999px;background:rgba(var(--v-theme-surface),.72);border:1px solid rgba(var(--v-theme-on-surface),.08);font-size:11px;color:rgba(var(--v-theme-on-surface),.66);font-variant-numeric:tabular-nums}
+.primary-grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(360px,.78fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%;margin-bottom:0!important}.resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}.resource-grid>.siqi-card{height:100%;min-width:0}.card-subtitle{margin-left:10px;color:rgba(var(--v-theme-on-surface),.48);font-size:12px;font-weight:500}
+.schedule-board-body{padding:16px!important}.schedule-action-list{display:flex;flex-direction:column;gap:8px}.neu-action-card{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:76px;padding:10px 12px;border-radius:12px;background:rgba(var(--v-theme-surface),.86);border:1px solid rgba(76,175,80,.16);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.neu-action-card:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.07)}.neu-action-card--beach{border-color:rgba(14,165,233,.18)}.neu-action-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(76,175,80,.10);color:#22c55e}.neu-action-card--beach .neu-action-icon{background:rgba(14,165,233,.11);color:#0ea5e9}.neu-action-content{min-width:0}.neu-action-heading{display:flex;align-items:center;gap:8px;min-width:0}.neu-action-label{font-size:13px;font-weight:800;color:rgba(var(--v-theme-on-surface),.84);line-height:1.2}.neu-action-desc{margin-top:3px;color:rgba(var(--v-theme-on-surface),.52);font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.schedule-status{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.55);font-size:10px;font-weight:800;white-space:nowrap}.schedule-status--ready{background:rgba(34,197,94,.12);color:#22c55e}.schedule-status--done{background:rgba(245,158,11,.12);color:#f59e0b}.schedule-status--cooldown{background:rgba(14,165,233,.11);color:#0ea5e9}.schedule-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}.schedule-meta span{padding:3px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.045);border:1px solid rgba(var(--v-theme-on-surface),.065);font-size:10px;color:rgba(var(--v-theme-on-surface),.58);font-variant-numeric:tabular-nums}.neu-btn{height:32px!important;min-height:32px!important;border-radius:999px!important;font-weight:800;letter-spacing:0;font-size:11px!important;min-width:82px!important;box-shadow:none!important}.schedule-action{flex:0 0 auto}
 .exchange-body{padding:16px!important}.exchange-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.exchange-stat{padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);text-align:center}.exchange-stat span{display:block;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-stat strong{display:inline-block;margin-top:3px;font-size:21px;color:#f59e0b}.exchange-stat small{margin-left:3px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-action-panel{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:start;margin-top:14px}.backend-note{margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.2);font-size:12px;color:rgba(var(--v-theme-on-surface),.66)}
-.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__state{font-size:10px;font-weight:800;color:#f59e0b;white-space:nowrap}
+.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.resource-grid .inventory-grid,.resource-grid .recipe-grid{grid-template-columns:1fr}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__state{font-size:10px;font-weight:800;color:#f59e0b;white-space:nowrap}
 .recipe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.recipe-card{padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:start}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
 .history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
 .empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
 .siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats-applied-filter{margin:-2px 0 10px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
-.page-skeleton{display:flex;flex-direction:column}.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
-@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-grid,.recipe-grid,.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
-@media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.schedule-state-row{align-items:stretch;flex-direction:column}.schedule-state-row :deep(.v-chip){align-self:flex-start}.schedule-action{width:100%}.schedule-meta span{width:100%}.exchange-summary{grid-template-columns:1fr}.inventory-grid{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
+.page-skeleton{display:flex;flex-direction:column}.skeleton-shell,.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-action{height:76px;margin-top:8px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
+@media(max-width:1100px){.primary-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-grid,.recipe-grid,.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
+@media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.card-subtitle{display:none}.schedule-board-body{padding:14px!important}.neu-action-card{grid-template-columns:32px minmax(0,1fr);row-gap:10px;padding:12px}.schedule-action{grid-column:1/-1;width:100%}.schedule-meta span{flex:1 1 100%}.exchange-summary{grid-template-columns:1fr}.inventory-grid{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
 </style>

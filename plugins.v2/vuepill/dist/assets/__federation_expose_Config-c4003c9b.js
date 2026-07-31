@@ -209,12 +209,14 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_07628d63_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_12a104ad_lang = '';
+
+const Config_vue_vue_type_style_index_1_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-07628d63"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-12a104ad"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -950,7 +952,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-clock-fast",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.schedule_buffer_seconds ? [fieldErrors.schedule_buffer_seconds] : [],
@@ -973,7 +975,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-flask-outline",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.reserve_magic_pill_count ? [fieldErrors.reserve_magic_pill_count] : [],
@@ -996,7 +998,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-timer-sand",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.random_delay_max_seconds ? [fieldErrors.random_delay_max_seconds] : [],
@@ -1019,7 +1021,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-timer-alert-outline",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.http_timeout ? [fieldErrors.http_timeout] : [],
@@ -1042,7 +1044,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-reload",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.http_retry_times ? [fieldErrors.http_retry_times] : [],
@@ -1065,7 +1067,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 variant: "outlined",
                 "hide-details": "auto",
-                class: "siqi-input",
+                class: "siqi-input siqi-number-input",
                 "prepend-inner-icon": "mdi-timer-outline",
                 disabled: formLocked.value,
                 "error-messages": fieldErrors.http_retry_delay ? [fieldErrors.http_retry_delay] : [],
@@ -1138,6 +1140,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-07628d63"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-12a104ad"]]);
 
 export { ConfigView as default };
