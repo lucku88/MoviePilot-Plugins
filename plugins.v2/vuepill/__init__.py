@@ -187,7 +187,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、手动赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.3"
+    plugin_version = "0.2.4"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -757,7 +757,7 @@ class VuePill(_PluginBase):
 
     def get_api(self) -> List[Dict[str, Any]]:
         return [
-            {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-魔丸配置"},
+            {"path": "/config", "endpoint": self._get_config_api, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-魔丸配置"},
             {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 Vue-魔丸配置"},
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-魔丸状态"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新 Vue-魔丸状态"},
@@ -1853,6 +1853,27 @@ class VuePill(_PluginBase):
             config.pop("cookie", None)
         return config
 
+    def _build_config_api_response(self) -> Dict[str, Any]:
+        config = self._get_config()
+        auto_filled = not self._is_valid_cookie_value(self._manual_cookie)
+        if auto_filled:
+            try:
+                self._sync_site_credentials()
+            except Exception:
+                pass
+            _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
+            config["cookie"] = cookie if self._is_valid_cookie_value(cookie) else ""
+        else:
+            self._ensure_cookie()
+            cookie_source = "手动配置"
+        config["cookie_auto_filled"] = auto_filled
+        config["cookie_source"] = cookie_source
+        return config
+
+    @_config_public_api
+    def _get_config_api(self) -> Dict[str, Any]:
+        return self._build_config_api_response()
+
     @_config_public_api
     def _save_config(self, config_payload: dict):
         activity_entered = False
@@ -1905,7 +1926,7 @@ class VuePill(_PluginBase):
             return {
                 "success": True,
                 "message": "配置已保存，已排队一次性执行",
-                "config": self._get_config(),
+                "config": self._build_config_api_response(),
                 "pill_status": status,
                 "status": self._build_status(auto_refresh=False),
             }
@@ -1935,7 +1956,7 @@ class VuePill(_PluginBase):
             return {
                 "success": True,
                 "message": message,
-                "config": self._get_config(),
+                "config": self._build_config_api_response(),
                 "pill_status": (catchup_result or {}).get("pill_status") or status,
                 "status": (catchup_result or {}).get("status") or self._build_status(auto_refresh=False),
             }
@@ -1947,7 +1968,11 @@ class VuePill(_PluginBase):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
         if result.get("success") and self._enabled:
             self._reregister_plugin("sync-cookie")
-        return {**result, "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
+        return {
+            **result,
+            "config": self._build_config_api_response(),
+            "status": self._build_status(auto_refresh=False),
+        }
 
     def _default_config(self) -> Dict[str, Any]:
         return {
@@ -2125,12 +2150,15 @@ class VuePill(_PluginBase):
         if not isinstance(payload, dict):
             return {}, {"config": "配置内容格式不正确"}
 
+        cookie_auto_filled = payload.get("cookie_auto_filled") is True
         allowed_keys = set(self._default_config())
         normalized = {
             key: payload[key]
             for key in allowed_keys
             if key in payload
         }
+        if cookie_auto_filled:
+            normalized["cookie"] = ""
         errors: Dict[str, str] = {}
         for field in self.CONFIG_INTEGER_RULES:
             if field not in normalized:
@@ -4070,11 +4098,17 @@ class VuePill(_PluginBase):
 
         source = dict(value)
         direct_cookie = source.pop("cookie", None)
+        direct_cookie_auto_filled = source.pop("cookie_auto_filled", None)
         nested_cookie = None
+        nested_cookie_auto_filled = None
         raw_config = source.get("config")
         if isinstance(raw_config, dict):
             safe_config = dict(raw_config)
             nested_cookie = safe_config.pop("cookie", None)
+            nested_cookie_auto_filled = safe_config.pop(
+                "cookie_auto_filled",
+                None,
+            )
             source["config"] = safe_config
 
         cookie_error = None
@@ -4089,8 +4123,17 @@ class VuePill(_PluginBase):
             return public_value
         if isinstance(direct_cookie, str):
             public_value["cookie"] = direct_cookie
+        if type(direct_cookie_auto_filled) is bool:
+            public_value["cookie_auto_filled"] = direct_cookie_auto_filled
         if isinstance(nested_cookie, str) and isinstance(public_value.get("config"), dict):
             public_value["config"]["cookie"] = nested_cookie
+        if (
+            type(nested_cookie_auto_filled) is bool
+            and isinstance(public_value.get("config"), dict)
+        ):
+            public_value["config"]["cookie_auto_filled"] = (
+                nested_cookie_auto_filled
+            )
         if isinstance(cookie_error, str):
             public_value.setdefault("errors", {})["cookie"] = (
                 self._sanitize_sensitive_text(cookie_error)

@@ -109,6 +109,9 @@ class VuePillFrontendContractTest(unittest.TestCase):
         self.assertIn('v-model="config.cookie"', self.config)
         self.assertIn("站点 Cookie", self.config)
         self.assertIn("showCookie", self.config)
+        self.assertIn("cookieAutoFilled", self.config)
+        self.assertIn("cookieEdited", self.config)
+        self.assertIn("markCookieEdited", self.config)
         self.assertIn("mdi-eye-outline", self.config)
         self.assertIn("mdi-eye-off-outline", self.config)
         self.assertIn("手动 Cookie 优先", self.config)
@@ -268,6 +271,129 @@ assert.equal(validateManualCookie('').valid, true)
 assert.equal(validateManualCookie('sid=manual-cookie-secret').valid, true)
 assert.equal(validateManualCookie('cookie').valid, false)
 assert.equal(validateManualCookie('sid=safe\r\nX-Test: value').valid, false)
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=VUEPILL_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+    def test_config_runtime_keeps_unedited_site_cookie_in_auto_sync_mode(self):
+        script = r"""
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { compileScript, parse } from '@vue/compiler-sfc'
+
+const filename = path.resolve('src/components/Config.vue')
+const source = await fs.readFile(filename, 'utf8')
+const parsed = parse(source, { filename })
+assert.deepEqual(parsed.errors, [])
+const compiled = compileScript(parsed.descriptor, { id: 'vuepill-cookie-runtime' })
+const tempFile = path.join(
+  path.dirname(filename),
+  `.Config.cookie-runtime-${process.pid}-${Date.now()}.mjs`,
+)
+
+const baseConfig = {
+  enabled: false,
+  notify: true,
+  onlyonce: false,
+  use_proxy: false,
+  enable_brick: true,
+  enable_beach: true,
+  auto_craft: false,
+  auto_exchange: false,
+  brick_cron: '5 0 * * *',
+  schedule_buffer_seconds: 5,
+  reserve_magic_pill_count: 10,
+  random_delay_max_seconds: 3,
+  http_timeout: 12,
+  http_retry_times: 5,
+  http_retry_delay: 1500,
+}
+const siteCookie = 'sid=latest-site-cookie; token=latest-site-token'
+let currentConfig = {
+  ...baseConfig,
+  cookie: siteCookie,
+  cookie_auto_filled: true,
+  cookie_source: '站点同步：si-qi.xyz',
+}
+const posts = []
+const api = {
+  get: async () => ({ ...currentConfig }),
+  post: async (url, payload) => {
+    posts.push({ url, payload: { ...payload } })
+    currentConfig = payload.cookie
+      ? {
+          ...baseConfig,
+          cookie: payload.cookie,
+          cookie_auto_filled: false,
+          cookie_source: '手动配置',
+        }
+      : {
+          ...baseConfig,
+          cookie: siteCookie,
+          cookie_auto_filled: true,
+          cookie_source: '站点同步：si-qi.xyz',
+        }
+    return { success: true, message: '配置已保存' }
+  },
+}
+
+const originalWarn = console.warn
+const originalSetTimeout = globalThis.setTimeout
+const originalClearTimeout = globalThis.clearTimeout
+try {
+  await fs.writeFile(tempFile, compiled.content, 'utf8')
+  const component = (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`)).default
+  console.warn = () => {}
+  const bindings = component.setup(
+    { api, initialConfig: {} },
+    { attrs: {}, slots: {}, emit() {}, expose() {} },
+  )
+  console.warn = originalWarn
+  globalThis.setTimeout = callback => { callback(); return 1 }
+  globalThis.clearTimeout = () => {}
+
+  await bindings.loadConfig()
+  assert.equal(bindings.config.cookie, siteCookie)
+  assert.equal(bindings.cookieAutoFilled.value, true)
+  assert.equal(bindings.cookieEdited.value, false)
+
+  await bindings.saveConfig()
+  assert.equal(posts[0].payload.cookie, '')
+  assert.equal(bindings.config.cookie, siteCookie)
+  assert.equal(bindings.cookieAutoFilled.value, true)
+  assert.equal(bindings.cookieEdited.value, false)
+
+  bindings.config.cookie = 'sid=manual-cookie-secret'
+  bindings.markCookieEdited()
+  await bindings.saveConfig()
+  assert.equal(posts[1].payload.cookie, 'sid=manual-cookie-secret')
+  assert.equal(bindings.cookieAutoFilled.value, false)
+  assert.equal(bindings.cookieEdited.value, false)
+
+  bindings.config.cookie = ''
+  bindings.markCookieEdited()
+  await bindings.saveConfig()
+  assert.equal(posts[2].payload.cookie, '')
+  assert.equal(bindings.config.cookie, siteCookie)
+  assert.equal(bindings.cookieAutoFilled.value, true)
+  assert.equal(bindings.cookieEdited.value, false)
+} finally {
+  console.warn = originalWarn
+  globalThis.setTimeout = originalSetTimeout
+  globalThis.clearTimeout = originalClearTimeout
+  await fs.rm(tempFile, { force: true })
+}
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
@@ -832,7 +958,6 @@ try {
             "/plugin/${PLUGIN_ID}",
             "/status",
             "/refresh",
-            "/run",
             "/move-bricks",
             "/clean-beach",
             "/exchange-points",
@@ -841,6 +966,7 @@ try {
             "/gift-item",
             "/gift-stats",
         )
+        self.assertNotIn("/run", self.page)
 
     def test_gift_dialog_has_validation_confirmation_and_busy_feedback(self):
         self.assert_page_contains(
@@ -1208,6 +1334,30 @@ assert.equal(extractStatusPayload(incompleteFailure), null)
     def test_page_title_is_vuepill_and_status_page_has_no_cookie_action(self):
         self.assertIn("<title>Vue-魔丸</title>", self.index)
         self.assertNotIn("同步 Cookie", self.page)
+
+    def test_status_toolbar_and_zero_limit_recipes_are_not_noisy(self):
+        for removed in (
+            'aria-label="立即执行 Vue-魔丸"',
+            '@click="runNow"',
+            "async function runNow()",
+            "后端返回最大可炼造数量为 0",
+        ):
+            with self.subTest(removed=removed):
+                self.assertNotIn(removed, self.page)
+        self.assertIn('v-if="Number(recipe.max_count || 0) > 0"', self.page)
+        self.assertIn('v-if="recipeUnavailableReason(recipe)"', self.page)
+        self.assertRegex(
+            self.page,
+            r"if \(Number\(recipe\.max_count \|\| 0\) <= 0\) return ''",
+        )
+        self.assertRegex(
+            self.page,
+            r"function recipeQuantityError\(recipe\)\s*\{\s*const maximum = Number\(recipe\.max_count \|\| 0\)\s*if \(maximum <= 0\) return ''",
+        )
+        self.assertRegex(
+            self.page,
+            r"recipe\.status && !/材料不足\|炼造上限为\\s\*0\|最大可炼造数量为\\s\*0/",
+        )
 
 
 if __name__ == "__main__":

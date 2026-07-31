@@ -209,12 +209,12 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_9a612c29_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_07628d63_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-9a612c29"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-07628d63"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -396,6 +396,8 @@ const config = reactive({ ...DEFAULT_CONFIG });
 const configLoading = ref(false);
 const configSaving = ref(false);
 const showCookie = ref(false);
+const cookieAutoFilled = ref(false);
+const cookieEdited = ref(false);
 const upgradeRestartRequired = ref(false);
 const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value);
 const fieldErrors = reactive({});
@@ -422,6 +424,8 @@ function ownDataValue(source, field) {
 
 function applyPublicConfig(source) {
   upgradeRestartRequired.value = ownDataValue(source, 'upgrade_restart_required') === true;
+  cookieAutoFilled.value = ownDataValue(source, 'cookie_auto_filled') === true;
+  cookieEdited.value = false;
   for (const field of CONFIG_FIELDS) {
     const value = ownDataValue(source, field);
     config[field] = value === undefined ? DEFAULT_CONFIG[field] : value;
@@ -434,9 +438,18 @@ function isCompletePublicConfig(source) {
 }
 
 function buildConfigPayload() {
-  const validation = validateVuePillConfig(config);
+  const validationSource = {
+    ...config,
+    cookie: cookieAutoFilled.value && !cookieEdited.value ? '' : config.cookie,
+  };
+  const validation = validateVuePillConfig(validationSource);
   replaceFieldErrors(validation.errors);
   return validation
+}
+
+function markCookieEdited() {
+  cookieEdited.value = true;
+  clearFieldError('cookie');
 }
 
 function clearFieldError(field) {
@@ -1079,7 +1092,7 @@ return (_ctx, _cache) => {
               modelValue: config.cookie,
               "onUpdate:modelValue": [
                 _cache[26] || (_cache[26] = $event => ((config.cookie) = $event)),
-                _cache[27] || (_cache[27] = $event => (clearFieldError('cookie')))
+                markCookieEdited
               ],
               label: "站点 Cookie（留空自动同步）",
               rows: "2",
@@ -1125,6 +1138,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-9a612c29"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-07628d63"]]);
 
 export { ConfigView as default };

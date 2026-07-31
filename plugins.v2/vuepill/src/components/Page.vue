@@ -17,19 +17,6 @@
             size="small"
             class="px-0 px-sm-3"
             min-width="40"
-            aria-label="立即执行 Vue-魔丸"
-            :loading="actionLoading === 'run'"
-            :disabled="writeActionsDisabled"
-            @click="runNow"
-          >
-            <v-icon icon="mdi-play" size="18" class="mr-sm-1" />
-            <span class="d-none d-sm-inline">执行</span>
-          </v-btn>
-          <v-btn
-            color="success"
-            size="small"
-            class="px-0 px-sm-3"
-            min-width="40"
             aria-label="刷新 Vue-魔丸状态"
             :loading="actionLoading === 'refresh'"
             :disabled="writeActionsDisabled"
@@ -269,7 +256,10 @@
                   <span class="recipe-icon">{{ recipe.icon || '⚒️' }}</span>
                   <div class="recipe-title">
                     <strong>{{ recipe.output_item || recipe.name || recipe.title }}</strong>
-                    <small>配方 ID {{ recipe.craft_id }} · 最多 {{ recipe.max_count ?? 0 }}</small>
+                    <small>
+                      配方 ID {{ recipe.craft_id }}
+                      <template v-if="Number(recipe.max_count || 0) > 0"> · 最多 {{ recipe.max_count }}</template>
+                    </small>
                   </div>
                 </div>
                 <div class="recipe-ingredients">
@@ -296,7 +286,7 @@
                     @click="craftRecipe(recipe)"
                   >炼造</v-btn>
                 </div>
-                <div v-if="recipe.enabled !== true || Number(recipe.max_count || 0) <= 0" class="unavailable-reason">
+                <div v-if="recipeUnavailableReason(recipe)" class="unavailable-reason">
                   {{ recipeUnavailableReason(recipe) }}
                 </div>
               </article>
@@ -809,14 +799,16 @@ function rowQuantity(row) {
 }
 
 function recipeQuantityError(recipe) {
-  return quantityError(recipeQuantities[recipe.craft_id], Number(recipe.max_count || 0), '炼造')
+  const maximum = Number(recipe.max_count || 0)
+  if (maximum <= 0) return ''
+  return quantityError(recipeQuantities[recipe.craft_id], maximum, '炼造')
 }
 
 function recipeUnavailableReason(recipe) {
   if (recipe.supported === false) return '后端标记该配方暂不支持。'
-  if (recipe.status) return recipe.status
-  if (Number(recipe.max_count || 0) <= 0) return '材料不足，后端返回最大可炼造数量为 0。'
-  return '后端标记该配方当前不可炼造。'
+  if (Number(recipe.max_count || 0) <= 0) return ''
+  if (recipe.status && !/材料不足|炼造上限为\s*0|最大可炼造数量为\s*0/.test(recipe.status)) return recipe.status
+  return recipe.enabled !== true ? '后端标记该配方当前不可炼造。' : ''
 }
 
 function historyText(item) {
@@ -828,7 +820,6 @@ function historyKey(item) {
 }
 
 async function refreshData() { await runAction('refresh', () => apiPost('/refresh'), '状态已刷新') }
-async function runNow() { await runAction('run', () => apiPost('/run'), '执行完成') }
 async function moveBricks() { await runAction('brick', () => apiPost('/move-bricks'), '搬砖完成') }
 async function cleanBeach() { await runAction('beach', () => apiPost('/clean-beach'), '沙滩清理完成') }
 

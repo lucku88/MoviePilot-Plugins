@@ -2045,6 +2045,105 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertNotIn("manual-cookie-secret", encoded_status)
         self.assertNotIn("manual-token-secret", encoded_status)
 
+    def test_config_get_auto_fills_latest_site_cookie_without_persisting_it(self):
+        secret = "sid=latest-site-cookie; token=latest-site-token"
+        self._install_valid_site(secret)
+        config_get = next(
+            row["endpoint"]
+            for row in self.plugin.get_api()
+            if row["path"] == "/config" and row["methods"] == ["GET"]
+        )
+
+        result = config_get()
+
+        self.assertEqual(secret, result["cookie"])
+        self.assertIs(result["cookie_auto_filled"], True)
+        self.assertEqual("站点同步：si-qi.xyz", result["cookie_source"])
+        self.assertEqual("", self.plugin._manual_cookie)
+
+        self.plugin._update_config()
+
+        self.assertEqual("", self.plugin._config_store["cookie"])
+        self.assertNotIn(secret, json.dumps(self.plugin._config_store, ensure_ascii=False))
+
+    def test_config_response_roundtrip_keeps_auto_cookie_out_of_storage(self):
+        secret = "sid=latest-site-cookie; token=latest-site-token"
+        self._install_valid_site(secret)
+        self.plugin.save_data(self.plugin.MIGRATION_KEY, True)
+        self.plugin._apply_config(self.plugin._default_config())
+        self.plugin._update_config()
+        self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        self.plugin._reregister_plugin = lambda reason="": None
+        config_response = self.plugin._build_config_api_response()
+
+        result = self.plugin._save_config(config_response)
+
+        self.assertIs(result["success"], True)
+        self.assertEqual("", self.plugin._manual_cookie)
+        self.assertEqual("", self.plugin._config_store["cookie"])
+        self.assertIs(result["config"]["cookie_auto_filled"], True)
+        self.assertEqual(secret, result["config"]["cookie"])
+
+    def test_config_get_marks_manual_cookie_as_not_auto_filled(self):
+        site_calls = []
+
+        class ValidSiteOper:
+            def get_by_domain(self, domain):
+                site_calls.append(domain)
+                return {
+                    "cookie": "sid=site-cookie-secret",
+                    "url": "https://si-qi.xyz",
+                    "ua": "Latest UA",
+                }
+
+        self.module.SiteOper = ValidSiteOper
+        self.plugin._apply_config(
+            self.plugin._merge_public_config(
+                {"cookie": "sid=manual-cookie-secret"}
+            )
+        )
+        config_get = next(
+            row["endpoint"]
+            for row in self.plugin.get_api()
+            if row["path"] == "/config" and row["methods"] == ["GET"]
+        )
+
+        result = config_get()
+
+        self.assertEqual("sid=manual-cookie-secret", result["cookie"])
+        self.assertIs(result["cookie_auto_filled"], False)
+        self.assertEqual("手动配置", result["cookie_source"])
+        self.assertEqual([], site_calls)
+
+    def test_cookie_auto_fill_marker_is_boolean_and_config_only(self):
+        unsafe_status = self.plugin._sanitize_public_response(
+            {"cookie_auto_filled": "sid=must-not-leak"}
+        )
+        encoded_status = json.dumps(unsafe_status, ensure_ascii=False)
+        self.assertNotIn("cookie_auto_filled", encoded_status)
+        self.assertNotIn("must-not-leak", encoded_status)
+
+        config_response = self.plugin._sanitize_config_public_response(
+            {
+                "cookie_auto_filled": True,
+                "config": {"cookie_auto_filled": False},
+            }
+        )
+        self.assertIs(config_response["cookie_auto_filled"], True)
+        self.assertIs(config_response["config"]["cookie_auto_filled"], False)
+
+        unsafe_config = self.plugin._sanitize_config_public_response(
+            {
+                "cookie_auto_filled": "sid=direct-secret",
+                "config": {"cookie_auto_filled": "sid=nested-secret"},
+            }
+        )
+        encoded_config = json.dumps(unsafe_config, ensure_ascii=False)
+        self.assertNotIn("cookie_auto_filled", encoded_config)
+        self.assertNotIn("direct-secret", encoded_config)
+        self.assertNotIn("nested-secret", encoded_config)
+
     def test_manual_cookie_takes_priority_and_blank_restores_site_sync(self):
         site_calls = []
 

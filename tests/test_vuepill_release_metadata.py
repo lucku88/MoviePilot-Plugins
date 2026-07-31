@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.3"
+EXPECTED_VERSION = "0.2.4"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -46,6 +46,10 @@ EXPECTED_HISTORY_V023 = (
     "搬砖已满和沙滩冷却时按真实可执行状态显示文案；热更新传入空配置或同一 v0.2.x "
     "配置代号损坏时，会自动恢复 MoviePilot 已保存配置并保留执行历史和动态调度计划。"
 )
+EXPECTED_HISTORY_V024 = (
+    "配置页自动读取并隐藏显示 MoviePilot 的 si-qi.xyz 站点 Cookie，未手动修改时继续保持自动同步，"
+    "避免把自动值固化为旧 Cookie；移除状态页顶部执行按钮，并隐藏炼造上限为 0 和材料不足的重复提示。"
+)
 EXPECTED_HISTORY_V020 = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
     "加入手动赠送与赠礼统计；首次从 v0.1.x 更新到完整重写的 v0.2.0 后需手动重启一次 MoviePilot，"
@@ -54,6 +58,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.4",
     "v0.2.3",
     "v0.2.2",
     "v0.2.1",
@@ -453,7 +458,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v023(self):
+    def test_release_versions_are_consistently_v024(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -477,10 +482,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v023_release(self):
+    def test_market_history_and_readme_describe_the_v024_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V024, history["v0.2.4"])
         self.assertEqual(EXPECTED_HISTORY_V023, history["v0.2.3"])
         self.assertEqual(EXPECTED_HISTORY_V022, history["v0.2.2"])
         self.assertEqual(EXPECTED_HISTORY_V021, history["v0.2.1"])
@@ -488,7 +494,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.3` |",
+            "| `Vue-魔丸` | `v0.2.4` |",
+            "自动读取并隐藏显示 MoviePilot 的 `si-qi.xyz` 站点 Cookie",
+            "未手动修改时继续保持自动同步",
+            "状态页顶部的“执行”按钮已移除",
+            "隐藏炼造上限为 0 和材料不足的重复提示",
             "修复搬砖成功 50 次后又误报“已达上限”为失败",
             "搬砖已满和沙滩冷却时会按真实状态显示",
             "收到空配置或配置代号损坏",
@@ -534,6 +544,8 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn('v-model="config.cookie"', config_source)
         self.assertIn("showCookie", config_source)
+        self.assertIn("cookieAutoFilled", config_source)
+        self.assertIn("cookieEdited", config_source)
         self.assertIn("手动 Cookie 优先", config_source)
         self.assertIn("清空后恢复自动同步", config_source)
         self.assertNotIn("config.cookie", page_source)
@@ -674,6 +686,8 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "config.cookie",
             "站点 Cookie（留空自动同步）",
             "手动 Cookie 优先",
+            "cookieAutoFilled",
+            "cookieEdited",
             "mdi-eye-outline",
         ):
             with self.subTest(marker=marker):

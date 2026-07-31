@@ -200,7 +200,7 @@
             :disabled="formLocked"
             :error-messages="fieldErrors.cookie ? [fieldErrors.cookie] : []"
             :aria-invalid="Boolean(fieldErrors.cookie)"
-            @update:model-value="clearFieldError('cookie')"
+            @update:model-value="markCookieEdited"
           >
             <template #append-inner>
               <v-btn
@@ -282,6 +282,8 @@ const config = reactive({ ...DEFAULT_CONFIG })
 const configLoading = ref(false)
 const configSaving = ref(false)
 const showCookie = ref(false)
+const cookieAutoFilled = ref(false)
+const cookieEdited = ref(false)
 const upgradeRestartRequired = ref(false)
 const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value)
 const fieldErrors = reactive({})
@@ -308,6 +310,8 @@ function ownDataValue(source, field) {
 
 function applyPublicConfig(source) {
   upgradeRestartRequired.value = ownDataValue(source, 'upgrade_restart_required') === true
+  cookieAutoFilled.value = ownDataValue(source, 'cookie_auto_filled') === true
+  cookieEdited.value = false
   for (const field of CONFIG_FIELDS) {
     const value = ownDataValue(source, field)
     config[field] = value === undefined ? DEFAULT_CONFIG[field] : value
@@ -320,9 +324,18 @@ function isCompletePublicConfig(source) {
 }
 
 function buildConfigPayload() {
-  const validation = validateVuePillConfig(config)
+  const validationSource = {
+    ...config,
+    cookie: cookieAutoFilled.value && !cookieEdited.value ? '' : config.cookie,
+  }
+  const validation = validateVuePillConfig(validationSource)
   replaceFieldErrors(validation.errors)
   return validation
+}
+
+function markCookieEdited() {
+  cookieEdited.value = true
+  clearFieldError('cookie')
 }
 
 function clearFieldError(field) {
