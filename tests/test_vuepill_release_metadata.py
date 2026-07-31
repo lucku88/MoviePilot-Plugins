@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.4"
+EXPECTED_VERSION = "0.2.5"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -50,6 +50,11 @@ EXPECTED_HISTORY_V024 = (
     "配置页自动读取并隐藏显示 MoviePilot 的 si-qi.xyz 站点 Cookie，未手动修改时继续保持自动同步，"
     "避免把自动值固化为旧 Cookie；移除状态页顶部执行按钮，并隐藏炼造上限为 0 和材料不足的重复提示。"
 )
+EXPECTED_HISTORY_V025 = (
+    "修复通过插件管理中心重装或热更新后，Vue 页面 API 仍绑定已停止旧实例、"
+    "点击刷新提示“插件正在停止”的问题；旧接口会安全转交给 MoviePilot 当前运行实例，"
+    "没有新实例时继续拒绝执行，避免旧版本恢复运行。"
+)
 EXPECTED_HISTORY_V020 = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
     "加入手动赠送与赠礼统计；首次从 v0.1.x 更新到完整重写的 v0.2.0 后需手动重启一次 MoviePilot，"
@@ -58,6 +63,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.5",
     "v0.2.4",
     "v0.2.3",
     "v0.2.2",
@@ -458,7 +464,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v024(self):
+    def test_release_versions_are_consistently_v025(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -482,10 +488,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v024_release(self):
+    def test_market_history_and_readme_describe_the_v025_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V025, history["v0.2.5"])
         self.assertEqual(EXPECTED_HISTORY_V024, history["v0.2.4"])
         self.assertEqual(EXPECTED_HISTORY_V023, history["v0.2.3"])
         self.assertEqual(EXPECTED_HISTORY_V022, history["v0.2.2"])
@@ -494,7 +501,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.4` |",
+            "| `Vue-魔丸` | `v0.2.5` |",
+            "插件管理中心重装或热更新后",
+            "Vue 页面 API 仍绑定已停止旧实例",
+            "旧接口会安全转交给 MoviePilot 当前运行实例",
+            "没有新实例时继续拒绝执行",
             "自动读取并隐藏显示 MoviePilot 的 `si-qi.xyz` 站点 Cookie",
             "未手动修改时继续保持自动同步",
             "状态页顶部的“执行”按钮已移除",

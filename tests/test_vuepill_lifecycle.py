@@ -6,6 +6,7 @@ import threading
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -365,6 +366,23 @@ class VuePillLifecycleTests(unittest.TestCase):
             "exchange": {},
             "recipes": [],
             "server_now": 0,
+        }
+
+    @staticmethod
+    def _plugin_manager_modules(running_plugins):
+        app_module = types.ModuleType("app")
+        app_module.__path__ = []
+        core_module = types.ModuleType("app.core")
+        core_module.__path__ = []
+        plugin_module = types.ModuleType("app.core.plugin")
+        manager = types.SimpleNamespace(running_plugins=running_plugins)
+        plugin_module.PluginManager = lambda: manager
+        app_module.core = core_module
+        core_module.plugin = plugin_module
+        return {
+            "app": app_module,
+            "app.core": core_module,
+            "app.core.plugin": plugin_module,
         }
 
     def _assert_public_value_has_no_secrets(self, value, secrets):
@@ -930,6 +948,117 @@ class VuePillLifecycleTests(unittest.TestCase):
         late_old_refresh = old_plugin._refresh_data()
         self.assertIs(late_old_refresh["success"], False)
         self.assertEqual(data_after_reset, shared_data)
+
+    def test_stale_refresh_api_forwards_to_current_running_instance(self):
+        old_module = _load_plugin_module()
+        old_plugin = make_plugin(old_module)
+        new_module = _load_plugin_module()
+        new_plugin = make_plugin(new_module)
+        refresh_calls = []
+
+        old_plugin._refresh_state = lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("旧实例不应继续刷新")
+        )
+
+        def refresh_new(**kwargs):
+            refresh_calls.append(dict(kwargs))
+            return {"inventory": [{"name": "魔丸", "count": 3}]}
+
+        new_plugin._refresh_state = refresh_new
+        new_plugin._build_status = lambda auto_refresh=False: {
+            "source": "new-instance"
+        }
+        old_plugin.stop_service()
+
+        modules = self._plugin_manager_modules({"VuePill": new_plugin})
+        with mock.patch.dict(sys.modules, modules, clear=False):
+            result = old_plugin._refresh_data()
+
+        self.assertIs(result["success"], True)
+        self.assertEqual([{"reason": "manual-refresh"}], refresh_calls)
+        self.assertEqual("new-instance", result["status"]["source"])
+        self.assertIs(type(old_plugin)._migration_stopping, True)
+
+    def test_stale_config_api_forwards_to_current_running_instance(self):
+        old_module = _load_plugin_module()
+        old_plugin = make_plugin(old_module)
+        new_module = _load_plugin_module()
+        new_plugin = make_plugin(new_module)
+        save_calls = []
+
+        old_plugin.save_data(
+            old_plugin.CONFIG_GENERATION_KEY,
+            old_plugin.CONFIG_GENERATION,
+        )
+        old_plugin.save_data(old_plugin.LEGACY_MIGRATION_KEY, True)
+        old_plugin._config_store = old_plugin._default_config()
+        old_plugin._config_store["enabled"] = False
+        config_before = dict(old_plugin._config_store)
+        old_plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        old_plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        old_plugin._build_status = lambda auto_refresh=False: {}
+        old_plugin._reregister_plugin = lambda reason="": None
+
+        def save_new(payload):
+            save_calls.append(dict(payload))
+            return {
+                "success": True,
+                "message": "新实例已保存",
+                "config": {"enabled": bool(payload.get("enabled"))},
+            }
+
+        new_plugin._save_config = save_new
+        old_plugin.stop_service()
+
+        modules = self._plugin_manager_modules({"VuePill": new_plugin})
+        with mock.patch.dict(sys.modules, modules, clear=False):
+            result = old_plugin._save_config({"enabled": True})
+
+        self.assertIs(result["success"], True)
+        self.assertEqual("新实例已保存", result["message"])
+        self.assertEqual([{"enabled": True}], save_calls)
+        self.assertEqual(config_before, old_plugin._config_store)
+        self.assertIs(type(old_plugin)._migration_stopping, True)
+
+    def test_stale_config_api_rejects_when_no_running_instance_exists(self):
+        plugin = make_plugin(self.module)
+        plugin.save_data(
+            plugin.CONFIG_GENERATION_KEY,
+            plugin.CONFIG_GENERATION,
+        )
+        plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+        plugin._config_store = plugin._default_config()
+        config_before = dict(plugin._config_store)
+        plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        plugin._build_status = lambda auto_refresh=False: {}
+        plugin._reregister_plugin = lambda reason="": None
+        plugin.stop_service()
+
+        modules = self._plugin_manager_modules({})
+        with mock.patch.dict(sys.modules, modules, clear=False):
+            result = plugin._save_config({"enabled": True})
+
+        self.assertIs(result["success"], False)
+        self.assertIn("插件正在停止", result["message"])
+        self.assertEqual(config_before, plugin._config_store)
+        self.assertIs(type(plugin)._migration_stopping, True)
+
+    def test_stopped_internal_config_read_stays_on_draining_instance(self):
+        plugin = make_plugin(self.module)
+        plugin._config_store = plugin._default_config()
+        plugin._apply_config(plugin._config_store)
+        plugin.stop_service()
+
+        modules = self._plugin_manager_modules({})
+        with mock.patch.dict(sys.modules, modules, clear=False):
+            config = plugin._get_config(include_options=False)
+
+        self.assertNotIn("success", config)
+        self.assertNotIn("message", config)
+        self.assertIs(config["enabled"], False)
+        self.assertEqual(10, config["reserve_magic_pill_count"])
+        self.assertIs(type(plugin)._migration_stopping, True)
 
     def test_public_init_recovers_same_instance_after_stop(self):
         self.plugin.save_data(

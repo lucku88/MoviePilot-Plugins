@@ -114,12 +114,34 @@ class _SiteSessionAdapter:
 def _public_api(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
-        return self._sanitize_public_response(method(self, *args, **kwargs))
+        handled, value = self._dispatch_stopped_public_api(
+            method.__name__,
+            args,
+            kwargs,
+        )
+        if not handled:
+            value = method(self, *args, **kwargs)
+        return self._sanitize_public_response(value)
 
     return wrapped
 
 
 def _config_public_api(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        handled, value = self._dispatch_stopped_public_api(
+            method.__name__,
+            args,
+            kwargs,
+        )
+        if not handled:
+            value = method(self, *args, **kwargs)
+        return self._sanitize_config_public_response(value)
+
+    return wrapped
+
+
+def _config_public_value(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
         return self._sanitize_config_public_response(method(self, *args, **kwargs))
@@ -187,7 +209,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、手动赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.4"
+    plugin_version = "0.2.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -470,6 +492,42 @@ class VuePill(_PluginBase):
             "success": False,
             "message": "插件正在停止，已拒绝新任务",
         }
+
+    def _dispatch_stopped_public_api(
+        self,
+        method_name: str,
+        args: tuple,
+        kwargs: dict,
+    ) -> Tuple[bool, Any]:
+        if not self._is_migration_stopping():
+            return False, None
+
+        try:
+            from app.core.plugin import PluginManager
+        except ImportError:
+            # Lightweight test/runtime stubs may not expose PluginManager.
+            return False, None
+
+        try:
+            running_plugins = PluginManager().running_plugins
+            target = running_plugins.get(self.__class__.__name__)
+        except Exception:
+            return True, self._activity_stopping_response()
+
+        if target is None or target is self:
+            return True, self._activity_stopping_response()
+
+        target_is_stopping = getattr(target, "_is_migration_stopping", None)
+        try:
+            if callable(target_is_stopping) and target_is_stopping():
+                return True, self._activity_stopping_response()
+        except Exception:
+            return True, self._activity_stopping_response()
+
+        target_method = getattr(target, method_name, None)
+        if not callable(target_method):
+            return True, self._activity_stopping_response()
+        return True, target_method(*args, **kwargs)
 
     def _upgrade_restart_response(self) -> Dict[str, Any]:
         return {
@@ -1817,7 +1875,7 @@ class VuePill(_PluginBase):
             return first
         return "all"
 
-    @_config_public_api
+    @_config_public_value
     def _get_config(
         self,
         include_options: bool = True,
