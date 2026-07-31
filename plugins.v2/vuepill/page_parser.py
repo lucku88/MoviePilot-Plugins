@@ -1281,8 +1281,10 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             and not brick_status_blocked
             and not factory_blocked
         )
-        if stats["daily_bricks"] >= daily_limit or available_count <= 0:
+        if stats["daily_bricks"] >= daily_limit:
             public_brick_status = "今日搬砖已满"
+        elif available_count <= 0:
+            public_brick_status = "当前暂无可搬砖块"
         else:
             public_brick_status = brick_status_text or (
                 "可以搬砖" if brick_ready else "当前不可搬砖"

@@ -208,6 +208,24 @@ class VuePillParserTests(unittest.TestCase):
         self.assertIs(data["brick"]["ready"], False)
         self.assertEqual("今日搬砖已满", data["brick"]["status_text"])
 
+    def test_empty_brick_factory_is_not_reported_as_daily_quota_complete(self):
+        parse_page = _load_parse_page()
+
+        data = parse_page(
+            self.movable_brick_html(
+                daily_bricks="0",
+                daily_limit="50",
+                factory_count="0",
+                brick_status="暂无砖块",
+            ),
+            now_ts=1785100000,
+        )
+
+        self.assertIs(data["brick"]["ready"], False)
+        self.assertEqual(0, data["brick"]["daily_bricks"])
+        self.assertEqual(0, data["brick"]["available_count"])
+        self.assertEqual("当前暂无可搬砖块", data["brick"]["status_text"])
+
     def test_server_time_offset_expression_is_used_as_server_now(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
