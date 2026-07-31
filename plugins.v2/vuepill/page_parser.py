@@ -28,7 +28,14 @@ _DAILY_LIMIT_RE = re.compile(
 _CRAFT_ID_RE = re.compile(r"\bcraft\s*\(\s*(\d+)\s*\)", re.IGNORECASE)
 _CRAFT_INPUT_ID_RE = re.compile(r"^craft[-_](\d+)$", re.IGNORECASE)
 _COOLDOWN_WORDS = ("倒计时", "下次清理", "冷却")
-_BRICK_READY_WORDS = ("可以搬砖", "可搬砖", "立即搬砖", "立即搬")
+_BRICK_READY_WORDS = (
+    "可以搬砖",
+    "可搬砖",
+    "立即搬砖",
+    "立即搬",
+    "拖拽砖块到口袋",
+    "搬砖到口袋",
+)
 _BRICK_BLOCKED_WORDS = ("倒计时", "上限", "明日", "明天")
 _CONSERVATIVE_NEGATIVE_SIGNALS = (
     "暂无",
@@ -198,6 +205,23 @@ class _TreeParser(HTMLParser):
         "track",
         "wbr",
     }
+    _OPTIONAL_END_TAGS = {
+        "colgroup",
+        "dd",
+        "dt",
+        "li",
+        "optgroup",
+        "option",
+        "p",
+        "rp",
+        "rt",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+    }
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -222,7 +246,11 @@ class _TreeParser(HTMLParser):
         wanted = tag.lower()
         for index in range(len(self._stack) - 1, 0, -1):
             if self._stack[index].tag == wanted:
-                if index != len(self._stack) - 1:
+                intervening = self._stack[index + 1 :]
+                if intervening and not all(
+                    node.tag in self._OPTIONAL_END_TAGS
+                    for node in intervening
+                ):
                     self.errors.append("misnested closing tag: %s" % wanted)
                 del self._stack[index:]
                 return
@@ -472,6 +500,24 @@ def _script_number(source: str, names: Iterable[str]) -> Optional[int]:
     return None
 
 
+def _script_server_now(source: str) -> Optional[int]:
+    direct = _script_number(source, ("server_now", "serverNow"))
+    if direct is not None:
+        return direct
+
+    pattern = re.compile(
+        r"(?<![\w$])(?:[\"']serverTimeOffset[\"']|serverTimeOffset)\s*"
+        r"[:=]\s*(?P<server_now>\d{10,13})\s*-\s*"
+        r"Math\.floor\(\s*Date\.now\(\s*\)\s*/\s*1000\s*\)",
+        re.IGNORECASE,
+    )
+    for candidate in _script_candidates(source):
+        match = pattern.search(candidate)
+        if match:
+            return safe_int(match.group("server_now"), 0)
+    return None
+
+
 def _normalise_timestamp(value: Any, default: int = 0) -> int:
     parsed = safe_int(value, default)
     if parsed <= 0:
@@ -501,7 +547,7 @@ def _server_now(source: str, now_ts: Optional[int]) -> int:
         if now_ts is not None
         else int(time.time())
     )
-    raw_value = _script_number(source, ("server_now", "serverNow"))
+    raw_value = _script_server_now(source)
     if raw_value is None:
         return fallback
     return _normalise_timestamp(raw_value, fallback)
@@ -1165,7 +1211,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
         )
         stats["daily_limit"] = daily_limit
 
-        raw_server_now = _script_number(source, ("server_now", "serverNow"))
+        raw_server_now = _script_server_now(source)
         raw_last_beach = _script_number(
             source,
             ("last_beach_time", "lastBeachTime"),

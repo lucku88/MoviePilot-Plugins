@@ -296,6 +296,9 @@ class VueAutoCatchupTests(unittest.TestCase):
         plugin._enabled = True
         plugin._enable_beach = True
         plugin._enable_brick = True
+        plugin._next_run_time = plugin._aware_now() + module.timedelta(hours=12)
+        plugin._next_trigger_time = plugin._aware_now() + module.timedelta(hours=11)
+        plugin._next_trigger_mode = "run:brick"
         self._patch_save_dependencies(plugin)
         run_calls = []
         plugin._refresh_state = lambda reason, record_run=True: {"beach": {"ready": True}, "next_run_ts": 0}
@@ -308,7 +311,7 @@ class VueAutoCatchupTests(unittest.TestCase):
 
         result = plugin._save_config({"enabled": True})
 
-        self.assertEqual([(True, "save-config")], run_calls)
+        self.assertEqual([(True, "save-config:beach")], run_calls)
         self.assertEqual("配置已保存，已执行补跑", result["message"])
         self.assertEqual({"ran": True}, result["pill_status"])
 
@@ -337,6 +340,34 @@ class VueAutoCatchupTests(unittest.TestCase):
         self.assertEqual([("status-init", False)], refresh_calls)
         self.assertEqual([(True, "bootstrap:brick")], run_calls)
         self.assertEqual("补跑完成", result["message"])
+
+    def test_bootstrap_refresh_runs_ready_beach_before_future_brick_plan(self):
+        module = _load_plugin("vuepill")
+        plugin = module.VuePill()
+        plugin._enabled = True
+        plugin._enable_brick = True
+        plugin._enable_beach = True
+        plugin._next_run_time = plugin._aware_now() + module.timedelta(hours=12)
+        plugin._next_trigger_time = plugin._aware_now() + module.timedelta(hours=11)
+        plugin._next_trigger_mode = "run:brick"
+        refresh_calls = []
+        run_calls = []
+        plugin._refresh_state = lambda reason, record_run=True: refresh_calls.append(
+            (reason, record_run)
+        ) or {"brick": {"ready": True}, "beach": {"ready": True}}
+        plugin.run_job = lambda force=False, reason="manual": run_calls.append(
+            (force, reason)
+        ) or {
+            "success": True,
+            "message": "沙滩补跑完成",
+            "pill_status": {"ran": True},
+        }
+
+        result = plugin._bootstrap_worker()
+
+        self.assertEqual([("status-init", False)], refresh_calls)
+        self.assertEqual([(True, "bootstrap:beach")], run_calls)
+        self.assertEqual("沙滩补跑完成", result["message"])
 
     def test_vuepill_bootstrap_catchup_finishes_before_generation_reset(self):
         module = _load_plugin("vuepill")

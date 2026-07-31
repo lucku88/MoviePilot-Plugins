@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.0"
+EXPECTED_VERSION = "0.2.1"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -29,7 +29,13 @@ BUILD_INPUT_PATHS = (
     "src/utils/configValidation.js",
     "src/utils/request.js",
 )
-EXPECTED_HISTORY = (
+EXPECTED_HISTORY_V021 = (
+    "修复真实魔丸页面因省略列表结束标签而解析失败、状态被错误保存为全零并跳过任务的问题，"
+    "补充服务器时间与拖拽搬砖状态识别；启动或保存配置时会优先补跑已就绪沙滩，"
+    "并将状态页、配置页统一为 Vue-农场同款自适应主题。v0.2.x 小版本升级保留现有配置、"
+    "执行历史和动态调度计划，无需重新清配置。"
+)
+EXPECTED_HISTORY_V020 = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
     "加入手动赠送与赠礼统计；首次从 v0.1.x 更新到完整重写的 v0.2.0 后需手动重启一次 MoviePilot，"
     "重启后会一次性重置旧配置、执行历史和动态调度计划，后续 v0.2.x 更新会保留配置、"
@@ -37,6 +43,7 @@ EXPECTED_HISTORY = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.1",
     "v0.2.0",
     "v0.1.18",
     "v0.1.17",
@@ -433,7 +440,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v020(self):
+    def test_release_versions_are_consistently_v021(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -457,15 +464,20 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v020_release(self):
+    def test_market_history_and_readme_describe_the_v021_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
-        self.assertEqual(EXPECTED_HISTORY, history["v0.2.0"])
+        self.assertEqual(EXPECTED_HISTORY_V021, history["v0.2.1"])
+        self.assertEqual(EXPECTED_HISTORY_V020, history["v0.2.0"])
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.0` |",
+            "| `Vue-魔丸` | `v0.2.1` |",
+            "真实页面解析失败后把魔力、魔丸、搬砖、沙滩、库存和配方错误保存为全零",
+            "补充服务器时间、拖拽搬砖状态和启动时沙滩补跑识别",
+            "状态页和配置页统一使用 Vue-农场同款自适应主题",
+            "无需重新清配置",
             "Cookie 固定从 MoviePilot 站点管理自动同步",
             "动态沙滩",
             "搬砖使用独立 Cron",

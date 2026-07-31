@@ -178,7 +178,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、手动赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.0"
+    plugin_version = "0.2.1"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -1144,16 +1144,16 @@ class VuePill(_PluginBase):
         refresh_reason: str,
         before_refresh: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
-        if not self._should_run_after_refresh(
+        catchup_action = self._refresh_catchup_action(
             status,
             before_refresh,
             refresh_reason=refresh_reason,
-        ):
+        )
+        if not catchup_action:
             return None
         logger.info("%s 刷新后检测到已可执行，立即补跑：%s", self.plugin_name, refresh_reason)
-        trigger_action = str((before_refresh or {}).get("trigger_action") or "")
-        if trigger_action in {"brick", "beach"}:
-            run_reason = f"{run_reason}:{trigger_action}"
+        if catchup_action in {"brick", "beach"}:
+            run_reason = f"{run_reason}:{catchup_action}"
         return self.run_job(force=True, reason=run_reason)
 
     def _should_run_after_refresh(
@@ -1162,23 +1162,38 @@ class VuePill(_PluginBase):
         before_refresh: Optional[Dict[str, Any]] = None,
         refresh_reason: str = "",
     ) -> bool:
+        return bool(
+            self._refresh_catchup_action(
+                status,
+                before_refresh,
+                refresh_reason=refresh_reason,
+            )
+        )
+
+    def _refresh_catchup_action(
+        self,
+        status: Optional[Dict[str, Any]],
+        before_refresh: Optional[Dict[str, Any]] = None,
+        refresh_reason: str = "",
+    ) -> str:
         if not self._enabled or not (self._enable_brick or self._enable_beach):
-            return False
+            return ""
 
         before = before_refresh or {}
         trigger_mode = str(before.get("trigger_mode") or "run")
         if before.get("next_run_overdue") or (before.get("next_trigger_overdue") and trigger_mode.startswith("run")):
-            return True
+            trigger_action = str(before.get("trigger_action") or "")
+            return trigger_action if trigger_action in {"brick", "beach"} else "all"
 
         pill_status = status or {}
         if (
-            refresh_reason == "save-config"
+            refresh_reason in {"save-config", "status-init"}
             and self._enable_beach
             and self._is_beach_ready(pill_status.get("beach") or {})
         ):
-            return True
+            return "beach"
 
-        return False
+        return ""
 
     def _is_beach_ready(self, beach: Dict[str, Any]) -> bool:
         if not isinstance(beach, dict):
@@ -2383,8 +2398,9 @@ class VuePill(_PluginBase):
     def _fetch_page_state(self, session) -> Dict[str, Any]:
         client = self._site_client_for_session(session)
         data = parse_page(client.fetch_page_html(_SiteSessionAdapter(session)))
-        if not data.get("title") and not data.get("stats"):
-            raise ValueError("获取魔丸页面失败，Cookie 可能失效")
+        if data.get("parse_complete") is not True:
+            parse_error = str(data.get("parse_error") or "页面结构不完整").strip()
+            raise ValueError(f"魔丸页面解析失败：{parse_error}")
         return data
 
     def _fetch_stable_page_state(

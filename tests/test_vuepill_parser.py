@@ -98,6 +98,17 @@ class VuePillParserTests(unittest.TestCase):
         self.assertTrue(data.get("parse_error"))
         self.assert_actions_disabled(data)
 
+    def test_optional_li_end_tag_does_not_invalidate_game_page(self):
+        parse_page = _load_parse_page()
+        html = FIXTURE.read_text(encoding="utf-8")
+        html += "<ul><li>浏览器允许省略列表项结束标签</ul>"
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data.get("parse_complete"), True)
+        self.assertEqual("", data.get("parse_error"))
+        self.assertEqual(73037, data["stats"]["points"])
+
     def test_missing_brick_factory_nodes_is_fail_closed(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -178,6 +189,35 @@ class VuePillParserTests(unittest.TestCase):
             now_ts=1785100000,
         )
         self.assertIs(ready_data["brick"]["ready"], True)
+
+        drag_ready_data = parse_page(
+            self.movable_brick_html(brick_status="拖拽砖块到口袋"),
+            now_ts=1785100000,
+        )
+        self.assertIs(drag_ready_data["brick"]["ready"], True)
+
+    def test_server_time_offset_expression_is_used_as_server_now(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '"server_now": 1785100000,',
+            "serverTimeOffset: 1785100000 - Math.floor(Date.now() / 1000),",
+        )
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            "可进入清理",
+        )
+        html = html.replace(
+            'id="beachBtn" onclick="enterBeach()" disabled=""',
+            'id="beachBtn" onclick="enterBeach()"',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html)
+
+        self.assertIs(data.get("parse_complete"), True)
+        self.assertEqual(1785100000, data["server_now"])
+        self.assertIs(data["beach"]["can_enter"], True)
+        self.assertIs(data["beach"]["ready"], True)
 
     def test_brick_negative_phrases_do_not_match_ready_substrings(self):
         parse_page = _load_parse_page()

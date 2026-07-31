@@ -392,6 +392,31 @@ class VuePillLifecycleTests(unittest.TestCase):
         for secret in secrets:
             self.assertNotIn(secret, encoded)
 
+    def test_fetch_page_state_rejects_incomplete_parser_result(self):
+        class FakeClient:
+            @staticmethod
+            def fetch_page_html(session):
+                return "<html>malformed game page</html>"
+
+        self.plugin._site_client_for_session = lambda session: FakeClient()
+        self.module.parse_page = lambda html: {
+            "parse_complete": False,
+            "parse_error": "malformed HTML: misnested closing tag: ul",
+            "title": "搬砖捡破烂炼魔丸",
+            "stats": {
+                "points": 0,
+                "bonus_earned": 0,
+                "magic_pills": 0,
+                "daily_bricks": 0,
+            },
+        }
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "页面解析失败.*misnested closing tag: ul",
+        ):
+            self.plugin._fetch_page_state(object())
+
     def test_config_generation_reader_is_strict(self):
         self.assertEqual("v020_initialized", self.module.LEGACY_MIGRATION_KEY)
         self.assertEqual("config_generation", self.module.CONFIG_GENERATION_KEY)

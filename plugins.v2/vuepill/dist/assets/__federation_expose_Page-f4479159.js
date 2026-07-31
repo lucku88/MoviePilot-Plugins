@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-41a74a79.js';
 
-const Page_vue_vue_type_style_index_0_scoped_943992d9_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_2c359ae4_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-943992d9"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-2c359ae4"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -621,9 +621,10 @@ return (_ctx, _cache) => {
         }, {
           default: _withCtx(() => [
             _createVNode(_component_v_btn, {
-              color: "orange-darken-1",
+              color: "success",
+              size: "small",
               class: "px-0 px-sm-3",
-              "min-width": "44",
+              "min-width": "40",
               "aria-label": "立即执行 Vue-魔丸",
               loading: actionLoading.value === 'run',
               disabled: writeActionsDisabled.value,
@@ -640,9 +641,10 @@ return (_ctx, _cache) => {
               _: 1
             }, 8, ["loading", "disabled"]),
             _createVNode(_component_v_btn, {
-              color: "orange-darken-1",
+              color: "success",
+              size: "small",
               class: "px-0 px-sm-3",
-              "min-width": "44",
+              "min-width": "40",
               "aria-label": "刷新 Vue-魔丸状态",
               loading: actionLoading.value === 'refresh',
               disabled: writeActionsDisabled.value,
@@ -659,9 +661,10 @@ return (_ctx, _cache) => {
               _: 1
             }, 8, ["loading", "disabled"]),
             _createVNode(_component_v_btn, {
-              color: "orange-darken-1",
+              color: "success",
+              size: "small",
               class: "px-0 px-sm-3",
-              "min-width": "44",
+              "min-width": "40",
               "aria-label": "打开 Vue-魔丸配置",
               disabled: isBusy.value,
               onClick: _cache[0] || (_cache[0] = $event => (emit('switch', 'config')))
@@ -677,9 +680,10 @@ return (_ctx, _cache) => {
               _: 1
             }, 8, ["disabled"]),
             _createVNode(_component_v_btn, {
-              color: "orange-darken-1",
+              color: "success",
+              size: "small",
               class: "px-0 px-sm-3",
-              "min-width": "44",
+              "min-width": "40",
               "aria-label": "关闭 Vue-魔丸",
               disabled: isBusy.value,
               onClick: _cache[1] || (_cache[1] = $event => (emit('close')))
@@ -1504,6 +1508,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-943992d9"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-2c359ae4"]]);
 
 export { PageView as default };

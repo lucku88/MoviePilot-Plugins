@@ -770,6 +770,37 @@ try {
         self.assertNotRegex(self.page, r'class="[^"]*\bvp-')
         self.assertNotIn("#f8f7ff", self.app)
 
+    def test_visual_shell_stays_neutral_and_matches_vuefarm_theme(self):
+        topbar = self.page.split('<div class="siqi-content">', 1)[0]
+        self.assertIn('color="success"', topbar)
+        self.assertNotIn('color="orange-darken-1"', topbar)
+        self.assertIn(
+            "background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(76,175,80,.025))",
+            self.compact_page,
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.siqi-topbar__icon\{[^}]*background:rgba\(76,175,80,.14\)[^}]*color:#2e7d32",
+        )
+        self.assertNotIn("rgba(245,158,11,.035)", self.compact_page)
+        for tone in ("orange", "green", "blue", "red"):
+            with self.subTest(tone=tone):
+                self.assertNotRegex(
+                    self.compact_page,
+                    rf"\.stat-{tone}\{{[^}}]*background:",
+                )
+
+        self.assertIn(
+            "background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(76,175,80,.025))",
+            self.compact_config,
+        )
+        self.assertRegex(
+            self.compact_config,
+            r"\.siqi-card\{[^}]*background:rgba\(var\(--v-theme-on-surface\),.03\)",
+        )
+        self.assertNotIn("background:rgba(var(--v-theme-surface),.5)", self.compact_config)
+        self.assertNotIn("background:rgba(var(--v-theme-surface),.34)", self.compact_config)
+
     def test_status_sections_follow_required_order(self):
         markers = (
             "siqi-topbar",
