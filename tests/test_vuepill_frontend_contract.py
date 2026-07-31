@@ -62,6 +62,7 @@ class VuePillFrontendContractTest(unittest.TestCase):
             "notify",
             "onlyonce",
             "use_proxy",
+            "cookie",
             "enable_brick",
             "enable_beach",
             "auto_craft",
@@ -104,17 +105,20 @@ class VuePillFrontendContractTest(unittest.TestCase):
         )
         self.assertNotIn("保留材料数量", self.config)
 
-    def test_config_cookie_is_read_only_explanation_only(self):
-        self.assertIn("Cookie：从 MoviePilot 站点自动同步。", self.config)
+    def test_config_cookie_matches_vuefarm_editable_secret_control(self):
+        self.assertIn('v-model="config.cookie"', self.config)
+        self.assertIn("站点 Cookie", self.config)
+        self.assertIn("showCookie", self.config)
+        self.assertIn("mdi-eye-outline", self.config)
+        self.assertIn("mdi-eye-off-outline", self.config)
+        self.assertIn("手动 Cookie 优先", self.config)
+        self.assertIn("清空后恢复自动同步", self.config)
         self.assertNotIn("auto_cookie", self.config)
-        self.assertNotIn("config.cookie", self.config)
-        self.assertNotRegex(self.config, r"['\"]cookie['\"]")
         self.assertNotIn("/cookie", self.config)
         self.assertNotIn("syncCookie", self.config)
-        self.assertNotIn("同步 Cookie", self.config)
-        self.assertNotRegex(
+        self.assertRegex(
             self.config,
-            r"<v-(?:text-field|textarea|switch|btn)[^>]*(?:Cookie|cookie)",
+            r"<v-textarea[^>]+v-model=\"config\.cookie\"",
         )
 
     def test_config_defaults_ranges_and_backend_validation_match(self):
@@ -168,6 +172,7 @@ const validationUrl = pathToFileURL(
 const {
   DEFAULT_CONFIG,
   INTEGER_CONFIG_RULES,
+  validateManualCookie,
   parseStrictInteger,
   validateCronExpression,
   validateVuePillConfig,
@@ -241,7 +246,7 @@ const source = {
   http_timeout: '12',
   http_retry_times: '5',
   http_retry_delay: '1500',
-  cookie: 'must-not-leak',
+  cookie: 'sid=manual-cookie-secret',
   unknown_secret: 'must-not-leak',
 }
 const validation = validateVuePillConfig(source)
@@ -257,8 +262,12 @@ for (const field of [
   assert.equal(typeof validation.payload[field], 'boolean', field)
 }
 assert.equal(Object.hasOwn(validation.payload, 'force_ipv4'), false)
-assert.equal(Object.hasOwn(validation.payload, 'cookie'), false)
+assert.equal(validation.payload.cookie, 'sid=manual-cookie-secret')
 assert.equal(Object.hasOwn(validation.payload, 'unknown_secret'), false)
+assert.equal(validateManualCookie('').valid, true)
+assert.equal(validateManualCookie('sid=manual-cookie-secret').valid, true)
+assert.equal(validateManualCookie('cookie').valid, false)
+assert.equal(validateManualCookie('sid=safe\r\nX-Test: value').valid, false)
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
@@ -299,6 +308,7 @@ const normalizedConfig = {
   enable_beach: true,
   auto_craft: false,
   auto_exchange: false,
+  cookie: '',
   brick_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   reserve_magic_pill_count: 10,
@@ -386,7 +396,7 @@ try {
     http_timeout: '12',
     http_retry_times: '5',
     http_retry_delay: '1500',
-    cookie: 'must-not-leak',
+    cookie: 'sid=manual-cookie-secret',
   })
   await bindings.saveConfig()
   assert.equal(posts.length, 1)
@@ -395,7 +405,7 @@ try {
   assert.equal(posts[0].payload.brick_cron, '5 0 * * *')
   assert.equal(typeof posts[0].payload.schedule_buffer_seconds, 'number')
   assert.equal(Object.hasOwn(posts[0].payload, 'force_ipv4'), false)
-  assert.equal(Object.hasOwn(posts[0].payload, 'cookie'), false)
+  assert.equal(posts[0].payload.cookie, 'sid=manual-cookie-secret')
   assert.equal(bindings.config.onlyonce, false)
 
   await bindings.saveConfig()
@@ -562,6 +572,7 @@ const normalizedConfig = {
   enable_beach: true,
   auto_craft: false,
   auto_exchange: false,
+  cookie: '',
   brick_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   reserve_magic_pill_count: 10,

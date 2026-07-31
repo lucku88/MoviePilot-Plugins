@@ -249,6 +249,7 @@ def make_plugin(module):
     plugin = module.VuePill()
     plugin._scheduler = None
     plugin._siteoper = None
+    plugin._manual_cookie = ""
     plugin._cookie = ""
     plugin._cookie_source = "未同步"
     return plugin
@@ -838,8 +839,6 @@ class VuePillLifecycleTests(unittest.TestCase):
         stopped_refresh = old_plugin._refresh_data()
         self.assertIs(stopped_refresh["success"], False)
         self.assertEqual(data_after_stop, shared_data)
-        stopped_save = old_plugin._save_config({"enabled": False})
-        self.assertIs(stopped_save["success"], False)
         self.assertEqual(data_after_stop, shared_data)
         self.assertEqual(config_after_stop, shared_config)
 
@@ -868,7 +867,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(late_old_refresh["success"], False)
         self.assertEqual(data_after_reset, shared_data)
 
-    def test_public_init_is_ignored_after_instance_has_stopped(self):
+    def test_public_init_recovers_same_instance_after_stop(self):
         self.plugin.save_data(
             self.plugin.CONFIG_GENERATION_KEY,
             self.plugin.CONFIG_GENERATION,
@@ -881,29 +880,34 @@ class VuePillLifecycleTests(unittest.TestCase):
             "onlyonce": False,
             "reserve_magic_pill_count": 7,
         }
-        update_calls = []
-        original_update_config = self.plugin.update_config
-
-        def record_update(config):
-            update_calls.append(dict(config))
-            return original_update_config(config)
-
-        self.plugin.update_config = record_update
         self.plugin.stop_service()
         data_before_init = json.loads(json.dumps(self.plugin._data_store))
-        config_before_init = dict(self.plugin._config_store)
 
-        self.plugin.init_plugin({"enabled": True, "onlyonce": True})
+        self.plugin.init_plugin(
+            {
+                "enabled": True,
+                "onlyonce": False,
+                "reserve_magic_pill_count": 9,
+            }
+        )
 
-        self.assertEqual([], update_calls)
         self.assertEqual(data_before_init, self.plugin._data_store)
-        self.assertEqual(config_before_init, self.plugin._config_store)
-        self.assertIs(self.plugin._enabled, False)
+        self.assertIs(self.plugin._enabled, True)
         self.assertIs(self.plugin._onlyonce, False)
+        self.assertEqual(9, self.plugin._reserve_magic_pill_count)
         self.assertIsNone(self.plugin._scheduler)
-        self.assertIs(type(self.plugin)._migration_stopping, True)
+        self.assertIs(type(self.plugin)._migration_stopping, False)
 
-    def test_public_stop_blocks_concurrent_init_without_side_effects(self):
+        self.plugin._manual_move_bricks = lambda: {
+            "lines": ["🧱 搬砖：砖块×50"],
+            "pill_status": {},
+        }
+        action_result = self.plugin._move_bricks_api()
+
+        self.assertIs(action_result["success"], True)
+        self.assertIn("搬砖", action_result["message"])
+
+    def test_public_stop_serializes_concurrent_init_then_allows_recovery(self):
         plugin = make_plugin(self.module)
         plugin.save_data(
             plugin.CONFIG_GENERATION_KEY,
@@ -926,9 +930,10 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         def blocking_stop():
             stop_calls.append(True)
-            stop_entered.set()
-            if not allow_stop_finish.wait(2):
-                raise RuntimeError("公开停止等待超时")
+            if len(stop_calls) == 1:
+                stop_entered.set()
+                if not allow_stop_finish.wait(2):
+                    raise RuntimeError("公开停止等待超时")
 
         def record_update(config):
             update_calls.append(dict(config))
@@ -942,7 +947,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         def initialize_plugin():
             try:
-                plugin.init_plugin({"enabled": True, "onlyonce": True})
+                plugin.init_plugin({"enabled": True, "onlyonce": False})
             except BaseException as err:
                 errors.append(err)
             finally:
@@ -968,14 +973,40 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertFalse(stop_thread.is_alive())
         self.assertFalse(init_thread.is_alive())
         self.assertEqual([], errors)
-        self.assertEqual([True], stop_calls)
+        self.assertEqual([True, True], stop_calls)
         self.assertEqual([], update_calls)
         self.assertEqual(data_before, plugin._data_store)
         self.assertEqual(config_before, plugin._config_store)
-        self.assertIs(plugin._enabled, False)
+        self.assertIs(plugin._enabled, True)
         self.assertIs(plugin._onlyonce, False)
         self.assertIsNone(plugin._scheduler)
-        self.assertIs(type(plugin)._migration_stopping, True)
+        self.assertIs(type(plugin)._migration_stopping, False)
+
+    def test_save_config_recovers_stopped_instance_without_moviepilot_restart(self):
+        self.plugin.save_data(
+            self.plugin.CONFIG_GENERATION_KEY,
+            self.plugin.CONFIG_GENERATION,
+        )
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        self.plugin._config_store = self.plugin._default_config()
+        self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        self.plugin._build_status = lambda auto_refresh=False: {"enabled": self.plugin._enabled}
+        self.plugin._reregister_plugin = lambda reason="": None
+
+        self.plugin.stop_service()
+        result = self.plugin._save_config(
+            {
+                "enabled": False,
+                "reserve_magic_pill_count": 8,
+            }
+        )
+
+        self.assertIs(result["success"], True)
+        self.assertEqual("配置已保存", result["message"])
+        self.assertEqual(8, self.plugin._reserve_magic_pill_count)
+        self.assertEqual(8, self.plugin._config_store["reserve_magic_pill_count"])
+        self.assertIs(type(self.plugin)._migration_stopping, False)
 
     def test_fresh_install_writes_defaults_and_generation_without_data_reset(self):
         for config in (None, {}):
@@ -1629,6 +1660,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(defaults["auto_craft"], False)
         self.assertIs(defaults["auto_exchange"], False)
         self.assertIs(defaults["use_proxy"], False)
+        self.assertEqual("", defaults["cookie"])
         self.assertNotIn("force_ipv4", defaults)
         self.assertEqual("5 0 * * *", defaults["brick_cron"])
         self.assertEqual(5, defaults["schedule_buffer_seconds"])
@@ -1921,11 +1953,9 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.assertEqual(6, status["pill_status"]["exchange"]["reserve"])
 
-    def test_public_config_and_api_never_expose_cookie_input(self):
+    def test_manual_cookie_is_editable_but_never_exposed_by_status(self):
         secret = "sid=manual-cookie-secret; token=manual-token-secret"
         self.plugin.save_data("v020_initialized", True)
-        self.plugin._cookie = "sid=runtime-only-secret"
-        self.plugin._cookie_source = "站点同步：si-qi.xyz"
         self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
         self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
         self.plugin._reregister_plugin = lambda reason="": None
@@ -1934,40 +1964,92 @@ class VuePillLifecycleTests(unittest.TestCase):
             {
                 "enabled": False,
                 "cookie": secret,
-                "auto_cookie": False,
             }
         )
 
-        public_values = [
-            self.plugin._default_config(),
-            self.plugin._get_config(),
-            self.plugin._config_store,
-            result,
-            self.plugin._build_status(auto_refresh=False),
-        ]
+        self.assertIs(result["success"], True)
+        self.assertEqual(secret, self.plugin._get_config()["cookie"])
+        self.assertEqual(secret, self.plugin._config_store["cookie"])
+        self.assertEqual(secret, result["config"]["cookie"])
+        self.assertEqual(secret, self.plugin._manual_cookie)
 
-        def assert_no_secret_fields(value):
-            if isinstance(value, dict):
-                for key, nested in value.items():
-                    self.assertNotIn(
-                        str(key).lower(),
-                        {"cookie", "auto_cookie", "cookie_preview"},
-                    )
-                    assert_no_secret_fields(nested)
-            elif isinstance(value, (list, tuple)):
-                for nested in value:
-                    assert_no_secret_fields(nested)
-
-        for value in public_values:
-            with self.subTest(value_type=type(value).__name__):
-                assert_no_secret_fields(value)
-                encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
-                self.assertNotIn("manual-cookie-secret", encoded)
-                self.assertNotIn("manual-token-secret", encoded)
-        self.assertNotEqual(secret, self.plugin._cookie)
         status = self.plugin._build_status(auto_refresh=False)
-        self.assertIn("cookie_source", status)
-        self.assertIn("cookie_ready", status)
+        self.assertEqual("手动配置", status["cookie_source"])
+        self.assertIs(status["cookie_ready"], True)
+        self.assertNotIn("cookie", status.get("config", {}))
+        encoded_status = json.dumps(status, ensure_ascii=False, allow_nan=False)
+        self.assertNotIn("manual-cookie-secret", encoded_status)
+        self.assertNotIn("manual-token-secret", encoded_status)
+
+    def test_manual_cookie_takes_priority_and_blank_restores_site_sync(self):
+        site_calls = []
+
+        class ValidSiteOper:
+            def get_by_domain(self, domain):
+                site_calls.append(domain)
+                return {
+                    "cookie": "sid=site-cookie-secret",
+                    "url": "https://si-qi.xyz",
+                    "ua": "Latest UA",
+                }
+
+        self.module.SiteOper = ValidSiteOper
+        self.plugin._apply_config(
+            self.plugin._merge_public_config(
+                {"cookie": "sid=manual-cookie-secret"}
+            )
+        )
+
+        self.plugin._ensure_cookie()
+
+        self.assertEqual([], site_calls)
+        self.assertEqual("sid=manual-cookie-secret", self.plugin._cookie)
+        self.assertEqual("手动配置", self.plugin._cookie_source)
+
+        self.plugin._apply_config(
+            self.plugin._merge_public_config({"cookie": ""})
+        )
+        self.plugin._ensure_cookie()
+
+        self.assertEqual([self.plugin.DEFAULT_SITE_DOMAIN], site_calls)
+        self.assertEqual("sid=site-cookie-secret", self.plugin._cookie)
+        self.assertEqual(
+            "站点同步：si-qi.xyz",
+            self.plugin._cookie_source,
+        )
+
+    def test_save_config_rejects_unsafe_manual_cookie_without_echoing_it(self):
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        self.plugin._refresh_state = lambda **kwargs: {"inventory": []}
+        self.plugin._run_after_refresh_if_due = lambda *args, **kwargs: None
+        self.plugin._reregister_plugin = lambda reason="": None
+        unsafe_cookie = "sid=safe\r\nX-Injected: secret-cookie-value"
+
+        result = self.plugin._save_config({"cookie": unsafe_cookie})
+
+        self.assertIs(result["success"], False)
+        self.assertIn("换行", result["message"])
+        self.assertNotIn(unsafe_cookie, json.dumps(result, ensure_ascii=False))
+        self.assertEqual("", self.plugin._manual_cookie)
+
+    def test_invalid_save_does_not_resume_stopped_instance(self):
+        self.plugin.save_data(
+            self.plugin.CONFIG_GENERATION_KEY,
+            self.plugin.CONFIG_GENERATION,
+        )
+        self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
+        self.plugin._apply_config(self.plugin._default_config())
+        self.plugin.stop_service()
+
+        result = self.plugin._save_config(
+            {"cookie": "sid=safe\r\nX-Injected: secret-cookie-value"}
+        )
+        action_result = self.plugin._move_bricks_api()
+
+        self.assertIs(result["success"], False)
+        self.assertIs(type(self.plugin)._migration_stopping, True)
+        self.assertIs(action_result["success"], False)
+        self.assertIn("正在停止", action_result["message"])
 
     def test_public_status_filters_nested_sensitive_data_and_keeps_uids(self):
         secrets = (
@@ -2014,7 +2096,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 }
             ],
         )
-        self.plugin._get_config = lambda include_options=True: {
+        self.plugin._get_config = lambda include_options=True, include_cookie=True: {
             "enabled": False,
             "client_secret": "config-client-secret",
             "target_uid": "visible-config-target",
@@ -2555,7 +2637,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual("https://second.example", self.plugin._site_url)
         self.assertEqual("Second UA", self.plugin._user_agent)
 
-    def test_synced_cookie_is_never_persisted_or_previewed(self):
+    def test_synced_cookie_is_not_copied_into_manual_cookie_config(self):
         secret = "sid=site-cookie-secret; token=site-token-secret"
 
         class ValidSiteOper:
@@ -2580,7 +2662,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             allow_nan=False,
         )
         encoded_result = json.dumps(sync_result, ensure_ascii=False, allow_nan=False)
-        self.assertNotIn("cookie", encoded_config.lower())
+        self.assertEqual("", self.plugin._config_store["cookie"])
         self.assertNotIn(secret, encoded_config)
         self.assertNotIn("preview", encoded_result.lower())
         self.assertNotIn(secret, encoded_result)

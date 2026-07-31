@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.1"
+EXPECTED_VERSION = "0.2.2"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -35,6 +35,12 @@ EXPECTED_HISTORY_V021 = (
     "并将状态页、配置页统一为 Vue-农场同款自适应主题。v0.2.x 小版本升级保留现有配置、"
     "执行历史和动态调度计划，无需重新清配置。"
 )
+EXPECTED_HISTORY_V022 = (
+    "新增与 Vue-农场一致的可隐藏手动 Cookie 输入：填写后优先使用手动 Cookie，"
+    "清空后恢复 MoviePilot 站点自动同步；修复插件停止标记在更新后未解除，"
+    "导致搬砖等手动任务持续提示“插件正在停止”的问题。v0.2.x 小版本升级保留现有配置、"
+    "执行历史和动态调度计划，无需重新清配置。"
+)
 EXPECTED_HISTORY_V020 = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
     "加入手动赠送与赠礼统计；首次从 v0.1.x 更新到完整重写的 v0.2.0 后需手动重启一次 MoviePilot，"
@@ -43,6 +49,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.2",
     "v0.2.1",
     "v0.2.0",
     "v0.1.18",
@@ -440,7 +447,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v021(self):
+    def test_release_versions_are_consistently_v022(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -464,21 +471,25 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v021_release(self):
+    def test_market_history_and_readme_describe_the_v022_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V022, history["v0.2.2"])
         self.assertEqual(EXPECTED_HISTORY_V021, history["v0.2.1"])
         self.assertEqual(EXPECTED_HISTORY_V020, history["v0.2.0"])
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.1` |",
+            "| `Vue-魔丸` | `v0.2.2` |",
+            "可隐藏的手动 Cookie 输入框",
+            "填写后优先使用手动 Cookie",
+            "清空后恢复 MoviePilot 站点自动同步",
+            "修复更新后一直提示“插件正在停止”",
             "真实页面解析失败后把魔力、魔丸、搬砖、沙滩、库存和配方错误保存为全零",
             "补充服务器时间、拖拽搬砖状态和启动时沙滩补跑识别",
             "状态页和配置页统一使用 Vue-农场同款自适应主题",
             "无需重新清配置",
-            "Cookie 固定从 MoviePilot 站点管理自动同步",
             "动态沙滩",
             "搬砖使用独立 Cron",
             "`4/4/2/2/2/1`",
@@ -503,30 +514,27 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertIn(token, readme)
 
-    def test_source_has_no_public_cookie_controls(self):
+    def test_source_has_editable_cookie_only_on_config_page(self):
         page_source = (PLUGIN_DIR / "src" / "components" / "Page.vue").read_text(
             encoding="utf-8"
         )
         config_source = (
             PLUGIN_DIR / "src" / "components" / "Config.vue"
         ).read_text(encoding="utf-8")
-        frontend_source = f"{page_source}\n{config_source}"
-
-        self.assertIn("Cookie：从 MoviePilot 站点自动同步。", config_source)
+        self.assertIn('v-model="config.cookie"', config_source)
+        self.assertIn("showCookie", config_source)
+        self.assertIn("手动 Cookie 优先", config_source)
+        self.assertIn("清空后恢复自动同步", config_source)
+        self.assertNotIn("config.cookie", page_source)
         for forbidden in (
             "auto_cookie",
-            "config.cookie",
             "cookieFieldValue",
             "syncCookie",
             "同步 Cookie",
             "/cookie",
         ):
             with self.subTest(forbidden=forbidden):
-                self.assertNotIn(forbidden, frontend_source)
-        self.assertNotRegex(
-            frontend_source,
-            r"<v-(?:text-field|textarea|switch|btn)\b[^>]*(?:Cookie|cookie)",
-        )
+                self.assertNotIn(forbidden, f"{page_source}\n{config_source}")
 
     def test_application_entry_and_dist_have_no_development_api_or_debug_log(self):
         application_source = "\n".join(
@@ -642,7 +650,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                 flush=True,
             )
 
-    def test_dist_contains_v020_features_without_legacy_ui(self):
+    def test_dist_contains_v022_features_without_legacy_ui(self):
         asset_paths, dist_text = read_dist_text()
         self.assertTrue(asset_paths, "VuePill dist 中没有可检查的 JS/CSS 产物")
 
@@ -652,6 +660,10 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "gift-item",
             "gift-stats",
             "VCronField",
+            "config.cookie",
+            "站点 Cookie（留空自动同步）",
+            "手动 Cookie 优先",
+            "mdi-eye-outline",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, dist_text)
@@ -667,7 +679,6 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "站点 Cookie：手动填写",
             "cookieFieldValue",
             "auto_cookie",
-            "config.cookie",
             "c_secure_pass",
         ):
             with self.subTest(forbidden_cookie_ui=forbidden_cookie_ui):

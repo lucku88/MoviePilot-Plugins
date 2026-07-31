@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import traceback
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Dict, List, Optional, Tuple
@@ -118,6 +119,14 @@ def _public_api(method):
     return wrapped
 
 
+def _config_public_api(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        return self._sanitize_config_public_response(method(self, *args, **kwargs))
+
+    return wrapped
+
+
 class _MigrationActivityStopped(RuntimeError):
     pass
 
@@ -178,7 +187,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、手动赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.1"
+    plugin_version = "0.2.2"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -191,6 +200,7 @@ class VuePill(_PluginBase):
     PRE_REFRESH_SECONDS = 60
     MAX_NETWORK_RETRY_TIMES = 5
     MAX_CONSECUTIVE_ERROR_RETRIES = 5
+    MAX_MANUAL_COOKIE_LENGTH = 16384
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -297,6 +307,7 @@ class VuePill(_PluginBase):
     _auto_craft: bool = False
     _auto_exchange: bool = False
     _use_proxy: bool = False
+    _manual_cookie: str = ""
     _cookie: str = ""
     _cookie_source: str = "未同步"
     _site_domain: str = DEFAULT_SITE_DOMAIN
@@ -437,6 +448,12 @@ class VuePill(_PluginBase):
         with cls._migration_barrier:
             cls._migration_stopping = True
 
+    def _clear_migration_stopping(self):
+        cls = type(self)
+        with cls._migration_barrier:
+            cls._migration_stopping = False
+            cls._migration_barrier.notify_all()
+
     def _wait_for_migration_activities(self):
         cls = type(self)
         with cls._migration_barrier:
@@ -460,15 +477,33 @@ class VuePill(_PluginBase):
             "message": "Vue-魔丸升级尚未完成，请重启 MoviePilot 后再执行",
         }
 
+    @contextmanager
+    def _explicit_lifecycle(self):
+        self._lifecycle_lock.acquire()
+        was_stopping = self._is_migration_stopping()
+        if was_stopping:
+            self._lifecycle_lock.release()
+            self._wait_for_migration_activities()
+            self._lifecycle_lock.acquire()
+            was_stopping = self._is_migration_stopping()
+        try:
+            yield was_stopping
+        finally:
+            self._lifecycle_lock.release()
+
     def init_plugin(self, config: Optional[dict] = None):
-        with self._lifecycle_lock:
-            if self._is_migration_stopping():
-                logger.warning("%s 已停止，忽略初始化请求", self.plugin_name)
-                return
-            self._init_plugin_locked(
-                config,
-                preserve_running_onlyonce=True,
-            )
+        with self._explicit_lifecycle() as was_stopping:
+            if was_stopping:
+                self._clear_migration_stopping()
+            try:
+                self._init_plugin_locked(
+                    config,
+                    preserve_running_onlyonce=True,
+                )
+            except Exception:
+                if was_stopping:
+                    self._mark_migration_stopping()
+                raise
 
     def _stored_config_generation(self) -> Optional[int]:
         raw = self.get_data(self.CONFIG_GENERATION_KEY)
@@ -757,7 +792,7 @@ class VuePill(_PluginBase):
 
     def stop_service(self):
         with self._lifecycle_lock:
-            # A hot reload creates a new class; this loaded class stays retired.
+            # 普通任务保持停止；只有明确重新初始化或保存配置才允许恢复。
             self._mark_migration_stopping()
             self._stop_service_locked()
         # manual_worker needs lifecycle for cleanup after its activity exits.
@@ -1704,21 +1739,21 @@ class VuePill(_PluginBase):
         )
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
-        _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
+        cookie_ready, cookie_source = self._cookie_status()
         return self._sanitize_public_response({
             "enabled": self._enabled,
             "notify": self._notify,
             "enable_brick": self._enable_brick,
             "enable_beach": self._enable_beach,
             "cookie_source": cookie_source,
-            "cookie_ready": self._is_valid_cookie_value(cookie),
+            "cookie_ready": cookie_ready,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(next_trigger) if next_trigger else "",
             "next_trigger_action": self._get_scheduled_action_label(),
             "last_run": self.get_data("last_run") or "",
             "pill_status": pill_status,
             "history": (self.get_data("history") or [])[:10],
-            "config": self._get_config(),
+            "config": self._get_config(include_cookie=False),
         })
 
     def _is_pre_refresh_trigger(self) -> bool:
@@ -1774,8 +1809,12 @@ class VuePill(_PluginBase):
             return first
         return "all"
 
-    @_public_api
-    def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
+    @_config_public_api
+    def _get_config(
+        self,
+        include_options: bool = True,
+        include_cookie: bool = True,
+    ) -> Dict[str, Any]:
         config = {
             "enabled": self._enabled,
             "notify": self._notify,
@@ -1785,6 +1824,7 @@ class VuePill(_PluginBase):
             "auto_craft": self._auto_craft,
             "auto_exchange": self._auto_exchange,
             "use_proxy": self._use_proxy,
+            "cookie": self._manual_cookie,
             "brick_cron": self._brick_cron,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -1801,14 +1841,14 @@ class VuePill(_PluginBase):
             config["upgrade_restart_required"] = (
                 self._upgrade_restart_required()
             )
+        if not include_cookie:
+            config.pop("cookie", None)
         return config
 
-    @_public_api
+    @_config_public_api
     def _save_config(self, config_payload: dict):
         activity_entered = False
-        with self._lifecycle_lock:
-            if self._is_migration_stopping():
-                return self._activity_stopping_response()
+        with self._explicit_lifecycle() as was_stopping:
             if self._upgrade_restart_required():
                 return {
                     "success": False,
@@ -1831,19 +1871,26 @@ class VuePill(_PluginBase):
                 normalized_payload,
             )
             requested_onlyonce = self._to_bool(merged.get("onlyonce", False))
-            self._init_plugin_locked(
-                merged,
-                preserve_running_onlyonce=False,
-            )
-            onlyonce_queued = bool(
-                requested_onlyonce
-                and self._scheduler
-                and self._scheduler.running
-            )
-            if not onlyonce_queued:
-                self._update_config()
-                self._enter_migration_activity()
-                activity_entered = True
+            if was_stopping:
+                self._clear_migration_stopping()
+            try:
+                self._init_plugin_locked(
+                    merged,
+                    preserve_running_onlyonce=False,
+                )
+                onlyonce_queued = bool(
+                    requested_onlyonce
+                    and self._scheduler
+                    and self._scheduler.running
+                )
+                if not onlyonce_queued:
+                    self._update_config()
+                    self._enter_migration_activity()
+                    activity_entered = True
+            except Exception:
+                if was_stopping:
+                    self._mark_migration_stopping()
+                raise
 
         if onlyonce_queued:
             status = self.get_data("pill_status") or {}
@@ -1904,6 +1951,7 @@ class VuePill(_PluginBase):
             "auto_craft": False,
             "auto_exchange": False,
             "use_proxy": False,
+            "cookie": "",
             "brick_cron": self.DEFAULT_BRICK_CRON,
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 3,
@@ -2092,6 +2140,13 @@ class VuePill(_PluginBase):
             else:
                 normalized["brick_cron"] = cron
 
+        if "cookie" in normalized:
+            cookie, error = self._parse_config_cookie(normalized["cookie"])
+            if error:
+                errors["cookie"] = error
+            else:
+                normalized["cookie"] = cookie
+
         if not errors:
             merged = self._merge_public_config(current, normalized)
             if merged["move_delay_max_ms"] < merged["move_delay_min_ms"]:
@@ -2107,6 +2162,25 @@ class VuePill(_PluginBase):
         normalized, error = self._parse_config_cron(value)
         return self.DEFAULT_BRICK_CRON if error else normalized
 
+    @classmethod
+    def _parse_config_cookie(cls, value: Any) -> Tuple[Optional[str], str]:
+        if not isinstance(value, str):
+            return None, "站点 Cookie 必须是文本"
+        if "\r" in value or "\n" in value:
+            return None, "站点 Cookie 不能包含换行"
+        cookie = value.strip()
+        if len(cookie) > cls.MAX_MANUAL_COOKIE_LENGTH:
+            return None, "站点 Cookie 内容过长"
+        if cookie.lower() == "cookie":
+            return None, "站点 Cookie 不是有效内容"
+        if cls._contains_control_characters(cookie):
+            return None, "站点 Cookie 包含不允许的控制字符"
+        return cookie, ""
+
+    def _coerce_stored_config_cookie(self, value: Any) -> str:
+        cookie, error = self._parse_config_cookie(value)
+        return "" if error else cookie
+
     def _apply_config(self, config: Dict[str, Any]):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
@@ -2116,6 +2190,9 @@ class VuePill(_PluginBase):
         self._auto_craft = self._to_bool(config.get("auto_craft", False))
         self._auto_exchange = self._to_bool(config.get("auto_exchange", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
+        self._manual_cookie = self._coerce_stored_config_cookie(
+            config.get("cookie", "")
+        )
         self._brick_cron = self._coerce_stored_config_cron(config.get("brick_cron"))
         self._schedule_buffer_seconds = self._coerce_stored_config_integer(
             "schedule_buffer_seconds", config.get("schedule_buffer_seconds")
@@ -2216,6 +2293,25 @@ class VuePill(_PluginBase):
         return status
 
     def _ensure_cookie(self):
+        manual_cookie = self._manual_cookie
+        if self._is_valid_cookie_value(manual_cookie):
+            with self._site_credentials_lock:
+                (
+                    self._siteoper,
+                    self._cookie,
+                    self._cookie_source,
+                    self._site_domain,
+                    self._site_url,
+                    self._user_agent,
+                ) = (
+                    None,
+                    manual_cookie,
+                    "手动配置",
+                    self.DEFAULT_SITE_DOMAIN,
+                    self.DEFAULT_SITE_URL,
+                    self.DEFAULT_USER_AGENT,
+                )
+            return
         self._sync_site_credentials()
 
     def _reset_runtime_site_credentials(self):
@@ -2278,6 +2374,12 @@ class VuePill(_PluginBase):
     def _has_valid_cookie(self) -> bool:
         _, cookie, _, _, _, _ = self._site_credentials_snapshot()
         return self._is_valid_cookie_value(cookie)
+
+    def _cookie_status(self) -> Tuple[bool, str]:
+        if self._is_valid_cookie_value(self._manual_cookie):
+            return True, "手动配置"
+        _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
+        return self._is_valid_cookie_value(cookie), cookie_source
 
     def _sync_site_credentials(self):
         with self._site_credentials_lock:
@@ -3666,6 +3768,7 @@ class VuePill(_PluginBase):
             text = type(value).__name__
 
         secrets: List[str] = []
+        secrets.extend(self._cookie_sensitive_values(self._manual_cookie))
         _, cookie, _, _, _, _ = self._site_credentials_snapshot()
         secrets.extend(self._cookie_sensitive_values(cookie))
         secrets.extend(
@@ -3950,6 +4053,39 @@ class VuePill(_PluginBase):
             sensitive_scalar_values,
         )
         return None if public_value is _DROP_PUBLIC_VALUE else public_value
+
+    def _sanitize_config_public_response(self, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return self._sanitize_public_response(value)
+
+        source = dict(value)
+        direct_cookie = source.pop("cookie", None)
+        nested_cookie = None
+        raw_config = source.get("config")
+        if isinstance(raw_config, dict):
+            safe_config = dict(raw_config)
+            nested_cookie = safe_config.pop("cookie", None)
+            source["config"] = safe_config
+
+        cookie_error = None
+        raw_errors = source.get("errors")
+        if isinstance(raw_errors, dict):
+            safe_errors = dict(raw_errors)
+            cookie_error = safe_errors.pop("cookie", None)
+            source["errors"] = safe_errors
+
+        public_value = self._sanitize_public_response(source)
+        if not isinstance(public_value, dict):
+            return public_value
+        if isinstance(direct_cookie, str):
+            public_value["cookie"] = direct_cookie
+        if isinstance(nested_cookie, str) and isinstance(public_value.get("config"), dict):
+            public_value["config"]["cookie"] = nested_cookie
+        if isinstance(cookie_error, str):
+            public_value.setdefault("errors", {})["cookie"] = (
+                self._sanitize_sensitive_text(cookie_error)
+            )
+        return public_value
 
     @staticmethod
     def _attach_error_sensitive_values(

@@ -27,6 +27,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   enable_beach: true,
   auto_craft: false,
   auto_exchange: false,
+  cookie: '',
   brick_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
   reserve_magic_pill_count: 10,
@@ -37,6 +38,7 @@ export const DEFAULT_CONFIG = Object.freeze({
 })
 
 const CANONICAL_UNSIGNED_INTEGER = /^(?:0|[1-9]\d*)$/
+const MAX_MANUAL_COOKIE_LENGTH = 16384
 const CRON_NUMBER = /^\d+$/
 const MONTH_NAMES = Object.freeze({
   jan: 1,
@@ -171,6 +173,26 @@ export function validateCronExpression(value) {
   return { valid: true, value: normalizedFields.join(' '), error: '' }
 }
 
+export function validateManualCookie(value) {
+  if (typeof value !== 'string') {
+    return { valid: false, value: '', error: '站点 Cookie 必须是文本' }
+  }
+  if (/\r|\n/.test(value)) {
+    return { valid: false, value: '', error: '站点 Cookie 不能包含换行' }
+  }
+  const cookie = value.trim()
+  if (cookie.length > MAX_MANUAL_COOKIE_LENGTH) {
+    return { valid: false, value: '', error: '站点 Cookie 内容过长' }
+  }
+  if (cookie.toLowerCase() === 'cookie') {
+    return { valid: false, value: '', error: '站点 Cookie 不是有效内容' }
+  }
+  if ([...cookie].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) {
+    return { valid: false, value: '', error: '站点 Cookie 包含不允许的控制字符' }
+  }
+  return { valid: true, value: cookie, error: '' }
+}
+
 export function validateVuePillConfig(source) {
   const safeSource = source && typeof source === 'object' ? source : {}
   const payload = {}
@@ -183,6 +205,10 @@ export function validateVuePillConfig(source) {
   const cron = validateCronExpression(safeSource.brick_cron)
   if (cron.valid) payload.brick_cron = cron.value
   else errors.brick_cron = cron.error
+
+  const cookie = validateManualCookie(safeSource.cookie)
+  if (cookie.valid) payload.cookie = cookie.value
+  else errors.cookie = cookie.error
 
   for (const [field, rule] of Object.entries(INTEGER_CONFIG_RULES)) {
     const parsed = parseStrictInteger(safeSource[field], rule)

@@ -182,15 +182,42 @@
       <div class="siqi-card">
         <div class="siqi-card__header">
           <span class="siqi-card__title d-flex align-center">
-            <v-icon icon="mdi-web-sync" size="18" color="#22c55e" class="mr-1" />站点凭据
+            <v-icon icon="mdi-cookie" size="18" color="#8b5cf6" class="mr-1" />站点 Cookie
           </span>
         </div>
-        <div class="siqi-site-note">
-          <v-icon icon="mdi-shield-check-outline" size="20" />
-          <div>
-            <div class="siqi-site-note__title">Cookie：从 MoviePilot 站点自动同步。</div>
-            <div class="siqi-site-note__desc">此处无需填写或手动操作，插件每次请求都会读取最新站点凭据。</div>
-          </div>
+        <div class="siqi-field" data-config-field="cookie">
+          <v-textarea
+            v-model="config.cookie"
+            label="站点 Cookie（留空自动同步）"
+            rows="2"
+            auto-grow
+            variant="outlined"
+            hide-details="auto"
+            class="siqi-input"
+            :class="{'siqi-secret-input': !showCookie}"
+            prepend-inner-icon="mdi-cookie"
+            autocomplete="off"
+            :disabled="formLocked"
+            :error-messages="fieldErrors.cookie ? [fieldErrors.cookie] : []"
+            :aria-invalid="Boolean(fieldErrors.cookie)"
+            @update:model-value="clearFieldError('cookie')"
+          >
+            <template #append-inner>
+              <v-btn
+                variant="text"
+                density="comfortable"
+                size="x-small"
+                icon
+                class="siqi-secret-toggle"
+                :disabled="formLocked"
+                :aria-label="showCookie ? '隐藏 Cookie' : '显示 Cookie'"
+                @click.stop="showCookie = !showCookie"
+              >
+                <v-icon :icon="showCookie ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" size="18" />
+              </v-btn>
+            </template>
+          </v-textarea>
+          <div class="siqi-field-hint">手动 Cookie 优先；留空时插件会自动读取 MoviePilot 站点 Cookie，清空后恢复自动同步。</div>
         </div>
       </div>
       </div>
@@ -219,6 +246,7 @@ const CONFIG_FIELDS = Object.freeze([
   'notify',
   'onlyonce',
   'use_proxy',
+  'cookie',
   'enable_brick',
   'enable_beach',
   'auto_craft',
@@ -236,6 +264,7 @@ const DEFAULT_CONFIG = Object.freeze({
   notify: true,
   onlyonce: false,
   use_proxy: false,
+  cookie: '',
   enable_brick: true,
   enable_beach: true,
   auto_craft: false,
@@ -252,6 +281,7 @@ const DEFAULT_CONFIG = Object.freeze({
 const config = reactive({ ...DEFAULT_CONFIG })
 const configLoading = ref(false)
 const configSaving = ref(false)
+const showCookie = ref(false)
 const upgradeRestartRequired = ref(false)
 const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value)
 const fieldErrors = reactive({})
@@ -418,7 +448,7 @@ onBeforeUnmount(() => {
 .siqi-config *{box-sizing:border-box}.siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px;min-width:0}.siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.siqi-topbar__copy{min-width:0}.siqi-topbar__right{display:flex;align-items:center;gap:10px;flex-shrink:0}.siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}.siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(76,175,80,.14);display:flex;align-items:center;justify-content:center;color:#2e7d32;flex-shrink:0}.siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}.siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.siqi-config :deep(.v-btn){min-height:44px}
 .siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}.siqi-loading-state{display:flex;flex-direction:column;gap:7px;font-size:11px;color:rgba(var(--v-theme-on-surface),.58)}.siqi-form-lock{min-inline-size:0;margin:0;padding:0;border:0}.siqi-config-col{display:flex;flex-direction:column;gap:16px;min-width:0}.siqi-card{min-width:0;background:rgba(var(--v-theme-on-surface),.03);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
 .siqi-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-switch-item{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:.5px solid rgba(var(--v-theme-on-surface),.06);transition:background .2s ease,border-color .2s ease,transform .2s ease}.siqi-switch-item:hover{transform:translateY(-1px)}.siqi-switch-item--active{background:rgba(var(--siqi-accent,34,197,94),.07);border-color:rgba(var(--siqi-accent,34,197,94),.18)}.siqi-switch-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;color:rgba(var(--v-theme-on-surface),.58)}.siqi-switch-main>div{min-width:0}.siqi-switch-item--active .siqi-switch-main{color:rgb(var(--siqi-accent,34,197,94))}.siqi-switch-label{font-size:13px;font-weight:600;color:rgba(var(--v-theme-on-surface),.86)}.siqi-switch-desc{font-size:11px;color:rgba(var(--v-theme-on-surface),.46);line-height:1.35;margin-top:1px}.siqi-switch-item :deep(.v-switch){flex:0 0 auto}.siqi-switch-item :deep(.v-selection-control){min-width:44px;min-height:44px}.siqi-switch-item :deep(.v-input__details){display:none}
-.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-field-error{font-size:12px;line-height:1.45;color:rgb(var(--v-theme-error));padding-inline:12px}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}.siqi-site-note{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border-radius:12px;background:rgba(34,197,94,.07);border:.5px solid rgba(34,197,94,.18);color:rgba(var(--v-theme-on-surface),.7)}.siqi-site-note>div{min-width:0}.siqi-site-note__title{font-size:13px;font-weight:650;color:rgba(var(--v-theme-on-surface),.86)}.siqi-site-note__desc{margin-top:3px;font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5)}
+.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}.siqi-field{min-width:0;display:flex;flex-direction:column;gap:7px}.siqi-wide-field{grid-column:span 2}.siqi-input{min-width:0}.siqi-input :deep(.v-field){border-radius:12px}.siqi-input :deep(.v-field__input){min-height:44px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.siqi-cron-field{width:100%}.siqi-secret-input :deep(textarea){-webkit-text-security:disc}.siqi-secret-toggle{min-width:28px!important;min-height:28px!important;width:28px;height:28px;color:rgba(var(--v-theme-on-surface),.55)}.siqi-secret-toggle :deep(.v-btn__overlay),.siqi-secret-toggle :deep(.v-btn__underlay){display:none}.siqi-field-error{font-size:12px;line-height:1.45;color:rgb(var(--v-theme-error));padding-inline:12px}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.5);padding-inline:2px}
 @media(max-width:900px){.siqi-switch-grid,.siqi-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.siqi-wide-field{grid-column:span 2}}
 @media(max-width:600px){.siqi-config{padding:14px}.siqi-topbar{flex-direction:column;align-items:stretch;gap:10px}.siqi-topbar__left{width:100%;min-width:0}.siqi-topbar__right{width:100%;justify-content:flex-end}.siqi-topbar__right :deep(.v-btn-group){width:100%}.siqi-topbar__right :deep(.v-btn){flex:1 1 0;min-width:44px!important;padding-inline:0!important}.siqi-switch-grid,.siqi-form-grid{grid-template-columns:1fr}.siqi-wide-field{grid-column:span 1}.siqi-switch-item{align-items:center}.siqi-topbar__sub{max-width:100%}}
 </style>
