@@ -196,6 +196,18 @@ class VuePillParserTests(unittest.TestCase):
         )
         self.assertIs(drag_ready_data["brick"]["ready"], True)
 
+    def test_full_brick_quota_does_not_keep_stale_ready_text(self):
+        html = FIXTURE.read_text(encoding="utf-8").replace(
+            '<span class="countdown">今日已达上限，明日可搬: 10:39:29</span>',
+            '<span>拖拽砖块到口袋</span>',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["brick"]["ready"], False)
+        self.assertEqual("今日搬砖已满", data["brick"]["status_text"])
+
     def test_server_time_offset_expression_is_used_as_server_now(self):
         html = FIXTURE.read_text(encoding="utf-8")
         html = html.replace(
@@ -479,6 +491,25 @@ class VuePillParserTests(unittest.TestCase):
 
         self.assertIs(data["beach"]["can_enter"], False)
         self.assertIs(data["beach"]["ready"], False)
+
+    def test_future_beach_time_does_not_keep_stale_ready_text(self):
+        html = FIXTURE.read_text(encoding="utf-8")
+        html = html.replace(
+            '<span class="countdown">下次清理: 0:06:15</span>',
+            '<span>可进入清理</span>',
+        )
+        html = html.replace(
+            '"last_beach_time": 1785080000',
+            '"last_beach_time": 1785093175',
+        )
+        parse_page = _load_parse_page()
+
+        data = parse_page(html, now_ts=1785100000)
+
+        self.assertIs(data["beach"]["can_enter"], False)
+        self.assertIs(data["beach"]["ready"], False)
+        self.assertEqual("沙滩冷却中", data["beach"]["status_text"])
+        self.assertEqual(1785100375, data["beach"]["next_ready_ts"])
 
     def test_millisecond_timestamps_keep_second_beach_interval(self):
         html = FIXTURE.read_text(encoding="utf-8")

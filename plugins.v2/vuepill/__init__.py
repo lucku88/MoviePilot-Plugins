@@ -187,7 +187,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、手动赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.2"
+    plugin_version = "0.2.3"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -555,7 +555,7 @@ class VuePill(_PluginBase):
         stored = self._stored_config_generation()
         if stored == self.CONFIG_GENERATION:
             return "current"
-        if stored is None and self.get_data(self.LEGACY_MIGRATION_KEY):
+        if stored in (None, -1) and self.get_data(self.LEGACY_MIGRATION_KEY):
             return "legacy-current"
         if stored is None:
             restart_process_id = self._stored_legacy_restart_process_id()
@@ -578,6 +578,14 @@ class VuePill(_PluginBase):
         config: Optional[dict] = None,
         preserve_running_onlyonce: bool = False,
     ):
+        if not config:
+            try:
+                persisted_config = self.get_config()
+            except Exception:
+                persisted_config = None
+            if isinstance(persisted_config, dict) and persisted_config:
+                config = persisted_config
+
         generation_mode = self._config_generation_mode(config)
         legacy_restart_finish_pending = bool(
             generation_mode == "current"
@@ -2647,6 +2655,8 @@ class VuePill(_PluginBase):
                         break
                     moved = 1
                 total_moved += moved
+                if remaining_quota > 0 and total_moved >= remaining_quota:
+                    break
                 delay_ms = random.randint(self._move_delay_min_ms, self._move_delay_max_ms)
                 if delay_ms > 0:
                     time.sleep(delay_ms / 1000.0)

@@ -1281,6 +1281,12 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             and not brick_status_blocked
             and not factory_blocked
         )
+        if stats["daily_bricks"] >= daily_limit or available_count <= 0:
+            public_brick_status = "今日搬砖已满"
+        else:
+            public_brick_status = brick_status_text or (
+                "可以搬砖" if brick_ready else "当前不可搬砖"
+            )
         result["brick"].update(
             {
                 "ready": brick_ready,
@@ -1288,8 +1294,7 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
                 "daily_limit": daily_limit,
                 "available_count": available_count,
                 "bag_count": bag_count,
-                "status_text": brick_status_text
-                or ("可以搬砖" if brick_ready else "今日搬砖已满"),
+                "status_text": public_brick_status,
                 "next_reset_ts": next_brick_reset_ts,
                 "next_reset_time": _format_timestamp(next_brick_reset_ts),
                 "factory_text": factory_text,
@@ -1439,14 +1444,21 @@ def parse_page(html: str, *, now_ts: Optional[int] = None) -> Dict[str, Any]:
             can_enter
             and not has_trash
         )
+        if collect_enabled or has_trash:
+            public_beach_status = beach_status_text or "沙滩有垃圾待收集"
+        elif beach_ready:
+            public_beach_status = beach_status_text or "可以进入清理"
+        elif next_ready_ts > server_now:
+            public_beach_status = "沙滩冷却中"
+        else:
+            public_beach_status = beach_status_text or "沙滩暂不可进入"
         result["beach"].update(
             {
                 "ready": beach_ready,
                 "can_enter": bool(can_enter),
                 "can_collect": bool(collect_enabled or has_trash),
                 "has_trash": bool(has_trash),
-                "status_text": beach_status_text
-                or ("可以进入清理" if beach_ready else "沙滩冷却中"),
+                "status_text": public_beach_status,
                 "next_ready_ts": next_ready_ts,
                 "next_ready_time": _format_timestamp(next_ready_ts),
                 "level_text": _current_value_text(source, "发种等级"),

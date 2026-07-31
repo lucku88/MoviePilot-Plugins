@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.2"
+EXPECTED_VERSION = "0.2.3"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -41,6 +41,11 @@ EXPECTED_HISTORY_V022 = (
     "导致搬砖等手动任务持续提示“插件正在停止”的问题。v0.2.x 小版本升级保留现有配置、"
     "执行历史和动态调度计划，无需重新清配置。"
 )
+EXPECTED_HISTORY_V023 = (
+    "修复搬砖完成当天剩余次数后仍多请求一次、导致成功记录夹带“已达上限”失败提示的问题；"
+    "搬砖已满和沙滩冷却时按真实可执行状态显示文案；热更新传入空配置或同一 v0.2.x "
+    "配置代号损坏时，会自动恢复 MoviePilot 已保存配置并保留执行历史和动态调度计划。"
+)
 EXPECTED_HISTORY_V020 = (
     "重写 Vue-魔丸 页面和后端：移植 Vue-农场风格，修复真实配方/沙滩状态解析，"
     "加入手动赠送与赠礼统计；首次从 v0.1.x 更新到完整重写的 v0.2.0 后需手动重启一次 MoviePilot，"
@@ -49,6 +54,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.3",
     "v0.2.2",
     "v0.2.1",
     "v0.2.0",
@@ -447,7 +453,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v022(self):
+    def test_release_versions_are_consistently_v023(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -471,17 +477,22 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v022_release(self):
+    def test_market_history_and_readme_describe_the_v023_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V023, history["v0.2.3"])
         self.assertEqual(EXPECTED_HISTORY_V022, history["v0.2.2"])
         self.assertEqual(EXPECTED_HISTORY_V021, history["v0.2.1"])
         self.assertEqual(EXPECTED_HISTORY_V020, history["v0.2.0"])
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.2` |",
+            "| `Vue-魔丸` | `v0.2.3` |",
+            "修复搬砖成功 50 次后又误报“已达上限”为失败",
+            "搬砖已满和沙滩冷却时会按真实状态显示",
+            "收到空配置或配置代号损坏",
+            "恢复 MoviePilot 已保存配置并保留执行历史和动态调度计划",
             "可隐藏的手动 Cookie 输入框",
             "填写后优先使用手动 Cookie",
             "清空后恢复 MoviePilot 站点自动同步",

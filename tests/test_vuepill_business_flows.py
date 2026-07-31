@@ -86,6 +86,28 @@ class VuePillBusinessFlowTests(unittest.TestCase):
             stock[item_name] -= required * quantity
         stock[recipe["output_item"]] += quantity
 
+    def test_brick_flow_stops_at_known_remaining_quota_without_false_warning(self):
+        calls = []
+        self.plugin._move_delay_min_ms = 0
+        self.plugin._move_delay_max_ms = 0
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append(action)
+            if len(calls) > 2:
+                raise RuntimeError("今天搬砖已达上限（50块），请明天再来！")
+            return {"success": True, "data": {"bricks_moved": 1}}
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin._run_brick_flow(
+            object(),
+            {"daily_bricks": 48, "daily_limit": 50},
+        )
+
+        self.assertEqual(["move_brick", "move_brick"], calls)
+        self.assertEqual(2, result["moved"])
+        self.assertEqual("", result["warning"])
+
     def test_auto_craft_refreshes_and_replans_after_every_success(self):
         stock = self._base_stock()
         action_calls = []

@@ -189,6 +189,9 @@ def _install_moviepilot_stubs():
         def update_config(self, config):
             self._config_store = dict(config)
 
+        def get_config(self):
+            return dict(self._config_store)
+
         def post_message(self, *args, **kwargs):
             return None
 
@@ -541,6 +544,33 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(self.plugin._notify, False)
         self.assertEqual(7, self.plugin._reserve_magic_pill_count)
 
+    def test_current_generation_empty_reload_config_uses_persisted_config(self):
+        self.plugin.save_data(
+            self.plugin.CONFIG_GENERATION_KEY,
+            self.plugin.CONFIG_GENERATION,
+        )
+        self.plugin.save_data("history", [{"title": "更新前记录"}])
+        self.plugin._stop_service_locked = lambda: None
+        self.plugin._config_store = self.plugin._merge_public_config(
+            {
+                "enabled": True,
+                "notify": False,
+                "brick_cron": "35 0 * * *",
+                "reserve_magic_pill_count": 7,
+            }
+        )
+
+        self.plugin.init_plugin({})
+
+        self.assertIs(self.plugin._enabled, True)
+        self.assertIs(self.plugin._notify, False)
+        self.assertEqual("35 0 * * *", self.plugin._brick_cron)
+        self.assertEqual(7, self.plugin._reserve_magic_pill_count)
+        self.assertEqual(
+            [{"title": "更新前记录"}],
+            self.plugin.get_data("history"),
+        )
+
     def test_non_reset_initialization_does_not_wait_for_execution_lock(self):
         for generation_mode in ("current", "legacy-current"):
             with self.subTest(generation_mode=generation_mode):
@@ -581,8 +611,8 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.assertEqual([], errors)
                 self.assertIs(type(plugin)._migration_stopping, False)
 
-    def test_different_or_invalid_generation_resets_and_records_current_generation(self):
-        for stored_generation in (1, True, "invalid", "２", "٢"):
+    def test_different_generation_resets_and_records_current_generation(self):
+        for stored_generation in (0, 1):
             with self.subTest(stored_generation=stored_generation):
                 plugin = make_plugin(self.module)
                 plugin.save_data(plugin.CONFIG_GENERATION_KEY, stored_generation)
@@ -616,6 +646,40 @@ class VuePillLifecycleTests(unittest.TestCase):
                 self.assertIs(
                     plugin.get_data(plugin.LEGACY_MIGRATION_KEY),
                     True,
+                )
+
+    def test_invalid_generation_with_v020_marker_is_repaired_without_data_loss(self):
+        for stored_generation in (True, "invalid", "２", "٢"):
+            with self.subTest(stored_generation=stored_generation):
+                plugin = make_plugin(self.module)
+                plugin.save_data(plugin.CONFIG_GENERATION_KEY, stored_generation)
+                plugin.save_data(plugin.LEGACY_MIGRATION_KEY, True)
+                plugin.save_data("history", [{"title": "保留记录"}])
+                plugin.save_data("next_trigger_mode", "run:beach")
+                plugin._stop_service_locked = lambda: None
+
+                plugin.init_plugin(
+                    {
+                        "enabled": True,
+                        "notify": False,
+                        "reserve_magic_pill_count": 3,
+                    }
+                )
+
+                self.assertEqual(
+                    [{"title": "保留记录"}],
+                    plugin.get_data("history"),
+                )
+                self.assertEqual(
+                    "run:beach",
+                    plugin.get_data("next_trigger_mode"),
+                )
+                self.assertIs(plugin._enabled, True)
+                self.assertIs(plugin._notify, False)
+                self.assertEqual(3, plugin._reserve_magic_pill_count)
+                self.assertEqual(
+                    plugin.CONFIG_GENERATION,
+                    plugin.get_data(plugin.CONFIG_GENERATION_KEY),
                 )
 
     def test_generation_reset_waits_for_running_execution_before_clearing_data(self):
