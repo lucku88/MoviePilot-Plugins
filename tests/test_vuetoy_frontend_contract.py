@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,8 @@ class VueToyFrontendContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.page = PAGE.read_text(encoding="utf-8")
         cls.config = CONFIG.read_text(encoding="utf-8")
+        cls.compact_page = re.sub(r"\s+", "", cls.page)
+        cls.compact_config = re.sub(r"\s+", "", cls.config)
 
     def test_status_page_uses_siqifarm_adaptive_shell(self):
         for expected in (
@@ -83,6 +86,39 @@ class VueToyFrontendContractTests(unittest.TestCase):
         self.assertIn("overflow-x: hidden", self.page)
         self.assertIn("min-height: 44px", self.page)
         self.assertIn("min-height: 44px", self.config)
+
+    def test_pages_reuse_farm_and_pill_theme_shell(self):
+        shared_tokens = (
+            "color:rgba(var(--v-theme-on-surface),.85)",
+            "border:1pxsolidrgba(var(--v-theme-on-surface),.12)",
+            "background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(76,175,80,.025))",
+            "backdrop-filter:blur(20px)saturate(150%)",
+            "border:.5pxsolidrgba(var(--v-theme-on-surface),.08)",
+            "box-shadow:02px10pxrgba(0,0,0,.05)",
+        )
+        for token in shared_tokens:
+            self.assertIn(token, self.compact_page)
+            self.assertIn(token, self.compact_config)
+
+        for legacy_token in (
+            "position:sticky",
+            "var(--v-border-color)",
+            "color:rgb(var(--v-theme-on-background))",
+        ):
+            self.assertNotIn(legacy_token, self.compact_page)
+            self.assertNotIn(legacy_token, self.compact_config)
+
+    def test_config_uses_shared_siqifarm_form_classes(self):
+        for expected in (
+            'class="siqi-switch-grid"',
+            'class="siqi-switch-item',
+            'class="siqi-switch-main"',
+            'class="siqi-switch-label"',
+            'class="siqi-switch-desc"',
+            'class="siqi-form-grid"',
+            'class="siqi-field"',
+        ):
+            self.assertIn(expected, self.config)
 
 
 if __name__ == "__main__":

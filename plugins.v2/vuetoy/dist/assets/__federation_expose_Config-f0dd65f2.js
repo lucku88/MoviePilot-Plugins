@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_a82fab64_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_a1eb2bcc_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a82fab64"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a1eb2bcc"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -28,53 +28,53 @@ const _hoisted_11 = {
 };
 const _hoisted_12 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "正在加载配置，请稍候", -1));
 const _hoisted_13 = ["disabled", "aria-busy"];
-const _hoisted_14 = { class: "config-column" };
+const _hoisted_14 = { class: "siqi-config-col" };
 const _hoisted_15 = { class: "siqi-card" };
 const _hoisted_16 = { class: "siqi-card__header" };
 const _hoisted_17 = { class: "siqi-card__title" };
-const _hoisted_18 = { class: "switch-grid" };
-const _hoisted_19 = { class: "switch-main" };
+const _hoisted_18 = { class: "siqi-switch-grid" };
+const _hoisted_19 = { class: "siqi-switch-main" };
 const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "启用插件"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "开启动态调度和自动任务")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "启用插件"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "开启动态调度和自动任务")
 ], -1));
-const _hoisted_21 = { class: "switch-main" };
+const _hoisted_21 = { class: "siqi-switch-main" };
 const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "开启通知"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "有实际收回或展出结果时通知")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "开启通知"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "有实际收回或展出结果时通知")
 ], -1));
-const _hoisted_23 = { class: "switch-main" };
+const _hoisted_23 = { class: "siqi-switch-main" };
 const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "使用代理"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "请求站点时使用 MoviePilot 代理")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "使用代理"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "请求站点时使用 MoviePilot 代理")
 ], -1));
-const _hoisted_25 = { class: "switch-main" };
+const _hoisted_25 = { class: "siqi-switch-main" };
 const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "立即运行一次"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "保存后执行一次完整玩偶任务")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "立即运行一次"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "保存后执行一次完整玩偶任务")
 ], -1));
 const _hoisted_27 = { class: "siqi-card" };
 const _hoisted_28 = { class: "siqi-card__header" };
 const _hoisted_29 = { class: "siqi-card__title" };
-const _hoisted_30 = { class: "switch-grid switch-grid--two" };
-const _hoisted_31 = { class: "switch-main" };
+const _hoisted_30 = { class: "siqi-switch-grid siqi-switch-grid--two" };
+const _hoisted_31 = { class: "siqi-switch-main" };
 const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "自动收回"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "到点先收回自己和外展玩偶")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动收回"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "到点先收回自己和外展玩偶")
 ], -1));
-const _hoisted_33 = { class: "switch-main" };
+const _hoisted_33 = { class: "siqi-switch-main" };
 const _hoisted_34 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-label" }, "自动展出"),
-  /*#__PURE__*/_createElementVNode("div", { class: "switch-desc" }, "先补满自己展位，再寻找外展位")
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动展出"),
+  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "先补满自己展位，再寻找外展位")
 ], -1));
 const _hoisted_35 = { class: "siqi-card" };
 const _hoisted_36 = { class: "siqi-card__header" };
 const _hoisted_37 = { class: "siqi-card__title" };
-const _hoisted_38 = { class: "parameter-grid" };
-const _hoisted_39 = { class: "parameter-item" };
-const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "field-help" }, "默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。", -1));
-const _hoisted_41 = { class: "parameter-item" };
-const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "field-help" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
+const _hoisted_38 = { class: "siqi-form-grid" };
+const _hoisted_39 = { class: "siqi-field" };
+const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。", -1));
+const _hoisted_41 = { class: "siqi-field" };
+const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
 const _hoisted_43 = { class: "siqi-card cookie-card" };
 const _hoisted_44 = { class: "siqi-card__header" };
 const _hoisted_45 = { class: "siqi-card__title" };
@@ -304,7 +304,7 @@ return (_ctx, _cache) => {
           ]))
         : (_openBlock(), _createElementBlock("fieldset", {
             key: 2,
-            class: "config-fieldset",
+            class: "siqi-form-lock",
             disabled: formLocked.value,
             "aria-busy": formLocked.value
           }, [
@@ -322,8 +322,8 @@ return (_ctx, _cache) => {
                 ]),
                 _createElementVNode("div", _hoisted_18, [
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.enabled }]),
-                    style: {"--accent":"34,197,94"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.enabled }]),
+                    style: {"--siqi-accent":"34,197,94"}
                   }, [
                     _createElementVNode("div", _hoisted_19, [
                       _createVNode(_component_v_icon, {
@@ -342,8 +342,8 @@ return (_ctx, _cache) => {
                     }, null, 8, ["modelValue"])
                   ], 2),
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.notify }]),
-                    style: {"--accent":"59,130,246"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.notify }]),
+                    style: {"--siqi-accent":"59,130,246"}
                   }, [
                     _createElementVNode("div", _hoisted_21, [
                       _createVNode(_component_v_icon, {
@@ -362,8 +362,8 @@ return (_ctx, _cache) => {
                     }, null, 8, ["modelValue"])
                   ], 2),
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.use_proxy }]),
-                    style: {"--accent":"139,92,246"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.use_proxy }]),
+                    style: {"--siqi-accent":"139,92,246"}
                   }, [
                     _createElementVNode("div", _hoisted_23, [
                       _createVNode(_component_v_icon, {
@@ -382,8 +382,8 @@ return (_ctx, _cache) => {
                     }, null, 8, ["modelValue"])
                   ], 2),
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.onlyonce }]),
-                    style: {"--accent":"245,158,11"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.onlyonce }]),
+                    style: {"--siqi-accent":"245,158,11"}
                   }, [
                     _createElementVNode("div", _hoisted_25, [
                       _createVNode(_component_v_icon, {
@@ -416,8 +416,8 @@ return (_ctx, _cache) => {
                 ]),
                 _createElementVNode("div", _hoisted_30, [
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.auto_collect }]),
-                    style: {"--accent":"34,197,94"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.auto_collect }]),
+                    style: {"--siqi-accent":"34,197,94"}
                   }, [
                     _createElementVNode("div", _hoisted_31, [
                       _createVNode(_component_v_icon, {
@@ -436,8 +436,8 @@ return (_ctx, _cache) => {
                     }, null, 8, ["modelValue"])
                   ], 2),
                   _createElementVNode("div", {
-                    class: _normalizeClass(["switch-item", { 'switch-item--active': config.auto_place }]),
-                    style: {"--accent":"249,115,22"}
+                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.auto_place }]),
+                    style: {"--siqi-accent":"249,115,22"}
                   }, [
                     _createElementVNode("div", _hoisted_33, [
                       _createVNode(_component_v_icon, {
@@ -541,6 +541,7 @@ return (_ctx, _cache) => {
                     density: "comfortable",
                     "hide-details": "",
                     autocomplete: "off",
+                    class: "siqi-input",
                     "onClick:appendInner": _cache[12] || (_cache[12] = $event => (cookieVisible.value = !cookieVisible.value))
                   }, null, 8, ["modelValue", "type", "append-inner-icon"]),
                   _hoisted_47,
@@ -573,6 +574,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a82fab64"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a1eb2bcc"]]);
 
 export { ConfigView as default };

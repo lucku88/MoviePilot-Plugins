@@ -69,8 +69,8 @@
         <span>正在加载配置，请稍候</span>
       </div>
 
-      <fieldset v-else class="config-fieldset" :disabled="formLocked" :aria-busy="formLocked">
-        <div class="config-column">
+      <fieldset v-else class="siqi-form-lock" :disabled="formLocked" :aria-busy="formLocked">
+        <div class="siqi-config-col">
           <section class="siqi-card">
             <div class="siqi-card__header">
               <span class="siqi-card__title">
@@ -78,35 +78,35 @@
                 基础设置
               </span>
             </div>
-            <div class="switch-grid">
-              <div class="switch-item" :class="{ 'switch-item--active': config.enabled }" style="--accent:34,197,94">
-                <div class="switch-main">
+            <div class="siqi-switch-grid">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.enabled }" style="--siqi-accent:34,197,94">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-power-plug-outline" size="20" />
-                  <div><div class="switch-label">启用插件</div><div class="switch-desc">开启动态调度和自动任务</div></div>
+                  <div><div class="siqi-switch-label">启用插件</div><div class="siqi-switch-desc">开启动态调度和自动任务</div></div>
                 </div>
                 <v-switch v-model="config.enabled" color="success" density="compact" hide-details inset />
               </div>
 
-              <div class="switch-item" :class="{ 'switch-item--active': config.notify }" style="--accent:59,130,246">
-                <div class="switch-main">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.notify }" style="--siqi-accent:59,130,246">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-bell-outline" size="20" />
-                  <div><div class="switch-label">开启通知</div><div class="switch-desc">有实际收回或展出结果时通知</div></div>
+                  <div><div class="siqi-switch-label">开启通知</div><div class="siqi-switch-desc">有实际收回或展出结果时通知</div></div>
                 </div>
                 <v-switch v-model="config.notify" color="blue" density="compact" hide-details inset />
               </div>
 
-              <div class="switch-item" :class="{ 'switch-item--active': config.use_proxy }" style="--accent:139,92,246">
-                <div class="switch-main">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.use_proxy }" style="--siqi-accent:139,92,246">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-lan-connect" size="20" />
-                  <div><div class="switch-label">使用代理</div><div class="switch-desc">请求站点时使用 MoviePilot 代理</div></div>
+                  <div><div class="siqi-switch-label">使用代理</div><div class="siqi-switch-desc">请求站点时使用 MoviePilot 代理</div></div>
                 </div>
                 <v-switch v-model="config.use_proxy" color="purple" density="compact" hide-details inset />
               </div>
 
-              <div class="switch-item" :class="{ 'switch-item--active': config.onlyonce }" style="--accent:245,158,11">
-                <div class="switch-main">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.onlyonce }" style="--siqi-accent:245,158,11">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-play-circle-outline" size="20" />
-                  <div><div class="switch-label">立即运行一次</div><div class="switch-desc">保存后执行一次完整玩偶任务</div></div>
+                  <div><div class="siqi-switch-label">立即运行一次</div><div class="siqi-switch-desc">保存后执行一次完整玩偶任务</div></div>
                 </div>
                 <v-switch v-model="config.onlyonce" color="orange" density="compact" hide-details inset />
               </div>
@@ -120,19 +120,19 @@
                 自动化策略
               </span>
             </div>
-            <div class="switch-grid switch-grid--two">
-              <div class="switch-item" :class="{ 'switch-item--active': config.auto_collect }" style="--accent:34,197,94">
-                <div class="switch-main">
+            <div class="siqi-switch-grid siqi-switch-grid--two">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_collect }" style="--siqi-accent:34,197,94">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-package-down" size="20" />
-                  <div><div class="switch-label">自动收回</div><div class="switch-desc">到点先收回自己和外展玩偶</div></div>
+                  <div><div class="siqi-switch-label">自动收回</div><div class="siqi-switch-desc">到点先收回自己和外展玩偶</div></div>
                 </div>
                 <v-switch v-model="config.auto_collect" color="success" density="compact" hide-details inset />
               </div>
 
-              <div class="switch-item" :class="{ 'switch-item--active': config.auto_place }" style="--accent:249,115,22">
-                <div class="switch-main">
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_place }" style="--siqi-accent:249,115,22">
+                <div class="siqi-switch-main">
                   <v-icon icon="mdi-storefront-plus-outline" size="20" />
-                  <div><div class="switch-label">自动展出</div><div class="switch-desc">先补满自己展位，再寻找外展位</div></div>
+                  <div><div class="siqi-switch-label">自动展出</div><div class="siqi-switch-desc">先补满自己展位，再寻找外展位</div></div>
                 </div>
                 <v-switch v-model="config.auto_place" color="orange" density="compact" hide-details inset />
               </div>
@@ -146,8 +146,8 @@
                 参数设置
               </span>
             </div>
-            <div class="parameter-grid">
-              <div class="parameter-item">
+            <div class="siqi-form-grid">
+              <div class="siqi-field">
                 <v-text-field
                   v-model="config.self_slot_guard_hours"
                   type="number"
@@ -162,10 +162,10 @@
                   hide-details
                   class="siqi-number-input"
                 />
-                <div class="field-help">默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。</div>
+                <div class="siqi-field-hint">默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。</div>
               </div>
 
-              <div class="parameter-item">
+              <div class="siqi-field">
                 <v-text-field
                   v-model="config.random_delay_max_seconds"
                   type="number"
@@ -180,7 +180,7 @@
                   hide-details
                   class="siqi-number-input"
                 />
-                <div class="field-help">任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。</div>
+                <div class="siqi-field-hint">任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。</div>
               </div>
             </div>
           </section>
@@ -205,6 +205,7 @@
                 density="comfortable"
                 hide-details
                 autocomplete="off"
+                class="siqi-input"
                 @click:append-inner="cookieVisible = !cookieVisible"
               />
               <div class="cookie-note">
@@ -323,126 +324,154 @@ onMounted(async () => {
 <style scoped>
 .siqi-config {
   width: 100%;
-  min-height: 100%;
+  max-width: 100%;
+  min-height: 400px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   overflow-x: hidden;
-  color: rgb(var(--v-theme-on-background));
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
+  color: rgba(var(--v-theme-on-surface), .85);
+  border: 1px solid rgba(var(--v-theme-on-surface), .12);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(76,175,80,.025));
 }
+.siqi-config * { box-sizing: border-box; }
+.siqi-config :deep(.v-btn) { min-height: 44px; }
 
 .siqi-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 8;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 62px;
-  padding: 9px 16px;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  background: rgba(var(--v-theme-surface), .92);
-  backdrop-filter: blur(14px);
+  gap: 16px;
+  padding-bottom: 8px;
 }
 .siqi-topbar__left,
-.siqi-topbar__right,
-.siqi-card__title,
-.switch-main {
+.siqi-topbar__right {
   display: flex;
   align-items: center;
 }
-.siqi-topbar__left { gap: 10px; min-width: 0; }
-.siqi-topbar__right { flex: 0 0 auto; }
+.siqi-topbar__left { gap: 12px; min-width: 0; flex: 1; }
+.siqi-topbar__right { gap: 10px; flex-shrink: 0; }
+.siqi-topbar__right :deep(.v-btn-group) { flex-wrap: nowrap; }
 .siqi-topbar__copy { min-width: 0; }
 .siqi-topbar__icon {
-  display: grid;
-  place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 13px;
-  color: #16a34a;
-  background: rgba(34, 197, 94, .13);
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #2e7d32;
+  background: rgba(76,175,80,.14);
 }
-.siqi-topbar__title { font-size: 1.08rem; font-weight: 750; line-height: 1.25; }
-.siqi-topbar__sub { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .62); font-size: .78rem; }
+.siqi-topbar__title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; color: rgba(var(--v-theme-on-surface), .88); }
+.siqi-topbar__sub { margin-top: 2px; overflow: hidden; color: rgba(var(--v-theme-on-surface), .55); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
-.config-content { width: min(100%, 1120px); margin: 0 auto; padding: 14px 16px 26px; }
-.siqi-toast { margin-bottom: 12px; }
+.config-content { width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.siqi-toast {
+  position: fixed !important;
+  top: 18px !important;
+  left: 50% !important;
+  z-index: 99999 !important;
+  width: min(520px, calc(100vw - 32px)) !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 36px rgba(15,23,42,.18) !important;
+  transform: translateX(-50%) !important;
+}
 .loading-state {
   display: grid;
   gap: 12px;
   padding: 28px 18px;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 16px;
+  border: .5px solid rgba(var(--v-theme-on-surface), .08);
+  border-radius: 14px;
   color: rgba(var(--v-theme-on-surface), .68);
-  background: rgb(var(--v-theme-surface));
+  background: rgba(var(--v-theme-on-surface), .03);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
 }
-.config-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.config-column { display: grid; gap: 12px; }
+.siqi-form-lock { min-width: 0; margin: 0; padding: 0; border: 0; }
+.siqi-config-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .siqi-card {
-  overflow: hidden;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 16px;
-  background: rgb(var(--v-theme-surface));
-  box-shadow: 0 6px 22px rgba(15, 23, 42, .055);
+  min-width: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: .5px solid rgba(var(--v-theme-on-surface), .08);
+  border-radius: 14px;
+  background: rgba(var(--v-theme-on-surface), .03);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
 }
 .siqi-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(var(--v-border-color), calc(var(--v-border-opacity) * .75));
 }
-.siqi-card__title { gap: 7px; font-size: .94rem; font-weight: 700; }
+.siqi-card__title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: rgba(var(--v-theme-on-surface), .85); }
 
-.switch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
-.switch-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.switch-item {
+.siqi-switch-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.siqi-switch-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.siqi-switch-item {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 74px;
-  padding: 11px 12px;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 14px;
+  gap: 10px;
+  padding: 12px;
+  border: .5px solid rgba(var(--v-theme-on-surface), .06);
+  border-radius: 12px;
   background: rgba(var(--v-theme-on-surface), .025);
-  transition: border-color .18s ease, background .18s ease;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
 }
-.switch-item--active { border-color: rgba(var(--accent), .46); background: rgba(var(--accent), .07); }
-.switch-main { gap: 10px; min-width: 0; }
-.switch-main > .v-icon { flex: 0 0 auto; color: rgb(var(--accent)); }
-.switch-label { font-size: .84rem; font-weight: 700; }
-.switch-desc { margin-top: 3px; color: rgba(var(--v-theme-on-surface), .58); font-size: .69rem; line-height: 1.35; }
-.switch-item :deep(.v-input) { flex: 0 0 auto; }
+.siqi-switch-item:hover { transform: translateY(-1px); }
+.siqi-switch-item--active { border-color: rgba(var(--siqi-accent,34,197,94), .18); background: rgba(var(--siqi-accent,34,197,94), .07); }
+.siqi-switch-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; color: rgba(var(--v-theme-on-surface), .58); }
+.siqi-switch-main > div { min-width: 0; }
+.siqi-switch-item--active .siqi-switch-main { color: rgb(var(--siqi-accent,34,197,94)); }
+.siqi-switch-label { font-size: 13px; font-weight: 600; color: rgba(var(--v-theme-on-surface), .86); }
+.siqi-switch-desc { margin-top: 1px; color: rgba(var(--v-theme-on-surface), .46); font-size: 11px; line-height: 1.35; }
+.siqi-switch-item :deep(.v-switch) { flex: 0 0 auto; }
+.siqi-switch-item :deep(.v-selection-control) { min-width: 44px; min-height: 44px; }
+.siqi-switch-item :deep(.v-input__details) { display: none; }
 
-.parameter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
-.parameter-item { min-width: 0; }
-.field-help { margin: 7px 4px 0; color: rgba(var(--v-theme-on-surface), .58); font-size: .69rem; line-height: 1.45; }
+.siqi-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.siqi-field { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.siqi-input { min-width: 0; }
+.siqi-input :deep(.v-field),
+.siqi-number-input :deep(.v-field) { border-radius: 12px; }
+.siqi-input :deep(.v-field__input) { min-height: 44px; }
+.siqi-field-hint { color: rgba(var(--v-theme-on-surface), .5); font-size: 11px; line-height: 1.5; padding-inline: 2px; }
 .siqi-number-input :deep(.v-field__input) { min-height: 48px; align-items: center; padding-top: 8px; padding-bottom: 8px; }
 .siqi-number-input :deep(input) { align-self: center; line-height: 24px; text-align: center; }
 .siqi-number-input :deep(.v-field__prepend-inner),
 .siqi-number-input :deep(.v-field__append-inner) { align-self: center; padding-top: 0; }
 
-.cookie-body { display: grid; gap: 9px; padding: 14px; }
+.cookie-body { display: grid; gap: 10px; }
 .cookie-note { color: rgba(var(--v-theme-on-surface), .6); font-size: .72rem; line-height: 1.5; }
 .cookie-actions { display: flex; justify-content: flex-end; }
 .cookie-actions .v-btn { min-height: 44px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .switch-item { transition: none; }
+  .siqi-switch-item { transition: none; }
 }
 
 @media (max-width: 720px) {
-  .siqi-topbar { align-items: flex-start; padding: 8px 10px; }
+  .siqi-config { padding: 14px; }
+  .siqi-topbar { align-items: flex-start; gap: 10px; }
+  .siqi-topbar__left { min-width: 0; }
+  .siqi-topbar__right :deep(.v-btn) { min-width: 36px !important; padding-inline: 0 !important; }
   .siqi-topbar__sub { display: none; }
-  .siqi-topbar__icon { width: 38px; height: 38px; border-radius: 11px; }
-  .config-content { padding: 10px 9px 22px; }
-  .switch-grid,
-  .switch-grid--two,
-  .parameter-grid { grid-template-columns: 1fr; }
-  .switch-grid { padding: 10px; }
-  .switch-item { min-height: 70px; }
+  .siqi-switch-grid,
+  .siqi-switch-grid--two,
+  .siqi-form-grid { grid-template-columns: 1fr; }
+  .siqi-switch-item { align-items: center; }
   .cookie-actions .v-btn { width: 100%; }
 }
 </style>
