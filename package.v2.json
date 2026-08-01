@@ -78,13 +78,14 @@
   },
   "VueToy": {
     "name": "Vue-玩偶",
-    "description": "盲盒、回收、展出、获取执行记录。",
+    "description": "自己展位优先，动态收回、展出和管理玩偶盲盒。",
     "labels": "工具,自动化,玩偶,Vue",
-    "version": "0.1.11",
+    "version": "0.2.0",
     "icon": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png",
     "author": "lucku88",
     "level": 1,
     "history": {
+      "v0.2.0": "完整升级 Vue-玩偶：状态页和配置页直接对齐 Vue-思齐农场自适应风格；新增默认 1 小时的自家展位保护，固定先收回、补满自己展位再外展；增加外展限速，每轮最多随机检查 3 个目标且失败后 10 分钟再试，避免请求过密；移除强制 IPv4 和底层重复重试，由系统自动选择 IPv4 或 IPv6；旧接口会自动转交 MoviePilot 当前运行实例；升级保留配置、Cookie、执行历史和动态调度计划。",
       "v0.1.11": "限制 Vue-玩偶 网络异常重试：单次请求最多自动重试 5 次，连续执行失败超过 5 轮后停止短间隔补跑，避免通知刷屏。",
       "v0.1.10": "补齐 Vue-玩偶 保存配置、启动初始化和运行前预刷新后的补跑判断：可收回、自家展位可补位或旧计划过期时立即执行，并避免只有多余玩偶时无脑外展。",
       "v0.1.9": "Center Vue-toy cabinet and remote record cards, tighten internal alignment, and keep the dense grid ready for larger toy collections and external display histories.",

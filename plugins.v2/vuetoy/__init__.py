@@ -1,16 +1,15 @@
 import json
 import random
 import re
-import socket
 import time
 import traceback
 from datetime import datetime, timedelta
+from functools import wraps
 from html import unescape
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 import requests
-import urllib3.util.connection as urllib3_connection
 from apscheduler.schedulers.background import BackgroundScheduler
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -25,9 +24,9 @@ from app.schemas import NotificationType
 
 class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
-    plugin_desc = "盲盒、回收、展出、获取执行记录。"
+    plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.1.11"
+    plugin_version = "0.2.0"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -53,11 +52,9 @@ class VueToy(_PluginBase):
     _enabled: bool = False
     _notify: bool = True
     _onlyonce: bool = False
-    _auto_cookie: bool = True
     _auto_collect: bool = True
     _auto_place: bool = True
     _use_proxy: bool = False
-    _force_ipv4: bool = True
     _cookie: str = ""
     _cookie_source: str = "未配置"
     _site_domain: str = DEFAULT_SITE_DOMAIN
@@ -74,6 +71,7 @@ class VueToy(_PluginBase):
     _place_loop_limit: int = 10
     _place_retry_delay: int = 1500
     _max_target_try: int = 3
+    _self_slot_guard_hours: int = 1
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
@@ -93,10 +91,9 @@ class VueToy(_PluginBase):
         self._apply_config(merged)
         self._resolve_site_profile()
 
-        if self._auto_cookie:
-            self._sync_cookie_from_site(save_config=False, silent=True)
-        else:
-            self._cookie_source = "手动配置" if self._cookie else "未配置"
+        cookie_result = self._sync_cookie_from_site(save_config=False, silent=True)
+        if not cookie_result.get("success"):
+            self._cookie_source = "手动配置（站点同步失败，作为备用）" if self._cookie else "站点同步失败"
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
@@ -123,8 +120,32 @@ class VueToy(_PluginBase):
     def get_command() -> List[Dict[str, Any]]:
         return []
 
+    def _route_to_current_instance(self, endpoint):
+        method_name = endpoint.__name__
+
+        @wraps(endpoint)
+        def routed(*args, **kwargs):
+            try:
+                from app.core.plugin import PluginManager
+
+                target = PluginManager().running_plugins.get(self.__class__.__name__)
+            except (ImportError, AttributeError, TypeError):
+                target = None
+            except Exception as err:
+                logger.warning("%s 获取当前运行实例失败：%s", self.plugin_name, err)
+                target = None
+
+            if target is not None and target is not self:
+                target_endpoint = getattr(target, method_name, None)
+                if callable(target_endpoint):
+                    return target_endpoint(*args, **kwargs)
+                return {"success": False, "message": "插件正在更新，请稍后重试"}
+            return endpoint(*args, **kwargs)
+
+        return routed
+
     def get_api(self) -> List[Dict[str, Any]]:
-        return [
+        routes = [
             {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-玩偶配置"},
             {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 Vue-玩偶配置"},
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-玩偶状态"},
@@ -139,6 +160,9 @@ class VueToy(_PluginBase):
             {"path": "/buy-box", "endpoint": self._buy_box_api, "methods": ["POST"], "auth": "bear", "summary": "购买盲盒"},
             {"path": "/open-box", "endpoint": self._open_box_api, "methods": ["POST"], "auth": "bear", "summary": "开启盲盒"},
         ]
+        for route in routes:
+            route["endpoint"] = self._route_to_current_instance(route["endpoint"])
+        return routes
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         return None, self._get_config()
@@ -192,8 +216,6 @@ class VueToy(_PluginBase):
                 return {"success": False, "message": "插件未启用", "status": self._build_status(auto_refresh=False)}
 
             self._ensure_cookie()
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             rand_delay = random.randint(0, max(0, self._random_delay_max_seconds))
             if rand_delay:
@@ -242,7 +264,15 @@ class VueToy(_PluginBase):
                 bundle = self._fetch_bundle(session)
                 state = bundle["state"] or state
                 html = bundle["html"] or html
-                placed_times.extend(self._place_target_slots(session, state, place_names))
+                if self._should_pause_remote_placement(state):
+                    nearest = self._nearest_personal_collect_seconds(state)
+                    logger.info(
+                        "%s 自家展位将在 %s 内可收回，本轮暂停外展",
+                        self.plugin_name,
+                        self._format_duration(nearest),
+                    )
+                else:
+                    placed_times.extend(self._place_target_slots(session, state, place_names))
 
             final_bundle = self._fetch_bundle(session)
             final_state = final_bundle["state"] or state
@@ -554,10 +584,11 @@ class VueToy(_PluginBase):
 
         next_run = self._load_saved_next_run()
         next_trigger = self._load_saved_next_trigger()
+        status_config = self._get_config(include_options=False)
+        status_config.pop("cookie", None)
         return {
             "enabled": self._enabled,
             "notify": self._notify,
-            "auto_cookie": self._auto_cookie,
             "auto_collect": self._auto_collect,
             "auto_place": self._auto_place,
             "cookie_source": self._cookie_source,
@@ -566,22 +597,25 @@ class VueToy(_PluginBase):
             "last_run": self.get_data("last_run") or "",
             "toy_status": toy_status,
             "history": self._get_clean_history(persist=True),
-            "config": self._get_config(),
+            "config": status_config,
         }
 
     def _get_config(self, include_options: bool = True) -> Dict[str, Any]:
-        return {
+        config = {
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
             "auto_collect": self._auto_collect,
             "auto_place": self._auto_place,
-            "capture_tips": [] if include_options else None,
+            "self_slot_guard_hours": self._self_slot_guard_hours,
+            "random_delay_max_seconds": self._random_delay_max_seconds,
         }
+        if include_options:
+            config["cookie_source"] = self._cookie_source
+            config["capture_tips"] = []
+        return config
 
     def _save_config(self, config_payload: dict):
         before_refresh = self._capture_refresh_catchup_state()
@@ -625,24 +659,23 @@ class VueToy(_PluginBase):
             "enabled": False,
             "notify": True,
             "onlyonce": False,
-            "auto_cookie": True,
             "auto_collect": True,
             "auto_place": True,
             "use_proxy": False,
-            "force_ipv4": True,
             "cookie": "",
+            "self_slot_guard_hours": 1,
+            "random_delay_max_seconds": 5,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
-        self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
         self._auto_collect = self._to_bool(config.get("auto_collect", True))
         self._auto_place = self._to_bool(config.get("auto_place", config.get("enable_target", True)))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
-        self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
+        self._self_slot_guard_hours = max(0, min(24, self._safe_int(config.get("self_slot_guard_hours"), 1)))
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 5))
         self._http_timeout = max(5, self._safe_int(config.get("http_timeout"), 12))
@@ -653,19 +686,19 @@ class VueToy(_PluginBase):
         self._collect_retry_delay = max(0, self._safe_int(config.get("collect_retry_delay"), 1200))
         self._place_loop_limit = max(1, self._safe_int(config.get("place_loop_limit"), 10))
         self._place_retry_delay = max(0, self._safe_int(config.get("place_retry_delay"), 1500))
-        self._max_target_try = max(1, self._safe_int(config.get("max_target_try"), 3))
+        self._max_target_try = max(1, min(3, self._safe_int(config.get("max_target_try"), 3)))
 
     def _update_config(self):
         self.update_config({
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "auto_collect": self._auto_collect,
             "auto_place": self._auto_place,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
+            "self_slot_guard_hours": self._self_slot_guard_hours,
+            "random_delay_max_seconds": self._random_delay_max_seconds,
         })
 
     def _get_error_retry_count(self) -> int:
@@ -723,23 +756,30 @@ class VueToy(_PluginBase):
             return {"success": False, "message": detail}
 
     def _ensure_cookie(self):
-        if not self._cookie:
-            raise ValueError("未配置 SQ Cookie")
+        result = self._sync_cookie_from_site(save_config=False, silent=True)
+        if result.get("success"):
+            return
+        if self._cookie and self._cookie.strip().lower() != "cookie":
+            self._cookie_source = "手动配置（站点同步失败，作为备用）"
+            return
+        raise ValueError("未找到有效站点 Cookie，请先在 MoviePilot 站点管理中更新 Cookie")
 
     def _build_session(self) -> requests.Session:
+        # 网络重试统一由 _request_with_retry 控制，避免 requests 适配器再放大请求次数。
         retry = Retry(
-            total=max(0, self._http_retry_times),
-            connect=max(0, self._http_retry_times),
-            read=max(0, self._http_retry_times),
-            backoff_factor=max(self._http_retry_delay / 1000.0, 0.1),
-            status_forcelist=[500, 502, 503, 504],
+            total=0,
+            connect=0,
+            read=0,
+            status=0,
+            backoff_factor=0,
             allowed_methods=frozenset(["GET"]),
             raise_on_status=False,
         )
         session = requests.Session()
-        adapter = HTTPAdapter(max_retries=retry)
+        adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=10)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
+        session.trust_env = self._use_proxy
         session.headers.update({
             "User-Agent": self._user_agent,
             "Cookie": self._cookie,
@@ -1022,10 +1062,9 @@ class VueToy(_PluginBase):
         remaining = [dict(item) for item in self._iter_dicts(state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
         if not remaining:
             return placed_times
-        attempt_limit = max(24, len(remaining) * 6, self._max_target_try)
+        attempt_limit = max(1, min(3, self._max_target_try))
         total_attempts = 0
-        no_progress_rounds = 0
-        while remaining and total_attempts < attempt_limit and no_progress_rounds < 6:
+        while remaining and total_attempts < attempt_limit:
             total_attempts += 1
             result = self._post_action(session, "random_target", {}, retry_network=True)
             target = result.get("target") or {}
@@ -1035,7 +1074,6 @@ class VueToy(_PluginBase):
                 if not slot.get("occupant") and not slot.get("cooldown_active")
             ]
             if not target or not slots:
-                no_progress_rounds += 1
                 continue
             placements = []
             doll_index = 0
@@ -1062,13 +1100,54 @@ class VueToy(_PluginBase):
                     place_names.append(item["doll_name"] or "未知玩偶")
                     placed_times.append({"time": now_ts + max(0, item["display_seconds"]), "label": f"本轮放置 外展 {item['doll_name'] or item['doll_key']}"})
             remaining = [item for item in remaining if self._safe_int(item.get("available"), 0) > 0]
-            if success_count > 0:
-                no_progress_rounds = 0
-            else:
-                no_progress_rounds += 1
             if success_count and remaining:
                 time.sleep(max(self._place_retry_delay / 1000.0, 0))
         return placed_times
+
+    def _nearest_personal_collect_seconds(self, state: Dict[str, Any]) -> Optional[int]:
+        candidates: List[int] = []
+        for slot in self._iter_dicts(state.get("personal_slots") or []):
+            if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
+                continue
+            remaining = self._get_personal_remain_sec(slot)
+            if remaining is not None:
+                candidates.append(remaining)
+        return min(candidates) if candidates else None
+
+    def _has_available_doll_in_state(self, state: Dict[str, Any]) -> bool:
+        return any(
+            self._safe_int(item.get("available"), 0) > 0
+            for item in self._iter_dicts(state.get("doll_inventory") or [])
+        )
+
+    def _should_pause_remote_placement(self, state: Dict[str, Any]) -> bool:
+        if not self._auto_collect or not self._auto_place or self._self_slot_guard_hours <= 0:
+            return False
+        if not self._has_available_doll_in_state(state):
+            return False
+        nearest = self._nearest_personal_collect_seconds(state)
+        if nearest is None:
+            return False
+        return nearest <= self._self_slot_guard_hours * 3600
+
+    def _build_placement_guard(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        nearest = self._nearest_personal_collect_seconds(state)
+        active = self._should_pause_remote_placement(state)
+        enabled = bool(self._auto_collect and self._auto_place and self._self_slot_guard_hours > 0)
+        if active:
+            text = f"自家展位将在 {self._format_duration(nearest)} 内完成，已暂停外展"
+        elif enabled:
+            text = f"距离自家展位完成 {self._self_slot_guard_hours} 小时内暂停外展"
+        else:
+            text = "自家展位保护未启用"
+        return {
+            "enabled": enabled,
+            "active": active,
+            "hours": self._self_slot_guard_hours,
+            "nearest_seconds": nearest,
+            "nearest_time": self._format_ts(int(time.time()) + nearest) if nearest is not None else "",
+            "text": text,
+        }
 
     def _pick_remote_candidate(self, slots: List[dict], remote: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         owned = [slot for slot in self._iter_dicts(slots or []) if (slot.get("occupant") or {}).get("viewer_is_occupant")]
@@ -1301,7 +1380,7 @@ class VueToy(_PluginBase):
     def _compute_next_run(self, state: Dict[str, Any], placed_times: Optional[List[Dict[str, Any]]] = None) -> Optional[int]:
         now_ts = int(time.time())
         candidates: List[int] = []
-        if self._auto_place and self._needs_placement_retry(state):
+        if self._auto_place and self._needs_placement_retry(state) and not self._should_pause_remote_placement(state):
             candidates.append(now_ts + self._placement_retry_seconds())
         if self._auto_collect:
             for slot in self._iter_dicts(state.get("personal_slots") or []):
@@ -1332,18 +1411,12 @@ class VueToy(_PluginBase):
         return min(candidates) if candidates else now_ts + 6 * 3600
 
     def _placement_retry_seconds(self) -> int:
-        return max(45, min(300, self._http_timeout * 3))
+        return 10 * 60
 
     def _needs_placement_retry(self, state: Dict[str, Any]) -> bool:
         if not self._auto_place:
             return False
-        available_dolls = any(self._safe_int(item.get("available"), 0) > 0 for item in self._iter_dicts(state.get("doll_inventory") or []))
-        if not available_dolls:
-            return False
-        has_idle_personal_slot = any(not slot.get("occupant") for slot in self._iter_dicts(state.get("personal_slots") or []))
-        if has_idle_personal_slot:
-            return True
-        return True
+        return self._has_available_doll_in_state(state)
 
     def _should_skip_run(self) -> bool:
         next_run = self._load_saved_next_run()
@@ -1485,13 +1558,14 @@ class VueToy(_PluginBase):
         return {
             "schema_version": self.plugin_version,
             "title": "玩偶抢曝光",
-            "subtitle": "盲盒、回收、展出、获取执行记录。",
+            "subtitle": "自己展位优先，动态收回并使用剩余玩偶外展。",
             "cookie_source": self._cookie_source,
             "summary": summary_lines,
             "next_run_time": self._format_ts(next_run),
             "next_run_ts": next_run or 0,
             "next_trigger_time": self._format_time(self._load_saved_next_trigger()),
             "next_trigger_ts": int(self._load_saved_next_trigger().timestamp()) if self._load_saved_next_trigger() else 0,
+            "placement_guard": self._build_placement_guard(state),
             "overview": self._merge_overview(self._build_overview(state), parsed),
             "shop_boxes": shop_boxes,
             "my_boxes": self._build_box_inventory(state, shop_boxes, parsed.get("my_boxes") or []),
@@ -1552,14 +1626,19 @@ class VueToy(_PluginBase):
     def _build_overview(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
         user = state.get("user") or {}
         profile = state.get("profile") or {}
-        booth_count = self._safe_int(profile.get("booth_count"), 0)
+        personal_slots = self._iter_dicts(state.get("personal_slots") or [])
+        owned_slots = sum(
+            1
+            for slot in personal_slots
+            if (slot.get("occupant") or {}).get("viewer_is_occupant")
+        )
         return [
             {"label": "当前魔力", "value": self._safe_int(user.get("magic"), 0)},
             {"label": "累计曝光值", "value": self._safe_int(profile.get("exposure"), 0)},
             {"label": "累计收获魔力值", "value": self._safe_int(profile.get("earned_magic"), 0)},
             {
-                "label": "我的展柜",
-                "value": booth_count,
+                "label": "自己展位",
+                "value": f"{owned_slots}/{len(personal_slots)}",
             },
         ]
 
