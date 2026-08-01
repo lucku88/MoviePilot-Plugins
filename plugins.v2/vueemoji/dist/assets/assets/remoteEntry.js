@@ -1,4 +1,4 @@
-const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/"+dep };const seen$1 = {};const __vitePreload = function preload(baseModule, deps, importerUrl) {
+const scriptRel = 'modulepreload';const assetsURL = function(dep, importerUrl) { return new URL(dep, importerUrl).href };const seen$1 = {};const __vitePreload = function preload(baseModule, deps, importerUrl) {
     // @ts-expect-error true will be replaced with boolean later
     if (!true || !deps || deps.length === 0) {
         return baseModule();
@@ -6,7 +6,7 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/"+d
     const links = document.getElementsByTagName('link');
     return Promise.all(deps.map((dep) => {
         // @ts-expect-error assetsURL is declared before preload.toString()
-        dep = assetsURL(dep);
+        dep = assetsURL(dep, importerUrl);
         if (dep in seen$1)
             return;
         seen$1[dep] = true;
@@ -60,10 +60,10 @@ const exportSet = new Set(['Module', '__esModule', 'default', '_export_sfc']);
       let moduleMap = {
 "./Page":()=>{
       dynamicLoadingCss(["style.css"]);
-      return __federation_import('./../__federation_expose_Page-2a5cac52.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
+      return __federation_import('./../__federation_expose_Page-e1caf1cf.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
 "./Config":()=>{
       dynamicLoadingCss(["style.css"]);
-      return __federation_import('./../__federation_expose_Config-346afec1.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};
+      return __federation_import('./../__federation_expose_Config-76049b7f.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};
     const seen = {};
     const dynamicLoadingCss = (cssFilePaths) => {
       const metaUrl = import.meta.url;
@@ -83,7 +83,7 @@ const exportSet = new Set(['Module', '__esModule', 'default', '_export_sfc']);
       });
     };
     async function __federation_import(name) {
-        return __vitePreload(() => import(name),true?[]:void 0);
+        return __vitePreload(() => import(name),true?[]:void 0,import.meta.url);
     }    const get =(module) => {
       if(!moduleMap[module]) throw new Error('Can not find remote module ' + module)
       return moduleMap[module]();
