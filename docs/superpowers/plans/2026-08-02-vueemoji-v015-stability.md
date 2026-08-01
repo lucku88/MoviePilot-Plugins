@@ -110,7 +110,7 @@ def _confirmed_action_result(self, before_state: Dict[str, Any], after_state: Di
         before_user = before_state.get("user") or {}
         after_user = after_state.get("user") or {}
         result["result"] = {
-            "point_gain": max(0, self._safe_int(after_user.get("reputation"), 0) - self._safe_int(before_user.get("reputation"), 0)),
+            "point_gain": max(0, self._safe_int(after_user.get("total_points"), 0) - self._safe_int(before_user.get("total_points"), 0)),
             "magic_gain": max(0, self._safe_int(after_user.get("magic"), 0) - self._safe_int(before_user.get("magic"), 0)),
         }
     return result

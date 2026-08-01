@@ -125,8 +125,29 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
         self.assertIn("@media (max-width: 600px)", self.config)
         self.assertIn("overflow-x: hidden", self.page)
         self.assertIn("overflow-x: hidden", self.config)
-        self.assertIn("min-height: 44px", self.page)
+        self.assertIn("min-height:44px", self.compact_page)
         self.assertIn("min-height: 44px", self.config)
+
+    def test_stage_uses_one_remaining_time_source(self):
+        self.assertIn("Number(stage.value.remaining_seconds || 0)", self.page)
+        self.assertNotIn("meta: stage.value.current_text", self.page)
+        self.assertNotIn("stage.current_text", self.page)
+        self.assertIn("stage.value.current_effect_name", self.page)
+        self.assertIn("stage.value.active_count", self.page)
+
+    def test_action_number_inputs_are_centered_and_mobile_safe(self):
+        self.assertRegex(
+            self.page,
+            r"\.number-input\s*\{[^}]*height:\s*44px[^}]*text-align:\s*center",
+        )
+        self.assertRegex(
+            self.page,
+            r"\.slot-machine-action,\.bag-action\s*\{[^}]*align-items:\s*center[^}]*min-width:\s*0",
+        )
+        self.assertIn(
+            ".slot-machine-action:deep(.v-btn),.bag-action:deep(.v-btn){height:44px",
+            self.compact_page,
+        )
 
 
 if __name__ == "__main__":

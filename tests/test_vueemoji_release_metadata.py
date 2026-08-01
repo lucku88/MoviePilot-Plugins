@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.1.4"
+EXPECTED_VERSION = "0.1.5"
 
 
 class VueEmojiReleaseMetadataTests(unittest.TestCase):
@@ -26,17 +26,14 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v014_theme_migration(self):
+    def test_market_history_describes_v015_stability_release(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "Vue-农场",
-            "Vue-魔丸",
-            "Vue-玩偶",
-            "浅色",
-            "深色",
-            "手机",
+            "重试",
+            "状态确认",
+            "舞台",
             "保留配置",
         ):
             self.assertIn(phrase, note)
@@ -44,7 +41,7 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
     def test_readme_lists_version_and_upgrade_behaviour(self):
         self.assertIn(f"| `Vue-表情` | `v{EXPECTED_VERSION}`", self.readme)
         section = self.readme.split("### 🎭 Vue-表情", 1)[1].split("### ", 1)[0]
-        for phrase in (f"v{EXPECTED_VERSION}", "浅色", "深色", "手机", "保留配置"):
+        for phrase in (f"v{EXPECTED_VERSION}", "重试", "状态确认", "舞台", "保留配置"):
             self.assertIn(phrase, section)
 
     def test_federation_entries_reference_existing_build_assets(self):

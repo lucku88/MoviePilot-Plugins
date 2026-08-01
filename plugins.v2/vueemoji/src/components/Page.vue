@@ -87,7 +87,7 @@
         </v-card>
 
         <v-card flat class="siqi-card stage-card mb-3">
-          <v-card-title class="siqi-card-title stage-title-row"><span class="card-title-copy"><v-icon icon="mdi-drama-masks" size="19" color="deep-orange" />表情演出舞台</span><span class="stage-current"><strong>{{ stage.current_effect_name || '未开始' }}</strong><small>{{ stage.current_text || '当前无演出演员' }}</small></span></v-card-title>
+          <v-card-title class="siqi-card-title stage-title-row"><span class="card-title-copy"><v-icon icon="mdi-drama-masks" size="19" color="deep-orange" />表情演出舞台</span><span class="stage-current"><strong>{{ stage.current_effect_name || '未开始' }}</strong><small>{{ stageHeaderMeta }}</small></span></v-card-title>
           <v-card-text class="stage-body">
             <div class="effect-grid"><button v-for="effect in effects" :key="effect.key" type="button" class="effect-card" :class="{ active: selectedEffect === effect.key, locked: !effect.unlocked }" :disabled="!effect.unlocked || stage.has_active" @click="selectEffect(effect)"><span class="effect-title">{{ effect.name }}</span><span class="effect-boost">积分+{{ effect.point_bonus_pct }}% · 魔力+{{ effect.magic_bonus_pct }}%</span><span class="effect-subline">{{ effect.duration_text || (effect.duration_seconds || 0) + ' 秒' }}</span><span class="effect-unlock">{{ effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁' }}</span></button></div>
             <div class="stage-toolbar">
@@ -129,6 +129,7 @@ const initialLoading = ref(true)
 const status = reactive({ emoji_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
+const stageRemainingCapturedTs = ref(nowTs.value)
 const dismissedSummaryKey = ref('')
 const hiddenPendingKey = ref('')
 const actorLimitStep = 48
@@ -182,17 +183,38 @@ const visibleActors = computed(() => sortedActors.value.slice(0, actorVisibleLim
 const hasMoreActors = computed(() => sortedActors.value.length > actorVisibleLimit.value)
 const remainingActorCount = computed(() => Math.max(0, sortedActors.value.length - actorVisibleLimit.value))
 const stageRemainText = computed(() => {
-  const remain = Number(stage.value.remaining_end_ts || 0) - nowTs.value
-  if (Number(stage.value.remaining_end_ts || 0) > 0 && remain > 0) {
-    return formatCountdown(remain)
+  const hasBackendRemaining = stage.value.remaining_seconds !== undefined && stage.value.remaining_seconds !== null && stage.value.remaining_seconds !== ''
+  const backendRemaining = Number(stage.value.remaining_seconds || 0)
+  if (hasBackendRemaining) {
+    const elapsed = Math.max(0, nowTs.value - stageRemainingCapturedTs.value)
+    const remaining = Math.max(0, backendRemaining - elapsed)
+    if (remaining > 0) {
+      return formatCountdown(remaining)
+    }
+    return stage.value.has_active ? '可收回' : '等待刷新'
   }
-  return stage.value.remaining_text || '等待刷新'
+  const endTs = Number(stage.value.remaining_end_ts || 0)
+  const remaining = Math.max(0, endTs - nowTs.value)
+  return remaining > 0 ? formatCountdown(remaining) : (stage.value.has_active ? '可收回' : '等待刷新')
+})
+const stageTaskMeta = computed(() => (
+  stage.value.has_active
+    ? `${stage.value.current_effect_name || '舞台效果'} · 演员${Number(stage.value.active_count || 0)}位`
+    : '等待安排演员和舞台效果'
+))
+const stageHeaderMeta = computed(() => {
+  if (!stage.value.has_active) return '当前无演出演员'
+  const rewards = []
+  if (Number(stage.value.expected_points || 0) > 0) rewards.push(`声誉+${stage.value.expected_points}`)
+  if (Number(stage.value.expected_magic || 0) > 0) rewards.push(`魔力+${stage.value.expected_magic}`)
+  const rewardText = rewards.length ? ` · 预计${rewards.join('，')}` : ''
+  return `演员${Number(stage.value.active_count || 0)}位${rewardText}`
 })
 
 const scheduleRows = computed(() => [
   { title: '下次运行', value: emoji.value.next_run_time || '等待刷新', meta: '按真实可执行时间动态安排', icon: 'mdi-clock-check-outline', tone: 'green' },
   { title: '计划触发', value: emoji.value.next_trigger_time || '等待识别', meta: '提前刷新状态，错过时间会自动补跑', icon: 'mdi-calendar-clock-outline', tone: 'blue' },
-  { title: '舞台演出', value: stage.value.has_active ? '剩余 ' + stageRemainText.value : '当前未演出', meta: stage.value.current_text || '等待安排演员和舞台效果', icon: 'mdi-drama-masks', tone: 'orange' },
+  { title: '舞台演出', value: stage.value.has_active ? stageRemainText.value : '当前未演出', meta: stageTaskMeta.value, icon: 'mdi-drama-masks', tone: 'orange' },
   { title: 'Cookie 来源', value: emoji.value.cookie_source || '未同步', meta: '配置页可自动同步或手动填写', icon: 'mdi-cookie-outline', tone: 'teal' },
 ])
 
@@ -586,6 +608,11 @@ function applyStatusPayload(payload = {}) {
   const nextStatus = payload.status?.emoji_status || payload.emoji_status || payload
   if (nextStatus?.stats || nextStatus?.slot_machine || nextStatus?.bags || nextStatus?.stage_rows) {
     status.emoji_status = nextStatus
+    if (nextStatus?.stage) {
+      const receivedAt = Math.floor(Date.now() / 1000)
+      nowTs.value = receivedAt
+      stageRemainingCapturedTs.value = receivedAt
+    }
   }
   if (Array.isArray(payload.history)) {
     status.history = payload.history
@@ -751,7 +778,7 @@ onBeforeUnmount(() => {
 .siqi-card{min-width:0;overflow:hidden;border:.5px solid rgba(var(--v-theme-on-surface),.08);border-radius:14px;background:rgba(var(--v-theme-on-surface),.03);backdrop-filter:blur(20px) saturate(150%);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 10px rgba(0,0,0,.05)}.siqi-card-title{min-height:52px;padding:13px 16px!important;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84);font-size:13px;font-weight:800;line-height:1.3;white-space:normal}.section-count{color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-weight:600}.card-title-copy{display:inline-flex;align-items:center;gap:8px;min-width:0}
 .overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px!important;}.overview-grid>*{width:auto!important;max-width:none!important;padding:0!important}.stat-card{min-width:0;min-height:82px;display:flex;align-items:center;gap:11px;padding:13px;border:1px solid rgba(var(--v-theme-on-surface),.075);border-radius:13px;background:rgba(var(--v-theme-surface),.72);box-shadow:0 2px 10px rgba(0,0,0,.04)}.stat-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:11px;background:rgba(76,175,80,.11);color:#22c55e}.stat-orange .stat-icon{background:rgba(249,115,22,.11);color:#f97316}.stat-blue .stat-icon{background:rgba(59,130,246,.11);color:#3b82f6}.stat-pink .stat-icon{background:rgba(236,72,153,.11);color:#ec4899}.stat-content{min-width:0}.stat-title{color:rgba(var(--v-theme-on-surface),.52);font-size:11px;font-weight:600}.stat-value{margin-top:2px;overflow:hidden;color:rgba(var(--v-theme-on-surface),.9);font-size:20px;font-weight:850;font-variant-numeric:tabular-nums;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}.stat-desc{margin-top:3px;overflow:hidden;color:rgba(var(--v-theme-on-surface),.43);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
 .primary-grid{display:grid;grid-template-columns:minmax(420px,.92fr) minmax(560px,1.25fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%}.schedule-board-body,.bag-card-body,.catalog-body,.stage-body{padding:14px!important}.schedule-list{display:flex;flex-direction:column;gap:8px}.schedule-row{min-width:0;min-height:66px;display:grid;grid-template-columns:34px minmax(0,1fr) minmax(120px,auto);align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(var(--v-theme-on-surface),.065);border-radius:12px;background:rgba(var(--v-theme-surface),.66)}.schedule-row__icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(34,197,94,.1);color:#22c55e}.schedule-row__icon.tone-blue{background:rgba(59,130,246,.1);color:#3b82f6}.schedule-row__icon.tone-orange{background:rgba(249,115,22,.1);color:#f97316}.schedule-row__icon.tone-teal{background:rgba(20,184,166,.1);color:#14b8a6}.schedule-row__copy{min-width:0}.schedule-row__title{color:rgba(var(--v-theme-on-surface),.82);font-size:12px;font-weight:800}.schedule-row__meta{margin-top:2px;overflow:hidden;color:rgba(var(--v-theme-on-surface),.46);font-size:10px;text-overflow:ellipsis;white-space:nowrap}.schedule-row__value{max-width:210px;overflow:hidden;color:#22c55e;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;text-overflow:ellipsis;white-space:nowrap}.schedule-row__value.tone-blue{color:#3b82f6}.schedule-row__value.tone-orange{color:#f97316}.schedule-row__value.tone-teal{color:#14b8a6}.schedule-run-btn{min-width:100px!important}.summary-panel{margin-top:10px;padding:10px 12px;border:1px solid rgba(34,197,94,.18);border-radius:12px;background:rgba(34,197,94,.07)}.summary-panel__head{display:flex;align-items:center;justify-content:space-between;gap:10px}.summary-panel__head>span{display:inline-flex;align-items:center;gap:6px;color:#22c55e;font-size:11px;font-weight:800}.summary-lines{color:rgba(var(--v-theme-on-surface),.64);font-size:11px;line-height:1.55}
-.slot-machine-panel{display:grid;grid-template-columns:minmax(110px,1fr) auto auto;align-items:center;gap:12px;margin-bottom:10px;padding:11px 12px;border:1px solid rgba(249,115,22,.16);border-radius:12px;background:rgba(249,115,22,.055)}.slot-machine-title{display:flex;align-items:center;gap:6px;color:rgba(var(--v-theme-on-surface),.82);font-size:12px;font-weight:800}.slot-machine-meta{margin-top:2px;color:rgba(var(--v-theme-on-surface),.47);font-size:10px}.slot-reels{display:flex;gap:5px}.slot-reels span{width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(249,115,22,.16);border-radius:9px;background:rgba(var(--v-theme-surface),.78);font-size:19px}.slot-machine-action,.bag-action{display:flex;align-items:center;gap:6px}.number-input{width:58px;min-height:44px;padding:0 8px;border:1px solid rgba(var(--v-theme-on-surface),.16);border-radius:10px;color:rgba(var(--v-theme-on-surface),.82);background:rgba(var(--v-theme-surface),.78);font:inherit;font-size:12px;font-variant-numeric:tabular-nums;text-align:center}.number-input{min-height: 44px}
+.slot-machine-panel{display:grid;grid-template-columns:minmax(110px,1fr) auto auto;align-items:center;gap:12px;margin-bottom:10px;padding:11px 12px;border:1px solid rgba(249,115,22,.16);border-radius:12px;background:rgba(249,115,22,.055)}.slot-machine-title{display:flex;align-items:center;gap:6px;color:rgba(var(--v-theme-on-surface),.82);font-size:12px;font-weight:800}.slot-machine-meta{margin-top:2px;color:rgba(var(--v-theme-on-surface),.47);font-size:10px}.slot-reels{display:flex;gap:5px}.slot-reels span{width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(249,115,22,.16);border-radius:9px;background:rgba(var(--v-theme-surface),.78);font-size:19px}.slot-machine-action,.bag-action{display:flex;align-items:center;gap:6px;min-width:0}.slot-machine-action :deep(.v-btn),.bag-action :deep(.v-btn){height:44px;min-height:44px}.number-input{width:58px;height:44px;min-width:0;max-width:100%;padding:0 8px;border:1px solid rgba(var(--v-theme-on-surface),.16);border-radius:10px;color:rgba(var(--v-theme-on-surface),.82);background:rgba(var(--v-theme-surface),.78);font:inherit;font-size:12px;font-variant-numeric:tabular-nums;line-height:44px;text-align:center}
 .bag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bag-item{min-width:0;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px;border:1px solid rgba(var(--bag-tone),.2);border-radius:12px;background:linear-gradient(135deg,rgba(var(--bag-tone),.085),rgba(var(--v-theme-surface),.68))}.bag-image{width:44px;height:44px;border-radius:10px;background-position:center;background-size:cover}.bag-image--placeholder{display:grid;place-items:center;color:rgb(var(--bag-tone));background:rgba(var(--bag-tone),.1)}.bag-copy{min-width:0}.bag-name{overflow:hidden;color:var(--bag-badge);font-size:12px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}.bag-count{margin-top:2px;color:rgba(var(--v-theme-on-surface),.48);font-size:10px}
 .pending-panel{margin-top:10px;padding:12px;border:1px solid rgba(59,130,246,.18);border-radius:12px;background:rgba(59,130,246,.055)}.pending-head,.pending-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.pending-head>div{min-width:0;display:flex;flex-direction:column}.pending-head strong{color:rgba(var(--v-theme-on-surface),.82);font-size:12px}.pending-head span,.pending-actions>span{color:rgba(var(--v-theme-on-surface),.48);font-size:10px}.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:7px;margin:10px 0}.result-item{padding:8px;border-radius:10px;text-align:center;background:rgba(var(--v-theme-surface),.72)}.result-emoji{font-size:25px}.result-attr{color:rgba(var(--v-theme-on-surface),.68);font-size:10px;font-weight:700}.result-owned{color:rgba(var(--v-theme-on-surface),.43);font-size:9px}.pending-actions>div{display:flex;gap:6px}
 .catalog-title-row,.stage-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.catalog-progress,.stage-current{min-width:0;display:flex;align-items:flex-end;flex-direction:column;text-align:right}.catalog-progress strong,.stage-current strong{color:rgba(var(--v-theme-on-surface),.84);font-size:13px;font-variant-numeric:tabular-nums}.catalog-progress small,.stage-current small{max-width:520px;overflow:hidden;color:rgba(var(--v-theme-on-surface),.45);font-size:10px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}

@@ -29,7 +29,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.4"
+    plugin_version = "0.1.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -700,13 +700,11 @@ class VueEmoji(_PluginBase):
         if self._force_ipv4:
             urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         retry = Retry(
-            total=max(0, self._http_retry_times),
-            connect=max(0, self._http_retry_times),
-            read=max(0, self._http_retry_times),
-            backoff_factor=max(self._http_retry_delay / 1000.0, 0.1),
-            status_forcelist=[500, 502, 503, 504],
-            allowed_methods=frozenset(["GET"]),
-            raise_on_status=False,
+            total=0,
+            connect=0,
+            read=0,
+            redirect=0,
+            status=0,
         )
         session = requests.Session()
         adapter = HTTPAdapter(max_retries=retry)
@@ -724,19 +722,22 @@ class VueEmoji(_PluginBase):
         return session
 
     def _fetch_bundle(self, session: requests.Session) -> Dict[str, Any]:
-        def run() -> Dict[str, Any]:
-            response = session.get(
-                f"{self._site_url}/siqi_emoji.php",
-                timeout=(self._http_timeout, self._http_timeout),
-            )
-            response.raise_for_status()
-            html = response.text
-            state = self._extract_initial_state(html)
-            if not state:
-                raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
-            return {"state": state, "html": html}
+        return self._request_with_retry(
+            "fetchEmojiPage",
+            lambda: self._fetch_bundle_once(session),
+        )
 
-        return self._request_with_retry("fetchEmojiPage", run)
+    def _fetch_bundle_once(self, session: requests.Session) -> Dict[str, Any]:
+        response = session.get(
+            f"{self._site_url}/siqi_emoji.php",
+            timeout=(self._http_timeout, self._http_timeout),
+        )
+        response.raise_for_status()
+        html = response.text
+        state = self._extract_initial_state(html)
+        if not state:
+            raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
+        return {"state": state, "html": html}
 
     def _extract_initial_state(self, html: str) -> Dict[str, Any]:
         marker = "const SIQI_EMOJI_DATA ="
@@ -795,7 +796,6 @@ class VueEmoji(_PluginBase):
         session: requests.Session,
         action: str,
         payload: Optional[dict] = None,
-        retry_network: bool = False,
     ) -> dict:
         body = dict(payload or {})
         body["action"] = action
@@ -814,9 +814,284 @@ class VueEmoji(_PluginBase):
                 return {}
             return {"success": True, "data": data}
 
-        if retry_network:
-            return self._request_with_retry(f"postAction:{action}", run)
         return run()
+
+    def _pending_open_signature(self, state: Dict[str, Any]) -> Tuple[Any, ...]:
+        pending = state.get("pending_open") or {}
+        if not pending:
+            return ()
+        items = tuple(
+            sorted(
+                (
+                    str(item.get("emoji") or ""),
+                    self._safe_int(item.get("points"), 0),
+                    self._safe_int(item.get("magic"), 0),
+                    self._safe_int(item.get("owned_count"), 0),
+                )
+                for item in self._iter_dicts(pending.get("result_items") or [])
+            )
+        )
+        return (
+            self._safe_int(pending.get("bag_tier"), 0),
+            self._safe_int(pending.get("bag_count"), 0),
+            self._safe_int(pending.get("reroll_count"), 0),
+            self._safe_int(pending.get("next_reroll_cost"), 0),
+            items,
+        )
+
+    def _bag_tier_quantities(self, state: Dict[str, Any]) -> Tuple[Tuple[int, int], ...]:
+        return tuple(
+            sorted(
+                (
+                    self._safe_int(bag.get("tier"), 0),
+                    self._safe_int(bag.get("quantity"), 0),
+                )
+                for bag in self._iter_dicts(state.get("bags") or [])
+            )
+        )
+
+    def _stage_active_signature(self, state: Dict[str, Any]) -> Tuple[Tuple[Any, ...], ...]:
+        stage = state.get("stage") or {}
+        return tuple(
+            sorted(
+                (
+                    self._safe_int(slot.get("row_index"), 0),
+                    self._safe_int(slot.get("slot_index"), 0),
+                    str(slot.get("emoji_code") or ""),
+                    str(slot.get("effect_key") or stage.get("selected_effect") or ""),
+                )
+                for slot in self._stage_active_slots(stage)
+            )
+        )
+
+    def _stage_row_slot_count(self, state: Dict[str, Any], row_index: int) -> int:
+        for row in self._iter_dicts((state.get("stage") or {}).get("rows") or []):
+            if self._safe_int(row.get("row_index"), 0) == row_index:
+                return self._safe_int(row.get("slot_count"), 0)
+        return 0
+
+    def _action_marker_values(
+        self,
+        state: Dict[str, Any],
+        action: str,
+        payload: Dict[str, Any],
+    ) -> Tuple[Any, ...]:
+        user = state.get("user") or {}
+        user_magic = self._safe_int(user.get("magic"), 0)
+        if action == "spin_slot":
+            return (
+                self._safe_int((state.get("spin") or {}).get("used"), 0),
+                self._bag_tier_quantities(state),
+            )
+        if action == "open_bag":
+            tier = self._safe_int(payload.get("tier"), 0)
+            return (
+                self._safe_int(self._find_bag(state, tier).get("quantity"), 0),
+                self._pending_open_signature(state),
+            )
+        if action == "accept_open":
+            return (self._pending_open_signature(state),)
+        if action == "reroll_open":
+            return (self._pending_open_signature(state), user_magic)
+        if action == "upgrade_bag":
+            rule = self._find_upgrade_rule(state, str(payload.get("rule_key") or ""))
+            from_tier = self._safe_int(rule.get("from"), 0)
+            to_tier = self._safe_int(rule.get("to"), 0)
+            return (
+                from_tier,
+                self._safe_int(self._find_bag(state, from_tier).get("quantity"), 0),
+                to_tier,
+                self._safe_int(self._find_bag(state, to_tier).get("quantity"), 0),
+                user_magic,
+            )
+        if action == "expand_stage_row":
+            row_index = self._safe_int(payload.get("row_index"), 0)
+            return (self._stage_row_slot_count(state, row_index), user_magic)
+        if action == "confirm_stage_cast":
+            return (self._stage_active_signature(state),)
+        if action == "recall_stage":
+            return (
+                self._stage_active_signature(state),
+                self._safe_int(user.get("total_points"), 0),
+                self._safe_int(user.get("total_magic_earned"), 0),
+                user_magic,
+            )
+        return (json.dumps(state, ensure_ascii=False, sort_keys=True, default=str),)
+
+    def _capture_action_marker(
+        self,
+        state: Dict[str, Any],
+        action: str,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        return {
+            "action": action,
+            "payload": dict(payload),
+            "values": self._action_marker_values(state, action, payload),
+        }
+
+    def _action_was_applied(
+        self,
+        marker: Dict[str, Any],
+        state: Dict[str, Any],
+    ) -> bool:
+        return self._action_confirmation_state(marker, state) == "applied"
+
+    def _action_confirmation_state(
+        self,
+        marker: Dict[str, Any],
+        state: Dict[str, Any],
+    ) -> str:
+        action = str(marker.get("action") or "")
+        payload = marker.get("payload") if isinstance(marker.get("payload"), dict) else {}
+        before = marker.get("values")
+        after = self._action_marker_values(state, action, payload)
+        if before == after:
+            return "unchanged"
+
+        if action == "spin_slot":
+            before_used, before_bags = before
+            after_used, after_bags = after
+            before_map = dict(before_bags)
+            after_map = dict(after_bags)
+            bag_increased = any(
+                after_map.get(tier, 0) > quantity
+                for tier, quantity in before_map.items()
+            ) or any(tier not in before_map and quantity > 0 for tier, quantity in after_map.items())
+            return "applied" if after_used > before_used or bag_increased else "ambiguous"
+
+        if action == "open_bag":
+            before_quantity, before_pending = before
+            after_quantity, after_pending = after
+            opened_pending = not before_pending and bool(after_pending)
+            return "applied" if after_quantity < before_quantity or opened_pending else "ambiguous"
+
+        if action == "accept_open":
+            before_pending = before[0]
+            after_pending = after[0]
+            return "applied" if before_pending and not after_pending else "ambiguous"
+
+        if action == "reroll_open":
+            before_pending, before_magic = before
+            after_pending, after_magic = after
+            rerolled = bool(before_pending and after_pending) and (
+                after_pending != before_pending or after_magic < before_magic
+            )
+            return "applied" if rerolled else "ambiguous"
+
+        if action == "upgrade_bag":
+            before_from_tier, before_from, before_to_tier, before_to, _ = before
+            after_from_tier, after_from, after_to_tier, after_to, _ = after
+            same_rule = before_from_tier == after_from_tier and before_to_tier == after_to_tier
+            upgraded = same_rule and (after_from < before_from or after_to > before_to)
+            return "applied" if upgraded else "ambiguous"
+
+        if action == "expand_stage_row":
+            return "applied" if after[0] > before[0] else "ambiguous"
+
+        if action == "confirm_stage_cast":
+            return "applied" if not before[0] and bool(after[0]) else "ambiguous"
+
+        if action == "recall_stage":
+            return "applied" if before[0] and not after[0] else "ambiguous"
+
+        return "ambiguous"
+
+    def _confirmed_action_result(
+        self,
+        before_state: Dict[str, Any],
+        after_state: Dict[str, Any],
+        action: str,
+    ) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "success": True,
+            "data": after_state,
+            "confirmed_after_network_error": True,
+        }
+        if action == "recall_stage":
+            before_user = before_state.get("user") or {}
+            after_user = after_state.get("user") or {}
+            point_gain = max(
+                0,
+                self._safe_int(after_user.get("total_points"), 0)
+                - self._safe_int(before_user.get("total_points"), 0),
+            )
+            current_magic_gain = max(
+                0,
+                self._safe_int(after_user.get("magic"), 0)
+                - self._safe_int(before_user.get("magic"), 0),
+            )
+            earned_magic_gain = max(
+                0,
+                self._safe_int(after_user.get("total_magic_earned"), 0)
+                - self._safe_int(before_user.get("total_magic_earned"), 0),
+            )
+            result["result"] = {
+                "point_gain": point_gain,
+                "magic_gain": max(current_magic_gain, earned_magic_gain),
+            }
+        return result
+
+    def _post_action_confirmed(
+        self,
+        session: requests.Session,
+        action: str,
+        payload: Optional[dict],
+        before_state: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        body = dict(payload or {})
+        marker = self._capture_action_marker(before_state, action, body)
+        max_attempts = max(1, self._http_retry_times)
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return self._post_action(session, action, body)
+            except Exception as err:
+                last_error = err
+                if not self._is_retryable_network_error(err):
+                    raise
+                try:
+                    after_state = self._fetch_bundle_once(session)["state"]
+                except Exception:
+                    raise err
+                confirmation_state = self._action_confirmation_state(marker, after_state)
+                if confirmation_state == "applied":
+                    logger.info(
+                        "%s %s 响应异常，但刷新状态已确认操作成功",
+                        self.plugin_name,
+                        action,
+                    )
+                    return self._confirmed_action_result(before_state, after_state, action)
+                if confirmation_state != "unchanged":
+                    logger.warning(
+                        "%s postAction:%s 响应异常，刷新状态发生无法确认的变化，停止重试",
+                        self.plugin_name,
+                        action,
+                    )
+                    raise err
+                if attempt >= max_attempts:
+                    raise err
+                delay = max(self._http_retry_delay / 1000.0, 0.2) * attempt
+                logger.warning(
+                    "%s postAction:%s failed %s/%s: %s",
+                    self.plugin_name,
+                    action,
+                    attempt,
+                    max_attempts,
+                    self._get_error_detail(err),
+                )
+                logger.info(
+                    "%s postAction:%s 状态未变化，将在 %.1f 秒后安全重试",
+                    self.plugin_name,
+                    action,
+                    delay,
+                )
+                time.sleep(delay)
+
+        if last_error:
+            raise last_error
+        return {}
 
     def _extract_action_state(self, result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not isinstance(result, dict):
@@ -838,7 +1113,12 @@ class VueEmoji(_PluginBase):
         while remaining > 0:
             batch = min(remaining, max_batch)
             used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
-            result = self._post_action(session, "spin_slot", {"count": batch}, retry_network=True)
+            result = self._post_action_confirmed(
+                session,
+                "spin_slot",
+                {"count": batch},
+                state,
+            )
             if result.get("success"):
                 total_spins += batch
                 state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
@@ -877,7 +1157,12 @@ class VueEmoji(_PluginBase):
                     accepted_counts[name] = accepted_counts.get(name, 0) + quantity
             accepted_batches += 1
             try:
-                result = self._post_action(session, "accept_open", {}, retry_network=True)
+                result = self._post_action_confirmed(
+                    session,
+                    "accept_open",
+                    {},
+                    current_state,
+                )
             except Exception:
                 recovered_state = self._recover_accept_open_state(session)
                 if recovered_state is not None:
@@ -908,7 +1193,12 @@ class VueEmoji(_PluginBase):
             bag_name = self._compact_bag_name(openable_bag.get("name") or f"表情包{tier}")
             quantity = self._safe_int(openable_bag.get("quantity"), 0)
             batch = min(quantity, max_batch)
-            result = self._post_action(session, "open_bag", {"tier": tier, "count": batch}, retry_network=True)
+            result = self._post_action_confirmed(
+                session,
+                "open_bag",
+                {"tier": tier, "count": batch},
+                state,
+            )
             if not result.get("success"):
                 raise ValueError(result.get("message") or "自动开包失败")
             opened_counts[bag_name] = opened_counts.get(bag_name, 0) + batch
@@ -929,7 +1219,12 @@ class VueEmoji(_PluginBase):
         runtime = self._build_stage_runtime(state)
         if runtime.get("has_active"):
             if self._should_auto_recall_stage(runtime):
-                result = self._post_action(session, "recall_stage", {}, retry_network=True)
+                result = self._post_action_confirmed(
+                    session,
+                    "recall_stage",
+                    {},
+                    state,
+                )
                 if not result.get("success"):
                     raise ValueError(result.get("message") or "收回演出失败")
                 recall = result.get("result") or {}
@@ -949,11 +1244,11 @@ class VueEmoji(_PluginBase):
         if not placements:
             return state, lines
 
-        result = self._post_action(
+        result = self._post_action_confirmed(
             session,
             "confirm_stage_cast",
             {"effect_key": plan.get("effect_key") or "basic", "placements": json.dumps(placements, ensure_ascii=False)},
-            retry_network=True,
+            state,
         )
         if not result.get("success"):
             raise ValueError(result.get("message") or "启动演出失败")
@@ -972,10 +1267,15 @@ class VueEmoji(_PluginBase):
         max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_spin_batch"), 10))
         count = min(requested, remaining, max_batch)
         before_bags = self._bag_quantity_map(state)
-        result = self._post_action(session, "spin_slot", {"count": count}, retry_network=True)
+        result = self._post_action_confirmed(
+            session,
+            "spin_slot",
+            {"count": count},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "老虎机转动失败")
-        after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
+        after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, after_state))
         lines = [f"🎰 老虎机：{diff_text or f'已转动 {count} 次'}"]
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
@@ -994,7 +1294,12 @@ class VueEmoji(_PluginBase):
             raise ValueError("当前没有可开启的表情包")
         max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_open_bag_batch"), 12))
         count = min(requested, quantity, max_batch)
-        result = self._post_action(session, "open_bag", {"tier": tier, "count": count}, retry_network=True)
+        result = self._post_action_confirmed(
+            session,
+            "open_bag",
+            {"tier": tier, "count": count},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "开包失败")
         after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
@@ -1011,7 +1316,12 @@ class VueEmoji(_PluginBase):
         item_text = self._format_pending_item_counts(pending)
         result: Dict[str, Any] = {}
         try:
-            result = self._post_action(session, "accept_open", {}, retry_network=True)
+            result = self._post_action_confirmed(
+                session,
+                "accept_open",
+                {},
+                state,
+            )
         except Exception:
             recovered_state = self._recover_accept_open_state(session)
             if recovered_state is None:
@@ -1036,7 +1346,12 @@ class VueEmoji(_PluginBase):
         if not pending:
             raise ValueError("当前没有待处理开包结果")
         next_cost = self._safe_int(pending.get("next_reroll_cost"), 0)
-        result = self._post_action(session, "reroll_open", {}, retry_network=True)
+        result = self._post_action_confirmed(
+            session,
+            "reroll_open",
+            {},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "重开失败")
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
@@ -1058,7 +1373,12 @@ class VueEmoji(_PluginBase):
         if max_times <= 0:
             raise ValueError("当前材料或魔力不足")
         run_times = min(times, max_times)
-        result = self._post_action(session, "upgrade_bag", {"rule_key": rule_key, "times": run_times}, retry_network=True)
+        result = self._post_action_confirmed(
+            session,
+            "upgrade_bag",
+            {"rule_key": rule_key, "times": run_times},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "合成失败")
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
@@ -1070,7 +1390,13 @@ class VueEmoji(_PluginBase):
     def _manual_expand_stage_row(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         row_index = max(1, self._safe_int(payload.get("row_index"), 1))
         session = self._build_session()
-        result = self._post_action(session, "expand_stage_row", {"row_index": row_index}, retry_network=True)
+        state = self._fetch_bundle(session)["state"]
+        result = self._post_action_confirmed(
+            session,
+            "expand_stage_row",
+            {"row_index": row_index},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "扩展失败")
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
@@ -1091,11 +1417,12 @@ class VueEmoji(_PluginBase):
         if not placements:
             raise ValueError("缺少有效的演出阵容")
         session = self._build_session()
-        result = self._post_action(
+        state = self._fetch_bundle(session)["state"]
+        result = self._post_action_confirmed(
             session,
             "confirm_stage_cast",
             {"effect_key": effect_key, "placements": json.dumps(placements, ensure_ascii=False)},
-            retry_network=True,
+            state,
         )
         if not result.get("success"):
             raise ValueError(result.get("message") or "确认演出失败")
@@ -1107,7 +1434,13 @@ class VueEmoji(_PluginBase):
 
     def _manual_recall_stage(self) -> Dict[str, Any]:
         session = self._build_session()
-        result = self._post_action(session, "recall_stage", {}, retry_network=True)
+        state = self._fetch_bundle(session)["state"]
+        result = self._post_action_confirmed(
+            session,
+            "recall_stage",
+            {},
+            state,
+        )
         if not result.get("success"):
             raise ValueError(result.get("message") or "收回演出失败")
         recall = result.get("result") or {}
@@ -1874,87 +2207,6 @@ class VueEmoji(_PluginBase):
         if pending:
             return None
         return current_state
-
-    def _run_auto_spin(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
-        spin = state.get("spin") or {}
-        remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
-        if remaining <= 0:
-            return state, []
-
-        before_bags = self._bag_quantity_map(state)
-        max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_spin_batch"), 10))
-        total_spins = 0
-        while remaining > 0:
-            batch = min(remaining, max_batch)
-            used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
-            try:
-                result = self._post_action(session, "spin_slot", {"count": batch}, retry_network=True)
-            except Exception:
-                recovered = self._recover_spin_state(session, state, before_bags, used_before, batch)
-                recovered_state = recovered.get("state") or {}
-                recovered_spins = self._safe_int(recovered.get("spins"), 0)
-                if not recovered_state or recovered_spins <= 0:
-                    raise
-                logger.info("%s 老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
-                total_spins += recovered_spins
-                state = recovered_state
-            else:
-                if result.get("success"):
-                    total_spins += batch
-                    state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
-                else:
-                    recovered = self._recover_spin_state(session, state, before_bags, used_before, batch)
-                    recovered_state = recovered.get("state") or {}
-                    recovered_spins = self._safe_int(recovered.get("spins"), 0)
-                    if not recovered_state or recovered_spins <= 0:
-                        raise ValueError(result.get("message") or "老虎机转动失败")
-                    logger.info("%s 老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
-                    total_spins += recovered_spins
-                    state = recovered_state
-
-            spin = state.get("spin") or {}
-            remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
-
-        diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, state))
-        if diff_text:
-            return state, [f"🎰 老虎机：{diff_text}"]
-        return state, [f"🎰 老虎机：已转动 {total_spins} 次"] if total_spins else []
-
-    def _manual_spin(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        requested = max(1, self._safe_int(payload.get("count"), 1))
-        session = self._build_session()
-        state = self._fetch_bundle(session)["state"]
-        spin = state.get("spin") or {}
-        remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
-        if remaining <= 0:
-            raise ValueError("今日老虎机次数已用完")
-        max_batch = max(1, self._safe_int((state.get("limits") or {}).get("max_spin_batch"), 10))
-        count = min(requested, remaining, max_batch)
-        before_bags = self._bag_quantity_map(state)
-        used_before = self._safe_int((state.get("spin") or {}).get("used"), 0)
-        try:
-            result = self._post_action(session, "spin_slot", {"count": count}, retry_network=True)
-        except Exception:
-            recovered = self._recover_spin_state(session, state, before_bags, used_before, count)
-            after_state = recovered.get("state") or {}
-            recovered_spins = self._safe_int(recovered.get("spins"), 0)
-            if not after_state or recovered_spins <= 0:
-                raise
-            logger.info("%s 手动老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
-        else:
-            if result.get("success"):
-                after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
-            else:
-                recovered = self._recover_spin_state(session, state, before_bags, used_before, count)
-                after_state = recovered.get("state") or {}
-                recovered_spins = self._safe_int(recovered.get("spins"), 0)
-                if not after_state or recovered_spins <= 0:
-                    raise ValueError(result.get("message") or "老虎机转动失败")
-                logger.info("%s 手动老虎机状态已确认，按最新状态计入 %s 次", self.plugin_name, recovered_spins)
-        diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, after_state))
-        lines = [f"🎰 老虎机：{diff_text or f'已转动 {count} 次'}"]
-        emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
-        return {"message": lines[0], "emoji_status": emoji_status}
 
     @staticmethod
     def _parse_named_counts(text: str) -> Dict[str, int]:

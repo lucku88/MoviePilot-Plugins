@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_775d7332_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_cb40cdb0_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-775d7332"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-cb40cdb0"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -169,6 +169,7 @@ const initialLoading = ref(true);
 const status = reactive({ emoji_status: {}, history: [] });
 const message = reactive({ text: '', type: 'success' });
 const nowTs = ref(Math.floor(Date.now() / 1000));
+const stageRemainingCapturedTs = ref(nowTs.value);
 const dismissedSummaryKey = ref('');
 const hiddenPendingKey = ref('');
 const actorVisibleLimit = ref(actorLimitStep);
@@ -221,17 +222,38 @@ const visibleActors = computed(() => sortedActors.value.slice(0, actorVisibleLim
 const hasMoreActors = computed(() => sortedActors.value.length > actorVisibleLimit.value);
 const remainingActorCount = computed(() => Math.max(0, sortedActors.value.length - actorVisibleLimit.value));
 const stageRemainText = computed(() => {
-  const remain = Number(stage.value.remaining_end_ts || 0) - nowTs.value;
-  if (Number(stage.value.remaining_end_ts || 0) > 0 && remain > 0) {
-    return formatCountdown(remain)
+  const hasBackendRemaining = stage.value.remaining_seconds !== undefined && stage.value.remaining_seconds !== null && stage.value.remaining_seconds !== '';
+  const backendRemaining = Number(stage.value.remaining_seconds || 0);
+  if (hasBackendRemaining) {
+    const elapsed = Math.max(0, nowTs.value - stageRemainingCapturedTs.value);
+    const remaining = Math.max(0, backendRemaining - elapsed);
+    if (remaining > 0) {
+      return formatCountdown(remaining)
+    }
+    return stage.value.has_active ? '可收回' : '等待刷新'
   }
-  return stage.value.remaining_text || '等待刷新'
+  const endTs = Number(stage.value.remaining_end_ts || 0);
+  const remaining = Math.max(0, endTs - nowTs.value);
+  return remaining > 0 ? formatCountdown(remaining) : (stage.value.has_active ? '可收回' : '等待刷新')
+});
+const stageTaskMeta = computed(() => (
+  stage.value.has_active
+    ? `${stage.value.current_effect_name || '舞台效果'} · 演员${Number(stage.value.active_count || 0)}位`
+    : '等待安排演员和舞台效果'
+));
+const stageHeaderMeta = computed(() => {
+  if (!stage.value.has_active) return '当前无演出演员'
+  const rewards = [];
+  if (Number(stage.value.expected_points || 0) > 0) rewards.push(`声誉+${stage.value.expected_points}`);
+  if (Number(stage.value.expected_magic || 0) > 0) rewards.push(`魔力+${stage.value.expected_magic}`);
+  const rewardText = rewards.length ? ` · 预计${rewards.join('，')}` : '';
+  return `演员${Number(stage.value.active_count || 0)}位${rewardText}`
 });
 
 const scheduleRows = computed(() => [
   { title: '下次运行', value: emoji.value.next_run_time || '等待刷新', meta: '按真实可执行时间动态安排', icon: 'mdi-clock-check-outline', tone: 'green' },
   { title: '计划触发', value: emoji.value.next_trigger_time || '等待识别', meta: '提前刷新状态，错过时间会自动补跑', icon: 'mdi-calendar-clock-outline', tone: 'blue' },
-  { title: '舞台演出', value: stage.value.has_active ? '剩余 ' + stageRemainText.value : '当前未演出', meta: stage.value.current_text || '等待安排演员和舞台效果', icon: 'mdi-drama-masks', tone: 'orange' },
+  { title: '舞台演出', value: stage.value.has_active ? stageRemainText.value : '当前未演出', meta: stageTaskMeta.value, icon: 'mdi-drama-masks', tone: 'orange' },
   { title: 'Cookie 来源', value: emoji.value.cookie_source || '未同步', meta: '配置页可自动同步或手动填写', icon: 'mdi-cookie-outline', tone: 'teal' },
 ]);
 
@@ -625,6 +647,11 @@ function applyStatusPayload(payload = {}) {
   const nextStatus = payload.status?.emoji_status || payload.emoji_status || payload;
   if (nextStatus?.stats || nextStatus?.slot_machine || nextStatus?.bags || nextStatus?.stage_rows) {
     status.emoji_status = nextStatus;
+    if (nextStatus?.stage) {
+      const receivedAt = Math.floor(Date.now() / 1000);
+      nowTs.value = receivedAt;
+      stageRemainingCapturedTs.value = receivedAt;
+    }
   }
   if (Array.isArray(payload.history)) {
     status.history = payload.history;
@@ -1312,7 +1339,7 @@ return (_ctx, _cache) => {
                     ]),
                     _createElementVNode("span", _hoisted_62, [
                       _createElementVNode("strong", null, _toDisplayString(stage.value.current_effect_name || '未开始'), 1),
-                      _createElementVNode("small", null, _toDisplayString(stage.value.current_text || '当前无演出演员'), 1)
+                      _createElementVNode("small", null, _toDisplayString(stageHeaderMeta.value), 1)
                     ])
                   ]),
                   _: 1
@@ -1486,6 +1513,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-775d7332"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cb40cdb0"]]);
 
 export { PageView as default };
