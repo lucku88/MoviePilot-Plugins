@@ -153,13 +153,6 @@
                 <v-switch v-model="config.auto_open_bags" color="success" density="compact" hide-details inset />
               </div>
 
-              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.force_ipv4 }" style="--siqi-accent:239,68,68">
-                <div class="siqi-switch-main">
-                  <v-icon icon="mdi-ip-network-outline" size="20" />
-                  <div><div class="siqi-switch-label">优先 IPv4</div><div class="siqi-switch-desc">仅在当前网络需要时开启</div></div>
-                </div>
-                <v-switch v-model="config.force_ipv4" color="red" density="compact" hide-details inset />
-              </div>
             </div>
           </section>
 
@@ -283,7 +276,6 @@ const config = reactive({
   auto_spin: false,
   auto_open_bags: false,
   use_proxy: false,
-  force_ipv4: true,
   cookie: '',
   spin_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
@@ -314,7 +306,7 @@ function applyConfig(data = {}) {
   } else {
     effectOptions.value = [{ title: '自动选择演出舞台效果', value: 'auto' }]
   }
-  const { effect_options, capture_tips, ...rest } = data || {}
+  const { effect_options, capture_tips, force_ipv4, ...rest } = data || {}
   Object.assign(config, rest)
   config.random_delay_max_seconds = normalizeNumber(config.random_delay_max_seconds, 5, 0, 60)
   if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {

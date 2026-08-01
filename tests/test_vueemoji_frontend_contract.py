@@ -107,6 +107,15 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
         for forbidden in ("isDarkTheme", "MutationObserver", "prefers-color-scheme"):
             self.assertNotIn(forbidden, self.config)
 
+    def test_config_removes_legacy_ipv4_field(self):
+        self.assertNotIn("config.force_ipv4", self.config)
+        self.assertNotIn("force_ipv4:", self.config)
+        self.assertNotIn("优先 IPv4", self.config)
+        self.assertIn(
+            "const { effect_options, capture_tips, force_ipv4, ...rest }",
+            self.config,
+        )
+
     def test_pages_reuse_shared_theme_tokens(self):
         shared_tokens = (
             "color:rgba(var(--v-theme-on-surface),.85)",
