@@ -1,6 +1,7 @@
 import ast
 import copy
 import importlib.util
+import socket
 import sys
 import types
 import unittest
@@ -126,9 +127,9 @@ class VueEmojiBackendTests(unittest.TestCase):
 
         self.assertEqual([], duplicates)
 
-    def test_source_does_not_patch_global_ipv4_resolution(self):
-        self.assertNotIn("allowed_gai_family", self.source)
-        self.assertNotIn("socket.AF_INET", self.source)
+    def test_source_does_not_force_global_ipv4_resolution(self):
+        self.assertNotIn("_force_ipv4", self.source)
+        self.assertNotIn("lambda: socket.AF_INET", self.source)
 
     def test_legacy_force_ipv4_is_ignored_and_not_persisted(self):
         self.plugin._apply_config(
@@ -154,6 +155,33 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.plugin._build_session()
 
         self.assertIs(sentinel, connection_module.allowed_gai_family)
+
+    def test_hot_upgrade_restores_legacy_ipv4_selector_to_system_default(self):
+        connection_module = sys.modules["urllib3.util.connection"]
+        legacy_selector = eval(
+            compile("lambda: socket.AF_INET", str(VUEEMOJI_INIT), "eval"),
+            {"socket": socket},
+        )
+        connection_module.allowed_gai_family = legacy_selector
+        connection_module.HAS_IPV6 = True
+
+        self.plugin._restore_legacy_address_family_selector()
+
+        self.assertIsNot(legacy_selector, connection_module.allowed_gai_family)
+        self.assertEqual(socket.AF_UNSPEC, connection_module.allowed_gai_family())
+
+    def test_hot_upgrade_preserves_same_shape_selector_from_other_plugin(self):
+        connection_module = sys.modules["urllib3.util.connection"]
+        foreign_source = REPO_ROOT / "plugins.v2" / "vuefarm" / "__init__.py"
+        foreign_selector = eval(
+            compile("lambda: socket.AF_INET", str(foreign_source), "eval"),
+            {"socket": socket},
+        )
+        connection_module.allowed_gai_family = foreign_selector
+
+        self.plugin._restore_legacy_address_family_selector()
+
+        self.assertIs(foreign_selector, connection_module.allowed_gai_family)
 
     def test_requests_adapter_does_not_repeat_manual_network_retries(self):
         retry_kwargs = {}

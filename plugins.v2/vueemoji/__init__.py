@@ -1,15 +1,18 @@
 import json
 import random
 import re
+import socket
 import time
 import traceback
 from datetime import datetime, timedelta
 from html import unescape
 from math import ceil
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 import requests
+import urllib3.util.connection as urllib3_connection
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 from requests.adapters import HTTPAdapter
@@ -27,7 +30,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.5"
+    plugin_version = "0.1.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -80,6 +83,7 @@ class VueEmoji(_PluginBase):
         super().__init__()
 
     def init_plugin(self, config: Optional[dict] = None):
+        self._restore_legacy_address_family_selector()
         self.stop_service()
         self._siteoper = SiteOper()
 
@@ -688,6 +692,31 @@ class VueEmoji(_PluginBase):
     def _ensure_cookie(self):
         if not self._cookie:
             raise ValueError("未配置 SQ Cookie")
+
+    @staticmethod
+    def _restore_legacy_address_family_selector():
+        selector = getattr(urllib3_connection, "allowed_gai_family", None)
+        code = getattr(selector, "__code__", None)
+        try:
+            is_vueemoji_source = Path(str(getattr(code, "co_filename", ""))).resolve() == Path(__file__).resolve()
+        except Exception:
+            is_vueemoji_source = False
+        is_legacy_patch = (
+            getattr(selector, "__name__", "") == "<lambda>"
+            and getattr(code, "co_argcount", -1) == 0
+            and tuple(getattr(code, "co_names", ())) == ("socket", "AF_INET")
+            and is_vueemoji_source
+        )
+        if not is_legacy_patch:
+            return
+
+        def system_address_family():
+            if getattr(urllib3_connection, "HAS_IPV6", True):
+                return socket.AF_UNSPEC
+            return socket.AF_INET
+
+        urllib3_connection.allowed_gai_family = system_address_family
+        logger.info("%s 已清理旧版遗留的 IPv4 网络限制", VueEmoji.plugin_name)
 
     def _build_session(self) -> requests.Session:
         retry = Retry(

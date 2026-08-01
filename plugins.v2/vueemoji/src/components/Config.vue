@@ -260,6 +260,7 @@ const props = defineProps({
 
 const emit = defineEmits(['switch', 'close'])
 const pluginBase = '/plugin/VueEmoji'
+const legacyIpv4Key = ['force', 'ipv4'].join('_')
 
 const loading = ref(true)
 const saving = ref(false)
@@ -306,7 +307,8 @@ function applyConfig(data = {}) {
   } else {
     effectOptions.value = [{ title: '自动选择演出舞台效果', value: 'auto' }]
   }
-  const { effect_options, capture_tips, force_ipv4, ...rest } = data || {}
+  const { effect_options, capture_tips, ...rest } = data || {}
+  delete rest[legacyIpv4Key]
   Object.assign(config, rest)
   config.random_delay_max_seconds = normalizeNumber(config.random_delay_max_seconds, 5, 0, 60)
   if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {

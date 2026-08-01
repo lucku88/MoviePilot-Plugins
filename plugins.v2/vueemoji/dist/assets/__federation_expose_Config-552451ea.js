@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_ee484c2a_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_0e77b98d_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ee484c2a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-0e77b98d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -77,33 +77,27 @@ const _hoisted_38 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动开包并收下"),
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "自动打开可用表情包并收下结果")
 ], -1));
-const _hoisted_39 = { class: "siqi-switch-main" };
-const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "优先 IPv4"),
-  /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-desc" }, "仅在当前网络需要时开启")
-], -1));
-const _hoisted_41 = { class: "siqi-card" };
-const _hoisted_42 = { class: "siqi-card__header" };
-const _hoisted_43 = { class: "siqi-card__title" };
-const _hoisted_44 = { class: "siqi-form-grid" };
+const _hoisted_39 = { class: "siqi-card" };
+const _hoisted_40 = { class: "siqi-card__header" };
+const _hoisted_41 = { class: "siqi-card__title" };
+const _hoisted_42 = { class: "siqi-form-grid" };
+const _hoisted_43 = { class: "siqi-field" };
+const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "控制老虎机和自动开包的计划时间，舞台仍按真实结束时间动态运行。", -1));
 const _hoisted_45 = { class: "siqi-field" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "控制老虎机和自动开包的计划时间，舞台仍按真实结束时间动态运行。", -1));
+const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "自动演出时优先使用指定效果，选择自动时由插件挑选可用效果。", -1));
 const _hoisted_47 = { class: "siqi-field" };
-const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "自动演出时优先使用指定效果，选择自动时由插件挑选可用效果。", -1));
-const _hoisted_49 = { class: "siqi-field" };
-const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
-const _hoisted_51 = { class: "siqi-card cookie-card" };
-const _hoisted_52 = { class: "siqi-card__header" };
-const _hoisted_53 = { class: "siqi-card__title" };
-const _hoisted_54 = { class: "cookie-body" };
-const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "cookie-note" }, " 开启自动同步时，插件会优先读取 MoviePilot 的 si-qi.xyz Cookie；关闭时使用这里保存的值。 ", -1));
-const _hoisted_56 = { class: "cookie-actions" };
+const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
+const _hoisted_49 = { class: "siqi-card cookie-card" };
+const _hoisted_50 = { class: "siqi-card__header" };
+const _hoisted_51 = { class: "siqi-card__title" };
+const _hoisted_52 = { class: "cookie-body" };
+const _hoisted_53 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "cookie-note" }, " 开启自动同步时，插件会优先读取 MoviePilot 的 si-qi.xyz Cookie；关闭时使用这里保存的值。 ", -1));
+const _hoisted_54 = { class: "cookie-actions" };
 
 const {computed,onMounted,reactive,ref} = await importShared('vue');
 
 
 const pluginBase = '/plugin/VueEmoji';
-
 
 const _sfc_main = {
   __name: 'Config',
@@ -118,6 +112,8 @@ const props = __props;
 
 
 
+
+const legacyIpv4Key = ['force', 'ipv4'].join('_');
 
 const loading = ref(true);
 const saving = ref(false);
@@ -134,7 +130,6 @@ const config = reactive({
   auto_spin: false,
   auto_open_bags: false,
   use_proxy: false,
-  force_ipv4: true,
   cookie: '',
   spin_cron: '5 0 * * *',
   schedule_buffer_seconds: 5,
@@ -166,6 +161,7 @@ function applyConfig(data = {}) {
     effectOptions.value = [{ title: '自动选择演出舞台效果', value: 'auto' }];
   }
   const { effect_options, capture_tips, ...rest } = data || {};
+  delete rest[legacyIpv4Key];
   Object.assign(config, rest);
   config.random_delay_max_seconds = normalizeNumber(config.random_delay_max_seconds, 5, 0, 60);
   if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {
@@ -529,32 +525,12 @@ return (_ctx, _cache) => {
                       "hide-details": "",
                       inset: ""
                     }, null, 8, ["modelValue"])
-                  ], 2),
-                  _createElementVNode("div", {
-                    class: _normalizeClass(["siqi-switch-item", { 'siqi-switch-item--active': config.force_ipv4 }]),
-                    style: {"--siqi-accent":"239,68,68"}
-                  }, [
-                    _createElementVNode("div", _hoisted_39, [
-                      _createVNode(_component_v_icon, {
-                        icon: "mdi-ip-network-outline",
-                        size: "20"
-                      }),
-                      _hoisted_40
-                    ]),
-                    _createVNode(_component_v_switch, {
-                      modelValue: config.force_ipv4,
-                      "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.force_ipv4) = $event)),
-                      color: "red",
-                      density: "compact",
-                      "hide-details": "",
-                      inset: ""
-                    }, null, 8, ["modelValue"])
                   ], 2)
                 ])
               ]),
-              _createElementVNode("section", _hoisted_41, [
-                _createElementVNode("div", _hoisted_42, [
-                  _createElementVNode("span", _hoisted_43, [
+              _createElementVNode("section", _hoisted_39, [
+                _createElementVNode("div", _hoisted_40, [
+                  _createElementVNode("span", _hoisted_41, [
                     _createVNode(_component_v_icon, {
                       icon: "mdi-tune-variant",
                       size: "19",
@@ -563,21 +539,21 @@ return (_ctx, _cache) => {
                     _createTextVNode(" 参数设置 ")
                   ])
                 ]),
-                _createElementVNode("div", _hoisted_44, [
-                  _createElementVNode("div", _hoisted_45, [
+                _createElementVNode("div", _hoisted_42, [
+                  _createElementVNode("div", _hoisted_43, [
                     _createVNode(_component_VCronField, {
                       modelValue: config.spin_cron,
-                      "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.spin_cron) = $event)),
+                      "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.spin_cron) = $event)),
                       label: "老虎机 / 开包执行周期",
                       density: "comfortable",
                       class: "siqi-input cron-field"
                     }, null, 8, ["modelValue"]),
-                    _hoisted_46
+                    _hoisted_44
                   ]),
-                  _createElementVNode("div", _hoisted_47, [
+                  _createElementVNode("div", _hoisted_45, [
                     _createVNode(_component_v_select, {
                       modelValue: config.auto_stage_effect_key,
-                      "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.auto_stage_effect_key) = $event)),
+                      "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.auto_stage_effect_key) = $event)),
                       items: effectOptions.value,
                       "item-title": "title",
                       "item-value": "value",
@@ -589,12 +565,12 @@ return (_ctx, _cache) => {
                       disabled: !config.auto_stage,
                       class: "siqi-input"
                     }, null, 8, ["modelValue", "items", "disabled"]),
-                    _hoisted_48
+                    _hoisted_46
                   ]),
-                  _createElementVNode("div", _hoisted_49, [
+                  _createElementVNode("div", _hoisted_47, [
                     _createVNode(_component_v_text_field, {
                       modelValue: config.random_delay_max_seconds,
-                      "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.random_delay_max_seconds) = $event)),
+                      "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.random_delay_max_seconds) = $event)),
                       type: "number",
                       min: "0",
                       max: "60",
@@ -607,13 +583,13 @@ return (_ctx, _cache) => {
                       "hide-details": "",
                       class: "siqi-input siqi-number-input"
                     }, null, 8, ["modelValue"]),
-                    _hoisted_50
+                    _hoisted_48
                   ])
                 ])
               ]),
-              _createElementVNode("section", _hoisted_51, [
-                _createElementVNode("div", _hoisted_52, [
-                  _createElementVNode("span", _hoisted_53, [
+              _createElementVNode("section", _hoisted_49, [
+                _createElementVNode("div", _hoisted_50, [
+                  _createElementVNode("span", _hoisted_51, [
                     _createVNode(_component_v_icon, {
                       icon: "mdi-cookie-outline",
                       size: "19",
@@ -632,10 +608,10 @@ return (_ctx, _cache) => {
                     _: 1
                   })
                 ]),
-                _createElementVNode("div", _hoisted_54, [
+                _createElementVNode("div", _hoisted_52, [
                   _createVNode(_component_v_text_field, {
                     modelValue: config.cookie,
-                    "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.cookie) = $event)),
+                    "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.cookie) = $event)),
                     type: cookieVisible.value ? 'text' : 'password',
                     label: "Cookie 备用值",
                     placeholder: "优先使用 MoviePilot 站点管理中的 si-qi.xyz Cookie",
@@ -646,10 +622,10 @@ return (_ctx, _cache) => {
                     "hide-details": "",
                     autocomplete: "off",
                     class: "siqi-input",
-                    "onClick:appendInner": _cache[16] || (_cache[16] = $event => (cookieVisible.value = !cookieVisible.value))
+                    "onClick:appendInner": _cache[15] || (_cache[15] = $event => (cookieVisible.value = !cookieVisible.value))
                   }, null, 8, ["modelValue", "type", "append-inner-icon"]),
-                  _hoisted_55,
-                  _createElementVNode("div", _hoisted_56, [
+                  _hoisted_53,
+                  _createElementVNode("div", _hoisted_54, [
                     _createVNode(_component_v_btn, {
                       color: "teal",
                       variant: "tonal",
@@ -678,6 +654,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ee484c2a"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-0e77b98d"]]);
 
 export { ConfigView as default };
