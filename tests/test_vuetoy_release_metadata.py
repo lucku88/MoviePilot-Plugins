@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.2"
+EXPECTED_VERSION = "0.2.3"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -26,12 +26,24 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v022_theme_patch(self):
+    def test_market_history_describes_v023_layout_patch(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
-        for phrase in ("浅色", "深色", "Vue-农场", "Vue-魔丸", "保留配置"):
+        for phrase in (
+            "四列概览",
+            "三列表单",
+            "卡片层级",
+            "浅色",
+            "深色",
+            "手机",
+            "保留配置",
+        ):
             self.assertIn(phrase, note)
+
+        v022_note = history["v0.2.2"]
+        for phrase in ("浅色", "深色", "Vue-农场", "Vue-魔丸", "保留配置"):
+            self.assertIn(phrase, v022_note)
 
         v021_note = history["v0.2.1"]
         for phrase in ("自己展位", "0/3", "保留配置"):
@@ -53,6 +65,11 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertIn(f"| `Vue-玩偶` | `v{EXPECTED_VERSION}` |", self.readme)
         section = self.readme.split("### 🧸 Vue-玩偶", 1)[1].split("### ", 1)[0]
         for phrase in (
+            "四列概览",
+            "三列表单",
+            "浅色",
+            "深色",
+            "手机",
             "思齐农场",
             "自家展位保护",
             "外展限速",
@@ -62,6 +79,23 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
             "保留",
         ):
             self.assertIn(phrase, section)
+
+    def test_federation_entries_reference_existing_build_assets(self):
+        dist_assets = REPO_ROOT / "plugins.v2" / "vuetoy" / "dist" / "assets"
+        entry_files = (
+            dist_assets / "assets" / "remoteEntry.js",
+            dist_assets / "index.js",
+        )
+        referenced_assets = set()
+        for entry_file in entry_files:
+            content = entry_file.read_text(encoding="utf-8")
+            referenced_assets.update(
+                re.findall(r"__federation_expose_(?:Config|Page)-[a-f0-9]+\.js", content)
+            )
+
+        self.assertEqual(2, len(referenced_assets))
+        for asset_name in referenced_assets:
+            self.assertTrue((dist_assets / asset_name).is_file(), asset_name)
 
 
 if __name__ == "__main__":

@@ -84,14 +84,14 @@
       </div>
 
       <template v-else>
-        <v-row dense class="overview-grid">
+        <v-row dense class="mb-3 overview-grid">
           <v-col v-for="(item, index) in overviewCards" :key="item.label" cols="6" md="3">
             <div class="stat-card" :class="`stat-${statTone(index)}`">
               <div class="stat-icon">
                 <v-icon :icon="statIcon(index)" size="23" />
               </div>
-              <div class="stat-copy">
-                <div class="stat-label">{{ item.label }}</div>
+              <div class="stat-content">
+                <div class="stat-title">{{ item.label }}</div>
                 <div class="stat-value">{{ item.value }}</div>
               </div>
             </div>
@@ -99,11 +99,9 @@
         </v-row>
 
         <v-card flat class="siqi-card schedule-board mb-3">
-          <v-card-title class="siqi-card-title">
-            <span class="title-copy">
-              <v-icon icon="mdi-clock-outline" size="19" color="success" />
-              动态任务
-            </span>
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-clock-outline" size="19" color="success" class="mr-2" />动态任务
+            <v-spacer />
             <v-chip size="small" :color="status.enabled ? 'success' : 'grey'" variant="tonal">
               {{ status.enabled ? '已启用' : '未启用' }}
             </v-chip>
@@ -126,11 +124,9 @@
         </v-card>
 
         <v-card flat class="siqi-card personal-booth-card mb-3">
-          <v-card-title class="siqi-card-title">
-            <span class="title-copy">
-              <v-icon icon="mdi-storefront-outline" size="19" color="orange" />
-              自己展位
-            </span>
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-storefront-outline" size="19" color="orange" class="mr-2" />自己展位
+            <v-spacer />
             <span class="section-count">自己的玩偶 {{ ownedPersonalCount }}/{{ personalSlots.length }}</span>
           </v-card-title>
           <v-card-text>
@@ -204,11 +200,9 @@
         </v-card>
 
         <v-card flat class="siqi-card cabinet-card mb-3">
-          <v-card-title class="siqi-card-title">
-            <span class="title-copy">
-              <v-icon icon="mdi-archive-outline" size="19" color="blue" />
-              玩偶柜
-            </span>
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-archive-outline" size="19" color="blue" class="mr-2" />玩偶柜
+            <v-spacer />
             <span class="section-count">{{ cabinetCards.length }} 类玩偶</span>
           </v-card-title>
           <v-card-text>
@@ -257,8 +251,8 @@
 
         <div class="two-column-grid mb-3">
           <v-card flat class="siqi-card box-card">
-            <v-card-title class="siqi-card-title">
-              <span class="title-copy"><v-icon icon="mdi-shopping-outline" size="19" color="purple" />盲盒商店</span>
+            <v-card-title class="siqi-card-title d-flex align-center">
+              <v-icon icon="mdi-shopping-outline" size="19" color="purple" class="mr-2" />盲盒商店
             </v-card-title>
             <v-card-text>
               <div v-if="!shopBoxes.length" class="empty-state">暂未获取到盲盒商店</div>
@@ -294,8 +288,8 @@
           </v-card>
 
           <v-card flat class="siqi-card box-card">
-            <v-card-title class="siqi-card-title">
-              <span class="title-copy"><v-icon icon="mdi-package-variant" size="19" color="teal" />我的盲盒</span>
+            <v-card-title class="siqi-card-title d-flex align-center">
+              <v-icon icon="mdi-package-variant" size="19" color="teal" class="mr-2" />我的盲盒
             </v-card-title>
             <v-card-text>
               <div v-if="!myBoxes.length" class="empty-state">暂无盲盒</div>
@@ -332,8 +326,9 @@
         </div>
 
         <v-card flat class="siqi-card target-card mb-3">
-          <v-card-title class="siqi-card-title">
-            <span class="title-copy"><v-icon icon="mdi-account-search-outline" size="19" color="red" />寻找外展位</span>
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-account-search-outline" size="19" color="red" class="mr-2" />寻找外展位
+            <v-spacer />
             <span v-if="targetPanel.username" class="section-count">当前目标：{{ targetPanel.username }}</span>
           </v-card-title>
           <v-card-text>
@@ -399,8 +394,9 @@
         </v-card>
 
         <v-card flat class="siqi-card remote-card mb-3">
-          <v-card-title class="siqi-card-title">
-            <span class="title-copy"><v-icon icon="mdi-map-marker-path" size="19" color="indigo" />外展记录</span>
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-map-marker-path" size="19" color="indigo" class="mr-2" />外展记录
+            <v-spacer />
             <span class="section-count">{{ remoteRecords.length }} 个展位</span>
           </v-card-title>
           <v-card-text>
@@ -422,8 +418,8 @@
 
         <div class="two-column-grid mb-3">
           <v-card flat class="siqi-card activity-card">
-            <v-card-title class="siqi-card-title">
-              <span class="title-copy"><v-icon icon="mdi-format-list-bulleted" size="19" color="cyan" />网站记录</span>
+            <v-card-title class="siqi-card-title d-flex align-center">
+              <v-icon icon="mdi-format-list-bulleted" size="19" color="cyan" class="mr-2" />网站记录
             </v-card-title>
             <v-card-text>
               <div v-if="!activityLogs.length" class="empty-state">暂无网站记录</div>
@@ -437,8 +433,8 @@
           </v-card>
 
           <v-card flat class="siqi-card history-card">
-            <v-card-title class="siqi-card-title">
-              <span class="title-copy"><v-icon icon="mdi-history" size="19" color="green" />执行历史</span>
+            <v-card-title class="siqi-card-title d-flex align-center">
+              <v-icon icon="mdi-history" size="19" color="green" class="mr-2" />执行历史
             </v-card-title>
             <v-card-text>
               <div v-if="!historyItems.length" class="empty-state">暂无执行历史</div>
@@ -821,69 +817,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.siqi-page {
-  width: 100%;
-  max-width: 100%;
-  min-height: 400px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
-  color: rgba(var(--v-theme-on-surface), .85);
-  border: 1px solid rgba(var(--v-theme-on-surface), .12);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(76,175,80,.025));
-}
+.siqi-page { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; min-height: 400px; overflow-x: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif; color: rgba(var(--v-theme-on-surface), .85); border: 1px solid rgba(var(--v-theme-on-surface), .12); border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(76,175,80,.025)); }
+.siqi-page,
 .siqi-page * { box-sizing: border-box; }
-.siqi-page :deep(.v-btn) { transition: transform .16s ease, box-shadow .16s ease, filter .16s ease, opacity .16s ease; }
+.siqi-page :deep(.v-btn) { min-height: 44px; transition: transform .16s ease, box-shadow .16s ease, filter .16s ease, opacity .16s ease; }
 .siqi-page :deep(.v-btn:not(.v-btn--disabled):hover) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,23,42,.12); filter: saturate(1.05); }
-.siqi-page :deep(.v-btn:not(.v-btn--disabled):active) { transform: translateY(0) scale(.98); box-shadow: 0 2px 8px rgba(15,23,42,.10); }
+.siqi-page :deep(.v-btn:not(.v-btn--disabled):active) { transform: translateY(0) scale(.98); }
 .siqi-page :deep(.v-btn.v-btn--disabled) { cursor: not-allowed; opacity: .55; }
 
-.siqi-content {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.siqi-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.siqi-topbar__left,
-.siqi-topbar__right,
-.title-copy {
-  display: flex;
-  align-items: center;
-}
-
+.siqi-content { display: flex; flex-direction: column; gap: 0; }
+.siqi-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 8px; }
 .siqi-topbar__left { gap: 12px; min-width: 0; flex: 1; }
-.siqi-topbar__right { gap: 10px; flex-shrink: 0; }
+.siqi-topbar__left { display: flex; align-items: center; }
+.siqi-topbar__right { display: flex; align-items: center; flex-shrink: 0; }
 .siqi-topbar__right :deep(.v-btn-group) { flex-wrap: nowrap; }
 .siqi-topbar__copy { min-width: 0; }
-.siqi-topbar__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #2e7d32;
-  background: rgba(76,175,80,.14);
-}
+.siqi-topbar__icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(76,175,80,.14); display: flex; align-items: center; justify-content: center; color: #2e7d32; flex-shrink: 0; }
 .siqi-topbar__title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; color: rgba(var(--v-theme-on-surface), .88); }
-.siqi-topbar__sub { margin-top: 2px; overflow: hidden; color: rgba(var(--v-theme-on-surface), .55); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.title-copy { gap: 7px; font-size: 13px; font-weight: 700; }
+.siqi-topbar__sub { font-size: 11px; color: rgba(var(--v-theme-on-surface), .55); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .siqi-toast {
   position: fixed !important;
@@ -908,65 +859,25 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 10px rgba(0,0,0,.05);
 }
 
-.overview-grid { margin-bottom: 4px; }
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 78px;
-  height: 100%;
-  padding: 12px 14px;
-  border: .5px solid rgba(var(--v-theme-on-surface), .08);
-  border-radius: 14px;
-  background: rgba(var(--v-theme-on-surface), .03);
-  box-shadow: inset 0 1px 0 rgba(var(--v-theme-surface), .2), 0 2px 12px rgba(var(--v-theme-on-surface), .08);
-}
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-}
-.stat-orange { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.24); }
-.stat-blue { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.24); }
-.stat-green { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
-.stat-purple { background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.24); }
-.stat-orange .stat-icon, .stat-orange .stat-label, .stat-orange .stat-value { color: #f59e0b; }
-.stat-blue .stat-icon, .stat-blue .stat-label, .stat-blue .stat-value { color: #3b82f6; }
-.stat-green .stat-icon, .stat-green .stat-label, .stat-green .stat-value { color: #10b981; }
-.stat-purple .stat-icon, .stat-purple .stat-label, .stat-purple .stat-value { color: #a855f7; }
-.stat-orange .stat-icon { background: rgba(245,158,11,.14); }
-.stat-blue .stat-icon { background: rgba(59,130,246,.14); }
-.stat-green .stat-icon { background: rgba(16,185,129,.14); }
-.stat-purple .stat-icon { background: rgba(168,85,247,.14); }
-.stat-copy { min-width: 0; }
-.stat-label { color: rgba(var(--v-theme-on-surface), .55); font-size: 11px; font-weight: 600; }
-.stat-value { margin-top: 2px; overflow-wrap: anywhere; font-size: 20px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.stat-card { --stat-rgb: 76,175,80; --stat-color: #2e7d32; min-height: 78px; border-radius: 14px; padding: 12px 14px; border: .5px solid rgba(var(--v-theme-on-surface), .08); background: rgba(var(--v-theme-on-surface), .03); box-shadow: inset 0 1px 0 rgba(var(--v-theme-surface), .2), 0 2px 12px rgba(var(--v-theme-on-surface), .08); display: flex; align-items: center; gap: 12px; }
+.stat-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(var(--stat-rgb), .14); color: var(--stat-color); flex: 0 0 38px; }
+.stat-content { min-width: 0; }
+.stat-title { font-size: 11px; font-weight: 600; color: rgba(var(--v-theme-on-surface), .55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-value { margin-top: 2px; font-size: 20px; font-weight: 800; letter-spacing: -.5px; color: rgba(var(--v-theme-on-surface), .88); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-orange { --stat-rgb: 245,158,11; --stat-color: #f59e0b; background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.24); }
+.stat-green { --stat-rgb: 16,185,129; --stat-color: #10b981; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
+.stat-blue { --stat-rgb: 59,130,246; --stat-color: #3b82f6; background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.24); }
+.stat-purple { --stat-rgb: 168,85,247; --stat-color: #a855f7; background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.24); }
+.stat-orange .stat-icon, .stat-orange .stat-title, .stat-orange .stat-value { color: #f59e0b; }
+.stat-green .stat-icon, .stat-green .stat-title, .stat-green .stat-value { color: #10b981; }
+.stat-blue .stat-icon, .stat-blue .stat-title, .stat-blue .stat-value { color: #3b82f6; }
+.stat-purple .stat-icon, .stat-purple .stat-title, .stat-purple .stat-value { color: #a855f7; }
+.overview-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px !important; }
+.overview-grid > * { width: auto !important; max-width: none !important; padding: 0 !important; }
 
-.siqi-card {
-  overflow: hidden;
-  border: .5px solid rgba(var(--v-theme-on-surface), .08) !important;
-  border-radius: 14px !important;
-  background: rgba(var(--v-theme-on-surface), .03) !important;
-  backdrop-filter: blur(20px) saturate(150%);
-  box-shadow: 0 2px 10px rgba(0,0,0,.05) !important;
-}
-.siqi-card-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  padding: 10px 16px !important;
-  border-bottom: .5px solid rgba(var(--v-theme-on-surface), .07);
-  background: rgba(76,175,80,.08);
-  color: rgba(var(--v-theme-on-surface), .84);
-  font-size: 13px !important;
-  font-weight: 700 !important;
-}
+.siqi-card { background: rgba(var(--v-theme-on-surface), .03) !important; backdrop-filter: blur(20px) saturate(150%); border-radius: 14px !important; border: .5px solid rgba(var(--v-theme-on-surface), .08) !important; box-shadow: 0 2px 10px rgba(0,0,0,.05) !important; overflow: hidden; }
+.siqi-card-title { min-height: 44px; padding: 10px 16px !important; font-size: 13px !important; font-weight: 700 !important; background: rgba(76,175,80,.08); border-bottom: .5px solid rgba(var(--v-theme-on-surface), .07); color: rgba(var(--v-theme-on-surface), .84); }
+.siqi-card-title :deep(.v-spacer) { flex: 1 1 auto !important; }
 .personal-booth-card .siqi-card-title { background: rgba(245,158,11,.09); }
 .cabinet-card .siqi-card-title { background: rgba(59,130,246,.09); }
 .box-card .siqi-card-title { background: rgba(251,146,60,.10); }
@@ -1145,23 +1056,13 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 900px) {
+  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two-column-grid { grid-template-columns: 1fr; }
   .target-tools { grid-template-columns: 1fr 1fr; }
   .target-tools :deep(.v-input) { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
-  .siqi-page { padding: 14px; }
-  .siqi-topbar { align-items: flex-start; gap: 10px; }
-  .siqi-topbar__left { min-width: 0; }
-  .siqi-topbar__right :deep(.v-btn) { min-width: 36px !important; padding-inline: 0 !important; }
-  .siqi-topbar__sub { display: none; }
-  .stat-card { min-height: 70px; padding: 10px; }
-  .stat-icon { flex-basis: 34px; width: 34px; height: 34px; }
-  .stat-label { font-size: .68rem; }
-  .stat-value { font-size: 17px; }
-  .siqi-card-title { padding-inline: 11px; }
-  .section-count { display: none; }
   .schedule-row { grid-template-columns: 38px minmax(0, 1fr); }
   .schedule-row__icon { width: 36px; height: 36px; }
   .schedule-row__value { grid-column: 2; max-width: none; text-align: left; }
@@ -1174,9 +1075,17 @@ onBeforeUnmount(() => {
   .target-tools { grid-template-columns: 1fr; }
   .target-tools :deep(.v-input) { grid-column: auto; }
   .target-tools .v-btn { min-height: 44px; }
-  .activity-row,
-  .history-row { flex-direction: column; gap: 4px; }
-  .activity-row time,
-  .history-time { margin-left: 0; align-self: flex-end; }
+}
+
+@media (max-width: 600px) {
+  .siqi-page { padding: 14px; }
+  .siqi-topbar { align-items: flex-start; gap: 10px; }
+  .siqi-topbar__left { min-width: 0; }
+  .siqi-topbar__right :deep(.v-btn) { min-width: 44px !important; padding-inline: 0 !important; }
+  .overview-grid > .v-col { padding: 4px !important; }
+  .stat-card { padding: 10px; gap: 8px; }
+  .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
+  .stat-value { font-size: 17px; }
+  .section-count { display: none; }
 }
 </style>

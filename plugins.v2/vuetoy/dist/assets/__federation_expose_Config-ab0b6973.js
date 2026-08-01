@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_a1eb2bcc_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_88ff387f_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a1eb2bcc"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-88ff387f"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -56,7 +56,7 @@ const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 const _hoisted_27 = { class: "siqi-card" };
 const _hoisted_28 = { class: "siqi-card__header" };
 const _hoisted_29 = { class: "siqi-card__title" };
-const _hoisted_30 = { class: "siqi-switch-grid siqi-switch-grid--two" };
+const _hoisted_30 = { class: "siqi-switch-grid" };
 const _hoisted_31 = { class: "siqi-switch-main" };
 const _hoisted_32 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", null, [
   /*#__PURE__*/_createElementVNode("div", { class: "siqi-switch-label" }, "自动收回"),
@@ -483,7 +483,7 @@ return (_ctx, _cache) => {
                       variant: "outlined",
                       density: "comfortable",
                       "hide-details": "",
-                      class: "siqi-number-input"
+                      class: "siqi-input siqi-number-input"
                     }, null, 8, ["modelValue"]),
                     _hoisted_40
                   ]),
@@ -501,7 +501,7 @@ return (_ctx, _cache) => {
                       variant: "outlined",
                       density: "comfortable",
                       "hide-details": "",
-                      class: "siqi-number-input"
+                      class: "siqi-input siqi-number-input"
                     }, null, 8, ["modelValue"]),
                     _hoisted_42
                   ])
@@ -574,6 +574,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a1eb2bcc"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-88ff387f"]]);
 
 export { ConfigView as default };

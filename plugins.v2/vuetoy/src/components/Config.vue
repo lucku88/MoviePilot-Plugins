@@ -120,7 +120,7 @@
                 自动化策略
               </span>
             </div>
-            <div class="siqi-switch-grid siqi-switch-grid--two">
+            <div class="siqi-switch-grid">
               <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_collect }" style="--siqi-accent:34,197,94">
                 <div class="siqi-switch-main">
                   <v-icon icon="mdi-package-down" size="20" />
@@ -160,7 +160,7 @@
                   variant="outlined"
                   density="comfortable"
                   hide-details
-                  class="siqi-number-input"
+                  class="siqi-input siqi-number-input"
                 />
                 <div class="siqi-field-hint">默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。</div>
               </div>
@@ -178,7 +178,7 @@
                   variant="outlined"
                   density="comfortable"
                   hide-details
-                  class="siqi-number-input"
+                  class="siqi-input siqi-number-input"
                 />
                 <div class="siqi-field-hint">任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。</div>
               </div>
@@ -347,6 +347,7 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 8px;
+  min-width: 0;
 }
 .siqi-topbar__left,
 .siqi-topbar__right {
@@ -406,7 +407,7 @@ onMounted(async () => {
   border-radius: 14px;
   background: rgba(var(--v-theme-on-surface), .03);
   backdrop-filter: blur(20px) saturate(150%);
-  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  box-shadow: inset 0 1px 0 rgba(var(--v-theme-surface), .2), 0 2px 10px rgba(0,0,0,.05);
 }
 .siqi-card__header {
   display: flex;
@@ -417,7 +418,6 @@ onMounted(async () => {
 .siqi-card__title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: rgba(var(--v-theme-on-surface), .85); }
 
 .siqi-switch-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
-.siqi-switch-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .siqi-switch-item {
   min-width: 0;
   display: flex;
@@ -441,14 +441,14 @@ onMounted(async () => {
 .siqi-switch-item :deep(.v-selection-control) { min-width: 44px; min-height: 44px; }
 .siqi-switch-item :deep(.v-input__details) { display: none; }
 
-.siqi-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.siqi-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
 .siqi-field { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .siqi-input { min-width: 0; }
 .siqi-input :deep(.v-field),
 .siqi-number-input :deep(.v-field) { border-radius: 12px; }
 .siqi-input :deep(.v-field__input) { min-height: 44px; }
 .siqi-field-hint { color: rgba(var(--v-theme-on-surface), .5); font-size: 11px; line-height: 1.5; padding-inline: 2px; }
-.siqi-number-input :deep(.v-field__input) { min-height: 48px; align-items: center; padding-top: 8px; padding-bottom: 8px; }
+.siqi-number-input :deep(.v-field__input) { min-height: 44px; align-items: center; padding-top: 8px; padding-bottom: 8px; }
 .siqi-number-input :deep(input) { align-self: center; line-height: 24px; text-align: center; }
 .siqi-number-input :deep(.v-field__prepend-inner),
 .siqi-number-input :deep(.v-field__append-inner) { align-self: center; padding-top: 0; }
@@ -462,16 +462,22 @@ onMounted(async () => {
   .siqi-switch-item { transition: none; }
 }
 
-@media (max-width: 720px) {
-  .siqi-config { padding: 14px; }
-  .siqi-topbar { align-items: flex-start; gap: 10px; }
-  .siqi-topbar__left { min-width: 0; }
-  .siqi-topbar__right :deep(.v-btn) { min-width: 36px !important; padding-inline: 0 !important; }
-  .siqi-topbar__sub { display: none; }
+@media (max-width: 900px) {
   .siqi-switch-grid,
-  .siqi-switch-grid--two,
+  .siqi-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .siqi-config { padding: 14px; }
+  .siqi-topbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .siqi-topbar__left { width: 100%; min-width: 0; }
+  .siqi-topbar__right { width: 100%; justify-content: flex-end; }
+  .siqi-topbar__right :deep(.v-btn-group) { width: 100%; }
+  .siqi-topbar__right :deep(.v-btn) { flex: 1 1 0; min-width: 44px !important; padding-inline: 0 !important; }
+  .siqi-switch-grid,
   .siqi-form-grid { grid-template-columns: 1fr; }
   .siqi-switch-item { align-items: center; }
+  .siqi-topbar__sub { max-width: 100%; }
   .cookie-actions .v-btn { width: 100%; }
 }
 </style>

@@ -81,8 +81,8 @@ class VueToyFrontendContractTests(unittest.TestCase):
         self.assertNotIn('v-model="config.auto_cookie"', self.config)
 
     def test_pages_have_mobile_layout_without_horizontal_overflow(self):
-        self.assertIn("@media (max-width: 720px)", self.page)
-        self.assertIn("@media (max-width: 720px)", self.config)
+        self.assertIn("@media (max-width: 600px)", self.page)
+        self.assertIn("@media (max-width: 600px)", self.config)
         self.assertIn("overflow-x: hidden", self.page)
         self.assertIn("min-height: 44px", self.page)
         self.assertIn("min-height: 44px", self.config)
@@ -119,6 +119,39 @@ class VueToyFrontendContractTests(unittest.TestCase):
             'class="siqi-field"',
         ):
             self.assertIn(expected, self.config)
+
+    def test_status_page_uses_the_same_overview_and_title_contract_as_vuepill(self):
+        for expected in (
+            'class="mb-3 overview-grid"',
+            'class="stat-content"',
+            'class="stat-title"',
+            'class="siqi-card-title d-flex align-center"',
+            '<v-spacer />',
+        ):
+            self.assertIn(expected, self.page)
+
+        for expected in (
+            ".overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0012px!important;}",
+            ".overview-grid>*{width:auto!important;max-width:none!important;padding:0!important;}",
+            ".siqi-card-title:deep(.v-spacer){flex:11auto!important;}",
+        ):
+            self.assertIn(expected, self.compact_page)
+
+    def test_config_uses_the_same_three_column_shell_as_vuepill(self):
+        self.assertNotIn("siqi-switch-grid--two", self.config)
+        self.assertIn('class="siqi-input siqi-number-input"', self.config)
+
+        for expected in (
+            ".siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0;}",
+            "@media(max-width:900px)",
+            "@media(max-width:600px)",
+        ):
+            self.assertIn(expected, self.compact_config)
+
+        self.assertRegex(
+            self.compact_config,
+            r"\.siqi-card\{[^}]*box-shadow:inset01px0rgba\(var\(--v-theme-surface\),\.2\),02px10pxrgba\(0,0,0,\.05\)",
+        )
 
 
 if __name__ == "__main__":
