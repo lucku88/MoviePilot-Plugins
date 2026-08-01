@@ -15,10 +15,26 @@ MISSING = object()
 
 def _install_http_dependency_stubs():
     try:
-        import requests  # noqa: F401
-        import urllib3.util.connection  # noqa: F401
-        return
-    except ModuleNotFoundError:
+        import requests
+        from requests.adapters import HTTPAdapter  # noqa: F401
+        from urllib3.util import Retry  # noqa: F401
+        import urllib3.util.connection as urllib3_connection
+
+        request_exceptions = getattr(requests, "exceptions", None)
+        required_exceptions = (
+            "RequestException",
+            "Timeout",
+            "ConnectionError",
+            "SSLError",
+        )
+        if (
+            callable(getattr(requests, "Session", None))
+            and request_exceptions is not None
+            and all(hasattr(request_exceptions, name) for name in required_exceptions)
+            and callable(getattr(urllib3_connection, "allowed_gai_family", None))
+        ):
+            return
+    except ImportError:
         pass
 
     requests_module = types.ModuleType("requests")
@@ -220,6 +236,7 @@ class CapturingLogger:
 
 class VuePillSiteClientTests(unittest.TestCase):
     def setUp(self):
+        _install_http_dependency_stubs()
         self.module = _load_client_module()
 
     def make_client(self, **overrides):
