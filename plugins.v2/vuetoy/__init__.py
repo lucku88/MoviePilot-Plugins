@@ -1897,12 +1897,9 @@ class VueToy(_PluginBase):
 
     def _merge_overview(self, overview: List[Dict[str, Any]], parsed: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         result = [dict(item) for item in (overview or [])]
-        parsed_overview = parsed.get("overview") if isinstance(parsed, dict) else {}
-        if len(result) < 4 or not isinstance(parsed_overview, dict):
+        if len(result) < 4:
             return result
         booth_card = dict(result[3])
-        booth_value = self._safe_int(parsed_overview.get("booth_value"), self._safe_int(booth_card.get("value"), 0))
-        booth_card["value"] = booth_value
         booth_card.pop("desc", None)
         booth_card.pop("extra", None)
         result[3] = booth_card

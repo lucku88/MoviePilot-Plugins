@@ -227,7 +227,10 @@ class VueToyBackendTests(unittest.TestCase):
             {"occupant": {"viewer_is_occupant": False}},
         ]
 
-        overview = self.plugin._build_overview(state)
+        overview = self.plugin._merge_overview(
+            self.plugin._build_overview(state),
+            {"overview": {"booth_value": 0}},
+        )
 
         self.assertEqual("2/3", overview[-1]["value"])
 
