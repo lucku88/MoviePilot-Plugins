@@ -1,10 +1,12 @@
 import importlib.util
+import json
 import sys
 import time
 import types
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -243,6 +245,81 @@ class VueFarmBackendTests(unittest.TestCase):
         self.plugin._notify = False
         self.plugin._force_ipv4 = False
         self.plugin._random_delay_max_seconds = 0
+
+    def test_stale_status_api_forwards_to_current_running_instance(self):
+        stale_plugin = self.plugin
+        current_plugin = self.module.VueFarm()
+
+        def stale_status():
+            return {"source": "stale"}
+
+        def current_status():
+            return {"source": "current"}
+
+        stale_status.__name__ = "_get_status"
+        current_status.__name__ = "_get_status"
+        stale_plugin._get_status = stale_status
+        current_plugin._get_status = current_status
+
+        plugin_module = types.ModuleType("app.core.plugin")
+        manager = types.SimpleNamespace(running_plugins={"VueFarm": current_plugin})
+        plugin_module.PluginManager = lambda: manager
+
+        status_endpoint = next(
+            route["endpoint"]
+            for route in stale_plugin.get_api()
+            if route["path"] == "/status"
+        )
+        with mock.patch.dict(sys.modules, {"app.core.plugin": plugin_module}, clear=False):
+            result = status_endpoint()
+
+        self.assertEqual("current", result["source"])
+
+    def test_stale_config_api_forwards_payload_to_current_running_instance(self):
+        stale_plugin = self.plugin
+        current_plugin = self.module.VueFarm()
+
+        def stale_save(payload):
+            return {"source": "stale", "payload": payload}
+
+        def current_save(payload):
+            return {"source": "current", "payload": payload}
+
+        stale_save.__name__ = "_save_config"
+        current_save.__name__ = "_save_config"
+        stale_plugin._save_config = stale_save
+        current_plugin._save_config = current_save
+
+        plugin_module = types.ModuleType("app.core.plugin")
+        manager = types.SimpleNamespace(running_plugins={"VueFarm": current_plugin})
+        plugin_module.PluginManager = lambda: manager
+
+        config_endpoint = next(
+            route["endpoint"]
+            for route in stale_plugin.get_api()
+            if route["path"] == "/config" and "POST" in route["methods"]
+        )
+        payload = {"enabled": True, "prefer_seed": "蘑菇"}
+        with mock.patch.dict(sys.modules, {"app.core.plugin": plugin_module}, clear=False):
+            result = config_endpoint(payload)
+
+        self.assertEqual("current", result["source"])
+        self.assertEqual(payload, result["payload"])
+
+    def test_release_metadata_matches_vuefarm_version(self):
+        expected = "0.2.13"
+        package = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package.json").read_text(encoding="utf-8"))
+        package_lock = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package-lock.json").read_text(encoding="utf-8"))
+        market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))["VueFarm"]
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertEqual(expected, self.module.VueFarm.plugin_version)
+        self.assertEqual(expected, package["version"])
+        self.assertEqual(expected, package_lock["version"])
+        self.assertEqual(expected, package_lock["packages"][""]["version"])
+        self.assertEqual(expected, market["version"])
+        self.assertIn(f"v{expected}", market["history"])
+        self.assertIn(f"| `Vue-农场` | `v{expected}` |", readme)
 
     def test_single_plot_fallback_counts_each_success_once_not_cumulative_inventory(self):
         ready_data = _ready_farm_data(20)

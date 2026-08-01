@@ -8,6 +8,7 @@ import socket
 import time
 import traceback
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
@@ -35,7 +36,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.12"
+    plugin_version = "0.2.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -159,8 +160,32 @@ class VueFarm(_PluginBase):
     def get_command() -> List[Dict[str, Any]]:
         return []
 
+    def _route_to_current_instance(self, endpoint):
+        method_name = endpoint.__name__
+
+        @wraps(endpoint)
+        def routed(*args, **kwargs):
+            try:
+                from app.core.plugin import PluginManager
+
+                target = PluginManager().running_plugins.get(self.__class__.__name__)
+            except (ImportError, AttributeError, TypeError):
+                target = None
+            except Exception as err:
+                logger.warning("%s 获取当前运行实例失败：%s", self.plugin_name, err)
+                target = None
+
+            if target is not None and target is not self:
+                target_endpoint = getattr(target, method_name, None)
+                if callable(target_endpoint):
+                    return target_endpoint(*args, **kwargs)
+                return {"success": False, "message": "插件正在更新，请稍后重试"}
+            return endpoint(*args, **kwargs)
+
+        return routed
+
     def get_api(self) -> List[Dict[str, Any]]:
-        return [
+        routes = [
             {"path": "/config", "endpoint": self._get_config, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-农场配置"},
             {"path": "/config", "endpoint": self._save_config, "methods": ["POST"], "auth": "bear", "summary": "保存 Vue-农场配置"},
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-农场状态"},
@@ -193,6 +218,9 @@ class VueFarm(_PluginBase):
             {"path": "/visit-random", "endpoint": self._visit_random_farm_api, "methods": ["POST"], "auth": "bear", "summary": "随机访问农场"},
             {"path": "/stage-image", "endpoint": self._stage_image_api, "methods": ["GET"], "auth": "bear", "summary": "加载作物阶段图片"},
         ]
+        for route in routes:
+            route["endpoint"] = self._route_to_current_instance(route["endpoint"])
+        return routes
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         return None, self._get_config()
