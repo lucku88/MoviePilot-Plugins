@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.3"
+EXPECTED_VERSION = "0.2.4"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -26,20 +26,25 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v023_layout_patch(self):
+    def test_market_history_describes_v024_layout_patch(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "四列概览",
-            "三列表单",
-            "卡片层级",
+            "左右分区",
+            "动态任务",
+            "自己展位",
+            "主题主色",
             "浅色",
             "深色",
             "手机",
             "保留配置",
         ):
             self.assertIn(phrase, note)
+
+        v023_note = history["v0.2.3"]
+        for phrase in ("四列概览", "三列表单", "卡片层级", "保留配置"):
+            self.assertIn(phrase, v023_note)
 
         v022_note = history["v0.2.2"]
         for phrase in ("浅色", "深色", "Vue-农场", "Vue-魔丸", "保留配置"):
@@ -67,6 +72,8 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         for phrase in (
             "四列概览",
             "三列表单",
+            "左右分区",
+            "主题主色",
             "浅色",
             "深色",
             "手机",

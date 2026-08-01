@@ -137,6 +137,42 @@ class VueToyFrontendContractTests(unittest.TestCase):
         ):
             self.assertIn(expected, self.compact_page)
 
+    def test_status_page_uses_the_same_desktop_bento_rhythm_as_farm_and_pill(self):
+        for expected in (
+            'class="primary-grid mb-3"',
+            'class="interaction-grid mb-3"',
+            'class="personal-booth-body"',
+        ):
+            self.assertIn(expected, self.page)
+
+        for expected in (
+            ".primary-grid{display:grid;grid-template-columns:minmax(420px,.92fr)minmax(560px,1.35fr);gap:12px;align-items:stretch;}",
+            ".interaction-grid{display:grid;grid-template-columns:minmax(360px,.8fr)minmax(520px,1.2fr);gap:12px;align-items:stretch;}",
+            ".primary-grid.personal-booth-card{display:flex!important;flex-direction:column;}",
+            ".personal-booth-body{display:flex;flex:1;}",
+            ".primary-grid.personal-booth-card.slot-grid{width:100%;flex:1;align-items:stretch;}",
+            "@media(max-width:1100px)",
+        ):
+            self.assertIn(expected, self.compact_page)
+
+    def test_schedule_status_colors_do_not_follow_moviepilot_primary_color(self):
+        self.assertIn(':class="`schedule-row__value--${row.tone}`"', self.page)
+        self.assertNotIn("color:rgb(var(--v-theme-primary))", self.compact_page)
+
+        for expected in (
+            ".schedule-row__value--orange{color:#f59e0b;}",
+            ".schedule-row__value--cyan{color:#0ea5e9;}",
+            ".schedule-row__value--blue{color:#3b82f6;}",
+            ".schedule-row__value--green{color:#22c55e;}",
+        ):
+            self.assertIn(expected, self.compact_page)
+
+    def test_manual_run_action_follows_farm_and_pill_toolbar_hierarchy(self):
+        topbar = self.page.split('<div class="siqi-content">', 1)[0]
+        self.assertNotIn('aria-label="立即执行 Vue-玩偶"', topbar)
+        self.assertIn('class="schedule-run-btn"', self.page)
+        self.assertIn('@click="runNow"', self.page)
+
     def test_config_uses_the_same_three_column_shell_as_vuepill(self):
         self.assertNotIn("siqi-switch-grid--two", self.config)
         self.assertIn('class="siqi-input siqi-number-input"', self.config)

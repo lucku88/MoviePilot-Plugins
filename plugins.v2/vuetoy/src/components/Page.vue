@@ -30,19 +30,6 @@
             size="small"
             min-width="40"
             class="px-0 px-sm-3"
-            aria-label="立即执行 Vue-玩偶"
-            :loading="actionLoading === 'run'"
-            :disabled="isBusy"
-            @click="runNow"
-          >
-            <v-icon icon="mdi-play-circle-outline" size="18" class="mr-sm-1" />
-            <span class="d-none d-sm-inline">执行</span>
-          </v-btn>
-          <v-btn
-            color="success"
-            size="small"
-            min-width="40"
-            class="px-0 px-sm-3"
             aria-label="打开 Vue-玩偶配置"
             :disabled="isBusy"
             @click="emit('switch', 'config')"
@@ -98,13 +85,27 @@
           </v-col>
         </v-row>
 
-        <v-card flat class="siqi-card schedule-board mb-3">
+        <div class="primary-grid mb-3">
+        <v-card flat class="siqi-card schedule-board">
           <v-card-title class="siqi-card-title d-flex align-center">
             <v-icon icon="mdi-clock-outline" size="19" color="success" class="mr-2" />动态任务
             <v-spacer />
-            <v-chip size="small" :color="status.enabled ? 'success' : 'grey'" variant="tonal">
-              {{ status.enabled ? '已启用' : '未启用' }}
-            </v-chip>
+            <div class="schedule-title-actions">
+              <v-chip size="small" :color="status.enabled ? 'success' : 'grey'" variant="tonal">
+                {{ status.enabled ? '已启用' : '未启用' }}
+              </v-chip>
+              <v-btn
+                color="success"
+                variant="tonal"
+                size="small"
+                class="schedule-run-btn"
+                :loading="actionLoading === 'run'"
+                :disabled="isBusy"
+                @click="runNow"
+              >
+                <v-icon icon="mdi-play-circle-outline" size="17" class="mr-1" />立即执行
+              </v-btn>
+            </div>
           </v-card-title>
           <v-card-text class="schedule-list">
             <div v-for="row in scheduleRows" :key="row.title" class="schedule-row">
@@ -115,7 +116,7 @@
                 <div class="schedule-row__title">{{ row.title }}</div>
                 <div class="schedule-row__meta">{{ row.meta }}</div>
               </div>
-              <div class="schedule-row__value">{{ row.value }}</div>
+              <div class="schedule-row__value" :class="`schedule-row__value--${row.tone}`">{{ row.value }}</div>
             </div>
             <v-alert v-if="summaryLines.length" type="success" variant="tonal" density="compact" class="summary-alert">
               {{ summaryLines.join(' / ') }}
@@ -123,13 +124,13 @@
           </v-card-text>
         </v-card>
 
-        <v-card flat class="siqi-card personal-booth-card mb-3">
+        <v-card flat class="siqi-card personal-booth-card">
           <v-card-title class="siqi-card-title d-flex align-center">
             <v-icon icon="mdi-storefront-outline" size="19" color="orange" class="mr-2" />自己展位
             <v-spacer />
             <span class="section-count">自己的玩偶 {{ ownedPersonalCount }}/{{ personalSlots.length }}</span>
           </v-card-title>
-          <v-card-text>
+          <v-card-text class="personal-booth-body">
             <div v-if="!personalSlots.length" class="empty-state">暂未获取到自己展位</div>
             <div v-else class="slot-grid">
               <article
@@ -198,6 +199,7 @@
             </div>
           </v-card-text>
         </v-card>
+        </div>
 
         <v-card flat class="siqi-card cabinet-card mb-3">
           <v-card-title class="siqi-card-title d-flex align-center">
@@ -325,13 +327,14 @@
           </v-card>
         </div>
 
-        <v-card flat class="siqi-card target-card mb-3">
+        <div class="interaction-grid mb-3">
+        <v-card flat class="siqi-card target-card">
           <v-card-title class="siqi-card-title d-flex align-center">
             <v-icon icon="mdi-account-search-outline" size="19" color="red" class="mr-2" />寻找外展位
             <v-spacer />
             <span v-if="targetPanel.username" class="section-count">当前目标：{{ targetPanel.username }}</span>
           </v-card-title>
-          <v-card-text>
+          <v-card-text class="target-body">
             <div class="target-tools">
               <v-text-field
                 v-model="targetKeyword"
@@ -393,13 +396,13 @@
           </v-card-text>
         </v-card>
 
-        <v-card flat class="siqi-card remote-card mb-3">
+        <v-card flat class="siqi-card remote-card">
           <v-card-title class="siqi-card-title d-flex align-center">
             <v-icon icon="mdi-map-marker-path" size="19" color="indigo" class="mr-2" />外展记录
             <v-spacer />
             <span class="section-count">{{ remoteRecords.length }} 个展位</span>
           </v-card-title>
-          <v-card-text>
+          <v-card-text class="remote-body">
             <div v-if="!remoteRecords.length" class="empty-state">暂无外展记录</div>
             <div v-else class="remote-grid">
               <article v-for="item in remoteRecords" :key="`${item.owner_id}-${item.slot_index}`" class="remote-row">
@@ -415,6 +418,7 @@
             </div>
           </v-card-text>
         </v-card>
+        </div>
 
         <div class="two-column-grid mb-3">
           <v-card flat class="siqi-card activity-card">
@@ -547,7 +551,7 @@ const scheduleRows = computed(() => {
       meta: nearestRemote.value ? `${nearestRemote.value.owner_name || '其他用户'} · ${nearestRemote.value.doll_name || '玩偶'}` : '当前没有外展玩偶',
       value: nearestRemote.value ? remoteRemainText(nearestRemote.value) : '暂无任务',
       icon: 'mdi-map-clock-outline',
-      tone: 'indigo',
+      tone: 'cyan',
     },
     {
       title: '自家展位保护',
@@ -586,7 +590,7 @@ watch(cabinetCards, (items) => {
 })
 
 function statTone(index) {
-  return ['orange', 'blue', 'green', 'purple'][index % 4]
+  return ['orange', 'blue', 'green', 'red'][index % 4]
 }
 
 function statIcon(index) {
@@ -867,13 +871,21 @@ onBeforeUnmount(() => {
 .stat-orange { --stat-rgb: 245,158,11; --stat-color: #f59e0b; background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.24); }
 .stat-green { --stat-rgb: 16,185,129; --stat-color: #10b981; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
 .stat-blue { --stat-rgb: 59,130,246; --stat-color: #3b82f6; background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.24); }
-.stat-purple { --stat-rgb: 168,85,247; --stat-color: #a855f7; background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.24); }
+.stat-red { --stat-rgb: 239,68,68; --stat-color: #ef4444; background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.24); }
 .stat-orange .stat-icon, .stat-orange .stat-title, .stat-orange .stat-value { color: #f59e0b; }
 .stat-green .stat-icon, .stat-green .stat-title, .stat-green .stat-value { color: #10b981; }
 .stat-blue .stat-icon, .stat-blue .stat-title, .stat-blue .stat-value { color: #3b82f6; }
-.stat-purple .stat-icon, .stat-purple .stat-title, .stat-purple .stat-value { color: #a855f7; }
+.stat-red .stat-icon, .stat-red .stat-title, .stat-red .stat-value { color: #ef4444; }
 .overview-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px !important; }
 .overview-grid > * { width: auto !important; max-width: none !important; padding: 0 !important; }
+.primary-grid { display: grid; grid-template-columns: minmax(420px, .92fr) minmax(560px, 1.35fr); gap: 12px; align-items: stretch; }
+.interaction-grid { display: grid; grid-template-columns: minmax(360px, .8fr) minmax(520px, 1.2fr); gap: 12px; align-items: stretch; }
+.primary-grid > .siqi-card,
+.interaction-grid > .siqi-card { height: 100%; margin-bottom: 0 !important; }
+.primary-grid .personal-booth-card { display: flex !important; flex-direction: column; }
+.personal-booth-body { display: flex; flex: 1; }
+.primary-grid .personal-booth-card .slot-grid { width: 100%; flex: 1; align-items: stretch; }
+.primary-grid .personal-booth-card .slot-card { height: 100%; }
 
 .siqi-card { background: rgba(var(--v-theme-on-surface), .03) !important; backdrop-filter: blur(20px) saturate(150%); border-radius: 14px !important; border: .5px solid rgba(var(--v-theme-on-surface), .08) !important; box-shadow: 0 2px 10px rgba(0,0,0,.05) !important; overflow: hidden; }
 .siqi-card-title { min-height: 44px; padding: 10px 16px !important; font-size: 13px !important; font-weight: 700 !important; background: rgba(76,175,80,.08); border-bottom: .5px solid rgba(var(--v-theme-on-surface), .07); color: rgba(var(--v-theme-on-surface), .84); }
@@ -881,11 +893,13 @@ onBeforeUnmount(() => {
 .personal-booth-card .siqi-card-title { background: rgba(245,158,11,.09); }
 .cabinet-card .siqi-card-title { background: rgba(59,130,246,.09); }
 .box-card .siqi-card-title { background: rgba(251,146,60,.10); }
-.target-card .siqi-card-title { background: rgba(139,92,246,.09); }
+.target-card .siqi-card-title { background: rgba(239,68,68,.08); }
 .remote-card .siqi-card-title { background: rgba(6,182,212,.09); }
 .activity-card .siqi-card-title, .history-card .siqi-card-title { background: rgba(59,130,246,.09); }
 .section-count { color: rgba(var(--v-theme-on-surface), .6); font-size: .74rem; font-weight: 500; }
 
+.schedule-title-actions { display: flex; align-items: center; gap: 8px; }
+.schedule-run-btn { min-height: 32px !important; height: 32px !important; border-radius: 999px !important; font-size: 11px !important; font-weight: 700; letter-spacing: 0; }
 .schedule-list { display: grid; gap: 9px; padding: 12px 14px 14px; }
 .schedule-row {
   display: grid;
@@ -902,13 +916,17 @@ onBeforeUnmount(() => {
 .schedule-row:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,.07); }
 .schedule-row__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; }
 .tone-orange { color: #ea580c; background: rgba(249, 115, 22, .13); }
-.tone-indigo { color: #4f46e5; background: rgba(99, 102, 241, .13); }
+.tone-cyan { color: #0ea5e9; background: rgba(14, 165, 233, .13); }
 .tone-green { color: #16a34a; background: rgba(34, 197, 94, .13); }
 .tone-blue { color: #2563eb; background: rgba(59, 130, 246, .13); }
 .schedule-row__copy { min-width: 0; }
 .schedule-row__title { font-size: .85rem; font-weight: 700; }
 .schedule-row__meta { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .6); font-size: .73rem; line-height: 1.35; }
-.schedule-row__value { max-width: 230px; color: rgb(var(--v-theme-primary)); font-size: .8rem; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.schedule-row__value { max-width: 230px; color: rgba(var(--v-theme-on-surface), .72); font-size: .8rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.schedule-row__value--orange { color: #f59e0b; }
+.schedule-row__value--cyan { color: #0ea5e9; }
+.schedule-row__value--blue { color: #3b82f6; }
+.schedule-row__value--green { color: #22c55e; }
 .summary-alert { margin-top: 2px; font-size: .78rem; }
 
 .slot-grid,
@@ -1055,6 +1073,16 @@ onBeforeUnmount(() => {
   .slot-progress__bar { transition: none; }
 }
 
+@media (min-width: 1101px) {
+  .interaction-grid .target-body,
+  .interaction-grid .remote-body { max-height: 430px; overflow-y: auto; }
+}
+
+@media (max-width: 1100px) {
+  .primary-grid,
+  .interaction-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two-column-grid { grid-template-columns: 1fr; }
@@ -1087,5 +1115,6 @@ onBeforeUnmount(() => {
   .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
   .stat-value { font-size: 17px; }
   .section-count { display: none; }
+  .schedule-title-actions .v-chip { display: none; }
 }
 </style>
