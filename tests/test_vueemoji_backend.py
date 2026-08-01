@@ -112,7 +112,6 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.plugin = self.module.VueEmoji()
         self.plugin._http_retry_times = 5
         self.plugin._http_retry_delay = 0
-        self.plugin._force_ipv4 = False
 
     def test_vueemoji_class_has_no_duplicate_methods(self):
         method_names = [
@@ -126,6 +125,35 @@ class VueEmojiBackendTests(unittest.TestCase):
         )
 
         self.assertEqual([], duplicates)
+
+    def test_source_does_not_patch_global_ipv4_resolution(self):
+        self.assertNotIn("allowed_gai_family", self.source)
+        self.assertNotIn("socket.AF_INET", self.source)
+
+    def test_legacy_force_ipv4_is_ignored_and_not_persisted(self):
+        self.plugin._apply_config(
+            {**self.plugin._default_config(), "force_ipv4": True}
+        )
+        captured = {}
+        self.plugin.update_config = lambda payload: captured.update(payload)
+
+        self.plugin._update_config()
+
+        self.assertNotIn("force_ipv4", self.plugin._default_config())
+        self.assertNotIn("force_ipv4", self.plugin._get_config())
+        self.assertNotIn("force_ipv4", captured)
+
+    def test_build_session_preserves_global_address_family_selector(self):
+        connection_module = sys.modules["urllib3.util.connection"]
+        sentinel = lambda: "system-default"
+        connection_module.allowed_gai_family = sentinel
+        self.plugin._apply_config(
+            {**self.plugin._default_config(), "force_ipv4": True}
+        )
+
+        self.plugin._build_session()
+
+        self.assertIs(sentinel, connection_module.allowed_gai_family)
 
     def test_requests_adapter_does_not_repeat_manual_network_retries(self):
         retry_kwargs = {}

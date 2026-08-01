@@ -1,7 +1,6 @@
 import json
 import random
 import re
-import socket
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -11,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 import requests
-import urllib3.util.connection as urllib3_connection
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 from requests.adapters import HTTPAdapter
@@ -59,7 +57,6 @@ class VueEmoji(_PluginBase):
     _auto_spin: bool = False
     _auto_open_bags: bool = False
     _use_proxy: bool = False
-    _force_ipv4: bool = True
     _cookie: str = ""
     _cookie_source: str = "未配置"
     _site_domain: str = DEFAULT_SITE_DOMAIN
@@ -521,7 +518,6 @@ class VueEmoji(_PluginBase):
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -583,7 +579,6 @@ class VueEmoji(_PluginBase):
             "auto_spin": False,
             "auto_open_bags": False,
             "use_proxy": False,
-            "force_ipv4": True,
             "cookie": "",
             "schedule_buffer_seconds": 5,
             "random_delay_max_seconds": 5,
@@ -604,7 +599,6 @@ class VueEmoji(_PluginBase):
         self._auto_spin = self._to_bool(config.get("auto_spin", False))
         self._auto_open_bags = self._to_bool(config.get("auto_open_bags", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
-        self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cookie = (config.get("cookie") or "").strip()
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
         self._random_delay_max_seconds = max(0, self._safe_int(config.get("random_delay_max_seconds"), 5))
@@ -626,7 +620,6 @@ class VueEmoji(_PluginBase):
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
             "random_delay_max_seconds": self._random_delay_max_seconds,
@@ -697,8 +690,6 @@ class VueEmoji(_PluginBase):
             raise ValueError("未配置 SQ Cookie")
 
     def _build_session(self) -> requests.Session:
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         retry = Retry(
             total=0,
             connect=0,
