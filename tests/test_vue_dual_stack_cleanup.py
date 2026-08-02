@@ -111,6 +111,43 @@ class VueDualStackCleanupTests(unittest.TestCase):
 
                 self.assertIs(foreign_selector, connection_module.allowed_gai_family)
 
+    def test_init_plugin_runs_legacy_cleanup_before_runtime_bootstrap(self):
+        farm_module = _load_plugin("vuefarm_init_cleanup_test", VUEFARM_INIT)
+        farm = farm_module.VueFarm()
+        farm_connection = sys.modules["urllib3.util.connection"]
+        farm_legacy = eval(
+            compile("lambda: socket.AF_INET", str(VUEFARM_INIT), "eval"),
+            {"socket": socket},
+        )
+        farm_connection.allowed_gai_family = farm_legacy
+        farm_connection.HAS_IPV6 = True
+        observed_farm_selectors = []
+        farm._sync_cookie_from_site = lambda silent=True: (
+            observed_farm_selectors.append(farm_connection.allowed_gai_family),
+            {"success": True},
+        )[1]
+
+        farm.init_plugin({"enabled": False})
+
+        self.assertEqual(1, len(observed_farm_selectors))
+        self.assertIsNot(farm_legacy, observed_farm_selectors[0])
+        self.assertEqual(socket.AF_UNSPEC, observed_farm_selectors[0]())
+
+        panel_module = _load_plugin("vuepanel_init_cleanup_test", VUEPANEL_INIT)
+        panel = panel_module.VuePanel()
+        panel_connection = sys.modules["urllib3.util.connection"]
+        panel_legacy = eval(
+            compile("lambda: socket.AF_INET", str(VUEPANEL_INIT), "eval"),
+            {"socket": socket},
+        )
+        panel_connection.allowed_gai_family = panel_legacy
+        panel_connection.HAS_IPV6 = True
+
+        panel.init_plugin({"enabled": True}, schedule_bootstrap=False)
+
+        self.assertIsNot(panel_legacy, panel_connection.allowed_gai_family)
+        self.assertEqual(socket.AF_UNSPEC, panel_connection.allowed_gai_family())
+
     def test_release_versions_and_upgrade_notes_are_consistent(self):
         expected = {"VueFarm": "0.2.14", "VuePanel": "0.1.36"}
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))
