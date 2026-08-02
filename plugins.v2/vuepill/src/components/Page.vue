@@ -569,15 +569,30 @@ const inventoryItems = computed(() => {
   const inventory = pill.value.inventory || {}
   return Array.isArray(inventory.items) ? inventory.items : []
 })
-const inventoryCounts = computed(() => {
+
+function normalizedInventoryCount(value) {
+  const number = Number(value)
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0
+}
+
+function normalizedIngredientRequirement(value) {
+  const number = Number(value)
+  return Number.isSafeInteger(number) && number > 0 ? number : null
+}
+
+function buildInventoryCounts(items = []) {
   const counts = new Map()
-  inventoryItems.value.forEach((item) => {
+  items.forEach((item) => {
     const name = String(item?.name || '').trim()
-    const count = Number(item?.count)
-    if (name) counts.set(name, Number.isFinite(count) ? Math.max(0, count) : 0)
+    if (!name) return
+    const current = counts.get(name) || 0
+    const added = normalizedInventoryCount(item?.count)
+    counts.set(name, Math.min(Number.MAX_SAFE_INTEGER, current + added))
   })
   return counts
-})
+}
+
+const inventoryCounts = computed(() => buildInventoryCounts(inventoryItems.value))
 const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : [])
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : [])
 const isBusy = computed(() => !!actionLoading.value)
@@ -586,7 +601,7 @@ const writeActionsDisabled = computed(() => initialLoading.value || isBusy.value
 const exchangeReserveHint = computed(() => `后端保留 ${exchange.value.reserve} 个魔丸，实际兑换以后端校验为准。`)
 const exchangeQuantityError = computed(() => quantityError(exchangeQuantity.value, Number(exchange.value.max_count || 0), '兑换'))
 
-const giftMaxQuantity = computed(() => Math.min(Math.max(Number(selectedGiftItem.value?.count || 0), 0), 500))
+const giftMaxQuantity = computed(() => Math.min(normalizedInventoryCount(selectedGiftItem.value?.count), 500))
 const normalizedGiftQuantity = computed(() => Number.parseInt(giftForm.quantity, 10) || 0)
 const giftFormError = computed(() => {
   if (!selectedGiftItem.value) return '请选择要赠送的物品'
@@ -719,21 +734,17 @@ function overviewIcon(item) {
   return 'mdi-star-four-points'
 }
 
-function normalizedNonNegative(value) {
-  const number = Number(value)
-  return Number.isFinite(number) ? Math.max(0, number) : 0
-}
-
 function ingredientCount(name) {
   return inventoryCounts.value.get(String(name || '').trim()) || 0
 }
 
 function ingredientEnough(name, required) {
-  return ingredientCount(name) >= normalizedNonNegative(required)
+  const requirement = normalizedIngredientRequirement(required)
+  return requirement !== null && ingredientCount(name) >= requirement
 }
 
 function canGiftItem(item) {
-  return !writeActionsDisabled.value && item?.giftable === true && Number(item?.count || 0) > 0
+  return !writeActionsDisabled.value && item?.giftable === true && normalizedInventoryCount(item?.count) > 0
 }
 
 function openGiftDialog(item) {

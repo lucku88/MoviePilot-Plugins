@@ -1655,6 +1655,130 @@ try {{
             r"\.inventory-grid\{[^}]*grid-template-columns:1fr",
         )
 
+    def test_inventory_quantity_normalization_runtime_is_consistent(self):
+        def extract_function(name):
+            match = re.search(
+                rf"function {name}\([^)]*\) \{{[\s\S]*?\n\}}",
+                self.page,
+            )
+            self.assertIsNotNone(match, f"Page.vue 必须声明 {name}")
+            return match.group(0)
+
+        function_names = (
+            "normalizedInventoryCount",
+            "normalizedIngredientRequirement",
+            "buildInventoryCounts",
+            "ingredientCount",
+            "ingredientEnough",
+            "canGiftItem",
+        )
+        functions = {name: extract_function(name) for name in function_names}
+        gift_max_match = re.search(
+            r"const giftMaxQuantity = computed\(\(\) => [^\n]+\)",
+            self.page,
+        )
+        self.assertIsNotNone(gift_max_match, "必须保留赠送数量上限 computed")
+        self.assertIn(
+            "const inventoryCounts = computed(() => buildInventoryCounts(inventoryItems.value))",
+            self.page,
+        )
+        self.assertIn(
+            "normalizedInventoryCount(item?.count) > 0",
+            functions["canGiftItem"],
+        )
+        self.assertIn(
+            "normalizedInventoryCount(selectedGiftItem.value?.count)",
+            gift_max_match.group(0),
+        )
+
+        script = (
+            "import assert from 'node:assert/strict'\n\n"
+            + functions["normalizedInventoryCount"]
+            + "\n\n"
+            + functions["normalizedIngredientRequirement"]
+            + "\n\n"
+            + functions["buildInventoryCounts"]
+            + "\n\n"
+            + functions["ingredientCount"]
+            + "\n\n"
+            + functions["ingredientEnough"]
+            + "\n\nconst writeActionsDisabled = { value: false }\n"
+            + functions["canGiftItem"]
+            + "\n\nconst computed = getter => ({ get value() { return getter() } })\n"
+            + "const selectedGiftItem = { value: null }\n"
+            + gift_max_match.group(0)
+            + "\n\n"
+            + """
+for (const value of [NaN, Infinity, -Infinity, -1, 1.5, '1.5']) {
+  assert.equal(normalizedInventoryCount(value), 0)
+}
+assert.equal(normalizedInventoryCount('7'), 7)
+assert.equal(normalizedInventoryCount(0), 0)
+assert.equal(normalizedInventoryCount(Number.MAX_SAFE_INTEGER + 1), 0)
+
+const duplicateCounts = buildInventoryCounts([
+  { name: ' ore ', count: '2' },
+  { name: 'ore', count: 3 },
+  { name: 'ore', count: Infinity },
+  { name: 'ore', count: -4 },
+  { name: 'ore', count: 1.5 },
+  { name: ' ', count: 100 },
+])
+assert.equal(duplicateCounts.get('ore'), 5)
+assert.equal(duplicateCounts.has(''), false)
+assert.equal(
+  buildInventoryCounts([
+    { name: 'cap', count: Number.MAX_SAFE_INTEGER },
+    { name: 'cap', count: 1 },
+  ]).get('cap'),
+  Number.MAX_SAFE_INTEGER,
+)
+
+for (const required of [NaN, Infinity, -Infinity, -1, 0, 1.5, '1.5']) {
+  assert.equal(normalizedIngredientRequirement(required), null)
+}
+assert.equal(normalizedIngredientRequirement('2'), 2)
+
+const inventoryCounts = {
+  value: buildInventoryCounts([{ name: 'ore', count: '3' }]),
+}
+for (const required of [NaN, Infinity, -1, 0, 1.5, '1.5']) {
+  assert.equal(ingredientEnough('ore', required), false)
+}
+assert.equal(ingredientEnough('ore', 2), true)
+assert.equal(ingredientEnough('ore', '3'), true)
+assert.equal(ingredientEnough('ore', 4), false)
+assert.equal(ingredientEnough('missing', 1), false)
+
+for (const count of [NaN, Infinity, -1, 0, 1.5, '1.5']) {
+  assert.equal(canGiftItem({ giftable: true, count }), false)
+}
+assert.equal(canGiftItem({ giftable: true, count: '2' }), true)
+assert.equal(canGiftItem({ giftable: false, count: 2 }), false)
+writeActionsDisabled.value = true
+assert.equal(canGiftItem({ giftable: true, count: 2 }), false)
+writeActionsDisabled.value = false
+
+selectedGiftItem.value = { count: Infinity }
+assert.equal(giftMaxQuantity.value, 0)
+selectedGiftItem.value = { count: 1.5 }
+assert.equal(giftMaxQuantity.value, 0)
+selectedGiftItem.value = { count: '12' }
+assert.equal(giftMaxQuantity.value, 12)
+selectedGiftItem.value = { count: 600 }
+assert.equal(giftMaxQuantity.value, 500)
+"""
+        )
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
     def test_history_is_single_line_with_time_on_the_right(self):
         self.assert_page_contains(
             "执行历史",
