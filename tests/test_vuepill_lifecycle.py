@@ -3569,6 +3569,12 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         first = self.plugin._gift_items_api(payload)
         replayed = self.plugin._gift_items_api(payload)
+        replayed_with_new_id = self.plugin._gift_items_api(
+            {
+                **payload,
+                "request_id": "batch-replay-new-000001",
+            }
+        )
         changed = self.plugin._gift_items_api(
             {
                 **payload,
@@ -3580,6 +3586,9 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(replayed["success"], True)
         self.assertIs(replayed["replayed"], True)
         self.assertEqual(first["gifted"], replayed["gifted"])
+        self.assertIs(replayed_with_new_id["success"], True)
+        self.assertIs(replayed_with_new_id["replayed"], True)
+        self.assertEqual(first["gifted"], replayed_with_new_id["gifted"])
         self.assertIs(changed["success"], False)
         self.assertIn("已用于其他赠送内容", changed["message"])
         self.assertEqual(

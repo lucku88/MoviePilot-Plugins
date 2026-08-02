@@ -1052,8 +1052,10 @@ try {
             "showBatchGiftDialog",
             "batchGiftRows",
             "batchGiftRequestGuard",
+            "batchGiftPendingRequests",
             "batchGiftConfirmationSnapshot",
             "batchGiftDialogToken",
+            "batchGiftContentKey",
             "createBatchGiftRequestId",
             "requestBatchGiftConfirmation",
             "submitBatchGift",
@@ -1064,6 +1066,8 @@ try {
             "'/gift-items'",
             "requestId:",
             "request_id: snapshot.requestId",
+            "batchGiftPendingRequests.get(contentKey)",
+            "batchGiftPendingRequests.set(contentKey, snapshot.requestId)",
         )
         self.assertRegex(
             self.page,

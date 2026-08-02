@@ -591,6 +591,7 @@ const actionRequestGuard = createLatestRequestGuard()
 const giftRequestGuard = createLatestRequestGuard()
 const batchGiftRequestGuard = createLatestRequestGuard()
 const giftStatsRequestGuard = createLatestRequestGuard()
+const batchGiftPendingRequests = new Map()
 let giftDialogToken = 0
 let batchGiftDialogToken = 0
 let batchGiftRequestSequence = 0
@@ -981,11 +982,21 @@ function sameBatchGiftSnapshot(left, right) {
 function requestBatchGiftConfirmation() {
   if (initialLoading.value || !showBatchGiftDialog.value) return
   if (batchGiftFormError.value) return flash(batchGiftFormError.value, 'warning')
+  const snapshot = currentBatchGiftSnapshot()
+  const contentKey = batchGiftContentKey(snapshot)
+  const pendingRequestId = batchGiftPendingRequests.get(contentKey)
   batchGiftConfirmationSnapshot.value = {
-    ...currentBatchGiftSnapshot(),
-    requestId: createBatchGiftRequestId(),
+    ...snapshot,
+    requestId: pendingRequestId || createBatchGiftRequestId(),
   }
   batchGiftConfirming.value = true
+}
+
+function batchGiftContentKey(snapshot) {
+  return JSON.stringify({
+    targetUid: String(snapshot?.targetUid || '').trim(),
+    items: Array.isArray(snapshot?.items) ? snapshot.items : [],
+  })
 }
 
 function createBatchGiftRequestId() {
@@ -1021,6 +1032,12 @@ async function submitBatchGift() {
   }
 
   const requestId = batchGiftRequestGuard.begin()
+  const contentKey = batchGiftContentKey(snapshot)
+  batchGiftPendingRequests.delete(contentKey)
+  batchGiftPendingRequests.set(contentKey, snapshot.requestId)
+  while (batchGiftPendingRequests.size > 20) {
+    batchGiftPendingRequests.delete(batchGiftPendingRequests.keys().next().value)
+  }
   batchGiftLoading.value = true
   try {
     const result = await apiPost('/gift-items', {
@@ -1032,6 +1049,9 @@ async function submitBatchGift() {
     statusRequestGuard.invalidate()
     const statusApplied = applyStatusPayload(result)
     const gifted = Array.isArray(result?.gifted) ? result.gifted : []
+    if (result?.request_id === snapshot.requestId && result?.pending !== true) {
+      batchGiftPendingRequests.delete(contentKey)
+    }
 
     if (isStrictSuccess(result)) {
       flash(safeResponseMessage(result, '批量赠送成功'))
