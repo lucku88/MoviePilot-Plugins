@@ -976,6 +976,71 @@ try {
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, self.page)
 
+    def test_task_first_header_and_schedule_grid(self):
+        self.assert_page_contains(
+            'class="schedule-summary"',
+            ':class="{ active: scheduleSummary.active }"',
+            "scheduleSummary.text",
+            "enabled: false",
+            "next_run_time: ''",
+            "next_trigger_time: ''",
+            "next_trigger_action: ''",
+            "Object.assign(status, update.statusMeta || {})",
+            "function compactScheduleTime(value)",
+            "compactScheduleTime(nextTime)",
+            "自动运行正常",
+            "等待识别下一次任务",
+            "brick.ready === true ? '立即搬砖' : brickStatusLabel",
+            "beachActionable ? '清理沙滩' : beachStatusLabel",
+        )
+
+        summary = re.search(
+            r'<div\s+class="schedule-summary"[\s\S]*?</div>', self.page
+        )
+        self.assertIsNotNone(summary)
+        if summary:
+            self.assertIn("<v-icon", summary.group(0))
+            self.assertIn("scheduleSummary.text", summary.group(0))
+        self.assertRegex(
+            self.compact_page,
+            r"\.schedule-summary\{[^}]*rgba\(var\(--v-theme-on-surface\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.schedule-summary\.active\{[^}]*rgba\(34,197,94",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.siqi-topbar__right\{[^}]*gap:",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.schedule-action-list\{[^}]*display:grid[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.neu-action-card\{[^}]*grid-template-columns:32pxminmax\(0,1fr\)[^}]*align-items:start",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.schedule-action\{[^}]*grid-column:1/-1[^}]*width:100%",
+        )
+
+        mobile_task_css = re.search(
+            r"@media\(max-width:700px\)\{([\s\S]*?)@media\(max-width:600px\)\{",
+            self.compact_page,
+        )
+        self.assertIsNotNone(mobile_task_css)
+        if mobile_task_css:
+            self.assertRegex(
+                mobile_task_css.group(1),
+                r"\.schedule-action-list\{[^}]*grid-template-columns:1fr",
+            )
+            self.assertRegex(
+                mobile_task_css.group(1),
+                r"\.schedule-summary\{[^}]*display:none",
+            )
+
     def test_page_matches_siqifram_card_density(self):
         self.assertRegex(
             self.compact_page,
