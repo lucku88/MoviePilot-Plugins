@@ -826,6 +826,7 @@ class VuePill(_PluginBase):
             {"path": "/craft-item", "endpoint": self._craft_item_api, "methods": ["POST"], "auth": "bear", "summary": "炼造指定配方"},
             {"path": "/craft-max-pill", "endpoint": self._craft_max_pill_api, "methods": ["POST"], "auth": "bear", "summary": "一键炼造魔丸"},
             {"path": "/gift-item", "endpoint": self._gift_item_api, "methods": ["POST"], "auth": "bear", "summary": "赠送物品"},
+            {"path": "/gift-items", "endpoint": self._gift_items_api, "methods": ["POST"], "auth": "bear", "summary": "批量赠送物品"},
             {"path": "/gift-stats", "endpoint": self._gift_stats_api, "methods": ["POST"], "auth": "bear", "summary": "获取赠礼统计"},
         ]
 
@@ -1522,6 +1523,143 @@ class VuePill(_PluginBase):
             }
 
     @_public_api
+    @_exclusive_action
+    def _gift_items_api(self, payload: Optional[dict] = None):
+        target_uid = ""
+        gifted: List[Dict[str, Any]] = []
+        failed_item: Optional[Dict[str, Any]] = None
+        try:
+            target_uid, requested_items = self._validate_gift_items_payload(payload)
+            self._ensure_cookie()
+
+            session = self._build_session()
+            page = self._fetch_page_state(session)
+            inventory = page.get("inventory") or []
+            inventory_by_name = {
+                str(row.get("name") or "").strip(): row
+                for row in inventory
+                if isinstance(row, dict) and str(row.get("name") or "").strip()
+            }
+
+            for requested in requested_items:
+                item_name = requested["item_name"]
+                quantity = requested["quantity"]
+                item = inventory_by_name.get(item_name)
+                if not item:
+                    raise ValueError(f"物品 {item_name} 不存在")
+                if item.get("giftable") is not True:
+                    raise ValueError(f"物品 {item_name} 当前不可赠送")
+
+                max_quantity = max_gift_quantity(inventory, item_name, cap=500)
+                if quantity > max_quantity:
+                    if quantity > 500:
+                        raise ValueError(f"物品 {item_name} 的赠送数量不能超过 500")
+                    raise ValueError(
+                        f"物品 {item_name} 的赠送数量超过当前库存，最多可赠送 {max_quantity}"
+                    )
+
+            failure_detail = ""
+            for requested in requested_items:
+                current_item = {
+                    "item_name": requested["item_name"],
+                    "quantity": requested["quantity"],
+                }
+                try:
+                    result = self._post_action(
+                        session,
+                        "gift_item",
+                        {**current_item, "target_uid": target_uid},
+                        retry_network=False,
+                    )
+                    if not isinstance(result, dict) or result.get("success") is not True:
+                        raise ValueError(
+                            self._safe_result_message(
+                                result,
+                                "网站拒绝了赠送请求",
+                                (target_uid,),
+                            )
+                        )
+                    gifted.append(current_item)
+                except Exception as err:
+                    failed_item = current_item
+                    failure_detail = self._get_error_detail(err, (target_uid,))
+                    break
+
+            refresh_error = ""
+            try:
+                refreshed_page = self._fetch_page_state(session)
+                next_run, next_action = self._compute_next_plan(refreshed_page)
+                self._schedule_next_run(next_run, "gift-items", next_action)
+                self._refresh_and_store_status(
+                    refreshed_page,
+                    next_run,
+                    [],
+                    record_run=False,
+                    next_action=next_action,
+                )
+            except Exception as err:
+                refresh_error = self._get_error_detail(err, (target_uid,))
+                logger.warning(
+                    "%s 批量赠送后刷新状态失败：%s",
+                    self.plugin_name,
+                    refresh_error,
+                )
+
+            gift_summary = " ".join(
+                f"{row['item_name']}×{row['quantity']}" for row in gifted
+            )
+            if gifted:
+                try:
+                    self._append_history(
+                        f"🎁批量赠送：{gift_summary} / 目标 UID {target_uid}",
+                        [],
+                    )
+                except Exception as err:
+                    logger.warning(
+                        "%s 批量赠送后写入历史失败：%s",
+                        self.plugin_name,
+                        self._get_error_detail(err, (target_uid,)),
+                    )
+
+            if failed_item:
+                if gifted:
+                    message = (
+                        f"批量赠送部分完成：已赠送 {gift_summary}；"
+                        f"{failed_item['item_name']} 失败：{failure_detail}"
+                    )
+                else:
+                    message = (
+                        f"批量赠送失败：{failed_item['item_name']}：{failure_detail}"
+                    )
+            else:
+                message = f"批量赠送完成，共 {len(gifted)} 种物品"
+
+            if refresh_error:
+                message = f"{message}，但状态刷新失败，请稍后手动刷新"
+
+            return {
+                "success": failed_item is None,
+                "partial": bool(failed_item and gifted),
+                "message": message,
+                "target_uid": target_uid,
+                "gifted": gifted,
+                "failed_item": failed_item,
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err, (target_uid,))
+            logger.warning("%s 批量赠送物品失败：%s", self.plugin_name, detail)
+            return {
+                "success": False,
+                "partial": False,
+                "message": detail,
+                "target_uid": target_uid,
+                "gifted": gifted,
+                "failed_item": failed_item,
+                "status": self._build_status(auto_refresh=False),
+            }
+
+    @_public_api
     def _gift_stats_api(self, payload: Optional[dict] = None):
         try:
             direction, range_value = self._validate_gift_stats_payload(payload)
@@ -1622,6 +1760,60 @@ class VuePill(_PluginBase):
         if type(quantity) is not int or quantity <= 0:
             raise ValueError("赠送数量必须是正整数")
         return item_name, target_uid, quantity
+
+    def _validate_gift_items_payload(
+        self,
+        payload: Optional[dict],
+    ) -> Tuple[str, List[Dict[str, Any]]]:
+        if type(payload) is not dict:
+            raise ValueError("批量赠送请求必须是普通字典")
+        allowed_fields = {"items", "uid", "target_uid"}
+        if any(type(key) is not str or key not in allowed_fields for key in payload):
+            raise ValueError("批量赠送请求包含不支持的字段")
+
+        raw_target = payload.get("target_uid")
+        if raw_target is None or (type(raw_target) is str and not raw_target.strip()):
+            raw_target = payload.get("uid")
+        target_uid = self._normalize_uid(raw_target)
+        if "uid" in payload and "target_uid" in payload:
+            second_uid = self._normalize_uid(payload.get("uid"))
+            if target_uid != second_uid:
+                raise ValueError("uid 和 target_uid 不一致")
+
+        raw_items = payload.get("items")
+        if type(raw_items) is not list:
+            raise ValueError("批量赠送 items 必须是普通列表")
+        if not raw_items:
+            raise ValueError("批量赠送至少选择一种物品")
+        if len(raw_items) > 20:
+            raise ValueError("批量赠送一次最多选择 20 种物品")
+
+        normalized_items: List[Dict[str, Any]] = []
+        seen_names = set()
+        for raw_item in raw_items:
+            if type(raw_item) is not dict:
+                raise ValueError("批量赠送的每个物品必须是普通字典")
+            if any(
+                type(key) is not str or key not in {"item_name", "quantity"}
+                for key in raw_item
+            ):
+                raise ValueError("批量赠送物品包含不支持的字段")
+
+            item_name, _, quantity = self._validate_gift_item_payload(
+                {
+                    "item_name": raw_item.get("item_name"),
+                    "target_uid": target_uid,
+                    "quantity": raw_item.get("quantity"),
+                }
+            )
+            if item_name in seen_names:
+                raise ValueError(f"批量赠送不能重复选择物品 {item_name}")
+            seen_names.add(item_name)
+            normalized_items.append(
+                {"item_name": item_name, "quantity": quantity}
+            )
+
+        return target_uid, normalized_items
 
     def _validate_gift_stats_payload(self, payload: Optional[dict]) -> Tuple[str, str]:
         if type(payload) is not dict:

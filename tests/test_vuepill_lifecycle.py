@@ -2972,6 +2972,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             ("/craft-item", ("POST",)),
             ("/craft-max-pill", ("POST",)),
             ("/gift-item", ("POST",)),
+            ("/gift-items", ("POST",)),
             ("/gift-stats", ("POST",)),
         ]
 
@@ -3361,6 +3362,204 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertFalse(stop_thread.is_alive())
         self.assertEqual([], errors)
         self.assertEqual(set(), scheduled_jobs)
+
+    def test_gift_items_reject_invalid_payload_before_any_post(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        page["inventory"].append(
+            {"name": "塑料袋", "count": 4, "giftable": True}
+        )
+        self.plugin._fetch_page_state = lambda session: page
+        action_calls = []
+        self.plugin._post_action = lambda *args, **kwargs: action_calls.append(
+            (args, kwargs)
+        ) or {"success": True}
+        cases = [
+            (None, "普通字典"),
+            ({}, "UID"),
+            ({"target_uid": "123", "items": []}, "至少选择"),
+            ({"target_uid": "123", "items": "木材"}, "普通列表"),
+            (
+                {
+                    "target_uid": "123",
+                    "items": [
+                        {"item_name": "木材", "quantity": 1},
+                        {"item_name": "木材", "quantity": 1},
+                    ],
+                },
+                "重复",
+            ),
+            (
+                {
+                    "target_uid": "123",
+                    "items": [
+                        {"item_name": "木材", "quantity": 6},
+                        {"item_name": "砖块", "quantity": 1},
+                    ],
+                },
+                "库存",
+            ),
+            (
+                {
+                    "target_uid": "123",
+                    "items": [{"item_name": "砖块", "quantity": 501}],
+                },
+                "500",
+            ),
+            (
+                {
+                    "target_uid": "123",
+                    "items": [{"item_name": "魔丸", "quantity": 1}],
+                },
+                "不可赠送",
+            ),
+            (
+                {
+                    "target_uid": "123",
+                    "items": [
+                        {"item_name": f"物品{index}", "quantity": 1}
+                        for index in range(21)
+                    ],
+                },
+                "20",
+            ),
+        ]
+
+        for payload, expected_message in cases:
+            with self.subTest(payload=payload):
+                result = self.plugin._gift_items_api(payload)
+                self.assertIs(result["success"], False)
+                self.assertIn(expected_message, result["message"])
+
+        self.assertEqual([], action_calls)
+
+    def test_gift_items_success_posts_in_order_and_refreshes_once(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        page["inventory"].append(
+            {"name": "塑料袋", "count": 4, "giftable": True}
+        )
+        refreshed_page = dict(page)
+        pages = [page, refreshed_page]
+        fetch_calls = []
+
+        def fetch_page(session):
+            fetch_calls.append(session)
+            return pages.pop(0)
+
+        action_calls = []
+
+        def post_action(session, action, payload, **kwargs):
+            action_calls.append((action, dict(payload), dict(kwargs)))
+            return {"success": True, "message": "赠送成功"}
+
+        stored = []
+        histories = []
+        schedules = []
+        self.plugin._fetch_page_state = fetch_page
+        self.plugin._post_action = post_action
+        self.plugin._compute_next_plan = lambda current_page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args: schedules.append(args)
+        self.plugin._refresh_and_store_status = (
+            lambda *args, **kwargs: stored.append((args, kwargs)) or {}
+        )
+        self.plugin._append_history = (
+            lambda title, lines: histories.append((title, list(lines)))
+        )
+
+        result = self.plugin._gift_items_api(
+            {
+                "target_uid": "123",
+                "items": [
+                    {"item_name": "木材", "quantity": 2},
+                    {"item_name": "塑料袋", "quantity": 3},
+                ],
+            }
+        )
+
+        self.assertIs(result["success"], True)
+        self.assertIs(result["partial"], False)
+        self.assertEqual(
+            [
+                {"item_name": "木材", "quantity": 2},
+                {"item_name": "塑料袋", "quantity": 3},
+            ],
+            result["gifted"],
+        )
+        self.assertEqual(
+            [
+                (
+                    "gift_item",
+                    {"item_name": "木材", "target_uid": "123", "quantity": 2},
+                    {"retry_network": False},
+                ),
+                (
+                    "gift_item",
+                    {"item_name": "塑料袋", "target_uid": "123", "quantity": 3},
+                    {"retry_network": False},
+                ),
+            ],
+            action_calls,
+        )
+        self.assertEqual(2, len(fetch_calls))
+        self.assertEqual(1, len(stored))
+        self.assertEqual(1, len(schedules))
+        self.assertEqual(1, len(histories))
+        self.assertIn("木材×2", histories[0][0])
+        self.assertIn("塑料袋×3", histories[0][0])
+
+    def test_gift_items_partial_failure_stops_and_reports_successes(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        page["inventory"].append(
+            {"name": "塑料袋", "count": 4, "giftable": True}
+        )
+        pages = [page, page]
+        self.plugin._fetch_page_state = lambda session: pages.pop(0)
+        action_calls = []
+
+        def post_action(session, action, payload, **kwargs):
+            action_calls.append(dict(payload))
+            if payload["item_name"] == "砖块":
+                return {"success": False, "message": "网站拒绝砖块"}
+            return {"success": True, "message": "赠送成功"}
+
+        histories = []
+        self.plugin._post_action = post_action
+        self.plugin._compute_next_plan = lambda current_page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = (
+            lambda title, lines: histories.append((title, list(lines)))
+        )
+
+        result = self.plugin._gift_items_api(
+            {
+                "target_uid": "123",
+                "items": [
+                    {"item_name": "木材", "quantity": 1},
+                    {"item_name": "砖块", "quantity": 2},
+                    {"item_name": "塑料袋", "quantity": 3},
+                ],
+            }
+        )
+
+        self.assertIs(result["success"], False)
+        self.assertIs(result["partial"], True)
+        self.assertEqual(
+            [{"item_name": "木材", "quantity": 1}], result["gifted"]
+        )
+        self.assertEqual(
+            {"item_name": "砖块", "quantity": 2}, result["failed_item"]
+        )
+        self.assertEqual(["木材", "砖块"], [row["item_name"] for row in action_calls])
+        self.assertIn("网站拒绝砖块", result["message"])
+        self.assertEqual([], pages)
+        self.assertEqual(1, len(histories))
+        self.assertIn("木材×1", histories[0][0])
 
     def test_gift_item_rejects_invalid_quantity_stock_and_item(self):
         self._install_valid_site()
