@@ -75,18 +75,57 @@
       </v-alert>
 
       <div v-if="initialLoading" class="page-skeleton">
-        <v-row dense class="mb-3">
-          <v-col v-for="index in 4" :key="`overview-skeleton-${index}`" cols="6" md="3">
+        <div class="overview-grid mb-3">
+          <div v-for="index in 4" :key="`overview-skeleton-${index}`">
             <div class="stat-card skeleton-card"><div class="sk sk-icon" /><div class="sk-lines"><div class="sk sk-line short" /><div class="sk sk-line" /></div></div>
-          </v-col>
-        </v-row>
-        <v-card flat class="siqi-card schedule-board mb-3 skeleton-shell">
-          <v-card-title class="siqi-card-title"><div class="sk sk-title" /></v-card-title>
-          <v-card-text class="schedule-board-body">
-            <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="sk sk-action" />
-          </v-card-text>
-        </v-card>
-        <div v-for="index in 4" :key="`panel-skeleton-${index}`" class="siqi-card skeleton-panel mb-3"><div class="sk sk-title" /><div class="sk sk-row" /><div class="sk sk-row" /></div>
+          </div>
+        </div>
+
+        <div class="primary-grid mb-3">
+          <div class="siqi-card schedule-board skeleton-shell">
+            <div class="siqi-card-title"><div class="sk sk-title" /></div>
+            <div class="schedule-board-body">
+              <div class="schedule-action-list">
+                <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="sk sk-action" />
+              </div>
+            </div>
+          </div>
+          <div class="siqi-card exchange-card skeleton-shell exchange-skeleton">
+            <div class="siqi-card-title"><div class="sk sk-title" /></div>
+            <div class="exchange-body">
+              <div class="exchange-summary">
+                <div v-for="index in 3" :key="`exchange-skeleton-${index}`" class="sk sk-exchange-stat" />
+              </div>
+              <div class="sk sk-row" />
+            </div>
+          </div>
+        </div>
+
+        <div class="resource-grid mb-3">
+          <div class="siqi-card inventory-card skeleton-shell inventory-skeleton">
+            <div class="siqi-card-title"><div class="sk sk-title" /></div>
+            <div class="inventory-body">
+              <div class="inventory-grid">
+                <div v-for="index in 7" :key="`inventory-skeleton-${index}`" class="sk sk-inventory-item" />
+              </div>
+            </div>
+          </div>
+          <div class="siqi-card workshop-card skeleton-shell recipe-skeleton">
+            <div class="siqi-card-title"><div class="sk sk-title" /></div>
+            <div class="workshop-body">
+              <div class="recipe-grid">
+                <div v-for="index in 3" :key="`recipe-skeleton-${index}`" class="sk sk-recipe-item" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="siqi-card history-card skeleton-shell history-skeleton">
+          <div class="siqi-card-title"><div class="sk sk-title" /></div>
+          <div class="history-body">
+            <div v-for="index in 3" :key="`history-skeleton-${index}`" class="sk sk-history-row" />
+          </div>
+        </div>
       </div>
 
       <template v-else>
@@ -183,7 +222,7 @@
             <div class="exchange-summary">
               <div class="exchange-stat"><span>当前魔丸</span><strong>{{ exchange.magic_pills ?? 0 }}</strong></div>
               <div class="exchange-stat"><span>单颗价值</span><strong>{{ exchange.pill_price ?? 0 }}</strong><small>魔力</small></div>
-              <div class="exchange-stat"><span>后端上限</span><strong>{{ exchange.max_count ?? 0 }}</strong><small>颗</small></div>
+              <div class="exchange-stat"><span>最多兑换</span><strong>{{ exchange.max_count ?? 0 }}</strong><small>颗</small></div>
             </div>
             <div class="exchange-action-panel">
               <v-text-field
@@ -553,16 +592,23 @@ function compactScheduleTime(value) {
   return matched ? `${matched[1]}-${matched[2]} ${matched[3]}` : text
 }
 
-const scheduleSummary = computed(() => {
-  if (!status.enabled) return { active: false, text: '自动运行未启用' }
-  const nextTime = status.next_trigger_time || status.next_run_time
+function applyStatusMeta(target, meta) {
+  Object.assign(target, meta || {})
+  return target
+}
+
+function buildScheduleSummary(state = {}) {
+  if (!state.enabled) return { active: false, text: '自动运行未启用' }
+  const nextTime = state.next_trigger_time || state.next_run_time
   if (!nextTime) return { active: false, text: '等待识别下一次任务' }
-  const action = status.next_trigger_action || '任务'
+  const action = state.next_trigger_action || '任务'
   return {
     active: true,
     text: `自动运行正常 · 下一项：${action} ${compactScheduleTime(nextTime)}`,
   }
-})
+}
+
+const scheduleSummary = computed(() => buildScheduleSummary(status))
 
 const exchange = computed(() => pill.value.exchange || {})
 const inventoryItems = computed(() => {
@@ -658,7 +704,7 @@ function applyStatusPayload(payload = {}) {
   const update = extractStatusPayload(payload)
   if (!update) return false
 
-  Object.assign(status, update.statusMeta || {})
+  applyStatusMeta(status, update.statusMeta)
   status.pill_status = update.pillStatus
   status.history = update.history
   return true
@@ -982,11 +1028,10 @@ onBeforeUnmount(() => {
 .siqi-card-title{min-height:44px;padding:10px 16px!important;font-size:13px!important;font-weight:700!important;background:rgba(76,175,80,.08);border-bottom:.5px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84)}
 .siqi-card-title :deep(.v-spacer){flex:1 1 auto!important}
 .siqi-card-title--exchange{background:rgba(245,158,11,.09)}.siqi-card-title--inventory{background:rgba(251,146,60,.10)}.siqi-card-title--workshop{background:rgba(6,182,212,.09)}.siqi-card-title--logs{background:rgba(59,130,246,.09)}
-.stat-card{--stat-rgb:76,175,80;--stat-color:#2e7d32;min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
+.stat-card{--stat-rgb:76,175,80;--stat-color:#2e7d32;min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);border-left:3px solid rgba(var(--stat-rgb),.62);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
 .stat-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(var(--stat-rgb),.14);color:var(--stat-color);flex:0 0 38px}
-.stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;color:rgba(var(--v-theme-on-surface),.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;color:rgba(var(--v-theme-on-surface),.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.24)}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.24)}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6;background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.24)}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.24)}
-.stat-orange .stat-icon,.stat-orange .stat-title,.stat-orange .stat-value{color:#f59e0b}.stat-green .stat-icon,.stat-green .stat-title,.stat-green .stat-value{color:#10b981}.stat-blue .stat-icon,.stat-blue .stat-title,.stat-blue .stat-value{color:#3b82f6}.stat-red .stat-icon,.stat-red .stat-title,.stat-red .stat-value{color:#ef4444}
+.stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;color:rgba(var(--v-theme-on-surface),.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--stat-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444}
 .overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px!important}
 .overview-grid>*{width:auto!important;max-width:none!important;padding:0!important}
 .primary-grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(360px,.78fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%;margin-bottom:0!important}.resource-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.resource-grid>.siqi-card{width:100%;min-width:0}.card-subtitle{margin-left:10px;color:rgba(var(--v-theme-on-surface),.48);font-size:12px;font-weight:500}
@@ -997,9 +1042,9 @@ onBeforeUnmount(() => {
 .history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
 .empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
 .siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats-applied-filter{margin:-2px 0 10px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
-.page-skeleton{display:flex;flex-direction:column}.skeleton-shell,.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-action{height:76px;margin-top:8px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
+.page-skeleton{display:flex;flex-direction:column}.skeleton-shell,.skeleton-card{pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-action{height:112px}.sk-row{height:38px;margin-top:14px}.sk-exchange-stat{height:72px}.sk-inventory-item{height:112px}.sk-recipe-item{height:132px}.sk-history-row{height:38px;margin-bottom:8px}.sk-history-row:last-child{margin-bottom:0}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
 @media(max-width:1100px){.primary-grid{grid-template-columns:1fr}.inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
-@media(max-width:700px){.inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.recipe-grid{grid-template-columns:1fr}.schedule-action-list{grid-template-columns:1fr}.schedule-summary{display:none}}
+@media(max-width:700px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.primary-grid{grid-template-columns:1fr}.schedule-action-list{grid-template-columns:1fr}.inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.recipe-grid{grid-template-columns:1fr}.schedule-summary{display:none}}
 @media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.card-subtitle{display:none}.schedule-board-body{padding:14px!important}.neu-action-card{grid-template-columns:32px minmax(0,1fr);row-gap:10px;padding:12px}.schedule-action{grid-column:1/-1;width:100%}.schedule-meta span{flex:1 1 100%}.exchange-summary{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
 </style>

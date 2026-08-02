@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 import unittest
@@ -28,7 +29,9 @@ class VuePillFrontendContractTest(unittest.TestCase):
         cls.app = APP_PATH.read_text(encoding="utf-8")
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
         cls.dist_style = DIST_STYLE_PATH.read_text(encoding="utf-8")
+        cls.template = cls.page.split("<script setup>", 1)[0]
         cls.compact_page = re.sub(r"\s+", "", cls.page)
+        cls.compact_template = re.sub(r"\s+", "", cls.template)
         cls.compact_config = re.sub(r"\s+", "", cls.config)
         cls.compact_dist_style = re.sub(r"\s+", "", cls.dist_style)
         cls.mobile_css = cls.compact_page.split(
@@ -923,9 +926,17 @@ try {
             r"\.siqi-topbar__icon\{[^}]*background:rgba\(76,175,80,.14\)[^}]*color:#2e7d32",
         )
         self.assertNotIn("rgba(245,158,11,.035)", self.compact_page)
+        self.assertRegex(
+            self.compact_page,
+            r"\.stat-card\{[^}]*background:rgba\(var\(--v-theme-(?:surface|on-surface)\),\.[0-9]+\)",
+        )
         for tone in ("orange", "green", "blue", "red"):
             with self.subTest(tone=tone):
                 self.assertRegex(
+                    self.compact_page,
+                    rf"\.stat-{tone}\{{[^}}]*--stat-rgb:",
+                )
+                self.assertNotRegex(
                     self.compact_page,
                     rf"\.stat-{tone}\{{[^}}]*background:",
                 )
@@ -985,7 +996,10 @@ try {
             "next_run_time: ''",
             "next_trigger_time: ''",
             "next_trigger_action: ''",
-            "Object.assign(status, update.statusMeta || {})",
+            "function applyStatusMeta(target, meta)",
+            "applyStatusMeta(status, update.statusMeta)",
+            "function buildScheduleSummary(state = {})",
+            "const scheduleSummary = computed(() => buildScheduleSummary(status))",
             "function compactScheduleTime(value)",
             "compactScheduleTime(nextTime)",
             "自动运行正常",
@@ -1041,6 +1055,75 @@ try {
                 r"\.schedule-summary\{[^}]*display:none",
             )
 
+    def test_task_first_layout_has_mobile_and_theme_guards(self):
+        self.assert_page_contains(
+            "@media(max-width:1100px)",
+            "@media(max-width:700px)",
+            "overflow-x:hidden",
+            "rgba(var(--v-theme-on-surface)",
+            "rgba(var(--v-theme-surface)",
+        )
+        self.assertNotIn("后端上限", self.template)
+        self.assertNotIn("后端返回最大可炼造数量为 0", self.page)
+        self.assertNotRegex(
+            self.template,
+            r"<span(?:\s+[^>]*)?>\s*(?:当前不可赠送|不可赠送)\s*</span>",
+        )
+        self.assertRegex(
+            self.template,
+            r'<div class="exchange-stat">\s*<span>最多兑换</span>\s*<strong>\{\{\s*exchange\.max_count\s*\?\?\s*0\s*\}\}</strong>\s*<small>颗</small>\s*</div>',
+        )
+
+        mobile_layout = re.search(
+            r"@media\(max-width:700px\)\{([\s\S]*?)@media\(max-width:600px\)\{",
+            self.compact_page,
+        )
+        self.assertIsNotNone(mobile_layout)
+        if mobile_layout:
+            mobile_css = mobile_layout.group(1)
+            self.assertRegex(
+                mobile_css,
+                r"\.overview-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)",
+            )
+            self.assertRegex(
+                mobile_css,
+                r"\.primary-grid\{[^}]*grid-template-columns:1fr",
+            )
+            self.assertRegex(
+                mobile_css,
+                r"\.schedule-action-list\{[^}]*grid-template-columns:1fr",
+            )
+            self.assertRegex(
+                mobile_css,
+                r"\.inventory-grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)",
+            )
+            self.assertRegex(
+                mobile_css,
+                r"\.recipe-grid\{[^}]*grid-template-columns:1fr",
+            )
+            self.assertRegex(
+                mobile_css,
+                r"\.schedule-summary\{[^}]*display:none",
+            )
+
+    def test_task_first_skeleton_matches_loaded_layout(self):
+        skeleton = self.page.split(
+            '<div v-if="initialLoading" class="page-skeleton">', 1
+        )[1].split("<template v-else>", 1)[0]
+
+        self.assertIn('class="overview-grid mb-3"', skeleton)
+        self.assertIn('v-for="index in 4"', skeleton)
+        self.assertIn('class="primary-grid mb-3"', skeleton)
+        self.assertIn('class="schedule-action-list"', skeleton)
+        self.assertIn('v-for="index in 2"', skeleton)
+        self.assertIn("exchange-skeleton", skeleton)
+        self.assertIn('class="inventory-grid"', skeleton)
+        self.assertIn('v-for="index in 7"', skeleton)
+        self.assertIn('class="recipe-grid"', skeleton)
+        self.assertIn('v-for="index in 3"', skeleton)
+        self.assertIn("history-skeleton", skeleton)
+        self.assertNotIn("<v-btn", skeleton)
+
     def test_compact_schedule_time_requires_complete_timestamp(self):
         function_match = re.search(
             r"function compactScheduleTime\(value\) \{[\s\S]*?\n\}",
@@ -1068,6 +1151,108 @@ assert.equal(compactScheduleTime('2026-08-02 11:25:58 extra'), '2026-08-02 11:25
         )
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
 
+    def test_schedule_summary_and_status_meta_execute_production_functions(self):
+        def extract_function(name):
+            match = re.search(
+                rf"function {name}\([^)]*\) \{{[\s\S]*?\n\}}",
+                self.page,
+            )
+            self.assertIsNotNone(match, f"Page.vue 必须声明纯函数 {name}")
+            return match.group(0)
+
+        production_source = "\n\n".join(
+            extract_function(name)
+            for name in (
+                "compactScheduleTime",
+                "applyStatusMeta",
+                "buildScheduleSummary",
+            )
+        )
+        script = f"""
+import assert from 'node:assert/strict'
+
+const source = {json.dumps(production_source, ensure_ascii=False)}
+const functions = new Function(
+  source + '\\nreturn {{ compactScheduleTime, applyStatusMeta, buildScheduleSummary }}',
+)()
+const {{ applyStatusMeta, buildScheduleSummary }} = functions
+
+assert.deepEqual(
+  buildScheduleSummary({{ enabled: false }}),
+  {{ active: false, text: '自动运行未启用' }},
+)
+assert.deepEqual(
+  buildScheduleSummary({{ enabled: true }}),
+  {{ active: false, text: '等待识别下一次任务' }},
+)
+
+const fullState = {{
+  enabled: true,
+  next_run_time: '2026-08-02 11:20:00',
+  next_trigger_time: '2026-08-02 11:25:58',
+  next_trigger_action: '清沙滩',
+}}
+assert.deepEqual(
+  buildScheduleSummary(fullState),
+  {{ active: true, text: '自动运行正常 · 下一项：清沙滩 08-02 11:25' }},
+)
+
+const partialState = {{ ...fullState, next_trigger_action: '搬砖' }}
+const retainedTime = partialState.next_trigger_time
+assert.equal(
+  applyStatusMeta(partialState, {{ next_trigger_action: '清沙滩' }}),
+  partialState,
+)
+assert.equal(partialState.next_trigger_time, retainedTime)
+assert.deepEqual(
+  buildScheduleSummary(partialState),
+  {{ active: true, text: '自动运行正常 · 下一项：清沙滩 08-02 11:25' }},
+)
+
+assert.deepEqual(
+  buildScheduleSummary({{
+    enabled: true,
+    next_run_time: '2026-08-03 09:40:00',
+    next_trigger_time: '2026-08-03 09:45:00',
+    next_trigger_action: '兑换',
+  }}),
+  {{ active: true, text: '自动运行正常 · 下一项：兑换 08-03 09:45' }},
+)
+assert.deepEqual(
+  buildScheduleSummary({{
+    enabled: true,
+    next_run_time: '明天上午',
+    next_trigger_action: '任务',
+  }}),
+  {{ active: true, text: '自动运行正常 · 下一项：任务 明天上午' }},
+)
+
+const retainedMeta = {{
+  enabled: true,
+  next_run_time: '旧时间',
+  next_trigger_action: '旧动作',
+}}
+applyStatusMeta(retainedMeta, null)
+applyStatusMeta(retainedMeta, undefined)
+applyStatusMeta(retainedMeta, {{}})
+assert.deepEqual(retainedMeta, {{
+  enabled: true,
+  next_run_time: '旧时间',
+  next_trigger_action: '旧动作',
+}})
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
     def test_page_matches_siqifram_card_density(self):
         self.assertRegex(
             self.compact_page,
@@ -1075,9 +1260,9 @@ assert.equal(compactScheduleTime('2026-08-02 11:25:58 extra'), '2026-08-02 11:25
         )
         for tone in ("orange", "green", "blue", "red"):
             with self.subTest(tone=tone):
-                self.assertRegex(
+                self.assertNotRegex(
                     self.compact_page,
-                    rf"\.stat-{tone}\{{[^}}]*background:rgba\(",
+                    rf"\.stat-{tone}\{{[^}}]*background:",
                 )
 
     def test_numeric_config_fields_are_vertically_centered(self):
