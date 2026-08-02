@@ -6,6 +6,7 @@ import traceback
 from datetime import datetime, timedelta
 from functools import partial
 from html import unescape
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
@@ -120,7 +121,6 @@ class VuePanel(_PluginBase):
     _notify: bool = True
     _onlyonce: bool = False
     _use_proxy: bool = False
-    _force_ipv4: bool = True
     _cron: str = DEFAULT_CRON
     _http_timeout: int = DEFAULT_TIMEOUT
     _http_retry_times: int = DEFAULT_RETRY_TIMES
@@ -130,8 +130,34 @@ class VuePanel(_PluginBase):
     def __init__(self):
         super().__init__()
 
+    @staticmethod
+    def _restore_legacy_address_family_selector():
+        selector = getattr(urllib3_connection, "allowed_gai_family", None)
+        code = getattr(selector, "__code__", None)
+        try:
+            is_vuepanel_source = Path(str(getattr(code, "co_filename", ""))).resolve() == Path(__file__).resolve()
+        except Exception:
+            is_vuepanel_source = False
+        is_legacy_patch = (
+            getattr(selector, "__name__", "") == "<lambda>"
+            and getattr(code, "co_argcount", -1) == 0
+            and tuple(getattr(code, "co_names", ())) == ("socket", "AF_INET")
+            and is_vuepanel_source
+        )
+        if not is_legacy_patch:
+            return
+
+        def system_address_family():
+            if getattr(urllib3_connection, "HAS_IPV6", True):
+                return socket.AF_UNSPEC
+            return socket.AF_INET
+
+        urllib3_connection.allowed_gai_family = system_address_family
+        logger.info("%s 已清理旧版遗留的 IPv4 网络限制", VuePanel.plugin_name)
+
     def init_plugin(self, config: Optional[dict] = None, schedule_bootstrap: bool = True):
         self.stop_service()
+        self._restore_legacy_address_family_selector()
 
         merged = self._default_config()
         if config:
@@ -287,9 +313,6 @@ class VuePanel(_PluginBase):
             if not targets:
                 return {"success": False, "message": "暂无可执行卡片", "status": self._build_status(auto_refresh=False)}
 
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
-
             delay = random.randint(0, max(0, self._random_delay_max_seconds))
             if delay:
                 logger.info("%s 随机延迟 %s 秒后执行", self.plugin_name, delay)
@@ -372,7 +395,6 @@ class VuePanel(_PluginBase):
             "notify": self._notify,
             "cron": self._cron,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "next_run_time": self._format_time(next_run) if next_run else "",
             "next_trigger_time": self._format_time(self._load_next_trigger_time()) if self._load_next_trigger_time() else "",
             "next_trigger_mode": self._load_next_trigger_mode(),
@@ -389,7 +411,6 @@ class VuePanel(_PluginBase):
             "notify": self._notify,
             "onlyonce": self._onlyonce,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cron": self._cron,
             "http_timeout": self._http_timeout,
             "http_retry_times": self._http_retry_times,
@@ -423,7 +444,6 @@ class VuePanel(_PluginBase):
             "notify": True,
             "onlyonce": False,
             "use_proxy": False,
-            "force_ipv4": True,
             "cron": self.DEFAULT_CRON,
             "http_timeout": self.DEFAULT_TIMEOUT,
             "http_retry_times": self.DEFAULT_RETRY_TIMES,
@@ -514,7 +534,6 @@ class VuePanel(_PluginBase):
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
-        self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cron = str(config.get("cron") or self.DEFAULT_CRON).strip() or self.DEFAULT_CRON
         self._http_timeout = max(3, self._safe_int(config.get("http_timeout"), self.DEFAULT_TIMEOUT))
         self._http_retry_times = max(1, self._safe_int(config.get("http_retry_times"), self.DEFAULT_RETRY_TIMES))
@@ -546,7 +565,6 @@ class VuePanel(_PluginBase):
                 "notify": self._notify,
                 "onlyonce": self._onlyonce,
                 "use_proxy": self._use_proxy,
-                "force_ipv4": self._force_ipv4,
                 "cron": self._cron,
                 "http_timeout": self._http_timeout,
                 "http_retry_times": self._http_retry_times,
@@ -556,9 +574,6 @@ class VuePanel(_PluginBase):
         )
 
     def _refresh_state(self, reason: str = "refresh", card_id: str = "") -> Dict[str, Any]:
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
-
         states = self._load_card_states()
         targets = self._select_cards_for_refresh(card_id=card_id)
         for card in targets:

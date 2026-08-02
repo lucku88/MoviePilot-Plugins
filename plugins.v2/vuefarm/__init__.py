@@ -9,6 +9,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
@@ -69,7 +70,6 @@ class VueFarm(_PluginBase):
     _enable_plant: bool = True
     _ocr_provider: str = "moviepilot"
     _use_proxy: bool = False
-    _force_ipv4: bool = True
     _cron: str = DEFAULT_CRON
     _site_domain: str = DEFAULT_SITE_DOMAIN
     _site_url: str = DEFAULT_SITE_URL
@@ -119,8 +119,34 @@ class VueFarm(_PluginBase):
     def __init__(self):
         super().__init__()
 
+    @staticmethod
+    def _restore_legacy_address_family_selector():
+        selector = getattr(urllib3_connection, "allowed_gai_family", None)
+        code = getattr(selector, "__code__", None)
+        try:
+            is_vuefarm_source = Path(str(getattr(code, "co_filename", ""))).resolve() == Path(__file__).resolve()
+        except Exception:
+            is_vuefarm_source = False
+        is_legacy_patch = (
+            getattr(selector, "__name__", "") == "<lambda>"
+            and getattr(code, "co_argcount", -1) == 0
+            and tuple(getattr(code, "co_names", ())) == ("socket", "AF_INET")
+            and is_vuefarm_source
+        )
+        if not is_legacy_patch:
+            return
+
+        def system_address_family():
+            if getattr(urllib3_connection, "HAS_IPV6", True):
+                return socket.AF_UNSPEC
+            return socket.AF_INET
+
+        urllib3_connection.allowed_gai_family = system_address_family
+        logger.info("%s 已清理旧版遗留的 IPv4 网络限制", VueFarm.plugin_name)
+
     def init_plugin(self, config: Optional[dict] = None):
         self.stop_service()
+        self._restore_legacy_address_family_selector()
         self._siteoper = SiteOper()
 
         merged = self._default_config()
@@ -286,8 +312,6 @@ class VueFarm(_PluginBase):
                 return {"success": False, "message": "插件未启用", "status": self._build_status(auto_refresh=False)}
 
             self._ensure_cookie()
-            if self._force_ipv4:
-                urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
             rand_delay = random.randint(0, max(0, self._random_delay_max_seconds))
             if rand_delay:
@@ -884,7 +908,6 @@ class VueFarm(_PluginBase):
             "enable_sell": self._enable_sell,
             "enable_plant": self._enable_plant,
             "use_proxy": self._use_proxy,
-            "force_ipv4": self._force_ipv4,
             "cookie": self._cookie,
             "prefer_seed": self._prefer_seed,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
@@ -1500,7 +1523,6 @@ class VueFarm(_PluginBase):
             "enable_plant": True,
             "ocr_provider": "moviepilot",
             "use_proxy": False,
-            "force_ipv4": True,
             "cookie": "",
             "ocr_api_url": "",
             "prefer_seed": "西红柿",
@@ -1532,7 +1554,6 @@ class VueFarm(_PluginBase):
         # 批量收菜固定启用；旧版开关和 TRWebOCR 配置升级后统一忽略。
         self._ocr_provider = "moviepilot"
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
-        self._force_ipv4 = self._to_bool(config.get("force_ipv4", True))
         self._cron = self.DEFAULT_CRON
         self._site_domain = self.DEFAULT_SITE_DOMAIN
         self._cookie = (config.get("cookie") or "").strip()
@@ -1632,8 +1653,6 @@ class VueFarm(_PluginBase):
 
     def _refresh_state(self, reason: str = "refresh", record_run: bool = False) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         session = self._build_session()
         data = self._fetch_state(session)
         next_run = self._compute_next_run(data)
@@ -2683,8 +2702,6 @@ class VueFarm(_PluginBase):
 
     def _manual_harvest_plot(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         land_id = self._safe_int(payload.get("land_id"), 0)
         slot_index = self._safe_int(payload.get("slot_index"), 0)
         if land_id <= 0 or slot_index <= 0:
@@ -2720,8 +2737,6 @@ class VueFarm(_PluginBase):
 
     def _manual_plant_plot(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
         land_id = self._safe_int(payload.get("land_id"), 0)
         slot_index = self._safe_int(payload.get("slot_index"), 0)
         seed_id = self._safe_int(payload.get("seed_id"), 0)
@@ -2776,8 +2791,6 @@ class VueFarm(_PluginBase):
 
     def _manual_harvest_all(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
         session = self._build_session()
         data = self._fetch_state(session)
@@ -2802,8 +2815,6 @@ class VueFarm(_PluginBase):
 
     def _manual_plant_empty(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
         seed_id = self._safe_int(payload.get("seed_id"), 0)
         session = self._build_session()
@@ -2840,8 +2851,6 @@ class VueFarm(_PluginBase):
 
     def _manual_sell_inventory(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self._ensure_cookie()
-        if self._force_ipv4:
-            urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
         seed_id = self._safe_int(payload.get("seed_id"), 0)
         quantity = self._safe_int(payload.get("quantity"), 0)

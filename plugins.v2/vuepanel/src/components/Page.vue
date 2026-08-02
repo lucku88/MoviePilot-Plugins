@@ -478,7 +478,6 @@ function createEmptyConfig() {
     notify: true,
     onlyonce: false,
     use_proxy: false,
-    force_ipv4: true,
     cron: DEFAULT_CRON,
     http_timeout: 15,
     http_retry_times: 3,
@@ -591,7 +590,6 @@ function normalizeConfig(source = {}) {
   next.notify = source.notify !== false
   next.onlyonce = !!source.onlyonce
   next.use_proxy = !!source.use_proxy
-  next.force_ipv4 = source.force_ipv4 !== false
   next.cron = String(source.cron || DEFAULT_CRON)
   next.http_timeout = Number(source.http_timeout || 15)
   next.http_retry_times = Number(source.http_retry_times || 3)
@@ -735,7 +733,6 @@ function serializeConfig(cardsOverride = null) {
     notify: !!panelConfig.value.notify,
     onlyonce: !!panelConfig.value.onlyonce,
     use_proxy: !!panelConfig.value.use_proxy,
-    force_ipv4: panelConfig.value.force_ipv4 !== false,
     cron: String(panelConfig.value.cron || DEFAULT_CRON),
     http_timeout: Number(panelConfig.value.http_timeout || 15),
     http_retry_times: Number(panelConfig.value.http_retry_times || 3),

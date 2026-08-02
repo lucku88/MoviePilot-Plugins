@@ -50,10 +50,6 @@
             <div class="siqi-switch-main"><v-icon icon="mdi-lan-connect" size="18" /><div><div class="siqi-switch-label">使用代理</div><div class="siqi-switch-desc">请求站点时使用系统代理</div></div></div>
             <v-switch v-model="config.use_proxy" color="purple" hide-details density="compact" />
           </div>
-          <div class="siqi-switch-item" :class="{'siqi-switch-item--active': config.force_ipv4}" style="--siqi-accent:14,165,233">
-            <div class="siqi-switch-main"><v-icon icon="mdi-ip-network-outline" size="18" /><div><div class="siqi-switch-label">强制 IPv4</div><div class="siqi-switch-desc">避免部分环境 IPv6 请求不稳定</div></div></div>
-            <v-switch v-model="config.force_ipv4" color="info" hide-details density="compact" />
-          </div>
         </div>
       </div>
 
@@ -183,6 +179,15 @@ import { computed, reactive, ref, onMounted } from 'vue'
 const props = defineProps({ api: Object, initialConfig: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['switch', 'close'])
 const PLUGIN_ID = 'VueFarm'
+const legacyIpv4Key = ['force', 'ipv4'].join('_')
+
+function cleanConfigSource(source = {}) {
+  if (!source || typeof source !== 'object') return {}
+  const next = { ...source }
+  delete next[legacyIpv4Key]
+  return next
+}
+
 const config = reactive({
   enabled: false,
   notify: true,
@@ -190,7 +195,6 @@ const config = reactive({
   enable_sell: true,
   enable_plant: true,
   use_proxy: false,
-  force_ipv4: true,
   cookie: '',
   prefer_seed: '西红柿',
   schedule_buffer_seconds: 5,
@@ -211,8 +215,9 @@ const config = reactive({
   social_cron: '*/5 * * * *',
   like_targets: ['', '', ''],
   like_cron: '0 9 * * *',
-  ...props.initialConfig
+  ...cleanConfigSource(props.initialConfig)
 })
+delete config[legacyIpv4Key]
 config.like_targets = normalizeLikeTargetFields(config.like_targets)
 config.like_cron = normalizeLikeCron(config.like_cron)
 const loading = ref(false)
@@ -297,11 +302,16 @@ function show(text, type = 'success') {
   }, 3000)
 }
 
+function mergeConfig(source = {}) {
+  Object.assign(config, cleanConfigSource(source))
+  delete config[legacyIpv4Key]
+}
+
 async function loadConfig() {
   loading.value = true
   try {
     const res = await apiGet('/config')
-    Object.assign(config, res)
+    mergeConfig(res)
     config.steal_crop = normalizeStealCropValues(res.steal_crop)
     config.like_targets = normalizeLikeTargetFields(res.like_targets)
     config.like_cron = normalizeLikeCron(res.like_cron)
@@ -343,7 +353,7 @@ async function syncCookie() {
   try {
     const res = await apiGet('/cookie')
     if (res.config) {
-      Object.assign(config, res.config)
+      mergeConfig(res.config)
       config.steal_crop = normalizeStealCropValues(config.steal_crop)
       config.like_targets = normalizeLikeTargetFields(config.like_targets)
       config.like_cron = normalizeLikeCron(config.like_cron)
@@ -361,13 +371,15 @@ async function saveConfig() {
   try {
     const likeTargets = normalizeLikeTargetFields(config.like_targets)
     const likeCron = normalizeLikeCron(config.like_cron)
-    const res = await apiPost('/config', {
+    const payload = {
       ...config,
       steal_crop: normalizeStealCropValues(config.steal_crop),
       like_targets: likeTargets,
       like_cron: likeCron
-    })
-    if (res.config) Object.assign(config, res.config)
+    }
+    delete payload[legacyIpv4Key]
+    const res = await apiPost('/config', payload)
+    if (res.config) mergeConfig(res.config)
     config.steal_crop = normalizeStealCropValues(config.steal_crop)
     config.like_targets = normalizeLikeTargetFields(config.like_targets)
     config.like_cron = normalizeLikeCron(config.like_cron)
