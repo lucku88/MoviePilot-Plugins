@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-66d70fe2.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ab30c32c_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_dbb45712_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ab30c32c"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-dbb45712"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -71,11 +71,8 @@ const _hoisted_45 = { class: "exchange-stat" };
 const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "后端上限", -1));
 const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "颗", -1));
 const _hoisted_48 = { class: "exchange-action-panel" };
-const _hoisted_49 = {
-  key: 0,
-  class: "backend-note"
-};
-const _hoisted_50 = { class: "resource-grid mb-3" };
+const _hoisted_49 = { class: "resource-grid mb-3" };
+const _hoisted_50 = { class: "inventory-title-actions" };
 const _hoisted_51 = {
   key: 0,
   class: "empty-state"
@@ -121,47 +118,56 @@ const _hoisted_71 = { class: "history-detail" };
 const _hoisted_72 = { class: "history-time" };
 const _hoisted_73 = { class: "dialog-avatar" };
 const _hoisted_74 = { class: "dialog-copy" };
-const _hoisted_75 = { class: "dialog-avatar stats-avatar" };
+const _hoisted_75 = { class: "dialog-avatar batch-gift-avatar" };
 const _hoisted_76 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
+  /*#__PURE__*/_createElementVNode("strong", null, "批量赠送"),
+  /*#__PURE__*/_createElementVNode("small", null, "勾选多种物品，共用一个接收方 UID；每种物品单次最多赠送 500 个。")
+], -1));
+const _hoisted_77 = { class: "batch-gift-list" };
+const _hoisted_78 = { class: "batch-gift-item" };
+const _hoisted_79 = { class: "batch-gift-item__icon" };
+const _hoisted_80 = { class: "batch-gift-item__copy" };
+const _hoisted_81 = { class: "dialog-avatar stats-avatar" };
+const _hoisted_82 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
   /*#__PURE__*/_createElementVNode("strong", null, "赠送统计"),
   /*#__PURE__*/_createElementVNode("small", null, "按后端记录查看赠出或收到的物品汇总。")
 ], -1));
-const _hoisted_77 = { class: "stats-filters" };
-const _hoisted_78 = {
+const _hoisted_83 = { class: "stats-filters" };
+const _hoisted_84 = {
   key: 1,
   class: "empty-state"
 };
-const _hoisted_79 = { class: "stats-applied-filter" };
-const _hoisted_80 = { class: "gift-stats summary-grid" };
-const _hoisted_81 = { class: "summary-stat" };
-const _hoisted_82 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总事件数", -1));
-const _hoisted_83 = { class: "summary-stat" };
-const _hoisted_84 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总数量", -1));
-const _hoisted_85 = {
+const _hoisted_85 = { class: "stats-applied-filter" };
+const _hoisted_86 = { class: "gift-stats summary-grid" };
+const _hoisted_87 = { class: "summary-stat" };
+const _hoisted_88 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总事件数", -1));
+const _hoisted_89 = { class: "summary-stat" };
+const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总数量", -1));
+const _hoisted_91 = {
   key: 0,
   class: "empty-state compact-empty"
 };
-const _hoisted_86 = {
+const _hoisted_92 = {
   key: 1,
   class: "stats-columns"
 };
-const _hoisted_87 = { class: "stats-section" };
-const _hoisted_88 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "用户汇总", -1));
-const _hoisted_89 = {
+const _hoisted_93 = { class: "stats-section" };
+const _hoisted_94 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "用户汇总", -1));
+const _hoisted_95 = {
   key: 0,
   class: "stats-empty"
 };
-const _hoisted_90 = {
+const _hoisted_96 = {
   key: 1,
   class: "stats-list"
 };
-const _hoisted_91 = { class: "stats-section" };
-const _hoisted_92 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "物品汇总", -1));
-const _hoisted_93 = {
+const _hoisted_97 = { class: "stats-section" };
+const _hoisted_98 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "物品汇总", -1));
+const _hoisted_99 = {
   key: 0,
   class: "stats-empty"
 };
-const _hoisted_94 = {
+const _hoisted_100 = {
   key: 1,
   class: "stats-list"
 };
@@ -196,6 +202,12 @@ const giftForm = reactive({ target_uid: '', quantity: '1' });
 const giftConfirming = ref(false);
 const giftConfirmationSnapshot = ref(null);
 const giftLoading = ref(false);
+const showBatchGiftDialog = ref(false);
+const batchGiftForm = reactive({ target_uid: '' });
+const batchGiftRows = ref([]);
+const batchGiftConfirming = ref(false);
+const batchGiftConfirmationSnapshot = ref(null);
+const batchGiftLoading = ref(false);
 const showGiftStatsDialog = ref(false);
 const giftStatsDraftDirection = ref('out');
 const giftStatsDraftRange = ref('30');
@@ -207,8 +219,10 @@ const giftStatsError = ref('');
 const statusRequestGuard = createLatestRequestGuard();
 const actionRequestGuard = createLatestRequestGuard();
 const giftRequestGuard = createLatestRequestGuard();
+const batchGiftRequestGuard = createLatestRequestGuard();
 const giftStatsRequestGuard = createLatestRequestGuard();
 let giftDialogToken = 0;
+let batchGiftDialogToken = 0;
 let messageTimer = null;
 
 const pill = computed(() => status.pill_status || {});
@@ -246,9 +260,15 @@ const inventoryItems = computed(() => {
 const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : []);
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : []);
 const isBusy = computed(() => !!actionLoading.value);
-const writeActionsDisabled = computed(() => initialLoading.value || isBusy.value || giftLoading.value || showGiftDialog.value);
+const writeActionsDisabled = computed(() => (
+  initialLoading.value
+  || isBusy.value
+  || giftLoading.value
+  || batchGiftLoading.value
+  || showGiftDialog.value
+  || showBatchGiftDialog.value
+));
 
-const exchangeReserveHint = computed(() => `后端保留 ${exchange.value.reserve} 个魔丸，实际兑换以后端校验为准。`);
 const exchangeQuantityError = computed(() => quantityError(exchangeQuantity.value, Number(exchange.value.max_count || 0), '兑换'));
 
 const giftMaxQuantity = computed(() => Math.min(Math.max(Number(selectedGiftItem.value?.count || 0), 0), 500));
@@ -259,6 +279,23 @@ const giftFormError = computed(() => {
   return quantityError(giftForm.quantity, giftMaxQuantity.value, '赠送')
 });
 const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.value || 0}，最终以后端校验为准。`);
+
+const batchGiftableItems = computed(() => inventoryItems.value.filter((item) => (
+  item?.giftable === true && Number(item?.count || 0) > 0
+)));
+const batchGiftSelectedRows = computed(() => batchGiftRows.value.filter((item) => item.selected));
+const batchGiftSummary = computed(() => batchGiftSelectedRows.value
+  .map((item) => `${item.name}×${Number.parseInt(item.quantity, 10) || 0}`)
+  .join('、'));
+const batchGiftFormError = computed(() => {
+  if (!batchGiftForm.target_uid.trim()) return '请填写接收方 UID'
+  if (!batchGiftSelectedRows.value.length) return '请至少选择一种物品'
+  for (const item of batchGiftSelectedRows.value) {
+    const error = batchGiftRowError(item);
+    if (error) return `${item.name}：${error}`
+  }
+  return ''
+});
 
 const giftStatsUsers = computed(() => Array.isArray(giftStats.value?.users) ? giftStats.value.users : []);
 const giftStatsItems = computed(() => Array.isArray(giftStats.value?.items) ? giftStats.value.items : []);
@@ -285,6 +322,17 @@ watch(() => [giftForm.target_uid, giftForm.quantity], () => {
   giftConfirming.value = false;
   giftConfirmationSnapshot.value = null;
 });
+
+watch(
+  () => [
+    batchGiftForm.target_uid,
+    ...batchGiftRows.value.flatMap((item) => [item.selected, item.quantity]),
+  ],
+  () => {
+    batchGiftConfirming.value = false;
+    batchGiftConfirmationSnapshot.value = null;
+  },
+);
 
 watch(() => [giftStatsDraftDirection.value, giftStatsDraftRange.value], ([direction, range]) => {
   if (direction === giftStatsAppliedDirection.value && range === giftStatsAppliedRange.value) return
@@ -488,6 +536,146 @@ async function submitGift() {
   }
 }
 
+function batchGiftRowError(item) {
+  const maximum = Math.min(Math.max(Number(item?.maxQuantity || item?.count || 0), 0), 500);
+  return quantityError(item?.quantity, maximum, '赠送')
+}
+
+function openBatchGiftDialog() {
+  if (
+    initialLoading.value
+    || isBusy.value
+    || giftLoading.value
+    || batchGiftLoading.value
+    || showGiftDialog.value
+    || showBatchGiftDialog.value
+  ) return
+  if (!batchGiftableItems.value.length) {
+    flash('当前没有可批量赠送的物品', 'warning');
+    return
+  }
+
+  batchGiftRequestGuard.invalidate();
+  batchGiftDialogToken += 1;
+  batchGiftForm.target_uid = '';
+  batchGiftRows.value = batchGiftableItems.value.map((item) => ({
+    name: String(item.name || '').trim(),
+    icon: item.icon || '📦',
+    count: Math.max(Number(item.count || 0), 0),
+    maxQuantity: Math.min(Math.max(Number(item.count || 0), 0), 500),
+    selected: false,
+    quantity: '1',
+  }));
+  batchGiftConfirming.value = false;
+  batchGiftConfirmationSnapshot.value = null;
+  showBatchGiftDialog.value = true;
+}
+
+function resetBatchGiftDialog() {
+  showBatchGiftDialog.value = false;
+  batchGiftConfirming.value = false;
+  batchGiftConfirmationSnapshot.value = null;
+  batchGiftRows.value = [];
+  batchGiftForm.target_uid = '';
+  batchGiftDialogToken += 1;
+}
+
+function closeBatchGiftDialog() {
+  if (batchGiftLoading.value) return
+  batchGiftRequestGuard.invalidate();
+  resetBatchGiftDialog();
+}
+
+function currentBatchGiftSnapshot() {
+  return {
+    dialogToken: batchGiftDialogToken,
+    targetUid: String(batchGiftForm.target_uid || '').trim(),
+    items: batchGiftSelectedRows.value.map((item) => ({
+      item_name: item.name,
+      quantity: Number.parseInt(item.quantity, 10) || 0,
+    })),
+  }
+}
+
+function sameBatchGiftSnapshot(left, right) {
+  if (!left || !right) return false
+  if (left.dialogToken !== right.dialogToken || left.targetUid !== right.targetUid) return false
+  if (!Array.isArray(left.items) || !Array.isArray(right.items) || left.items.length !== right.items.length) return false
+  return left.items.every((item, index) => (
+    item.item_name === right.items[index]?.item_name
+    && item.quantity === right.items[index]?.quantity
+  ))
+}
+
+function requestBatchGiftConfirmation() {
+  if (initialLoading.value || !showBatchGiftDialog.value) return
+  if (batchGiftFormError.value) return flash(batchGiftFormError.value, 'warning')
+  batchGiftConfirmationSnapshot.value = currentBatchGiftSnapshot();
+  batchGiftConfirming.value = true;
+}
+
+function dismissBatchGiftDialog(snapshot) {
+  if (
+    showBatchGiftDialog.value
+    && batchGiftDialogToken === snapshot.dialogToken
+    && sameBatchGiftSnapshot(currentBatchGiftSnapshot(), snapshot)
+  ) resetBatchGiftDialog();
+}
+
+async function submitBatchGift() {
+  if (batchGiftLoading.value) return
+  if (initialLoading.value || !showBatchGiftDialog.value) return
+  if (batchGiftFormError.value) return flash(batchGiftFormError.value, 'warning')
+  const snapshot = currentBatchGiftSnapshot();
+  if (
+    !batchGiftConfirming.value
+    || !sameBatchGiftSnapshot(snapshot, batchGiftConfirmationSnapshot.value)
+  ) {
+    batchGiftConfirming.value = false;
+    batchGiftConfirmationSnapshot.value = null;
+    flash('批量赠送信息已变化，请重新确认', 'warning');
+    return
+  }
+
+  const requestId = batchGiftRequestGuard.begin();
+  batchGiftLoading.value = true;
+  try {
+    const result = await apiPost('/gift-items', {
+      target_uid: snapshot.targetUid,
+      items: snapshot.items,
+    });
+    if (!batchGiftRequestGuard.isCurrent(requestId)) return
+    statusRequestGuard.invalidate();
+    const statusApplied = applyStatusPayload(result);
+    const gifted = Array.isArray(result?.gifted) ? result.gifted : [];
+
+    if (isStrictSuccess(result)) {
+      flash(safeResponseMessage(result, '批量赠送成功'));
+      dismissBatchGiftDialog(snapshot);
+      await loadStatus({ silent: true });
+      return
+    }
+
+    if (result?.partial === true && gifted.length) {
+      flash(safeResponseMessage(result, '批量赠送部分完成'), 'warning');
+      dismissBatchGiftDialog(snapshot);
+      await loadStatus({ silent: true });
+      return
+    }
+
+    flash(safeResponseMessage(result, '批量赠送失败'), 'error');
+    if (!statusApplied) await loadStatus({ silent: true });
+  } catch (error) {
+    if (batchGiftRequestGuard.isCurrent(requestId)) {
+      flash(safeResponseMessage(error, '批量赠送失败'), 'error');
+      statusRequestGuard.invalidate();
+      await loadStatus({ silent: true });
+    }
+  } finally {
+    if (batchGiftRequestGuard.isCurrent(requestId)) batchGiftLoading.value = false;
+  }
+}
+
 async function openGiftStats() {
   if (initialLoading.value) return
   showGiftStatsDialog.value = true;
@@ -595,6 +783,7 @@ onBeforeUnmount(() => {
   statusRequestGuard.invalidate();
   actionRequestGuard.invalidate();
   giftRequestGuard.invalidate();
+  batchGiftRequestGuard.invalidate();
   giftStatsRequestGuard.invalidate();
   if (messageTimer) window.clearTimeout(messageTimer);
 });
@@ -613,6 +802,7 @@ return (_ctx, _cache) => {
   const _component_v_spacer = _resolveComponent("v-spacer");
   const _component_v_card_actions = _resolveComponent("v-card-actions");
   const _component_v_dialog = _resolveComponent("v-dialog");
+  const _component_v_checkbox_btn = _resolveComponent("v-checkbox-btn");
   const _component_v_btn_toggle = _resolveComponent("v-btn-toggle");
 
   return (_openBlock(), _createElementBlock("div", _hoisted_1, [
@@ -948,10 +1138,8 @@ return (_ctx, _cache) => {
                           label: "兑换数量",
                           variant: "outlined",
                           density: "compact",
-                          "error-messages": exchangeQuantityError.value ? [exchangeQuantityError.value] : [],
-                          hint: exchangeReserveHint.value,
-                          "persistent-hint": ""
-                        }, null, 8, ["modelValue", "max", "error-messages", "hint"]),
+                          "error-messages": exchangeQuantityError.value ? [exchangeQuantityError.value] : []
+                        }, null, 8, ["modelValue", "max", "error-messages"]),
                         _createVNode(_component_v_btn, {
                           color: "amber-darken-2",
                           variant: "tonal",
@@ -964,10 +1152,7 @@ return (_ctx, _cache) => {
                           ]),
                           _: 1
                         }, 8, ["loading", "disabled"])
-                      ]),
-                      (exchange.value.note)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_49, _toDisplayString(exchange.value.note), 1))
-                        : _createCommentVNode("", true)
+                      ])
                     ]),
                     _: 1
                   })
@@ -975,7 +1160,7 @@ return (_ctx, _cache) => {
                 _: 1
               })
             ]),
-            _createElementVNode("div", _hoisted_50, [
+            _createElementVNode("div", _hoisted_49, [
               _createVNode(_component_v_card, {
                 flat: "",
                 class: "siqi-card inventory-card"
@@ -990,20 +1175,35 @@ return (_ctx, _cache) => {
                       }),
                       _createTextVNode("物品栏 "),
                       _createVNode(_component_v_spacer),
-                      _createVNode(_component_v_btn, {
-                        color: "blue",
-                        variant: "tonal",
-                        "prepend-icon": "mdi-chart-box-outline",
-                        "aria-label": "查看赠送统计",
-                        loading: giftStatsLoading.value,
-                        disabled: initialLoading.value || giftStatsLoading.value,
-                        onClick: openGiftStats
-                      }, {
-                        default: _withCtx(() => [
-                          _createTextVNode("赠送统计")
-                        ]),
-                        _: 1
-                      }, 8, ["loading", "disabled"])
+                      _createElementVNode("div", _hoisted_50, [
+                        _createVNode(_component_v_btn, {
+                          color: "orange-darken-1",
+                          variant: "tonal",
+                          "prepend-icon": "mdi-gift-open-outline",
+                          "aria-label": "打开批量赠送",
+                          disabled: writeActionsDisabled.value || !batchGiftableItems.value.length,
+                          onClick: openBatchGiftDialog
+                        }, {
+                          default: _withCtx(() => [
+                            _createTextVNode("批量赠送")
+                          ]),
+                          _: 1
+                        }, 8, ["disabled"]),
+                        _createVNode(_component_v_btn, {
+                          color: "blue",
+                          variant: "tonal",
+                          "prepend-icon": "mdi-chart-box-outline",
+                          "aria-label": "查看赠送统计",
+                          loading: giftStatsLoading.value,
+                          disabled: initialLoading.value || giftStatsLoading.value,
+                          onClick: openGiftStats
+                        }, {
+                          default: _withCtx(() => [
+                            _createTextVNode("赠送统计")
+                          ]),
+                          _: 1
+                        }, 8, ["loading", "disabled"])
+                      ])
                     ]),
                     _: 1
                   }),
@@ -1326,8 +1526,179 @@ return (_ctx, _cache) => {
       _: 1
     }, 8, ["modelValue", "persistent"]),
     _createVNode(_component_v_dialog, {
+      modelValue: showBatchGiftDialog.value,
+      "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((showBatchGiftDialog).value = $event)),
+      "max-width": "720",
+      scrollable: "",
+      persistent: batchGiftLoading.value
+    }, {
+      default: _withCtx(() => [
+        _createVNode(_component_v_card, {
+          flat: "",
+          class: "siqi-dialog batch-gift-dialog"
+        }, {
+          default: _withCtx(() => [
+            _createVNode(_component_v_card_title, { class: "dialog-header" }, {
+              default: _withCtx(() => [
+                _createElementVNode("div", _hoisted_75, [
+                  _createVNode(_component_v_icon, { icon: "mdi-gift-open-outline" })
+                ]),
+                _hoisted_76,
+                _createVNode(_component_v_btn, {
+                  icon: "",
+                  variant: "text",
+                  "aria-label": "取消批量赠送并关闭对话框",
+                  disabled: batchGiftLoading.value,
+                  onClick: closeBatchGiftDialog
+                }, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_icon, { icon: "mdi-close" })
+                  ]),
+                  _: 1
+                }, 8, ["disabled"])
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_v_card_text, { class: "dialog-body batch-gift-body" }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_text_field, {
+                  modelValue: batchGiftForm.target_uid,
+                  "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((batchGiftForm.target_uid) = $event)),
+                  label: "接收方 UID",
+                  variant: "outlined",
+                  autocomplete: "off",
+                  disabled: batchGiftLoading.value
+                }, null, 8, ["modelValue", "disabled"]),
+                _createElementVNode("div", _hoisted_77, [
+                  (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(batchGiftRows.value, (item) => {
+                    return (_openBlock(), _createElementBlock("div", {
+                      key: item.name,
+                      class: _normalizeClass(["batch-gift-row", { 'batch-gift-row--selected': item.selected }])
+                    }, [
+                      _createVNode(_component_v_checkbox_btn, {
+                        modelValue: item.selected,
+                        "onUpdate:modelValue": $event => ((item.selected) = $event),
+                        color: "orange-darken-1",
+                        "aria-label": `${item.name} 加入批量赠送`,
+                        disabled: batchGiftLoading.value
+                      }, null, 8, ["modelValue", "onUpdate:modelValue", "aria-label", "disabled"]),
+                      _createElementVNode("div", _hoisted_78, [
+                        _createElementVNode("span", _hoisted_79, _toDisplayString(item.icon || '📦'), 1),
+                        _createElementVNode("span", _hoisted_80, [
+                          _createElementVNode("strong", null, _toDisplayString(item.name), 1),
+                          _createElementVNode("small", null, "库存 " + _toDisplayString(item.count) + " · 最多 " + _toDisplayString(item.maxQuantity), 1)
+                        ])
+                      ]),
+                      _createVNode(_component_v_text_field, {
+                        modelValue: item.quantity,
+                        "onUpdate:modelValue": $event => ((item.quantity) = $event),
+                        type: "number",
+                        min: "1",
+                        max: item.maxQuantity,
+                        label: "数量",
+                        variant: "outlined",
+                        density: "compact",
+                        "hide-details": "auto",
+                        "error-messages": item.selected && batchGiftRowError(item) ? [batchGiftRowError(item)] : [],
+                        disabled: batchGiftLoading.value || !item.selected
+                      }, null, 8, ["modelValue", "onUpdate:modelValue", "max", "error-messages", "disabled"])
+                    ], 2))
+                  }), 128))
+                ]),
+                (batchGiftConfirming.value)
+                  ? (_openBlock(), _createBlock(_component_v_alert, {
+                      key: 0,
+                      type: "warning",
+                      variant: "tonal",
+                      density: "compact",
+                      class: "confirm-alert"
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode(" 再次确认：向 UID " + _toDisplayString(batchGiftForm.target_uid.trim()) + " 批量赠送 " + _toDisplayString(batchGiftSummary.value) + "。提交后将按顺序处理，遇到失败会立即停止。 ", 1)
+                      ]),
+                      _: 1
+                    }))
+                  : (batchGiftFormError.value)
+                    ? (_openBlock(), _createBlock(_component_v_alert, {
+                        key: 1,
+                        type: "info",
+                        variant: "tonal",
+                        density: "compact",
+                        class: "confirm-alert"
+                      }, {
+                        default: _withCtx(() => [
+                          _createTextVNode(_toDisplayString(batchGiftFormError.value), 1)
+                        ]),
+                        _: 1
+                      }))
+                    : _createCommentVNode("", true)
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_v_card_actions, { class: "dialog-actions" }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_btn, {
+                  variant: "tonal",
+                  disabled: batchGiftLoading.value,
+                  onClick: closeBatchGiftDialog
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode("取消")
+                  ]),
+                  _: 1
+                }, 8, ["disabled"]),
+                _createVNode(_component_v_spacer),
+                (batchGiftConfirming.value)
+                  ? (_openBlock(), _createBlock(_component_v_btn, {
+                      key: 0,
+                      variant: "text",
+                      disabled: batchGiftLoading.value,
+                      onClick: _cache[9] || (_cache[9] = $event => (batchGiftConfirming.value = false))
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode("返回修改")
+                      ]),
+                      _: 1
+                    }, 8, ["disabled"]))
+                  : _createCommentVNode("", true),
+                (!batchGiftConfirming.value)
+                  ? (_openBlock(), _createBlock(_component_v_btn, {
+                      key: 1,
+                      color: "orange-darken-1",
+                      variant: "tonal",
+                      disabled: batchGiftLoading.value || !!batchGiftFormError.value,
+                      onClick: requestBatchGiftConfirmation
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode("确认批量赠送")
+                      ]),
+                      _: 1
+                    }, 8, ["disabled"]))
+                  : (_openBlock(), _createBlock(_component_v_btn, {
+                      key: 2,
+                      color: "error",
+                      variant: "tonal",
+                      loading: batchGiftLoading.value,
+                      disabled: batchGiftLoading.value || !!batchGiftFormError.value,
+                      onClick: submitBatchGift
+                    }, {
+                      default: _withCtx(() => [
+                        _createTextVNode("再次确认并批量赠送")
+                      ]),
+                      _: 1
+                    }, 8, ["loading", "disabled"]))
+              ]),
+              _: 1
+            })
+          ]),
+          _: 1
+        })
+      ]),
+      _: 1
+    }, 8, ["modelValue", "persistent"]),
+    _createVNode(_component_v_dialog, {
       modelValue: showGiftStatsDialog.value,
-      "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((showGiftStatsDialog).value = $event)),
+      "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((showGiftStatsDialog).value = $event)),
       "max-width": "820",
       scrollable: ""
     }, {
@@ -1339,16 +1710,16 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, { class: "dialog-header" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_75, [
+                _createElementVNode("div", _hoisted_81, [
                   _createVNode(_component_v_icon, { icon: "mdi-chart-box-outline" })
                 ]),
-                _hoisted_76,
+                _hoisted_82,
                 _createVNode(_component_v_btn, {
                   icon: "",
                   variant: "text",
                   "aria-label": "关闭赠送统计",
                   disabled: giftStatsLoading.value,
-                  onClick: _cache[8] || (_cache[8] = $event => (showGiftStatsDialog.value = false))
+                  onClick: _cache[11] || (_cache[11] = $event => (showGiftStatsDialog.value = false))
                 }, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_icon, { icon: "mdi-close" })
@@ -1360,10 +1731,10 @@ return (_ctx, _cache) => {
             }),
             _createVNode(_component_v_card_text, { class: "stats-dialog-body" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_77, [
+                _createElementVNode("div", _hoisted_83, [
                   _createVNode(_component_v_btn_toggle, {
                     modelValue: giftStatsDraftDirection.value,
-                    "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((giftStatsDraftDirection).value = $event)),
+                    "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((giftStatsDraftDirection).value = $event)),
                     mandatory: "",
                     disabled: giftStatsLoading.value,
                     color: "blue",
@@ -1388,7 +1759,7 @@ return (_ctx, _cache) => {
                   }, 8, ["modelValue", "disabled"]),
                   _createVNode(_component_v_btn_toggle, {
                     modelValue: giftStatsDraftRange.value,
-                    "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((giftStatsDraftRange).value = $event)),
+                    "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((giftStatsDraftRange).value = $event)),
                     mandatory: "",
                     disabled: giftStatsLoading.value,
                     color: "blue",
@@ -1438,28 +1809,28 @@ return (_ctx, _cache) => {
                       _: 1
                     }))
                   : (giftStatsLoading.value && !giftStats.value)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_78, "正在加载赠送统计..."))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_84, "正在加载赠送统计..."))
                     : (giftStats.value)
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 2 }, [
-                          _createElementVNode("div", _hoisted_79, "当前数据：" + _toDisplayString(giftStatsAppliedDirectionLabel.value) + " · " + _toDisplayString(giftStatsAppliedRangeLabel.value), 1),
-                          _createElementVNode("div", _hoisted_80, [
-                            _createElementVNode("div", _hoisted_81, [
-                              _hoisted_82,
+                          _createElementVNode("div", _hoisted_85, "当前数据：" + _toDisplayString(giftStatsAppliedDirectionLabel.value) + " · " + _toDisplayString(giftStatsAppliedRangeLabel.value), 1),
+                          _createElementVNode("div", _hoisted_86, [
+                            _createElementVNode("div", _hoisted_87, [
+                              _hoisted_88,
                               _createElementVNode("strong", null, _toDisplayString(giftStats.value.total_events ?? 0), 1)
                             ]),
-                            _createElementVNode("div", _hoisted_83, [
-                              _hoisted_84,
+                            _createElementVNode("div", _hoisted_89, [
+                              _hoisted_90,
                               _createElementVNode("strong", null, _toDisplayString(giftStats.value.total_quantity ?? 0), 1)
                             ])
                           ]),
                           (giftStatsEmpty.value)
-                            ? (_openBlock(), _createElementBlock("div", _hoisted_85, "当前筛选范围暂无赠送记录"))
-                            : (_openBlock(), _createElementBlock("div", _hoisted_86, [
-                                _createElementVNode("section", _hoisted_87, [
-                                  _hoisted_88,
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_91, "当前筛选范围暂无赠送记录"))
+                            : (_openBlock(), _createElementBlock("div", _hoisted_92, [
+                                _createElementVNode("section", _hoisted_93, [
+                                  _hoisted_94,
                                   (!giftStatsUsers.value.length)
-                                    ? (_openBlock(), _createElementBlock("div", _hoisted_89, "暂无用户数据"))
-                                    : (_openBlock(), _createElementBlock("div", _hoisted_90, [
+                                    ? (_openBlock(), _createElementBlock("div", _hoisted_95, "暂无用户数据"))
+                                    : (_openBlock(), _createElementBlock("div", _hoisted_96, [
                                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(giftStatsUsers.value, (row) => {
                                           return (_openBlock(), _createElementBlock("div", {
                                             key: row.uid || row.name || row.display_name,
@@ -1471,11 +1842,11 @@ return (_ctx, _cache) => {
                                         }), 128))
                                       ]))
                                 ]),
-                                _createElementVNode("section", _hoisted_91, [
-                                  _hoisted_92,
+                                _createElementVNode("section", _hoisted_97, [
+                                  _hoisted_98,
                                   (!giftStatsItems.value.length)
-                                    ? (_openBlock(), _createElementBlock("div", _hoisted_93, "暂无物品数据"))
-                                    : (_openBlock(), _createElementBlock("div", _hoisted_94, [
+                                    ? (_openBlock(), _createElementBlock("div", _hoisted_99, "暂无物品数据"))
+                                    : (_openBlock(), _createElementBlock("div", _hoisted_100, [
                                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(giftStatsItems.value, (row) => {
                                           return (_openBlock(), _createElementBlock("div", {
                                             key: row.item_name || row.name,
@@ -1499,7 +1870,7 @@ return (_ctx, _cache) => {
                 _createVNode(_component_v_btn, {
                   variant: "tonal",
                   disabled: giftStatsLoading.value,
-                  onClick: _cache[11] || (_cache[11] = $event => (showGiftStatsDialog.value = false))
+                  onClick: _cache[14] || (_cache[14] = $event => (showGiftStatsDialog.value = false))
                 }, {
                   default: _withCtx(() => [
                     _createTextVNode("关闭")
@@ -1520,6 +1891,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ab30c32c"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-dbb45712"]]);
 
 export { PageView as default };
