@@ -133,10 +133,6 @@ function isStrictSuccess(response) {
   return ownDataValue(response, 'success') === true
 }
 
-function isExplicitFailure(response) {
-  return ownDataValue(response, 'success') === false
-}
-
 function extractStatusPayload(response) {
   if (!isPlainDataObject(response)) return null
 
@@ -199,4 +195,4 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-export { _export_sfc as _, isStrictSuccess as a, createLatestRequestGuard as c, extractStatusPayload as e, isExplicitFailure as i, resolveGiftStatsFilters as r, safeResponseMessage as s };
+export { _export_sfc as _, createLatestRequestGuard as c, extractStatusPayload as e, isStrictSuccess as i, resolveGiftStatsFilters as r, safeResponseMessage as s };

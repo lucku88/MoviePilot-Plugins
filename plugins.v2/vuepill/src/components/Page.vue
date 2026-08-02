@@ -11,15 +11,6 @@
         </div>
       </div>
       <div class="siqi-topbar__right">
-        <div
-          class="schedule-summary"
-          :class="{ active: scheduleSummary.active }"
-          role="status"
-          aria-live="polite"
-        >
-          <v-icon icon="mdi-timer-outline" size="15" />
-          <span>{{ scheduleSummary.text }}</span>
-        </div>
         <v-btn-group variant="tonal" density="compact" class="elevation-0">
           <v-btn
             color="success"
@@ -75,57 +66,18 @@
       </v-alert>
 
       <div v-if="initialLoading" class="page-skeleton">
-        <div class="overview-grid mb-3">
-          <div v-for="index in 4" :key="`overview-skeleton-${index}`">
+        <v-row dense class="mb-3">
+          <v-col v-for="index in 4" :key="`overview-skeleton-${index}`" cols="6" md="3">
             <div class="stat-card skeleton-card"><div class="sk sk-icon" /><div class="sk-lines"><div class="sk sk-line short" /><div class="sk sk-line" /></div></div>
-          </div>
-        </div>
-
-        <div class="primary-grid mb-3">
-          <div class="siqi-card schedule-board skeleton-shell">
-            <div class="siqi-card-title"><div class="sk sk-title" /></div>
-            <div class="schedule-board-body">
-              <div class="schedule-action-list">
-                <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="sk sk-action" />
-              </div>
-            </div>
-          </div>
-          <div class="siqi-card exchange-card skeleton-shell exchange-skeleton">
-            <div class="siqi-card-title"><div class="sk sk-title" /></div>
-            <div class="exchange-body">
-              <div class="exchange-summary">
-                <div v-for="index in 3" :key="`exchange-skeleton-${index}`" class="sk sk-exchange-stat" />
-              </div>
-              <div class="sk sk-row" />
-            </div>
-          </div>
-        </div>
-
-        <div class="resource-grid mb-3">
-          <div class="siqi-card inventory-card skeleton-shell inventory-skeleton">
-            <div class="siqi-card-title"><div class="sk sk-title" /></div>
-            <div class="inventory-body">
-              <div class="inventory-grid">
-                <div v-for="index in 7" :key="`inventory-skeleton-${index}`" class="sk sk-inventory-item" />
-              </div>
-            </div>
-          </div>
-          <div class="siqi-card workshop-card skeleton-shell recipe-skeleton">
-            <div class="siqi-card-title"><div class="sk sk-title" /></div>
-            <div class="workshop-body">
-              <div class="recipe-grid">
-                <div v-for="index in 3" :key="`recipe-skeleton-${index}`" class="sk sk-recipe-item" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="siqi-card history-card skeleton-shell history-skeleton">
-          <div class="siqi-card-title"><div class="sk sk-title" /></div>
-          <div class="history-body">
-            <div v-for="index in 3" :key="`history-skeleton-${index}`" class="sk sk-history-row" />
-          </div>
-        </div>
+          </v-col>
+        </v-row>
+        <v-card flat class="siqi-card schedule-board mb-3 skeleton-shell">
+          <v-card-title class="siqi-card-title"><div class="sk sk-title" /></v-card-title>
+          <v-card-text class="schedule-board-body">
+            <div v-for="index in 2" :key="`schedule-skeleton-${index}`" class="sk sk-action" />
+          </v-card-text>
+        </v-card>
+        <div v-for="index in 4" :key="`panel-skeleton-${index}`" class="siqi-card skeleton-panel mb-3"><div class="sk sk-title" /><div class="sk sk-row" /><div class="sk sk-row" /></div>
       </div>
 
       <template v-else>
@@ -178,7 +130,7 @@
                     :loading="actionLoading === 'brick'"
                     :disabled="writeActionsDisabled || brick.ready !== true"
                     @click="moveBricks"
-                  >{{ brick.ready === true ? '立即搬砖' : brickStatusLabel }}</v-btn>
+                  >立即搬砖</v-btn>
                 </div>
 
                 <div class="neu-action-card neu-action-card--beach">
@@ -208,7 +160,7 @@
                     :loading="actionLoading === 'beach'"
                     :disabled="writeActionsDisabled || !beachActionable"
                     @click="cleanBeach"
-                  >{{ beachActionable ? '清理沙滩' : beachStatusLabel }}</v-btn>
+                  >清理沙滩</v-btn>
                 </div>
               </div>
             </v-card-text>
@@ -222,7 +174,7 @@
             <div class="exchange-summary">
               <div class="exchange-stat"><span>当前魔丸</span><strong>{{ exchange.magic_pills ?? 0 }}</strong></div>
               <div class="exchange-stat"><span>单颗价值</span><strong>{{ exchange.pill_price ?? 0 }}</strong><small>魔力</small></div>
-              <div class="exchange-stat"><span>最多兑换</span><strong>{{ exchange.max_count ?? 0 }}</strong><small>颗</small></div>
+              <div class="exchange-stat"><span>后端上限</span><strong>{{ exchange.max_count ?? 0 }}</strong><small>颗</small></div>
             </div>
             <div class="exchange-action-panel">
               <v-text-field
@@ -277,10 +229,7 @@
                 :key="item.name"
                 type="button"
                 class="gift-item"
-                :class="{
-                  'gift-item--available': canGiftItem(item),
-                  'gift-item--static': !canGiftItem(item),
-                }"
+                :class="{ 'gift-item--available': canGiftItem(item) }"
                 :disabled="!canGiftItem(item)"
                 :aria-label="canGiftItem(item) ? `赠送 ${item.name}` : `${item.name} 当前不可赠送`"
                 @click="openGiftDialog(item)"
@@ -290,7 +239,7 @@
                   <strong>{{ item.name }}</strong>
                   <small>数量 {{ item.count ?? 0 }}</small>
                 </span>
-                <span v-if="canGiftItem(item)" class="gift-item__state">赠送</span>
+                <span class="gift-item__state">{{ canGiftItem(item) ? '点击赠送' : '不可赠送' }}</span>
               </button>
             </div>
           </v-card-text>
@@ -328,11 +277,7 @@
                   </div>
                 </div>
                 <div class="recipe-ingredients">
-                  <span
-                    v-for="(required, name) in recipe.ingredients || {}"
-                    :key="`${recipe.craft_id}-${name}`"
-                    :class="{ 'ingredient-ready': ingredientEnough(name, required) }"
-                  >{{ name }} {{ ingredientCount(name) }}/{{ required }}</span>
+                  <span v-for="(required, name) in recipe.ingredients || {}" :key="`${recipe.craft_id}-${name}`">{{ name }} ×{{ required }}</span>
                 </div>
                 <div class="recipe-controls">
                   <v-text-field
@@ -512,7 +457,6 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   createLatestRequestGuard,
   extractStatusPayload,
-  isExplicitFailure,
   isStrictSuccess,
   resolveGiftStatsFilters,
   safeResponseMessage,
@@ -525,14 +469,7 @@ const PLUGIN_ID = 'VuePill'
 const apiGet = (path) => props.api.get(`/plugin/${PLUGIN_ID}${path}`)
 const apiPost = (path, data = {}) => props.api.post(`/plugin/${PLUGIN_ID}${path}`, data)
 
-const status = reactive({
-  enabled: false,
-  next_run_time: '',
-  next_trigger_time: '',
-  next_trigger_action: '',
-  pill_status: {},
-  history: [],
-})
+const status = reactive({ pill_status: {}, history: [] })
 const message = reactive({ text: '', type: 'success' })
 const initialLoading = ref(true)
 const actionLoading = ref('')
@@ -586,89 +523,11 @@ const beachStatusLabel = computed(() => {
   if (beach.value.next_ready_time || statusText.includes('冷却')) return '冷却中'
   return '等待刷新'
 })
-
-function compactScheduleTime(value) {
-  const text = String(value ?? '')
-  const matched = text.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
-  if (!matched) return text
-
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText] = matched
-  const year = Number(yearText)
-  const month = Number(monthText)
-  const day = Number(dayText)
-  const hour = Number(hourText)
-  const minute = Number(minuteText)
-  const second = Number(secondText)
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-  if (
-    month < 1
-    || month > 12
-    || day < 1
-    || day > daysInMonth[month - 1]
-    || hour > 23
-    || minute > 59
-    || second > 59
-  ) return text
-
-  return `${monthText}-${dayText} ${hourText}:${minuteText}`
-}
-
-function applyStatusMeta(target, meta) {
-  Object.assign(target, meta || {})
-  return target
-}
-
-function buildScheduleSummary(state = {}) {
-  if (!state.enabled) return { active: false, text: '自动运行未启用' }
-  const nextTime = state.next_trigger_time || state.next_run_time
-  if (!nextTime) return { active: false, text: '等待识别下一次任务' }
-  const action = state.next_trigger_action || '任务'
-  return {
-    active: true,
-    text: `自动运行正常 · 下一项：${action} ${compactScheduleTime(nextTime)}`,
-  }
-}
-
-const scheduleSummary = computed(() => buildScheduleSummary(status))
-
 const exchange = computed(() => pill.value.exchange || {})
 const inventoryItems = computed(() => {
   const inventory = pill.value.inventory || {}
   return Array.isArray(inventory.items) ? inventory.items : []
 })
-
-function normalizedInventoryCount(value) {
-  const number = typeof value === 'number'
-    ? value
-    : typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value)
-      ? Number(value)
-      : NaN
-  return Number.isSafeInteger(number) && number >= 0 ? number : 0
-}
-
-function normalizedIngredientRequirement(value) {
-  const number = typeof value === 'number'
-    ? value
-    : typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value)
-      ? Number(value)
-      : NaN
-  return Number.isSafeInteger(number) && number > 0 ? number : null
-}
-
-function buildInventoryCounts(items = []) {
-  const counts = new Map()
-  items.forEach((item) => {
-    const name = String(item?.name || '').trim()
-    if (!name) return
-    const current = counts.get(name) || 0
-    const added = normalizedInventoryCount(item?.count)
-    counts.set(name, Math.min(Number.MAX_SAFE_INTEGER, current + added))
-  })
-  return counts
-}
-
-const inventoryCounts = computed(() => buildInventoryCounts(inventoryItems.value))
 const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : [])
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : [])
 const isBusy = computed(() => !!actionLoading.value)
@@ -677,7 +536,7 @@ const writeActionsDisabled = computed(() => initialLoading.value || isBusy.value
 const exchangeReserveHint = computed(() => `后端保留 ${exchange.value.reserve} 个魔丸，实际兑换以后端校验为准。`)
 const exchangeQuantityError = computed(() => quantityError(exchangeQuantity.value, Number(exchange.value.max_count || 0), '兑换'))
 
-const giftMaxQuantity = computed(() => Math.min(normalizedInventoryCount(selectedGiftItem.value?.count), 500))
+const giftMaxQuantity = computed(() => Math.min(Math.max(Number(selectedGiftItem.value?.count || 0), 0), 500))
 const normalizedGiftQuantity = computed(() => Number.parseInt(giftForm.quantity, 10) || 0)
 const giftFormError = computed(() => {
   if (!selectedGiftItem.value) return '请选择要赠送的物品'
@@ -734,9 +593,8 @@ function applyStatusPayload(payload = {}) {
   const update = extractStatusPayload(payload)
   if (!update) return false
 
-  applyStatusMeta(status, update.statusMeta)
   status.pill_status = update.pillStatus
-  status.history = update.history
+  if (update.history) status.history = update.history
   return true
 }
 
@@ -746,7 +604,7 @@ async function loadStatus({ silent = false } = {}) {
     const result = await apiGet('/status')
     if (!statusRequestGuard.isCurrent(requestId)) return false
     if (!result || typeof result !== 'object') throw new Error('状态响应无效')
-    if (isExplicitFailure(result)) throw new Error(safeResponseMessage(result, '状态加载失败'))
+    if (result.success === false) throw new Error(safeResponseMessage(result, '状态加载失败'))
     if (!applyStatusPayload(result)) throw new Error('状态响应无效')
     return true
   } catch (error) {
@@ -789,8 +647,8 @@ async function runAction(key, request, fallbackMessage) {
 function quantityError(value, maximum, actionName) {
   const quantity = Number(value)
   if (!Number.isInteger(quantity) || quantity < 1) return `${actionName}数量必须是正整数`
-  if (maximum <= 0) return `当前暂不可${actionName}`
-  if (quantity > maximum) return `${actionName}数量不能超过当前最多可${actionName}数量 ${maximum}`
+  if (maximum <= 0) return `后端返回的${actionName}上限为 0`
+  if (quantity > maximum) return `${actionName}数量不能超过后端上限 ${maximum}`
   return ''
 }
 
@@ -810,17 +668,8 @@ function overviewIcon(item) {
   return 'mdi-star-four-points'
 }
 
-function ingredientCount(name) {
-  return inventoryCounts.value.get(String(name || '').trim()) || 0
-}
-
-function ingredientEnough(name, required) {
-  const requirement = normalizedIngredientRequirement(required)
-  return requirement !== null && ingredientCount(name) >= requirement
-}
-
 function canGiftItem(item) {
-  return !writeActionsDisabled.value && item?.giftable === true && normalizedInventoryCount(item?.count) > 0
+  return !writeActionsDisabled.value && item?.giftable === true && Number(item?.count || 0) > 0
 }
 
 function openGiftDialog(item) {
@@ -1046,35 +895,34 @@ onBeforeUnmount(() => {
 .siqi-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:8px}
 .siqi-topbar__left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
 .siqi-topbar__copy{min-width:0}
-.siqi-topbar__right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.siqi-topbar__right{display:flex;align-items:center;flex-shrink:0}
 .siqi-topbar__right :deep(.v-btn-group){flex-wrap:nowrap}
 .siqi-topbar__icon{width:42px;height:42px;border-radius:11px;background:rgba(76,175,80,.14);display:flex;align-items:center;justify-content:center;color:#2e7d32;flex-shrink:0}
 .siqi-topbar__title{font-size:16px;font-weight:700;letter-spacing:-.3px;color:rgba(var(--v-theme-on-surface),.88)}
 .siqi-topbar__sub{font-size:11px;color:rgba(var(--v-theme-on-surface),.55);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.schedule-summary{display:inline-flex;align-items:center;gap:6px;max-width:320px;padding:6px 9px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.045);border:1px solid rgba(var(--v-theme-on-surface),.08);color:rgba(var(--v-theme-on-surface),.58);font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap}.schedule-summary span{min-width:0;overflow:hidden;text-overflow:ellipsis}.schedule-summary :deep(.v-icon){flex-shrink:0;color:rgba(var(--v-theme-on-surface),.5)}.schedule-summary.active{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.24);color:rgba(var(--v-theme-on-surface),.82)}.schedule-summary.active :deep(.v-icon){color:#22c55e}
 .siqi-content{display:flex;flex-direction:column;gap:0}
 .siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}
 .siqi-card{background:rgba(var(--v-theme-on-surface),.03)!important;backdrop-filter:blur(20px) saturate(150%);border-radius:14px!important;border:.5px solid rgba(var(--v-theme-on-surface),.08)!important;box-shadow:0 2px 10px rgba(0,0,0,.05)!important;overflow:hidden}
 .siqi-card-title{min-height:44px;padding:10px 16px!important;font-size:13px!important;font-weight:700!important;background:rgba(76,175,80,.08);border-bottom:.5px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.84)}
 .siqi-card-title :deep(.v-spacer){flex:1 1 auto!important}
 .siqi-card-title--exchange{background:rgba(245,158,11,.09)}.siqi-card-title--inventory{background:rgba(251,146,60,.10)}.siqi-card-title--workshop{background:rgba(6,182,212,.09)}.siqi-card-title--logs{background:rgba(59,130,246,.09)}
-.stat-card{--stat-rgb:76,175,80;--stat-color:#2e7d32;min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);border-left:3px solid rgba(var(--stat-rgb),.62);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
+.stat-card{--stat-rgb:76,175,80;--stat-color:#2e7d32;min-height:78px;border-radius:14px;padding:12px 14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);background:rgba(var(--v-theme-on-surface),.03);box-shadow:inset 0 1px 0 rgba(var(--v-theme-surface),.2),0 2px 12px rgba(var(--v-theme-on-surface),.08);display:flex;align-items:center;gap:12px}
 .stat-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(var(--stat-rgb),.14);color:var(--stat-color);flex:0 0 38px}
-.stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;color:rgba(var(--v-theme-on-surface),.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--stat-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444}
+.stat-content{min-width:0}.stat-title{font-size:11px;font-weight:600;color:rgba(var(--v-theme-on-surface),.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stat-value{margin-top:2px;font-size:20px;font-weight:800;letter-spacing:-.5px;color:rgba(var(--v-theme-on-surface),.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-orange{--stat-rgb:245,158,11;--stat-color:#f59e0b;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.24)}.stat-green{--stat-rgb:16,185,129;--stat-color:#10b981;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.24)}.stat-blue{--stat-rgb:59,130,246;--stat-color:#3b82f6;background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.24)}.stat-red{--stat-rgb:239,68,68;--stat-color:#ef4444;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.24)}
+.stat-orange .stat-icon,.stat-orange .stat-title,.stat-orange .stat-value{color:#f59e0b}.stat-green .stat-icon,.stat-green .stat-title,.stat-green .stat-value{color:#10b981}.stat-blue .stat-icon,.stat-blue .stat-title,.stat-blue .stat-value{color:#3b82f6}.stat-red .stat-icon,.stat-red .stat-title,.stat-red .stat-value{color:#ef4444}
 .overview-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px!important}
 .overview-grid>*{width:auto!important;max-width:none!important;padding:0!important}
-.primary-grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(360px,.78fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%;margin-bottom:0!important}.resource-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.resource-grid>.siqi-card{width:100%;min-width:0}.card-subtitle{margin-left:10px;color:rgba(var(--v-theme-on-surface),.48);font-size:12px;font-weight:500}
-.schedule-board-body{padding:16px!important}.schedule-action-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.neu-action-card{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:start;gap:10px;min-height:76px;padding:10px 12px;border-radius:12px;background:rgba(var(--v-theme-surface),.86);border:1px solid rgba(76,175,80,.16);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.neu-action-card:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.07)}.neu-action-card--beach{border-color:rgba(14,165,233,.18)}.neu-action-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(76,175,80,.10);color:#22c55e}.neu-action-card--beach .neu-action-icon{background:rgba(14,165,233,.11);color:#0ea5e9}.neu-action-content{min-width:0}.neu-action-heading{display:flex;align-items:center;gap:8px;min-width:0}.neu-action-label{font-size:13px;font-weight:800;color:rgba(var(--v-theme-on-surface),.84);line-height:1.2}.neu-action-desc{margin-top:3px;color:rgba(var(--v-theme-on-surface),.52);font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.schedule-status{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.55);font-size:10px;font-weight:800;white-space:nowrap}.schedule-status--ready{background:rgba(34,197,94,.12);color:#22c55e}.schedule-status--done{background:rgba(245,158,11,.12);color:#f59e0b}.schedule-status--cooldown{background:rgba(14,165,233,.11);color:#0ea5e9}.schedule-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}.schedule-meta span{padding:3px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.045);border:1px solid rgba(var(--v-theme-on-surface),.065);font-size:10px;color:rgba(var(--v-theme-on-surface),.58);font-variant-numeric:tabular-nums}.neu-btn{height:32px!important;min-height:32px!important;border-radius:999px!important;font-weight:800;letter-spacing:0;font-size:11px!important;min-width:82px!important;box-shadow:none!important}.schedule-action{grid-column:1/-1;width:100%}
+.primary-grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(360px,.78fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%;margin-bottom:0!important}.resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}.resource-grid>.siqi-card{height:100%;min-width:0}.card-subtitle{margin-left:10px;color:rgba(var(--v-theme-on-surface),.48);font-size:12px;font-weight:500}
+.schedule-board-body{padding:16px!important}.schedule-action-list{display:flex;flex-direction:column;gap:8px}.neu-action-card{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:76px;padding:10px 12px;border-radius:12px;background:rgba(var(--v-theme-surface),.86);border:1px solid rgba(76,175,80,.16);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.neu-action-card:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.07)}.neu-action-card--beach{border-color:rgba(14,165,233,.18)}.neu-action-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(76,175,80,.10);color:#22c55e}.neu-action-card--beach .neu-action-icon{background:rgba(14,165,233,.11);color:#0ea5e9}.neu-action-content{min-width:0}.neu-action-heading{display:flex;align-items:center;gap:8px;min-width:0}.neu-action-label{font-size:13px;font-weight:800;color:rgba(var(--v-theme-on-surface),.84);line-height:1.2}.neu-action-desc{margin-top:3px;color:rgba(var(--v-theme-on-surface),.52);font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.schedule-status{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.55);font-size:10px;font-weight:800;white-space:nowrap}.schedule-status--ready{background:rgba(34,197,94,.12);color:#22c55e}.schedule-status--done{background:rgba(245,158,11,.12);color:#f59e0b}.schedule-status--cooldown{background:rgba(14,165,233,.11);color:#0ea5e9}.schedule-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}.schedule-meta span{padding:3px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.045);border:1px solid rgba(var(--v-theme-on-surface),.065);font-size:10px;color:rgba(var(--v-theme-on-surface),.58);font-variant-numeric:tabular-nums}.neu-btn{height:32px!important;min-height:32px!important;border-radius:999px!important;font-weight:800;letter-spacing:0;font-size:11px!important;min-width:82px!important;box-shadow:none!important}.schedule-action{flex:0 0 auto}
 .exchange-body{padding:16px!important}.exchange-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.exchange-stat{padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);text-align:center}.exchange-stat span{display:block;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-stat strong{display:inline-block;margin-top:3px;font-size:21px;color:#f59e0b}.exchange-stat small{margin-left:3px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-action-panel{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:start;margin-top:14px}.backend-note{margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.2);font-size:12px;color:rgba(var(--v-theme-on-surface),.66)}
-.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.gift-item{width:100%;min-width:0;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(var(--v-theme-warning),.3);box-shadow:0 6px 16px rgba(var(--v-theme-on-surface),.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item--static:disabled{opacity:1;cursor:default}.gift-item__icon{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:rgba(var(--v-theme-warning),.12);font-size:23px}.gift-item__main{width:100%;min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:12px}.gift-item__main small{margin-top:2px;font-size:10px;color:rgba(var(--v-theme-on-surface),.56)}.gift-item__state{display:inline-flex;align-items:center;min-height:20px;padding:2px 8px;border-radius:999px;background:rgba(var(--v-theme-warning),.12);color:rgb(var(--v-theme-warning));font-size:10px;font-weight:800;white-space:nowrap}
-.recipe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.recipe-card{min-width:0;padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-info),.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(var(--v-theme-info),.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border:1px solid transparent;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-ingredients .ingredient-ready{background:rgba(var(--v-theme-success),.11);border-color:rgba(var(--v-theme-success),.2);color:rgb(var(--v-theme-success))}.recipe-controls{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:start}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
+.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.resource-grid .inventory-grid,.resource-grid .recipe-grid{grid-template-columns:1fr}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__state{font-size:10px;font-weight:800;color:#f59e0b;white-space:nowrap}
+.recipe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.recipe-card{padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:start}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
 .history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
 .empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
 .siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats-applied-filter{margin:-2px 0 10px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}
-.page-skeleton{display:flex;flex-direction:column}.skeleton-shell,.skeleton-card{pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-action{height:112px}.sk-row{height:38px;margin-top:14px}.sk-exchange-stat{height:72px}.sk-inventory-item{height:112px}.sk-recipe-item{height:132px}.sk-history-row{height:38px;margin-bottom:8px}.sk-history-row:last-child{margin-bottom:0}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
-@media(max-width:1100px){.primary-grid{grid-template-columns:1fr}.inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
-@media(max-width:700px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.primary-grid{grid-template-columns:1fr}.schedule-action-list{grid-template-columns:1fr}.inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.recipe-grid{grid-template-columns:1fr}.schedule-summary{display:none}}
-@media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.card-subtitle{display:none}.schedule-board-body{padding:14px!important}.neu-action-card{grid-template-columns:32px minmax(0,1fr);row-gap:10px;padding:12px}.schedule-action{grid-column:1/-1;width:100%}.schedule-meta span{flex:1 1 100%}.exchange-summary{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
+.page-skeleton{display:flex;flex-direction:column}.skeleton-shell,.skeleton-card{pointer-events:none}.skeleton-panel{padding:16px;pointer-events:none}.sk{position:relative;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-on-surface),.075);border:1px solid rgba(var(--v-theme-on-surface),.035)}.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--v-theme-surface),.46),transparent);animation:skeleton-shimmer 1.25s infinite}.sk-icon{width:38px;height:38px;flex:0 0 38px}.sk-lines{flex:1}.sk-line{height:16px;margin-top:7px}.sk-line.short{width:58%;height:11px;margin-top:0}.sk-title{width:132px;height:18px}.sk-action{height:76px;margin-top:8px}.sk-row{height:38px;margin-top:12px}@keyframes skeleton-shimmer{100%{transform:translateX(100%)}}
+@media(max-width:1100px){.primary-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-grid,.recipe-grid,.stats-columns{grid-template-columns:1fr}.exchange-action-panel{grid-template-columns:1fr}.exchange-action-panel :deep(.v-btn){width:100%}}
+@media(max-width:600px){.siqi-page{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__right :deep(.v-btn){min-width:44px!important;padding-inline:0!important}.overview-grid>.v-col{padding:4px!important}.stat-card{padding:10px;gap:8px}.stat-icon{width:34px;height:34px;flex-basis:34px}.stat-value{font-size:17px}.card-subtitle{display:none}.schedule-board-body{padding:14px!important}.neu-action-card{grid-template-columns:32px minmax(0,1fr);row-gap:10px;padding:12px}.schedule-action{grid-column:1/-1;width:100%}.schedule-meta span{flex:1 1 100%}.exchange-summary{grid-template-columns:1fr}.inventory-grid{grid-template-columns:1fr}.recipe-controls{grid-template-columns:1fr}.recipe-controls :deep(.v-btn){width:100%}.history-item{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{text-align:right;white-space:nowrap}.dialog-header{align-items:flex-start}.dialog-avatar{width:42px;height:42px;flex-basis:42px}.stats-filters{align-items:stretch;flex-direction:column}.stats-filters :deep(.v-btn-toggle),.stats-filters :deep(.v-btn){width:100%}.stats-filters :deep(.v-btn-toggle .v-btn){flex:1}.summary-grid{grid-template-columns:1fr}}
 </style>
