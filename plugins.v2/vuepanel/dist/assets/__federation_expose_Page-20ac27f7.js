@@ -269,12 +269,12 @@ function logMatchesCard(item, card) {
   return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
-const Page_vue_vue_type_style_index_0_scoped_1190cb70_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_bd315b4a_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,unref:_unref,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-1190cb70"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-bd315b4a"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "vpp-shell" };
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
@@ -515,7 +515,6 @@ function createEmptyConfig() {
     notify: true,
     onlyonce: false,
     use_proxy: false,
-    force_ipv4: true,
     cron: DEFAULT_CRON,
     http_timeout: 15,
     http_retry_times: 3,
@@ -628,7 +627,6 @@ function normalizeConfig(source = {}) {
   next.notify = source.notify !== false;
   next.onlyonce = !!source.onlyonce;
   next.use_proxy = !!source.use_proxy;
-  next.force_ipv4 = source.force_ipv4 !== false;
   next.cron = String(source.cron || DEFAULT_CRON);
   next.http_timeout = Number(source.http_timeout || 15);
   next.http_retry_times = Number(source.http_retry_times || 3);
@@ -772,7 +770,6 @@ function serializeConfig(cardsOverride = null) {
     notify: !!panelConfig.value.notify,
     onlyonce: !!panelConfig.value.onlyonce,
     use_proxy: !!panelConfig.value.use_proxy,
-    force_ipv4: panelConfig.value.force_ipv4 !== false,
     cron: String(panelConfig.value.cron || DEFAULT_CRON),
     http_timeout: Number(panelConfig.value.http_timeout || 15),
     http_retry_times: Number(panelConfig.value.http_retry_times || 3),
@@ -1802,6 +1799,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-1190cb70"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-bd315b4a"]]);
 
 export { PageView as default, usePanelTheme as u };
