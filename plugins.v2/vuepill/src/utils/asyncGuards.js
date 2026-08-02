@@ -1,6 +1,12 @@
 const GIFT_STATS_DIRECTIONS = new Set(['out', 'in'])
 const GIFT_STATS_RANGES = new Set(['30', 'all'])
 const MISSING = Symbol('missing')
+const STATUS_META_RULES = Object.freeze({
+  enabled: value => typeof value === 'boolean',
+  next_run_time: value => typeof value === 'string',
+  next_trigger_time: value => typeof value === 'string',
+  next_trigger_action: value => typeof value === 'string',
+})
 
 function ownDataValue(record, key) {
   try {
@@ -85,6 +91,19 @@ function isCompletePillStatus(value) {
     && isPlainObjectArray(history)
 }
 
+function extractStatusMeta(response, nestedStatus) {
+  const meta = {}
+  for (const source of [nestedStatus, response]) {
+    if (!source) continue
+    for (const [key, isValid] of Object.entries(STATUS_META_RULES)) {
+      if (Object.prototype.hasOwnProperty.call(meta, key)) continue
+      const value = ownDataValue(source, key)
+      if (value !== MISSING && isValid(value)) meta[key] = value
+    }
+  }
+  return meta
+}
+
 export function createLatestRequestGuard() {
   let latestRequestId = 0
 
@@ -128,7 +147,11 @@ export function extractStatusPayload(response) {
   const history = [directHistory, nestedHistory, pillHistory]
     .find(isPlainObjectArray)
 
-  return { pillStatus, history }
+  return {
+    pillStatus,
+    history,
+    statusMeta: extractStatusMeta(response, nestedStatus),
+  }
 }
 
 export function resolveGiftStatsFilters(response, requested) {

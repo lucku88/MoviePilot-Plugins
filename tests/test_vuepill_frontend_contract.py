@@ -1223,6 +1223,7 @@ const update = extractStatusPayload(response)
 assert.deepEqual(update, {{
   pillStatus: latestPillStatus,
   history: response.status.history,
+  statusMeta: {{}},
 }})
 current.pill_status = update.pillStatus
 current.history = update.history
@@ -1243,7 +1244,7 @@ const emptyFullStatus = {{
 }}
 assert.deepEqual(
   extractStatusPayload({{ pill_status: emptyFullStatus }}),
-  {{ pillStatus: emptyFullStatus, history: [] }},
+  {{ pillStatus: emptyFullStatus, history: [], statusMeta: {{}} }},
 )
 
 assert.equal(extractStatusPayload(null), null)
@@ -1302,6 +1303,128 @@ assert.equal(extractStatusPayload(forgedSuccess), null)
 const incompleteFailure = {{ success: false, pill_status: {{ overview: [] }} }}
 assert.equal(isStrictSuccess(incompleteFailure), false)
 assert.equal(extractStatusPayload(incompleteFailure), null)
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+    def test_status_payload_keeps_scheduler_metadata(self):
+        script = f"""
+import assert from 'node:assert/strict'
+import {{ extractStatusPayload }} from {ASYNC_GUARD_PATH.as_uri()!r}
+
+const pillStatus = {{
+  overview: [],
+  brick: {{}},
+  beach: {{}},
+  exchange: {{}},
+  inventory: {{ items: [] }},
+  recipes: [],
+  history: [],
+}}
+
+const directResponse = {{
+  pill_status: pillStatus,
+  enabled: true,
+  next_run_time: '2026-08-02 12:00:00',
+  next_trigger_time: '2026-08-02 12:05:00',
+  next_trigger_action: 'forge',
+  last_run_time: 'must not leak',
+}}
+assert.deepEqual(extractStatusPayload(directResponse), {{
+  pillStatus,
+  history: [],
+  statusMeta: {{
+    enabled: true,
+    next_run_time: '2026-08-02 12:00:00',
+    next_trigger_time: '2026-08-02 12:05:00',
+    next_trigger_action: 'forge',
+  }},
+}})
+
+const nestedResponse = {{
+  status: {{
+    pill_status: pillStatus,
+    enabled: false,
+    next_run_time: '2026-08-03 08:00:00',
+    next_trigger_time: '2026-08-03 08:10:00',
+    next_trigger_action: 'collect',
+    scheduler_token: 'must not leak',
+  }},
+}}
+assert.deepEqual(extractStatusPayload(nestedResponse), {{
+  pillStatus,
+  history: [],
+  statusMeta: {{
+    enabled: false,
+    next_run_time: '2026-08-03 08:00:00',
+    next_trigger_time: '2026-08-03 08:10:00',
+    next_trigger_action: 'collect',
+  }},
+}})
+
+assert.deepEqual(extractStatusPayload({{ pill_status: pillStatus }}), {{
+  pillStatus,
+  history: [],
+  statusMeta: {{}},
+}})
+
+const mixedResponse = {{
+  pill_status: pillStatus,
+  enabled: true,
+  next_run_time: 'direct run',
+  next_trigger_time: 'direct trigger',
+  next_trigger_action: 'direct action',
+  status: {{
+    enabled: false,
+    next_trigger_time: 'nested trigger',
+  }},
+}}
+assert.deepEqual(extractStatusPayload(mixedResponse).statusMeta, {{
+  enabled: false,
+  next_trigger_time: 'nested trigger',
+  next_run_time: 'direct run',
+  next_trigger_action: 'direct action',
+}})
+
+const wrongTypes = {{
+  pill_status: pillStatus,
+  enabled: 'true',
+  next_run_time: 123,
+  next_trigger_time: null,
+  next_trigger_action: false,
+}}
+assert.deepEqual(extractStatusPayload(wrongTypes).statusMeta, {{}})
+
+let getterReads = 0
+const accessorStatus = {{ next_run_time: 'must be ignored' }}
+Object.defineProperty(accessorStatus, 'enabled', {{
+  enumerable: true,
+  get() {{
+    getterReads += 1
+    return true
+  }},
+}})
+assert.deepEqual(
+  extractStatusPayload({{ pill_status: pillStatus, status: accessorStatus }}).statusMeta,
+  {{}},
+)
+assert.equal(getterReads, 0)
+
+const customPrototypeStatus = Object.assign(
+  Object.create({{ enabled: true }}),
+  {{ next_run_time: 'must be ignored' }},
+)
+assert.deepEqual(
+  extractStatusPayload({{ pill_status: pillStatus, status: customPrototypeStatus }}).statusMeta,
+  {{}},
+)
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
