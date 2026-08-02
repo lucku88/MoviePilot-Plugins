@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.1.6"
+EXPECTED_VERSION = "0.1.7"
 
 
 class VueEmojiReleaseMetadataTests(unittest.TestCase):
@@ -26,14 +26,14 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_dual_stack_release(self):
+    def test_market_history_describes_shared_theme_release(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "IPv4",
-            "IPv6",
-            "热更新",
+            "状态页",
+            "配置页",
+            "双主题",
             "保留配置",
         ):
             self.assertIn(phrase, note)
@@ -41,7 +41,7 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
     def test_readme_lists_version_and_upgrade_behaviour(self):
         self.assertIn(f"| `Vue-表情` | `v{EXPECTED_VERSION}`", self.readme)
         section = self.readme.split("### 🎭 Vue-表情", 1)[1].split("### ", 1)[0]
-        for phrase in (f"v{EXPECTED_VERSION}", "IPv4", "IPv6", "热更新", "保留配置"):
+        for phrase in (f"v{EXPECTED_VERSION}", "状态页", "配置页", "双主题", "保留配置"):
             self.assertIn(phrase, section)
 
     def test_federation_entries_reference_existing_build_assets(self):

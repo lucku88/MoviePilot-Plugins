@@ -79,6 +79,32 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.compact_page,
         )
 
+    def test_status_page_matches_shared_tone_cards_and_section_headers(self):
+        self.assertIn(
+            "return ['green', 'orange', 'blue', 'red'][index] || 'green'",
+            self.page,
+        )
+        for expected in (
+            'siqi-card-title--schedule',
+            'siqi-card-title--bags',
+            'siqi-card-title--catalog',
+            'siqi-card-title--stage',
+            'siqi-card-title--history',
+            '.stat-card{--stat-rgb:',
+            '.stat-red{--stat-rgb:239,68,68;',
+            '.siqi-card-title--schedule{background:rgba(76,175,80,.08)}',
+            '.siqi-card-title--bags{background:rgba(249,115,22,.09)}',
+            '.siqi-card-title--catalog{background:rgba(59,130,246,.09)}',
+            '.siqi-card-title--stage{background:rgba(245,158,11,.09)}',
+            '.siqi-card-title--history{background:rgba(20,184,166,.08)}',
+        ):
+            self.assertIn(expected, self.compact_page)
+
+        self.assertIn(
+            '.siqi-card-title{min-height:44px;',
+            self.compact_page,
+        )
+
     def test_history_is_one_line_with_right_aligned_time(self):
         self.assertIn('class="history-detail"', self.page)
         self.assertIn('class="history-time"', self.page)

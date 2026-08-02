@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_cb40cdb0_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_da9bbcfb_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-cb40cdb0"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-da9bbcfb"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -370,7 +370,7 @@ function statIcon(index) {
 }
 
 function statTone(index) {
-  return ['green', 'orange', 'blue', 'pink'][index] || 'green'
+  return ['green', 'orange', 'blue', 'red'][index] || 'green'
 }
 
 function flash(text, type = 'success') {
@@ -949,7 +949,7 @@ return (_ctx, _cache) => {
                 class: "siqi-card schedule-board"
               }, {
                 default: _withCtx(() => [
-                  _createVNode(_component_v_card_title, { class: "siqi-card-title d-flex align-center" }, {
+                  _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--schedule d-flex align-center" }, {
                     default: _withCtx(() => [
                       _createVNode(_component_v_icon, {
                         icon: "mdi-clock-outline",
@@ -987,7 +987,7 @@ return (_ctx, _cache) => {
                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(scheduleRows.value, (row) => {
                           return (_openBlock(), _createElementBlock("div", {
                             key: row.title,
-                            class: "schedule-row"
+                            class: _normalizeClass(["schedule-row", 'tone-' + row.tone])
                           }, [
                             _createElementVNode("div", {
                               class: _normalizeClass(["schedule-row__icon", 'tone-' + row.tone])
@@ -1004,7 +1004,7 @@ return (_ctx, _cache) => {
                             _createElementVNode("div", {
                               class: _normalizeClass(["schedule-row__value", 'tone-' + row.tone])
                             }, _toDisplayString(row.value), 3)
-                          ]))
+                          ], 2))
                         }), 128))
                       ]),
                       (showSummary.value)
@@ -1039,7 +1039,7 @@ return (_ctx, _cache) => {
                 class: "siqi-card bag-card"
               }, {
                 default: _withCtx(() => [
-                  _createVNode(_component_v_card_title, { class: "siqi-card-title d-flex align-center" }, {
+                  _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--bags d-flex align-center" }, {
                     default: _withCtx(() => [
                       _createVNode(_component_v_icon, {
                         icon: "mdi-bag-personal-outline",
@@ -1222,7 +1222,7 @@ return (_ctx, _cache) => {
               class: "siqi-card catalog-card mb-3"
             }, {
               default: _withCtx(() => [
-                _createVNode(_component_v_card_title, { class: "siqi-card-title catalog-title-row" }, {
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--catalog catalog-title-row" }, {
                   default: _withCtx(() => [
                     _createElementVNode("span", _hoisted_48, [
                       _createVNode(_component_v_icon, {
@@ -1327,7 +1327,7 @@ return (_ctx, _cache) => {
               class: "siqi-card stage-card mb-3"
             }, {
               default: _withCtx(() => [
-                _createVNode(_component_v_card_title, { class: "siqi-card-title stage-title-row" }, {
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--stage stage-title-row" }, {
                   default: _withCtx(() => [
                     _createElementVNode("span", _hoisted_61, [
                       _createVNode(_component_v_icon, {
@@ -1473,12 +1473,12 @@ return (_ctx, _cache) => {
               class: "siqi-card history-card"
             }, {
               default: _withCtx(() => [
-                _createVNode(_component_v_card_title, { class: "siqi-card-title d-flex align-center" }, {
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--history d-flex align-center" }, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_icon, {
                       icon: "mdi-history",
                       size: "19",
-                      color: "success",
+                      color: "teal",
                       class: "mr-2"
                     }),
                     _createTextVNode("执行历史")
@@ -1513,6 +1513,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-cb40cdb0"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-da9bbcfb"]]);
 
 export { PageView as default };

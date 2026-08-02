@@ -366,7 +366,6 @@ onMounted(async () => {
 
 <style scoped>
 .siqi-config {
-  overflow-x: hidden;
   width: 100%;
   max-width: 100%;
   min-height: 400px;
