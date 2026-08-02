@@ -1041,6 +1041,33 @@ try {
                 r"\.schedule-summary\{[^}]*display:none",
             )
 
+    def test_compact_schedule_time_requires_complete_timestamp(self):
+        function_match = re.search(
+            r"function compactScheduleTime\(value\) \{[\s\S]*?\n\}",
+            self.page,
+        )
+        self.assertIsNotNone(function_match)
+
+        script = f"""
+import assert from 'node:assert/strict'
+
+{function_match.group(0)}
+
+assert.equal(compactScheduleTime('2026-08-02 11:25:58'), '08-02 11:25')
+assert.equal(compactScheduleTime('2026-08-02 11:25'), '2026-08-02 11:25')
+assert.equal(compactScheduleTime(' 2026-08-02 11:25:58 '), ' 2026-08-02 11:25:58 ')
+assert.equal(compactScheduleTime('2026-08-02 11:25:58 extra'), '2026-08-02 11:25:58 extra')
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
     def test_page_matches_siqifram_card_density(self):
         self.assertRegex(
             self.compact_page,

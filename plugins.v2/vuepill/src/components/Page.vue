@@ -541,8 +541,8 @@ const beachStatusLabel = computed(() => {
 })
 
 function compactScheduleTime(value) {
-  const text = String(value || '').trim()
-  const matched = text.match(/^\d{4}-(\d{2})-(\d{2})\s+(\d{2}:\d{2})/)
+  const text = String(value ?? '')
+  const matched = text.match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2}):\d{2}$/)
   return matched ? `${matched[1]}-${matched[2]} ${matched[3]}` : text
 }
 
