@@ -1405,6 +1405,49 @@ assert.deepEqual(retainedMeta, {{
         )
         self.assertIn("if (!statusApplied) await loadStatus({ silent: true })", submit_gift)
 
+    def test_quantity_error_has_no_backend_zero_limit_copy(self):
+        function_match = re.search(
+            r"function quantityError\(value, maximum, actionName\) \{[\s\S]*?\n\}",
+            self.page,
+        )
+        self.assertIsNotNone(function_match, "Page.vue 必须保留 quantityError")
+        quantity_error = function_match.group(0)
+        self.assertNotIn("后端返回的", quantity_error)
+        self.assertNotIn("上限为 0", quantity_error)
+
+    def test_quantity_error_runtime_uses_business_copy(self):
+        function_match = re.search(
+            r"function quantityError\(value, maximum, actionName\) \{[\s\S]*?\n\}",
+            self.page,
+        )
+        self.assertIsNotNone(function_match, "Page.vue 必须保留 quantityError")
+
+        script = f"""
+import assert from 'node:assert/strict'
+
+const source = {json.dumps(function_match.group(0), ensure_ascii=False)}
+const quantityError = new Function(source + '\\nreturn quantityError')()
+
+assert.equal(quantityError(1, 0, '兑换'), '当前暂不可兑换')
+assert.equal(quantityError(1, 0, '赠送'), '当前暂不可赠送')
+assert.equal(quantityError(1, 0, '炼造'), '当前暂不可炼造')
+assert.equal(
+  quantityError(2, 1, '兑换'),
+  '兑换数量不能超过当前最多可兑换数量 1',
+)
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
     def test_async_guard_runtime_rejects_stale_requests_and_invalid_success(self):
         script = f"""
 import assert from 'node:assert/strict'
