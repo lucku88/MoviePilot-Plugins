@@ -130,7 +130,11 @@ function createLatestRequestGuard() {
 }
 
 function isStrictSuccess(response) {
-  return response?.success === true
+  return ownDataValue(response, 'success') === true
+}
+
+function isExplicitFailure(response) {
+  return ownDataValue(response, 'success') === false
 }
 
 function extractStatusPayload(response) {
@@ -180,8 +184,9 @@ function resolveGiftStatsFilters(response, requested) {
 }
 
 function safeResponseMessage(response, fallback) {
-  const message = typeof response?.message === 'string'
-    ? response.message.trim()
+  const value = ownDataValue(response, 'message');
+  const message = typeof value === 'string'
+    ? value.trim()
     : '';
   return message || fallback
 }
@@ -194,4 +199,4 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-export { _export_sfc as _, createLatestRequestGuard as c, extractStatusPayload as e, isStrictSuccess as i, resolveGiftStatsFilters as r, safeResponseMessage as s };
+export { _export_sfc as _, isStrictSuccess as a, createLatestRequestGuard as c, extractStatusPayload as e, isExplicitFailure as i, resolveGiftStatsFilters as r, safeResponseMessage as s };

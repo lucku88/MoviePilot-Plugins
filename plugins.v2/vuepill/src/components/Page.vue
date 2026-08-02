@@ -512,6 +512,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   createLatestRequestGuard,
   extractStatusPayload,
+  isExplicitFailure,
   isStrictSuccess,
   resolveGiftStatsFilters,
   safeResponseMessage,
@@ -588,8 +589,29 @@ const beachStatusLabel = computed(() => {
 
 function compactScheduleTime(value) {
   const text = String(value ?? '')
-  const matched = text.match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2}):\d{2}$/)
-  return matched ? `${matched[1]}-${matched[2]} ${matched[3]}` : text
+  const matched = text.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+  if (!matched) return text
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] = matched
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  const hour = Number(hourText)
+  const minute = Number(minuteText)
+  const second = Number(secondText)
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  if (
+    month < 1
+    || month > 12
+    || day < 1
+    || day > daysInMonth[month - 1]
+    || hour > 23
+    || minute > 59
+    || second > 59
+  ) return text
+
+  return `${monthText}-${dayText} ${hourText}:${minuteText}`
 }
 
 function applyStatusMeta(target, meta) {
@@ -617,12 +639,20 @@ const inventoryItems = computed(() => {
 })
 
 function normalizedInventoryCount(value) {
-  const number = Number(value)
+  const number = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value)
+      ? Number(value)
+      : NaN
   return Number.isSafeInteger(number) && number >= 0 ? number : 0
 }
 
 function normalizedIngredientRequirement(value) {
-  const number = Number(value)
+  const number = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value)
+      ? Number(value)
+      : NaN
   return Number.isSafeInteger(number) && number > 0 ? number : null
 }
 
@@ -716,7 +746,7 @@ async function loadStatus({ silent = false } = {}) {
     const result = await apiGet('/status')
     if (!statusRequestGuard.isCurrent(requestId)) return false
     if (!result || typeof result !== 'object') throw new Error('状态响应无效')
-    if (result.success === false) throw new Error(safeResponseMessage(result, '状态加载失败'))
+    if (isExplicitFailure(result)) throw new Error(safeResponseMessage(result, '状态加载失败'))
     if (!applyStatusPayload(result)) throw new Error('状态响应无效')
     return true
   } catch (error) {

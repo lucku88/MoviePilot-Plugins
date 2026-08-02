@@ -1137,6 +1137,9 @@ import assert from 'node:assert/strict'
 {function_match.group(0)}
 
 assert.equal(compactScheduleTime('2026-08-02 11:25:58'), '08-02 11:25')
+assert.equal(compactScheduleTime('2026-13-40 29:61:99'), '2026-13-40 29:61:99')
+assert.equal(compactScheduleTime('2026-02-29 12:00:00'), '2026-02-29 12:00:00')
+assert.equal(compactScheduleTime('2024-02-29 12:00:00'), '02-29 12:00')
 assert.equal(compactScheduleTime('2026-08-02 11:25'), '2026-08-02 11:25')
 assert.equal(compactScheduleTime(' 2026-08-02 11:25:58 '), ' 2026-08-02 11:25:58 ')
 assert.equal(compactScheduleTime('2026-08-02 11:25:58 extra'), '2026-08-02 11:25:58 extra')
@@ -1451,12 +1454,15 @@ assert.equal(
     def test_async_guard_runtime_rejects_stale_requests_and_invalid_success(self):
         script = f"""
 import assert from 'node:assert/strict'
-import {{
+import * as asyncGuards from {ASYNC_GUARD_PATH.as_uri()!r}
+
+const {{
   createLatestRequestGuard,
+  isExplicitFailure,
   isStrictSuccess,
   resolveGiftStatsFilters,
   safeResponseMessage,
-}} from {ASYNC_GUARD_PATH.as_uri()!r}
+}} = asyncGuards
 
 const guard = createLatestRequestGuard()
 const first = guard.begin()
@@ -1490,6 +1496,29 @@ assert.equal(isStrictSuccess({{}}), false)
 assert.equal(isStrictSuccess({{ success: 'true' }}), false)
 assert.equal(isStrictSuccess({{ success: false }}), false)
 assert.equal(isStrictSuccess({{ success: true }}), true)
+assert.equal(isStrictSuccess(Object.create({{ success: true }})), false)
+
+let successGetterReads = 0
+const accessorSuccess = {{}}
+Object.defineProperty(accessorSuccess, 'success', {{
+  enumerable: true,
+  get() {{
+    successGetterReads += 1
+    return true
+  }},
+}})
+assert.equal(isStrictSuccess(accessorSuccess), false)
+assert.equal(successGetterReads, 0)
+
+assert.equal(typeof isExplicitFailure, 'function')
+assert.equal(isExplicitFailure(null), false)
+assert.equal(isExplicitFailure({{}}), false)
+assert.equal(isExplicitFailure({{ success: 'false' }}), false)
+assert.equal(isExplicitFailure({{ success: true }}), false)
+assert.equal(isExplicitFailure({{ success: false }}), true)
+assert.equal(isExplicitFailure(Object.create({{ success: false }})), false)
+assert.equal(isExplicitFailure(accessorSuccess), false)
+assert.equal(successGetterReads, 0)
 
 const requested = {{ direction: 'out', range: '30' }}
 assert.deepEqual(
@@ -1502,6 +1531,19 @@ assert.deepEqual(
 )
 assert.equal(safeResponseMessage({{ message: {{ bad: true }} }}, 'fallback'), 'fallback')
 assert.equal(safeResponseMessage({{ message: '  ok  ' }}, 'fallback'), 'ok')
+assert.equal(safeResponseMessage(Object.create({{ message: 'inherited' }}), 'fallback'), 'fallback')
+
+let messageGetterReads = 0
+const accessorMessage = {{}}
+Object.defineProperty(accessorMessage, 'message', {{
+  enumerable: true,
+  get() {{
+    messageGetterReads += 1
+    return 'must not run'
+  }},
+}})
+assert.equal(safeResponseMessage(accessorMessage, 'fallback'), 'fallback')
+assert.equal(messageGetterReads, 0)
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
@@ -1512,6 +1554,134 @@ assert.equal(safeResponseMessage({{ message: '  ok  ' }}, 'fallback'), 'ok')
             check=False,
         )
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+    def test_load_status_rejects_accessor_response_without_overwriting_state(self):
+        def extract_function(name, async_function=False):
+            prefix = "async function" if async_function else "function"
+            match = re.search(
+                rf"{prefix} {name}\([^)]*\) \{{[\s\S]*?\n\}}",
+                self.page,
+            )
+            self.assertIsNotNone(match, f"Page.vue 必须声明生产函数 {name}")
+            return match.group(0)
+
+        load_status = extract_function("loadStatus", async_function=True)
+        production_source = "\n\n".join(
+            (
+                extract_function("applyStatusMeta"),
+                extract_function("applyStatusPayload"),
+                load_status,
+            )
+        )
+        script = f"""
+import assert from 'node:assert/strict'
+import * as asyncGuards from {ASYNC_GUARD_PATH.as_uri()!r}
+
+const {{ createLatestRequestGuard, extractStatusPayload, safeResponseMessage }} = asyncGuards
+const isExplicitFailure = asyncGuards.isExplicitFailure
+const oldPillStatus = {{
+  overview: [{{ label: '旧状态', value: 1 }}],
+  brick: {{}},
+  beach: {{}},
+  exchange: {{}},
+  inventory: {{ items: [] }},
+  recipes: [],
+  history: [{{ text: '旧记录', time: '10:00' }}],
+}}
+const status = {{
+  enabled: true,
+  next_run_time: '旧运行时间',
+  next_trigger_time: '旧调度时间',
+  next_trigger_action: '旧动作',
+  pill_status: oldPillStatus,
+  history: oldPillStatus.history,
+}}
+const originalStatus = structuredClone(status)
+const maliciousPillStatus = {{
+  overview: [{{ label: '恶意状态', value: 999 }}],
+  brick: {{}},
+  beach: {{}},
+  exchange: {{}},
+  inventory: {{ items: [{{ name: '魔丸', count: 999 }}] }},
+  recipes: [],
+  history: [{{ text: '恶意记录', time: '11:00' }}],
+}}
+const response = {{
+  enabled: false,
+  next_run_time: '恶意运行时间',
+  next_trigger_time: '恶意调度时间',
+  next_trigger_action: '恶意动作',
+  pill_status: maliciousPillStatus,
+}}
+let successGetterReads = 0
+Object.defineProperty(response, 'success', {{
+  enumerable: true,
+  configurable: true,
+  get() {{
+    successGetterReads += 1
+    response.next_trigger_time = 'getter 篡改后的调度时间'
+    Object.defineProperty(response, 'success', {{
+      value: true,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    }})
+    return true
+  }},
+}})
+
+const requestedPaths = []
+const apiGet = async path => {{
+  requestedPaths.push(path)
+  return response
+}}
+const flashes = []
+const flash = (...args) => flashes.push(args)
+const initialLoading = {{ value: true }}
+const statusRequestGuard = createLatestRequestGuard()
+const makeLoadStatus = new Function(
+  'extractStatusPayload',
+  'safeResponseMessage',
+  'isExplicitFailure',
+  'status',
+  'statusRequestGuard',
+  'initialLoading',
+  'apiGet',
+  'flash',
+  {json.dumps(production_source, ensure_ascii=False)} + '\\nreturn loadStatus',
+)
+const loadStatus = makeLoadStatus(
+  extractStatusPayload,
+  safeResponseMessage,
+  isExplicitFailure,
+  status,
+  statusRequestGuard,
+  initialLoading,
+  apiGet,
+  flash,
+)
+
+assert.equal(await loadStatus({{ silent: true }}), false)
+assert.equal(successGetterReads, 0)
+assert.deepEqual(status, originalStatus)
+assert.deepEqual(requestedPaths, ['/status'])
+assert.deepEqual(flashes, [])
+assert.equal(initialLoading.value, false)
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+        self.assertIn("  isExplicitFailure,\n", self.page)
+        self.assertIn("if (isExplicitFailure(result))", load_status)
+        self.assertNotIn("result.success", load_status)
 
     def test_partial_failure_runtime_applies_valid_status_without_success(self):
         script = f"""
@@ -1937,9 +2107,33 @@ try {{
             + gift_max_match.group(0)
             + "\n\n"
             + """
-for (const value of [NaN, Infinity, -Infinity, -1, 1.5, '1.5']) {
+const invalidInventoryCounts = [
+  NaN,
+  Infinity,
+  -Infinity,
+  -1,
+  1.5,
+  true,
+  false,
+  [],
+  [2],
+  {},
+  '',
+  ' ',
+  ' 2',
+  '2 ',
+  '1.5',
+  '1e2',
+  '0x10',
+  '+2',
+  '02',
+  '2.0',
+]
+for (const value of invalidInventoryCounts) {
   assert.equal(normalizedInventoryCount(value), 0)
 }
+assert.equal(normalizedInventoryCount(2), 2)
+assert.equal(normalizedInventoryCount('2'), 2)
 assert.equal(normalizedInventoryCount('7'), 7)
 assert.equal(normalizedInventoryCount(0), 0)
 assert.equal(normalizedInventoryCount(Number.MAX_SAFE_INTEGER + 1), 0)
@@ -1950,6 +2144,10 @@ const duplicateCounts = buildInventoryCounts([
   { name: 'ore', count: Infinity },
   { name: 'ore', count: -4 },
   { name: 'ore', count: 1.5 },
+  { name: 'ore', count: true },
+  { name: 'ore', count: [2] },
+  { name: 'ore', count: '1e2' },
+  { name: 'ore', count: '0x10' },
   { name: ' ', count: 100 },
 ])
 assert.equal(duplicateCounts.get('ore'), 5)
@@ -1962,15 +2160,39 @@ assert.equal(
   Number.MAX_SAFE_INTEGER,
 )
 
-for (const required of [NaN, Infinity, -Infinity, -1, 0, 1.5, '1.5']) {
+const invalidIngredientRequirements = [
+  NaN,
+  Infinity,
+  -Infinity,
+  -1,
+  0,
+  1.5,
+  true,
+  false,
+  [],
+  [2],
+  {},
+  '',
+  ' ',
+  ' 2',
+  '2 ',
+  '1.5',
+  '1e2',
+  '0x10',
+  '+2',
+  '02',
+  '2.0',
+]
+for (const required of invalidIngredientRequirements) {
   assert.equal(normalizedIngredientRequirement(required), null)
 }
+assert.equal(normalizedIngredientRequirement(2), 2)
 assert.equal(normalizedIngredientRequirement('2'), 2)
 
 const inventoryCounts = {
   value: buildInventoryCounts([{ name: 'ore', count: '3' }]),
 }
-for (const required of [NaN, Infinity, -1, 0, 1.5, '1.5']) {
+for (const required of invalidIngredientRequirements) {
   assert.equal(ingredientEnough('ore', required), false)
 }
 assert.equal(ingredientEnough('ore', 2), true)
@@ -1978,19 +2200,20 @@ assert.equal(ingredientEnough('ore', '3'), true)
 assert.equal(ingredientEnough('ore', 4), false)
 assert.equal(ingredientEnough('missing', 1), false)
 
-for (const count of [NaN, Infinity, -1, 0, 1.5, '1.5']) {
+for (const count of invalidInventoryCounts) {
   assert.equal(canGiftItem({ giftable: true, count }), false)
 }
+assert.equal(canGiftItem({ giftable: true, count: 2 }), true)
 assert.equal(canGiftItem({ giftable: true, count: '2' }), true)
 assert.equal(canGiftItem({ giftable: false, count: 2 }), false)
 writeActionsDisabled.value = true
 assert.equal(canGiftItem({ giftable: true, count: 2 }), false)
 writeActionsDisabled.value = false
 
-selectedGiftItem.value = { count: Infinity }
-assert.equal(giftMaxQuantity.value, 0)
-selectedGiftItem.value = { count: 1.5 }
-assert.equal(giftMaxQuantity.value, 0)
+for (const count of invalidInventoryCounts) {
+  selectedGiftItem.value = { count }
+  assert.equal(giftMaxQuantity.value, 0)
+}
 selectedGiftItem.value = { count: '12' }
 assert.equal(giftMaxQuantity.value, 12)
 selectedGiftItem.value = { count: 600 }

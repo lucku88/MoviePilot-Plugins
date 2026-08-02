@@ -130,7 +130,11 @@ export function createLatestRequestGuard() {
 }
 
 export function isStrictSuccess(response) {
-  return response?.success === true
+  return ownDataValue(response, 'success') === true
+}
+
+export function isExplicitFailure(response) {
+  return ownDataValue(response, 'success') === false
 }
 
 export function extractStatusPayload(response) {
@@ -180,8 +184,9 @@ export function resolveGiftStatsFilters(response, requested) {
 }
 
 export function safeResponseMessage(response, fallback) {
-  const message = typeof response?.message === 'string'
-    ? response.message.trim()
+  const value = ownDataValue(response, 'message')
+  const message = typeof value === 'string'
+    ? value.trim()
     : ''
   return message || fallback
 }
