@@ -98,7 +98,14 @@ function extractStatusMeta(response, nestedStatus) {
     for (const [key, isValid] of Object.entries(STATUS_META_RULES)) {
       if (Object.prototype.hasOwnProperty.call(meta, key)) continue
       const value = ownDataValue(source, key)
-      if (value !== MISSING && isValid(value)) meta[key] = value
+      if (value !== MISSING && isValid(value)) {
+        Object.defineProperty(meta, key, {
+          value,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        })
+      }
     }
   }
   return meta

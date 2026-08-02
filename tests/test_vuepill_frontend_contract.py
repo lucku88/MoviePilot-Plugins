@@ -1425,6 +1425,64 @@ assert.deepEqual(
   extractStatusPayload({{ pill_status: pillStatus, status: customPrototypeStatus }}).statusMeta,
   {{}},
 )
+
+const originalEnabledDescriptor = Object.getOwnPropertyDescriptor(
+  Object.prototype,
+  'enabled',
+)
+const originalNextRunTimeDescriptor = Object.getOwnPropertyDescriptor(
+  Object.prototype,
+  'next_run_time',
+)
+let inheritedEnabledWrites = 0
+try {{
+  Object.defineProperty(Object.prototype, 'enabled', {{
+    configurable: true,
+    set() {{
+      inheritedEnabledWrites += 1
+    }},
+  }})
+  Object.defineProperty(Object.prototype, 'next_run_time', {{
+    configurable: true,
+    value: 'polluted run time',
+    writable: false,
+  }})
+
+  const pollutedMeta = extractStatusPayload({{
+    pill_status: pillStatus,
+    enabled: true,
+    next_run_time: 'safe run time',
+  }}).statusMeta
+  assert.equal(Object.getPrototypeOf(pollutedMeta), Object.prototype)
+  assert.deepEqual(Object.getOwnPropertyDescriptor(pollutedMeta, 'enabled'), {{
+    value: true,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  }})
+  assert.deepEqual(Object.getOwnPropertyDescriptor(pollutedMeta, 'next_run_time'), {{
+    value: 'safe run time',
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  }})
+  assert.equal(inheritedEnabledWrites, 0)
+}} finally {{
+  if (originalEnabledDescriptor) {{
+    Object.defineProperty(Object.prototype, 'enabled', originalEnabledDescriptor)
+  }} else {{
+    delete Object.prototype.enabled
+  }}
+  if (originalNextRunTimeDescriptor) {{
+    Object.defineProperty(
+      Object.prototype,
+      'next_run_time',
+      originalNextRunTimeDescriptor,
+    )
+  }} else {{
+    delete Object.prototype.next_run_time
+  }}
+}}
 """
         result = subprocess.run(
             ["node", "--input-type=module", "-e", script],
