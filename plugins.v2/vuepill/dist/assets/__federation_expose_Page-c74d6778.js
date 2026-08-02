@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-66d70fe2.js';
 
-const Page_vue_vue_type_style_index_0_scoped_dbb45712_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_fd5ee8d4_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-dbb45712"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-fd5ee8d4"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -223,6 +223,7 @@ const batchGiftRequestGuard = createLatestRequestGuard();
 const giftStatsRequestGuard = createLatestRequestGuard();
 let giftDialogToken = 0;
 let batchGiftDialogToken = 0;
+let batchGiftRequestSequence = 0;
 let messageTimer = null;
 
 const pill = computed(() => status.pill_status || {});
@@ -610,8 +611,18 @@ function sameBatchGiftSnapshot(left, right) {
 function requestBatchGiftConfirmation() {
   if (initialLoading.value || !showBatchGiftDialog.value) return
   if (batchGiftFormError.value) return flash(batchGiftFormError.value, 'warning')
-  batchGiftConfirmationSnapshot.value = currentBatchGiftSnapshot();
+  batchGiftConfirmationSnapshot.value = {
+    ...currentBatchGiftSnapshot(),
+    requestId: createBatchGiftRequestId(),
+  };
   batchGiftConfirming.value = true;
+}
+
+function createBatchGiftRequestId() {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return `batch-${randomUuid}`
+  batchGiftRequestSequence += 1;
+  return `batch-${Date.now().toString(36)}-${batchGiftRequestSequence.toString(36)}-${Math.random().toString(36).slice(2, 14)}`
 }
 
 function dismissBatchGiftDialog(snapshot) {
@@ -626,10 +637,12 @@ async function submitBatchGift() {
   if (batchGiftLoading.value) return
   if (initialLoading.value || !showBatchGiftDialog.value) return
   if (batchGiftFormError.value) return flash(batchGiftFormError.value, 'warning')
-  const snapshot = currentBatchGiftSnapshot();
+  const currentSnapshot = currentBatchGiftSnapshot();
+  const snapshot = batchGiftConfirmationSnapshot.value;
   if (
     !batchGiftConfirming.value
-    || !sameBatchGiftSnapshot(snapshot, batchGiftConfirmationSnapshot.value)
+    || !sameBatchGiftSnapshot(currentSnapshot, snapshot)
+    || !snapshot?.requestId
   ) {
     batchGiftConfirming.value = false;
     batchGiftConfirmationSnapshot.value = null;
@@ -641,6 +654,7 @@ async function submitBatchGift() {
   batchGiftLoading.value = true;
   try {
     const result = await apiPost('/gift-items', {
+      request_id: snapshot.requestId,
       target_uid: snapshot.targetUid,
       items: snapshot.items,
     });
@@ -1891,6 +1905,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-dbb45712"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-fd5ee8d4"]]);
 
 export { PageView as default };

@@ -3377,11 +3377,34 @@ class VuePillLifecycleTests(unittest.TestCase):
         ) or {"success": True}
         cases = [
             (None, "普通字典"),
-            ({}, "UID"),
-            ({"target_uid": "123", "items": []}, "至少选择"),
-            ({"target_uid": "123", "items": "木材"}, "普通列表"),
+            ({}, "请求编号"),
             (
                 {
+                    "request_id": "short",
+                    "target_uid": "123",
+                    "items": [{"item_name": "木材", "quantity": 1}],
+                },
+                "请求编号",
+            ),
+            (
+                {
+                    "request_id": "batch-invalid-empty-0001",
+                    "target_uid": "123",
+                    "items": [],
+                },
+                "至少选择",
+            ),
+            (
+                {
+                    "request_id": "batch-invalid-type-0001",
+                    "target_uid": "123",
+                    "items": "木材",
+                },
+                "普通列表",
+            ),
+            (
+                {
+                    "request_id": "batch-invalid-duplicate-0001",
                     "target_uid": "123",
                     "items": [
                         {"item_name": "木材", "quantity": 1},
@@ -3392,6 +3415,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             ),
             (
                 {
+                    "request_id": "batch-invalid-stock-0001",
                     "target_uid": "123",
                     "items": [
                         {"item_name": "木材", "quantity": 6},
@@ -3402,6 +3426,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             ),
             (
                 {
+                    "request_id": "batch-invalid-cap-0001",
                     "target_uid": "123",
                     "items": [{"item_name": "砖块", "quantity": 501}],
                 },
@@ -3409,6 +3434,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             ),
             (
                 {
+                    "request_id": "batch-invalid-giftable-0001",
                     "target_uid": "123",
                     "items": [{"item_name": "魔丸", "quantity": 1}],
                 },
@@ -3416,6 +3442,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             ),
             (
                 {
+                    "request_id": "batch-invalid-count-0001",
                     "target_uid": "123",
                     "items": [
                         {"item_name": f"物品{index}", "quantity": 1}
@@ -3471,6 +3498,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         result = self.plugin._gift_items_api(
             {
+                "request_id": "batch-success-00000001",
                 "target_uid": "123",
                 "items": [
                     {"item_name": "木材", "quantity": 2},
@@ -3510,6 +3538,57 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIn("木材×2", histories[0][0])
         self.assertIn("塑料袋×3", histories[0][0])
 
+    def test_gift_items_reuses_completed_request_without_posting_again(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        pages = [page, page]
+        fetch_calls = []
+
+        def fetch_page(session):
+            fetch_calls.append(session)
+            return pages.pop(0)
+
+        action_calls = []
+        histories = []
+        self.plugin._fetch_page_state = fetch_page
+        self.plugin._post_action = lambda session, action, payload, **kwargs: (
+            action_calls.append(dict(payload)) or {"success": True, "message": "赠送成功"}
+        )
+        self.plugin._compute_next_plan = lambda current_page: (None, "all")
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = (
+            lambda title, lines: histories.append((title, list(lines)))
+        )
+        payload = {
+            "request_id": "batch-replay-00000001",
+            "target_uid": "123",
+            "items": [{"item_name": "木材", "quantity": 2}],
+        }
+
+        first = self.plugin._gift_items_api(payload)
+        replayed = self.plugin._gift_items_api(payload)
+        changed = self.plugin._gift_items_api(
+            {
+                **payload,
+                "items": [{"item_name": "木材", "quantity": 3}],
+            }
+        )
+
+        self.assertIs(first["success"], True)
+        self.assertIs(replayed["success"], True)
+        self.assertIs(replayed["replayed"], True)
+        self.assertEqual(first["gifted"], replayed["gifted"])
+        self.assertIs(changed["success"], False)
+        self.assertIn("已用于其他赠送内容", changed["message"])
+        self.assertEqual(
+            [{"item_name": "木材", "target_uid": "123", "quantity": 2}],
+            action_calls,
+        )
+        self.assertEqual(2, len(fetch_calls))
+        self.assertEqual(1, len(histories))
+
     def test_gift_items_partial_failure_stops_and_reports_successes(self):
         self._install_valid_site()
         self.plugin._build_session = lambda: object()
@@ -3538,6 +3617,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         result = self.plugin._gift_items_api(
             {
+                "request_id": "batch-partial-0000001",
                 "target_uid": "123",
                 "items": [
                     {"item_name": "木材", "quantity": 1},

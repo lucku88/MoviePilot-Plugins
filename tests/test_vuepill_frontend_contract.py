@@ -1054,6 +1054,7 @@ try {
             "batchGiftRequestGuard",
             "batchGiftConfirmationSnapshot",
             "batchGiftDialogToken",
+            "createBatchGiftRequestId",
             "requestBatchGiftConfirmation",
             "submitBatchGift",
             "batchGiftSelectedRows",
@@ -1061,6 +1062,8 @@ try {
             "item.selected",
             "item.quantity",
             "'/gift-items'",
+            "requestId:",
+            "request_id: snapshot.requestId",
         )
         self.assertRegex(
             self.page,

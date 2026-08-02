@@ -1,4 +1,7 @@
+import copy
+import hashlib
 import inspect
+import json
 import math
 import random
 import re
@@ -263,6 +266,11 @@ class VuePill(_PluginBase):
         "sid",
     }
     _SAFE_UID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+    _BATCH_GIFT_REQUEST_ID_PATTERN = re.compile(
+        r"^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$"
+    )
+    BATCH_GIFT_REQUESTS_KEY = "batch_gift_requests"
+    MAX_BATCH_GIFT_REQUEST_RECORDS = 50
     _SUMMARY_COUNT_FIELDS = {
         "count",
         "events",
@@ -790,6 +798,7 @@ class VuePill(_PluginBase):
             "last_run": "",
             "consecutive_error_retries": 0,
             "last_error_retry_detail": "",
+            self.BATCH_GIFT_REQUESTS_KEY: {},
         }
         for key, value in reset_values.items():
             self.save_data(key, value)
@@ -1525,11 +1534,26 @@ class VuePill(_PluginBase):
     @_public_api
     @_exclusive_action
     def _gift_items_api(self, payload: Optional[dict] = None):
+        request_id = ""
         target_uid = ""
         gifted: List[Dict[str, Any]] = []
         failed_item: Optional[Dict[str, Any]] = None
         try:
-            target_uid, requested_items = self._validate_gift_items_payload(payload)
+            request_id, target_uid, requested_items = self._validate_gift_items_payload(
+                payload
+            )
+            request_fingerprint = self._batch_gift_request_fingerprint(
+                target_uid,
+                requested_items,
+            )
+            replayed_result = self._resolve_batch_gift_request(
+                request_id,
+                request_fingerprint,
+                target_uid,
+            )
+            if replayed_result is not None:
+                return replayed_result
+
             self._ensure_cookie()
 
             session = self._build_session()
@@ -1558,6 +1582,13 @@ class VuePill(_PluginBase):
                         f"物品 {item_name} 的赠送数量超过当前库存，最多可赠送 {max_quantity}"
                     )
 
+            self._store_batch_gift_request(
+                request_id,
+                request_fingerprint,
+                state="in_progress",
+                gifted=gifted,
+            )
+
             failure_detail = ""
             for requested in requested_items:
                 current_item = {
@@ -1579,11 +1610,17 @@ class VuePill(_PluginBase):
                                 (target_uid,),
                             )
                         )
-                    gifted.append(current_item)
                 except Exception as err:
                     failed_item = current_item
                     failure_detail = self._get_error_detail(err, (target_uid,))
                     break
+                gifted.append(current_item)
+                self._store_batch_gift_request(
+                    request_id,
+                    request_fingerprint,
+                    state="in_progress",
+                    gifted=gifted,
+                )
 
             refresh_error = ""
             try:
@@ -1637,15 +1674,24 @@ class VuePill(_PluginBase):
             if refresh_error:
                 message = f"{message}，但状态刷新失败，请稍后手动刷新"
 
-            return {
+            response = {
                 "success": failed_item is None,
                 "partial": bool(failed_item and gifted),
                 "message": message,
+                "request_id": request_id,
                 "target_uid": target_uid,
                 "gifted": gifted,
                 "failed_item": failed_item,
                 "status": self._build_status(auto_refresh=False),
             }
+            self._store_batch_gift_request(
+                request_id,
+                request_fingerprint,
+                state="complete",
+                gifted=gifted,
+                result=response,
+            )
+            return response
         except Exception as err:
             detail = self._get_error_detail(err, (target_uid,))
             logger.warning("%s 批量赠送物品失败：%s", self.plugin_name, detail)
@@ -1653,6 +1699,7 @@ class VuePill(_PluginBase):
                 "success": False,
                 "partial": False,
                 "message": detail,
+                "request_id": request_id,
                 "target_uid": target_uid,
                 "gifted": gifted,
                 "failed_item": failed_item,
@@ -1764,12 +1811,17 @@ class VuePill(_PluginBase):
     def _validate_gift_items_payload(
         self,
         payload: Optional[dict],
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> Tuple[str, str, List[Dict[str, Any]]]:
         if type(payload) is not dict:
             raise ValueError("批量赠送请求必须是普通字典")
-        allowed_fields = {"items", "uid", "target_uid"}
+        allowed_fields = {"items", "request_id", "uid", "target_uid"}
         if any(type(key) is not str or key not in allowed_fields for key in payload):
             raise ValueError("批量赠送请求包含不支持的字段")
+
+        raw_request_id = payload.get("request_id")
+        request_id = raw_request_id.strip() if type(raw_request_id) is str else ""
+        if not self._BATCH_GIFT_REQUEST_ID_PATTERN.fullmatch(request_id):
+            raise ValueError("批量赠送请求编号格式无效")
 
         raw_target = payload.get("target_uid")
         if raw_target is None or (type(raw_target) is str and not raw_target.strip()):
@@ -1813,7 +1865,96 @@ class VuePill(_PluginBase):
                 {"item_name": item_name, "quantity": quantity}
             )
 
-        return target_uid, normalized_items
+        return request_id, target_uid, normalized_items
+
+    @staticmethod
+    def _batch_gift_request_fingerprint(
+        target_uid: str,
+        requested_items: List[Dict[str, Any]],
+    ) -> str:
+        canonical_payload = json.dumps(
+            {
+                "items": requested_items,
+                "target_uid": target_uid,
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+
+    def _load_batch_gift_requests(self) -> Dict[str, Dict[str, Any]]:
+        records = self.get_data(self.BATCH_GIFT_REQUESTS_KEY)
+        if records is None:
+            return {}
+        if type(records) is not dict:
+            raise RuntimeError("批量赠送安全记录异常，为避免重复赠送，本次未执行")
+        return dict(records)
+
+    def _store_batch_gift_request(
+        self,
+        request_id: str,
+        fingerprint: str,
+        *,
+        state: str,
+        gifted: List[Dict[str, Any]],
+        result: Optional[Dict[str, Any]] = None,
+    ):
+        records = self._load_batch_gift_requests()
+        record: Dict[str, Any] = {
+            "fingerprint": fingerprint,
+            "state": state,
+            "gifted": copy.deepcopy(gifted),
+        }
+        if result is not None:
+            stored_result = copy.deepcopy(result)
+            stored_result.pop("status", None)
+            record["result"] = stored_result
+
+        records.pop(request_id, None)
+        records[request_id] = record
+        while len(records) > self.MAX_BATCH_GIFT_REQUEST_RECORDS:
+            records.pop(next(iter(records)))
+        self.save_data(self.BATCH_GIFT_REQUESTS_KEY, records)
+
+    def _resolve_batch_gift_request(
+        self,
+        request_id: str,
+        fingerprint: str,
+        target_uid: str,
+    ) -> Optional[Dict[str, Any]]:
+        record = self._load_batch_gift_requests().get(request_id)
+        if record is None:
+            return None
+        if type(record) is not dict or type(record.get("fingerprint")) is not str:
+            raise RuntimeError("批量赠送安全记录异常，为避免重复赠送，本次未执行")
+        if record["fingerprint"] != fingerprint:
+            raise ValueError("这个批量赠送请求编号已用于其他赠送内容")
+
+        gifted = record.get("gifted")
+        gifted = copy.deepcopy(gifted) if type(gifted) is list else []
+        if record.get("state") == "complete" and type(record.get("result")) is dict:
+            result = copy.deepcopy(record["result"])
+            result["request_id"] = request_id
+            result["replayed"] = True
+            result["status"] = self._build_status(auto_refresh=False)
+            return result
+
+        return {
+            "success": False,
+            "partial": bool(gifted),
+            "pending": True,
+            "replayed": True,
+            "message": (
+                "这批赠送已经提交，当前结果仍待确认；为避免重复赠送，本次没有再次提交，"
+                "请先刷新库存"
+            ),
+            "request_id": request_id,
+            "target_uid": target_uid,
+            "gifted": gifted,
+            "failed_item": None,
+            "status": self._build_status(auto_refresh=False),
+        }
 
     def _validate_gift_stats_payload(self, payload: Optional[dict]) -> Tuple[str, str]:
         if type(payload) is not dict:
