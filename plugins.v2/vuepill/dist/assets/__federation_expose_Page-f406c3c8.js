@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-66d70fe2.js';
 
-const Page_vue_vue_type_style_index_0_scoped_8524c21b_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_ed080f1e_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-8524c21b"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-ed080f1e"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -175,6 +175,7 @@ const _hoisted_100 = {
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
 const PLUGIN_ID = 'VuePill';
+const BATCH_GIFT_PENDING_STORAGE_KEY = 'vuepill.batch-gift-pending.v1';
 
 const _sfc_main = {
   __name: 'Page',
@@ -221,7 +222,7 @@ const actionRequestGuard = createLatestRequestGuard();
 const giftRequestGuard = createLatestRequestGuard();
 const batchGiftRequestGuard = createLatestRequestGuard();
 const giftStatsRequestGuard = createLatestRequestGuard();
-const batchGiftPendingRequests = new Map();
+const batchGiftPendingRequests = loadBatchGiftPendingRequests();
 let giftDialogToken = 0;
 let batchGiftDialogToken = 0;
 let batchGiftRequestSequence = 0;
@@ -629,6 +630,37 @@ function batchGiftContentKey(snapshot) {
   })
 }
 
+function loadBatchGiftPendingRequests() {
+  const pendingRequests = new Map();
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return pendingRequests
+    const stored = JSON.parse(window.sessionStorage.getItem(BATCH_GIFT_PENDING_STORAGE_KEY) || '[]');
+    if (!Array.isArray(stored)) return pendingRequests
+    for (const row of stored.slice(-20)) {
+      if (!Array.isArray(row) || row.length !== 2) continue
+      const [contentKey, requestId] = row;
+      if (typeof contentKey !== 'string' || !contentKey || contentKey.length > 4096) continue
+      if (typeof requestId !== 'string' || !/^batch-[A-Za-z0-9._:-]{10,127}$/.test(requestId)) continue
+      pendingRequests.set(contentKey, requestId);
+    }
+  } catch {
+    return new Map()
+  }
+  return pendingRequests
+}
+
+function persistBatchGiftPendingRequests() {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return
+    window.sessionStorage.setItem(
+      BATCH_GIFT_PENDING_STORAGE_KEY,
+      JSON.stringify([...batchGiftPendingRequests.entries()].slice(-20)),
+    );
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
 function createBatchGiftRequestId() {
   const randomUuid = globalThis.crypto?.randomUUID?.();
   if (randomUuid) return `batch-${randomUuid}`
@@ -668,6 +700,7 @@ async function submitBatchGift() {
   while (batchGiftPendingRequests.size > 20) {
     batchGiftPendingRequests.delete(batchGiftPendingRequests.keys().next().value);
   }
+  persistBatchGiftPendingRequests();
   batchGiftLoading.value = true;
   try {
     const result = await apiPost('/gift-items', {
@@ -681,6 +714,7 @@ async function submitBatchGift() {
     const gifted = Array.isArray(result?.gifted) ? result.gifted : [];
     if (result?.request_id === snapshot.requestId && result?.pending !== true) {
       batchGiftPendingRequests.delete(contentKey);
+      persistBatchGiftPendingRequests();
     }
 
     if (isStrictSuccess(result)) {
@@ -1925,6 +1959,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8524c21b"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ed080f1e"]]);
 
 export { PageView as default };

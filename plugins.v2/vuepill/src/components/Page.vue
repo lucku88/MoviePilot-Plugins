@@ -591,7 +591,8 @@ const actionRequestGuard = createLatestRequestGuard()
 const giftRequestGuard = createLatestRequestGuard()
 const batchGiftRequestGuard = createLatestRequestGuard()
 const giftStatsRequestGuard = createLatestRequestGuard()
-const batchGiftPendingRequests = new Map()
+const BATCH_GIFT_PENDING_STORAGE_KEY = 'vuepill.batch-gift-pending.v1'
+const batchGiftPendingRequests = loadBatchGiftPendingRequests()
 let giftDialogToken = 0
 let batchGiftDialogToken = 0
 let batchGiftRequestSequence = 0
@@ -999,6 +1000,37 @@ function batchGiftContentKey(snapshot) {
   })
 }
 
+function loadBatchGiftPendingRequests() {
+  const pendingRequests = new Map()
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return pendingRequests
+    const stored = JSON.parse(window.sessionStorage.getItem(BATCH_GIFT_PENDING_STORAGE_KEY) || '[]')
+    if (!Array.isArray(stored)) return pendingRequests
+    for (const row of stored.slice(-20)) {
+      if (!Array.isArray(row) || row.length !== 2) continue
+      const [contentKey, requestId] = row
+      if (typeof contentKey !== 'string' || !contentKey || contentKey.length > 4096) continue
+      if (typeof requestId !== 'string' || !/^batch-[A-Za-z0-9._:-]{10,127}$/.test(requestId)) continue
+      pendingRequests.set(contentKey, requestId)
+    }
+  } catch {
+    return new Map()
+  }
+  return pendingRequests
+}
+
+function persistBatchGiftPendingRequests() {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return
+    window.sessionStorage.setItem(
+      BATCH_GIFT_PENDING_STORAGE_KEY,
+      JSON.stringify([...batchGiftPendingRequests.entries()].slice(-20)),
+    )
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
 function createBatchGiftRequestId() {
   const randomUuid = globalThis.crypto?.randomUUID?.()
   if (randomUuid) return `batch-${randomUuid}`
@@ -1038,6 +1070,7 @@ async function submitBatchGift() {
   while (batchGiftPendingRequests.size > 20) {
     batchGiftPendingRequests.delete(batchGiftPendingRequests.keys().next().value)
   }
+  persistBatchGiftPendingRequests()
   batchGiftLoading.value = true
   try {
     const result = await apiPost('/gift-items', {
@@ -1051,6 +1084,7 @@ async function submitBatchGift() {
     const gifted = Array.isArray(result?.gifted) ? result.gifted : []
     if (result?.request_id === snapshot.requestId && result?.pending !== true) {
       batchGiftPendingRequests.delete(contentKey)
+      persistBatchGiftPendingRequests()
     }
 
     if (isStrictSuccess(result)) {

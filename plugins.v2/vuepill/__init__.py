@@ -271,7 +271,6 @@ class VuePill(_PluginBase):
     )
     BATCH_GIFT_REQUESTS_KEY = "batch_gift_requests"
     MAX_BATCH_GIFT_REQUEST_RECORDS = 50
-    BATCH_GIFT_FINGERPRINT_GUARD_SECONDS = 15 * 60
     _SUMMARY_COUNT_FIELDS = {
         "count",
         "events",
@@ -1902,16 +1901,7 @@ class VuePill(_PluginBase):
         result: Optional[Dict[str, Any]] = None,
     ):
         records = self._load_batch_gift_requests()
-        existing_record = records.get(request_id)
-        created_at = (
-            existing_record.get("created_at")
-            if type(existing_record) is dict
-            else None
-        )
-        if type(created_at) not in (int, float) or not math.isfinite(created_at):
-            created_at = time.time()
         record: Dict[str, Any] = {
-            "created_at": created_at,
             "fingerprint": fingerprint,
             "state": state,
             "gifted": copy.deepcopy(gifted),
@@ -1933,24 +1923,9 @@ class VuePill(_PluginBase):
         fingerprint: str,
         target_uid: str,
     ) -> Optional[Dict[str, Any]]:
-        records = self._load_batch_gift_requests()
-        record = records.get(request_id)
+        record = self._load_batch_gift_requests().get(request_id)
         if record is None:
-            guard_started_at = time.time() - self.BATCH_GIFT_FINGERPRINT_GUARD_SECONDS
-            for candidate in reversed(list(records.values())):
-                if type(candidate) is not dict:
-                    continue
-                created_at = candidate.get("created_at")
-                if (
-                    candidate.get("fingerprint") == fingerprint
-                    and type(created_at) in (int, float)
-                    and math.isfinite(created_at)
-                    and created_at >= guard_started_at
-                ):
-                    record = candidate
-                    break
-            if record is None:
-                return None
+            return None
         if type(record) is not dict or type(record.get("fingerprint")) is not str:
             raise RuntimeError("批量赠送安全记录异常，为避免重复赠送，本次未执行")
         if record["fingerprint"] != fingerprint:

@@ -1053,10 +1053,13 @@ try {
             "batchGiftRows",
             "batchGiftRequestGuard",
             "batchGiftPendingRequests",
+            "BATCH_GIFT_PENDING_STORAGE_KEY",
             "batchGiftConfirmationSnapshot",
             "batchGiftDialogToken",
             "batchGiftContentKey",
             "createBatchGiftRequestId",
+            "loadBatchGiftPendingRequests",
+            "persistBatchGiftPendingRequests",
             "requestBatchGiftConfirmation",
             "submitBatchGift",
             "batchGiftSelectedRows",
@@ -1068,6 +1071,7 @@ try {
             "request_id: snapshot.requestId",
             "batchGiftPendingRequests.get(contentKey)",
             "batchGiftPendingRequests.set(contentKey, snapshot.requestId)",
+            "window.sessionStorage",
         )
         self.assertRegex(
             self.page,

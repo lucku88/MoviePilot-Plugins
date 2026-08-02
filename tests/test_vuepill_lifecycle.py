@@ -3538,11 +3538,11 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIn("木材×2", histories[0][0])
         self.assertIn("塑料袋×3", histories[0][0])
 
-    def test_gift_items_reuses_completed_request_without_posting_again(self):
+    def test_gift_items_reuses_same_request_but_allows_new_operation(self):
         self._install_valid_site()
         self.plugin._build_session = lambda: object()
         page = self._gift_page()
-        pages = [page, page]
+        pages = [page, page, page, page]
         fetch_calls = []
 
         def fetch_page(session):
@@ -3569,7 +3569,7 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         first = self.plugin._gift_items_api(payload)
         replayed = self.plugin._gift_items_api(payload)
-        replayed_with_new_id = self.plugin._gift_items_api(
+        repeated_as_new_operation = self.plugin._gift_items_api(
             {
                 **payload,
                 "request_id": "batch-replay-new-000001",
@@ -3586,17 +3586,20 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(replayed["success"], True)
         self.assertIs(replayed["replayed"], True)
         self.assertEqual(first["gifted"], replayed["gifted"])
-        self.assertIs(replayed_with_new_id["success"], True)
-        self.assertIs(replayed_with_new_id["replayed"], True)
-        self.assertEqual(first["gifted"], replayed_with_new_id["gifted"])
+        self.assertIs(repeated_as_new_operation["success"], True)
+        self.assertIs(repeated_as_new_operation.get("replayed"), None)
+        self.assertEqual(first["gifted"], repeated_as_new_operation["gifted"])
         self.assertIs(changed["success"], False)
         self.assertIn("已用于其他赠送内容", changed["message"])
         self.assertEqual(
-            [{"item_name": "木材", "target_uid": "123", "quantity": 2}],
+            [
+                {"item_name": "木材", "target_uid": "123", "quantity": 2},
+                {"item_name": "木材", "target_uid": "123", "quantity": 2},
+            ],
             action_calls,
         )
-        self.assertEqual(2, len(fetch_calls))
-        self.assertEqual(1, len(histories))
+        self.assertEqual(4, len(fetch_calls))
+        self.assertEqual(2, len(histories))
 
     def test_gift_items_partial_failure_stops_and_reports_successes(self):
         self._install_valid_site()
