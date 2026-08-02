@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.6"
+EXPECTED_VERSION = "0.2.7"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -28,6 +28,11 @@ BUILD_INPUT_PATHS = (
     "src/utils/asyncGuards.js",
     "src/utils/configValidation.js",
     "src/utils/request.js",
+)
+EXPECTED_HISTORY_V027 = (
+    "状态页改为任务优先工作台：第一屏集中显示自动任务、下一触发动作和兑换；"
+    "物品栏改为全宽紧凑网格，炼造工坊改为三列配方布局，并继续适配浅色、深色和手机页面。"
+    "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V021 = (
     "修复真实魔丸页面因省略列表结束标签而解析失败、状态被错误保存为全零并跳过任务的问题，"
@@ -68,6 +73,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.7",
     "v0.2.6",
     "v0.2.5",
     "v0.2.4",
@@ -470,7 +476,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v026(self):
+    def test_release_versions_are_consistently_v027(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -494,10 +500,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v026_release(self):
+    def test_market_history_and_readme_describe_the_v027_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V027, history["v0.2.7"])
         self.assertEqual(EXPECTED_HISTORY_V026, history["v0.2.6"])
         self.assertEqual(EXPECTED_HISTORY_V025, history["v0.2.5"])
         self.assertEqual(EXPECTED_HISTORY_V024, history["v0.2.4"])
@@ -508,7 +515,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.6` |",
+            "| `Vue-魔丸` | `v0.2.7` |",
+            "任务优先工作台",
+            "物品栏改为全宽紧凑网格",
+            "炼造工坊改为三列配方布局",
+            "现有配置、Cookie、执行历史和动态调度计划",
             "状态页直接对齐 `Vue-思齐农场 v1.0.3`",
             "搬砖与沙滩改为同款动态任务操作卡片",
             "去除“后端标记”技术文案",
