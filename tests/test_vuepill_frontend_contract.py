@@ -1612,6 +1612,49 @@ try {{
             r"exchangeReserve=computed\([^}]*:10\}",
         )
 
+    def test_inventory_and_workshop_use_full_width_compact_grids(self):
+        self.assertRegex(
+            self.compact_page,
+            r"\.resource-grid\{[^}]*grid-template-columns:1fr",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.inventory-grid\{[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)",
+        )
+        self.assert_page_contains(
+            "inventoryCounts",
+            "ingredientCount",
+            "ingredientEnough",
+            "gift-item--static",
+            'v-if="canGiftItem(item)"',
+            "{{ name }} {{ ingredientCount(name) }}/{{ required }}",
+            "'ingredient-ready': ingredientEnough(name, required)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.gift-item--static:disabled\{[^}]*opacity:1[^}]*cursor:default",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"@media\(max-width:1100px\)\{.*?\.inventory-grid\{[^}]*repeat\(5,minmax\(0,1fr\)\).*?\.recipe-grid\{[^}]*repeat\(2,minmax\(0,1fr\)\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"@media\(max-width:700px\)\{.*?\.inventory-grid\{[^}]*repeat\(3,minmax\(0,1fr\)\).*?\.recipe-grid\{[^}]*grid-template-columns:1fr",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"@media\(max-width:900px\)\{.*?\.stats-columns\{[^}]*grid-template-columns:1fr",
+        )
+        self.assertNotRegex(
+            self.mobile_css,
+            r"\.inventory-grid\{[^}]*grid-template-columns:1fr",
+        )
+
     def test_history_is_single_line_with_time_on_the_right(self):
         self.assert_page_contains(
             "执行历史",
