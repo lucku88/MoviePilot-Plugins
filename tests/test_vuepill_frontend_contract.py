@@ -1019,6 +1019,7 @@ try {
             "/craft-item",
             "/craft-max-pill",
             "/gift-item",
+            "/gift-items",
             "/gift-stats",
         )
         self.assertNotIn("/run", self.page)
@@ -1043,6 +1044,61 @@ try {
             "giftDialogToken",
             "giftRequestGuard",
             "sameGiftSnapshot",
+        )
+
+    def test_batch_gift_dialog_selects_multiple_items_and_confirms_once(self):
+        self.assert_page_contains(
+            "批量赠送",
+            "showBatchGiftDialog",
+            "batchGiftRows",
+            "batchGiftRequestGuard",
+            "batchGiftConfirmationSnapshot",
+            "batchGiftDialogToken",
+            "requestBatchGiftConfirmation",
+            "submitBatchGift",
+            "batchGiftSelectedRows",
+            "batchGiftForm.target_uid",
+            "item.selected",
+            "item.quantity",
+            "'/gift-items'",
+        )
+        self.assertRegex(
+            self.page,
+            r'<v-dialog[^>]+v-model="showBatchGiftDialog"[^>]+:persistent="batchGiftLoading"',
+        )
+        self.assertRegex(
+            self.page,
+            r'<v-btn[^>]+aria-label="打开批量赠送"[^>]+@click="openBatchGiftDialog"',
+        )
+        self.assertIn("if (batchGiftLoading.value) return", self.page)
+
+    def test_exchange_copy_is_removed_and_resource_sections_are_full_width(self):
+        for removed in (
+            "后端保留",
+            "实际兑换以后端校验为准",
+            "支持手动兑换魔力；一键炼造魔丸已整合到物品栏。",
+            "exchangeReserveHint",
+            'v-if="exchange.note"',
+            "backend-note",
+        ):
+            with self.subTest(removed=removed):
+                self.assertNotIn(removed, self.page)
+
+        self.assertRegex(
+            self.compact_page,
+            r"\.resource-grid\{[^}]*grid-template-columns:1fr",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.inventory-grid\{[^}]*grid-template-columns:repeat\(auto-fill,minmax\(210px,1fr\)\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)",
+        )
+        self.assertNotIn(
+            ".resource-grid .inventory-grid,.resource-grid .recipe-grid{grid-template-columns:1fr}",
+            self.page,
         )
 
     def test_gift_stats_supports_direction_range_and_summaries(self):
@@ -1079,7 +1135,9 @@ try {
         self.assert_page_contains(
             "createLatestRequestGuard",
             "const statusRequestGuard = createLatestRequestGuard()",
-            "const writeActionsDisabled = computed(() => initialLoading.value",
+            "const writeActionsDisabled = computed(() => (",
+            "batchGiftLoading.value",
+            "showBatchGiftDialog.value",
             "statusRequestGuard.begin()",
             "statusRequestGuard.isCurrent(requestId)",
             "statusRequestGuard.invalidate()",
@@ -1323,11 +1381,10 @@ assert.equal(extractStatusPayload(incompleteFailure), null)
             "recipe.max_count",
             "recipe.enabled",
             "exchange.max_count",
-            "reserve",
         )
         self.assertRegex(self.page, r':max="[^\"]*recipe\.max_count')
         self.assertRegex(self.page, r':max="[^\"]*exchange\.max_count')
-        self.assertIn("exchange.value.reserve", self.page)
+        self.assertNotIn("exchange.value.reserve", self.page)
         self.assertNotIn("reserve_count", self.page)
         self.assertNotIn("reserve_magic_pill_count", self.page)
         self.assertNotIn("后端未返回 reserve", self.page)
