@@ -1063,7 +1063,7 @@ try {
             "rgba(var(--v-theme-on-surface)",
             "rgba(var(--v-theme-surface)",
         )
-        self.assertNotIn("后端上限", self.template)
+        self.assertNotIn("后端上限", self.page)
         self.assertNotIn("后端返回最大可炼造数量为 0", self.page)
         self.assertNotRegex(
             self.template,

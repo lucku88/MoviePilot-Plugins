@@ -760,7 +760,7 @@ function quantityError(value, maximum, actionName) {
   const quantity = Number(value)
   if (!Number.isInteger(quantity) || quantity < 1) return `${actionName}数量必须是正整数`
   if (maximum <= 0) return `后端返回的${actionName}上限为 0`
-  if (quantity > maximum) return `${actionName}数量不能超过后端上限 ${maximum}`
+  if (quantity > maximum) return `${actionName}数量不能超过当前最多可${actionName}数量 ${maximum}`
   return ''
 }
 
