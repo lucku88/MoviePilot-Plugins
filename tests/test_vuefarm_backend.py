@@ -243,7 +243,6 @@ class VueFarmBackendTests(unittest.TestCase):
         self.plugin = self.module.VueFarm()
         self.plugin._enabled = True
         self.plugin._notify = False
-        self.plugin._force_ipv4 = False
         self.plugin._random_delay_max_seconds = 0
 
     def test_stale_status_api_forwards_to_current_running_instance(self):
@@ -307,7 +306,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(payload, result["payload"])
 
     def test_release_metadata_matches_vuefarm_version(self):
-        expected = "0.2.13"
+        expected = "0.2.14"
         package = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package.json").read_text(encoding="utf-8"))
         package_lock = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package-lock.json").read_text(encoding="utf-8"))
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))["VueFarm"]
