@@ -85,12 +85,25 @@
           </v-col>
         </v-row>
 
-        <div class="primary-grid mb-3">
-        <v-card flat class="siqi-card schedule-board">
-          <v-card-title class="siqi-card-title d-flex align-center">
-            <v-icon icon="mdi-clock-outline" size="19" color="success" class="mr-2" />动态任务
-            <v-spacer />
-            <div class="schedule-title-actions">
+        <v-card flat class="siqi-card next-run-card mb-3">
+          <v-card-text class="next-run-body">
+            <div class="next-run-icon">
+              <v-icon icon="mdi-calendar-clock-outline" size="23" />
+            </div>
+            <div class="next-run-copy">
+              <div class="next-run-title">下次运行</div>
+              <div class="next-run-sub">按展位完成时间动态运行，不使用固定周期</div>
+              <div v-if="placementGuardText" class="next-run-guard">{{ placementGuardText }}</div>
+            </div>
+            <div class="next-run-times">
+              <div class="next-run-time">
+                <span>计划触发</span>
+                <strong>{{ toy.next_trigger_time || status.next_trigger_time || '等待刷新' }}</strong>
+              </div>
+              <div class="next-run-time">
+                <span>执行时间</span>
+                <strong>{{ toy.next_run_time || status.next_run_time || '等待刷新' }}</strong>
+              </div>
               <v-chip size="small" :color="status.enabled ? 'success' : 'grey'" variant="tonal">
                 {{ status.enabled ? '已启用' : '未启用' }}
               </v-chip>
@@ -106,149 +119,10 @@
                 <v-icon icon="mdi-play-circle-outline" size="17" class="mr-1" />立即执行
               </v-btn>
             </div>
-          </v-card-title>
-          <v-card-text class="schedule-list">
-            <div v-for="row in scheduleRows" :key="row.title" class="schedule-row">
-              <div class="schedule-row__icon" :class="`tone-${row.tone}`">
-                <v-icon :icon="row.icon" size="21" />
-              </div>
-              <div class="schedule-row__copy">
-                <div class="schedule-row__title">{{ row.title }}</div>
-                <div class="schedule-row__meta">{{ row.meta }}</div>
-              </div>
-              <div class="schedule-row__value" :class="`schedule-row__value--${row.tone}`">{{ row.value }}</div>
-            </div>
-            <v-alert v-if="summaryLines.length" type="success" variant="tonal" density="compact" class="summary-alert">
-              {{ summaryLines.join(' / ') }}
-            </v-alert>
           </v-card-text>
-        </v-card>
-
-        <v-card flat class="siqi-card personal-booth-card">
-          <v-card-title class="siqi-card-title d-flex align-center">
-            <v-icon icon="mdi-storefront-outline" size="19" color="orange" class="mr-2" />自己展位
-            <v-spacer />
-            <span class="section-count">自己的玩偶 {{ ownedPersonalCount }}/{{ personalSlots.length }}</span>
-          </v-card-title>
-          <v-card-text class="personal-booth-body">
-            <div v-if="!personalSlots.length" class="empty-state">暂未获取到自己展位</div>
-            <div v-else class="slot-grid">
-              <article
-                v-for="slot in personalSlots"
-                :key="`personal-${slot.slot_index}`"
-                class="slot-card"
-                :class="{
-                  'slot-card--ready': slotKind(slot) === 'ready',
-                  'slot-card--blocked': slotKind(slot) === 'blocked',
-                  'slot-card--empty': slot.empty,
-                }"
-              >
-                <div class="slot-card__head">
-                  <span>展位 {{ slot.slot_index }}</span>
-                  <v-chip size="x-small" :color="slotTone(slot)" variant="tonal">{{ slotBadge(slot) }}</v-chip>
-                </div>
-
-                <div v-if="slot.empty" class="slot-empty-body">
-                  <v-icon :icon="slot.cooldown_active ? 'mdi-timer-sand' : 'mdi-plus-circle-outline'" size="34" />
-                  <strong>{{ slot.cooldown_active ? '展位冷却中' : '空展位' }}</strong>
-                  <span>{{ slot.cooldown_active ? '等待冷却结束后再上架' : selectedDoll ? `准备上架 ${selectedDoll.name}` : '请先从玩偶柜选择玩偶' }}</span>
-                </div>
-                <div v-else class="slot-main">
-                  <img v-if="slot.image" :src="slot.image" :alt="slot.doll_name" class="slot-image" loading="lazy" />
-                  <div v-else class="slot-image slot-image--placeholder"><v-icon icon="mdi-teddy-bear" size="34" /></div>
-                  <div class="slot-info">
-                    <div class="slot-name">{{ slot.doll_name || '未知玩偶' }}</div>
-                    <div class="slot-owner">{{ slot.owner_name || (slot.viewer_is_occupant ? '自己' : '其他用户') }}</div>
-                    <div class="slot-meta">{{ slotRemainText(slot) }}</div>
-                    <div v-if="slot.reward_text" class="slot-meta">{{ slot.reward_text }}</div>
-                  </div>
-                </div>
-
-                <div v-if="!slot.empty" class="slot-progress" aria-hidden="true">
-                  <div class="slot-progress__bar" :style="{ width: `${Math.max(0, Math.min(100, Number(slot.progress || 0)))}%` }" />
-                </div>
-
-                <v-btn
-                  v-if="slot.empty && !slot.cooldown_active"
-                  block
-                  color="orange"
-                  variant="tonal"
-                  class="card-action"
-                  :disabled="!selectedDoll || isBusy"
-                  :loading="actionLoading === `place-personal-${slot.slot_index}`"
-                  @click="placePersonal(slot)"
-                >
-                  上架所选玩偶
-                </v-btn>
-                <v-btn
-                  v-else-if="slot.viewer_is_occupant"
-                  block
-                  :color="slotKind(slot) === 'ready' ? 'success' : 'warning'"
-                  variant="tonal"
-                  class="card-action"
-                  :disabled="isBusy"
-                  :loading="actionLoading === `collect-${slot.owner_id}-${slot.slot_index}`"
-                  @click="collectSlot(slot)"
-                >
-                  {{ slotKind(slot) === 'ready' ? '收回玩偶' : '提前收回' }}
-                </v-btn>
-                <v-btn v-else block color="grey" variant="tonal" class="card-action" disabled>
-                  已被占用
-                </v-btn>
-              </article>
-            </div>
-          </v-card-text>
-        </v-card>
-        </div>
-
-        <v-card flat class="siqi-card cabinet-card mb-3">
-          <v-card-title class="siqi-card-title d-flex align-center">
-            <v-icon icon="mdi-archive-outline" size="19" color="blue" class="mr-2" />玩偶柜
-            <v-spacer />
-            <span class="section-count">{{ cabinetCards.length }} 类玩偶</span>
-          </v-card-title>
-          <v-card-text>
-            <div class="selection-strip" :class="{ 'selection-strip--active': selectedDoll }">
-              <v-icon :icon="selectedDoll ? 'mdi-check-circle-outline' : 'mdi-cursor-default-click-outline'" size="19" />
-              <span>{{ selectedDoll ? `已选择 ${selectedDoll.name}，请点击自己或他人空展位` : '先选择可用玩偶，再点击空展位上架' }}</span>
-              <v-btn v-if="selectedDoll" size="small" variant="text" @click="selectedDollKey = ''">取消选择</v-btn>
-            </div>
-            <div v-if="!cabinetCards.length" class="empty-state">暂无玩偶</div>
-            <div v-else class="doll-grid">
-              <article
-                v-for="doll in cabinetCards"
-                :key="doll.doll_key || doll.name"
-                class="doll-card"
-                :class="{ 'doll-card--selected': selectedDollKey === doll.doll_key, 'doll-card--disabled': !doll.can_place }"
-              >
-                <div class="doll-card__head">
-                  <v-chip size="x-small" color="blue" variant="tonal">{{ doll.quality || '未识别' }}</v-chip>
-                  <span>{{ doll.origin || '' }}</span>
-                </div>
-                <img v-if="doll.image" :src="doll.image" :alt="doll.name" class="doll-image" loading="lazy" />
-                <div v-else class="doll-image doll-image--placeholder"><v-icon icon="mdi-teddy-bear" size="38" /></div>
-                <div class="doll-name">{{ doll.name }}</div>
-                <div class="doll-meta">{{ doll.display_text }}</div>
-                <div class="doll-meta">{{ doll.reward_text }}</div>
-                <div class="doll-stats">
-                  <span>可用 {{ doll.available }}</span>
-                  <span>展出 {{ doll.display_count }}</span>
-                  <span>冷却 {{ doll.cooling_count }}</span>
-                </div>
-                <div v-if="cabinetCooldownText(doll)" class="doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
-                <v-btn
-                  block
-                  color="blue"
-                  variant="tonal"
-                  class="card-action"
-                  :disabled="!doll.can_place || isBusy"
-                  @click="selectDoll(doll)"
-                >
-                  {{ selectedDollKey === doll.doll_key ? '已选择' : '选择玩偶' }}
-                </v-btn>
-              </article>
-            </div>
-          </v-card-text>
+          <v-alert v-if="summaryLines.length" type="success" variant="tonal" density="compact" class="summary-alert">
+            {{ summaryLines.join(' / ') }}
+          </v-alert>
         </v-card>
 
         <div class="two-column-grid mb-3">
@@ -327,10 +201,146 @@
           </v-card>
         </div>
 
+
+        <v-card flat class="siqi-card cabinet-card mb-3">
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-archive-outline" size="19" color="blue" class="mr-2" />玩偶柜
+            <v-spacer />
+            <span class="section-count">{{ cabinetCards.length }} 类玩偶</span>
+          </v-card-title>
+          <v-card-text>
+            <div class="selection-strip" :class="{ 'selection-strip--active': selectedDoll }">
+              <v-icon :icon="selectedDoll ? 'mdi-check-circle-outline' : 'mdi-cursor-default-click-outline'" size="19" />
+              <span>{{ selectedDoll ? `已选择 ${selectedDoll.name}，请点击自己或他人空展位` : '先选择可用玩偶，再点击空展位上架' }}</span>
+              <v-btn v-if="selectedDoll" size="small" variant="text" @click="selectedDollKey = ''">取消选择</v-btn>
+            </div>
+            <div v-if="!cabinetCards.length" class="empty-state">暂无玩偶</div>
+            <div v-else class="doll-grid">
+              <article
+                v-for="doll in cabinetCards"
+                :key="doll.doll_key || doll.name"
+                class="doll-card"
+                :class="{ 'doll-card--selected': selectedDollKey === doll.doll_key, 'doll-card--disabled': !doll.can_place }"
+              >
+                <div class="doll-card__head">
+                  <v-chip size="x-small" color="blue" variant="tonal">{{ doll.quality || '未识别' }}</v-chip>
+                  <span>{{ doll.origin || '' }}</span>
+                </div>
+                <img v-if="doll.image" :src="doll.image" :alt="doll.name" class="doll-image" loading="lazy" />
+                <div v-else class="doll-image doll-image--placeholder"><v-icon icon="mdi-teddy-bear" size="38" /></div>
+                <div class="doll-name">{{ doll.name }}</div>
+                <div class="doll-meta">{{ doll.display_text }}</div>
+                <div class="doll-meta">{{ doll.reward_text }}</div>
+                <div class="doll-stats">
+                  <span>可用 {{ doll.available }}</span>
+                  <span>展出 {{ doll.display_count }}</span>
+                  <span>冷却 {{ doll.cooling_count }}</span>
+                </div>
+                <div v-if="cabinetCooldownText(doll)" class="doll-cooldown">{{ cabinetCooldownText(doll) }}</div>
+                <div class="doll-actions">
+                  <v-btn
+                    color="blue"
+                    variant="tonal"
+                    :disabled="!doll.can_place || isBusy"
+                    @click="selectDoll(doll)"
+                  >
+                    {{ selectedDollKey === doll.doll_key ? '已选择' : '选择玩偶' }}
+                  </v-btn>
+                  <v-btn
+                    color="orange"
+                    variant="tonal"
+                    :disabled="!doll.can_recycle || Number(doll.idle || 0) <= 0 || isBusy"
+                    :loading="actionLoading === `recycle-${doll.doll_key}`"
+                    @click="openRecycleDialog(doll)"
+                  >
+                    回收
+                  </v-btn>
+                </div>
+              </article>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="siqi-card personal-booth-card">
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-storefront-outline" size="19" color="orange" class="mr-2" />我的展柜
+            <v-spacer />
+            <span class="section-count">自己的玩偶 {{ ownedPersonalCount }}/{{ personalSlots.length }}</span>
+          </v-card-title>
+          <v-card-text class="personal-booth-body">
+            <div v-if="!personalSlots.length" class="empty-state">暂未获取到自己展位</div>
+            <div v-else class="slot-grid">
+              <article
+                v-for="slot in personalSlots"
+                :key="`personal-${slot.slot_index}`"
+                class="slot-card"
+                :class="{
+                  'slot-card--ready': slotKind(slot) === 'ready',
+                  'slot-card--blocked': slotKind(slot) === 'blocked',
+                  'slot-card--empty': slot.empty,
+                }"
+              >
+                <div class="slot-card__head">
+                  <span>展位 {{ slot.slot_index }}</span>
+                  <v-chip size="x-small" :color="slotTone(slot)" variant="tonal">{{ slotBadge(slot) }}</v-chip>
+                </div>
+
+                <div v-if="slot.empty" class="slot-empty-body">
+                  <v-icon :icon="slot.cooldown_active ? 'mdi-timer-sand' : 'mdi-plus-circle-outline'" size="34" />
+                  <strong>{{ slot.cooldown_active ? '展位冷却中' : '空展位' }}</strong>
+                  <span>{{ slot.cooldown_active ? '等待冷却结束后再上架' : selectedDoll ? `准备上架 ${selectedDoll.name}` : '请先从玩偶柜选择玩偶' }}</span>
+                </div>
+                <div v-else class="slot-main">
+                  <img v-if="slot.image" :src="slot.image" :alt="slot.doll_name" class="slot-image" loading="lazy" />
+                  <div v-else class="slot-image slot-image--placeholder"><v-icon icon="mdi-teddy-bear" size="34" /></div>
+                  <div class="slot-info">
+                    <div class="slot-name">{{ slot.doll_name || '未知玩偶' }}</div>
+                    <div class="slot-owner">{{ slot.owner_name || (slot.viewer_is_occupant ? '自己' : '其他用户') }}</div>
+                    <div class="slot-meta">{{ slotRemainText(slot) }}</div>
+                    <div v-if="slot.reward_text" class="slot-meta">{{ slot.reward_text }}</div>
+                  </div>
+                </div>
+
+                <div v-if="!slot.empty" class="slot-progress" aria-hidden="true">
+                  <div class="slot-progress__bar" :style="{ width: `${Math.max(0, Math.min(100, Number(slot.progress || 0)))}%` }" />
+                </div>
+
+                <v-btn
+                  v-if="slot.empty && !slot.cooldown_active"
+                  block
+                  color="orange"
+                  variant="tonal"
+                  class="card-action"
+                  :disabled="!selectedDoll || isBusy"
+                  :loading="actionLoading === `place-personal-${slot.slot_index}`"
+                  @click="placePersonal(slot)"
+                >
+                  上架所选玩偶
+                </v-btn>
+                <v-btn
+                  v-else-if="slot.viewer_is_occupant"
+                  block
+                  :color="slotKind(slot) === 'ready' ? 'success' : 'warning'"
+                  variant="tonal"
+                  class="card-action"
+                  :disabled="isBusy"
+                  :loading="actionLoading === `collect-${slot.owner_id}-${slot.slot_index}`"
+                  @click="collectSlot(slot)"
+                >
+                  {{ slotKind(slot) === 'ready' ? '收回玩偶' : '提前收回' }}
+                </v-btn>
+                <v-btn v-else block color="grey" variant="tonal" class="card-action" disabled>
+                  已被占用
+                </v-btn>
+              </article>
+            </div>
+          </v-card-text>
+        </v-card>
+
         <div class="interaction-grid mb-3">
         <v-card flat class="siqi-card target-card">
           <v-card-title class="siqi-card-title d-flex align-center">
-            <v-icon icon="mdi-account-search-outline" size="19" color="red" class="mr-2" />寻找外展位
+            <v-icon icon="mdi-account-search-outline" size="19" color="red" class="mr-2" />抢占他人展位
             <v-spacer />
             <span v-if="targetPanel.username" class="section-count">当前目标：{{ targetPanel.username }}</span>
           </v-card-title>
@@ -398,7 +408,7 @@
 
         <v-card flat class="siqi-card remote-card">
           <v-card-title class="siqi-card-title d-flex align-center">
-            <v-icon icon="mdi-map-marker-path" size="19" color="indigo" class="mr-2" />外展记录
+            <v-icon icon="mdi-map-marker-path" size="19" color="indigo" class="mr-2" />我的外展记录
             <v-spacer />
             <span class="section-count">{{ remoteRecords.length }} 个展位</span>
           </v-card-title>
@@ -420,38 +430,60 @@
         </v-card>
         </div>
 
-        <div class="two-column-grid mb-3">
-          <v-card flat class="siqi-card activity-card">
-            <v-card-title class="siqi-card-title d-flex align-center">
-              <v-icon icon="mdi-format-list-bulleted" size="19" color="cyan" class="mr-2" />网站记录
-            </v-card-title>
-            <v-card-text>
-              <div v-if="!activityLogs.length" class="empty-state">暂无网站记录</div>
-              <div v-else class="activity-list">
-                <div v-for="(item, index) in activityLogs" :key="`${item.time}-${index}`" class="activity-row">
-                  <span>{{ item.message }}</span>
-                  <time>{{ item.time }}</time>
-                </div>
+        <v-card flat class="siqi-card activity-card mb-3">
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-format-list-bulleted" size="19" color="cyan" class="mr-2" />最新操作记录
+          </v-card-title>
+          <v-card-text>
+            <div v-if="!activityLogs.length" class="empty-state">暂无操作记录</div>
+            <div v-else class="activity-list">
+              <div v-for="(item, index) in activityLogs" :key="`${item.time}-${index}`" class="activity-row">
+                <span>{{ item.message }}</span>
+                <time>{{ item.time }}</time>
               </div>
-            </v-card-text>
-          </v-card>
-
-          <v-card flat class="siqi-card history-card">
-            <v-card-title class="siqi-card-title d-flex align-center">
-              <v-icon icon="mdi-history" size="19" color="green" class="mr-2" />执行历史
-            </v-card-title>
-            <v-card-text>
-              <div v-if="!historyItems.length" class="empty-state">暂无执行历史</div>
-              <div v-else class="history-list">
-                <article v-for="item in historyItems" :key="`${item.time}-${item.title}`" class="history-row">
-                  <div class="history-main">{{ historySummary(item) }}</div>
-                  <time class="history-time">{{ item.time }}</time>
-                </article>
-              </div>
-            </v-card-text>
-          </v-card>
-        </div>
+            </div>
+          </v-card-text>
+        </v-card>
       </template>
+      <v-dialog v-model="recycleDialog.open" max-width="420">
+        <v-card class="siqi-card recycle-dialog-card">
+          <v-card-title class="siqi-card-title d-flex align-center">
+            <v-icon icon="mdi-recycle" size="19" color="orange" class="mr-2" />回收闲置玩偶
+          </v-card-title>
+          <v-card-text v-if="recycleDialog.doll">
+            <div class="recycle-dialog-name">{{ recycleDialog.doll.name }}</div>
+            <div class="recycle-dialog-hint">
+              当前闲置 {{ recycleDialog.doll.idle || 0 }} 个，仅回收未展出、未冷却的玩偶
+            </div>
+            <v-text-field
+              v-model.number="recycleDialog.quantity"
+              type="number"
+              min="1"
+              step="1"
+              :max="recycleMax"
+              label="回收数量"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="recycle-quantity"
+            />
+            <div class="recycle-estimate">预计获得魔力：{{ recycleEstimate }}</div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="recycleDialog.open = false">取消</v-btn>
+            <v-btn
+              color="orange"
+              variant="tonal"
+              :loading="actionLoading === `recycle-confirm`"
+              :disabled="!recycleDialog.doll || recycleMax <= 0 || isBusy"
+              @click="recycleDoll"
+            >
+              确认回收
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
   </div>
 </template>
@@ -476,6 +508,7 @@ const selectedDollKey = ref('')
 const transientTargetPanel = ref({})
 const buyQuantities = reactive({})
 const openQuantities = reactive({})
+const recycleDialog = reactive({ open: false, doll: null, quantity: 1 })
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const lastAutoRefreshKey = ref('')
 
@@ -501,74 +534,39 @@ const shopBoxes = computed(() => toy.value.shop_boxes || [])
 const myBoxes = computed(() => toy.value.my_boxes || [])
 const remoteRecords = computed(() => toy.value.remote_records || [])
 const activityLogs = computed(() => toy.value.history_logs || [])
-const historyItems = computed(() => status.history || toy.value.history || [])
 const summaryLines = computed(() => (toy.value.summary || []).filter(Boolean))
 const placementGuard = computed(() => toy.value.placement_guard || {})
-const targetPanel = computed(() => {
-  if (transientTargetPanel.value?.slots?.length) return transientTargetPanel.value
-  return toy.value.target_panel || {}
-})
-const selectedDoll = computed(() => cabinetCards.value.find((item) => item.doll_key === selectedDollKey.value) || null)
-const ownedPersonalCount = computed(() => personalSlots.value.filter((slot) => slot.viewer_is_occupant).length)
-const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time))
-const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time))
-
-const nearestPersonal = computed(() => {
-  const owned = personalSlots.value.filter((slot) => slot.viewer_is_occupant && slot.remaining_seconds !== null && slot.remaining_seconds !== undefined)
-  return owned.sort((left, right) => liveRemaining(left) - liveRemaining(right))[0] || null
-})
-
-const nearestRemote = computed(() => {
-  const rows = remoteRecords.value.filter((item) => item.remaining_seconds !== null && item.remaining_seconds !== undefined)
-  return rows.sort((left, right) => liveRemaining(left) - liveRemaining(right))[0] || null
-})
-
-const scheduleRows = computed(() => {
-  const guardHours = Number(
+const placementGuardText = computed(() => {
+  const hours = Number(
     placementGuard.value.threshold_hours
       ?? placementGuard.value.guard_hours
       ?? placementGuard.value.hours
       ?? status.config?.self_slot_guard_hours
       ?? 1,
   )
-  const guardActive = !!placementGuard.value.active
-  const guardEnabled = placementGuard.value.enabled !== false && guardHours > 0
-  const guardMeta = placementGuard.value.text
+  return placementGuard.value.text
     || placementGuard.value.status_text
     || placementGuard.value.message
-    || (guardActive ? `有自己展位将在 ${guardHours} 小时内到期，暂缓外展` : `自己展位到期前 ${guardHours} 小时自动保留可用玩偶`)
-
-  return [
-    {
-      title: '自己展位收回',
-      meta: nearestPersonal.value ? `${nearestPersonal.value.doll_name || '玩偶'} · 展位 ${nearestPersonal.value.slot_index}` : '当前没有自己的展出玩偶',
-      value: nearestPersonal.value ? slotRemainText(nearestPersonal.value) : '等待展出',
-      icon: 'mdi-home-clock-outline',
-      tone: 'orange',
-    },
-    {
-      title: '外展收回',
-      meta: nearestRemote.value ? `${nearestRemote.value.owner_name || '其他用户'} · ${nearestRemote.value.doll_name || '玩偶'}` : '当前没有外展玩偶',
-      value: nearestRemote.value ? remoteRemainText(nearestRemote.value) : '暂无任务',
-      icon: 'mdi-map-clock-outline',
-      tone: 'cyan',
-    },
-    {
-      title: '自家展位保护',
-      meta: guardMeta,
-      value: guardActive ? '正在保护' : (guardEnabled ? '正常外展' : '未启用'),
-      icon: guardActive ? 'mdi-shield-home' : 'mdi-shield-home-outline',
-      tone: guardActive ? 'green' : 'blue',
-    },
-    {
-      title: '下次运行',
-      meta: `计划触发：${toy.value.next_trigger_time || status.next_trigger_time || '等待刷新'}`,
-      value: toy.value.next_run_time || status.next_run_time || '等待刷新',
-      icon: 'mdi-calendar-clock-outline',
-      tone: 'green',
-    },
-  ]
+    || (placementGuard.value.active
+      ? `有自己展位将在 ${hours} 小时内到期，暂缓外展`
+      : `自己展位到期前 ${hours} 小时自动保留可用玩偶`)
 })
+const targetPanel = computed(() => {
+  if (transientTargetPanel.value?.slots?.length) return transientTargetPanel.value
+  return toy.value.target_panel || {}
+})
+const selectedDoll = computed(() => cabinetCards.value.find((item) => item.doll_key === selectedDollKey.value) || null)
+const ownedPersonalCount = computed(() => personalSlots.value.filter((slot) => slot.viewer_is_occupant).length)
+const recycleMax = computed(() => Math.max(0, Math.floor(Number(recycleDialog.doll?.idle ?? recycleDialog.doll?.recycle_max ?? 0))))
+const recycleEstimate = computed(() => {
+  const quantity = Math.min(
+    recycleMax.value,
+    Math.max(1, Math.floor(Number(recycleDialog.quantity || 1))),
+  )
+  return quantity * Math.max(0, Number(recycleDialog.doll?.recycle_value || 0))
+})
+const nextRunTs = computed(() => Number(toy.value.next_run_ts || 0) || parseDateTime(toy.value.next_run_time))
+const nextTriggerTs = computed(() => Number(toy.value.next_trigger_ts || 0) || parseDateTime(toy.value.next_trigger_time))
 
 watch(shopBoxes, (items) => {
   items.forEach((item) => {
@@ -674,15 +672,6 @@ function slotTone(slot = {}) {
   return 'grey'
 }
 
-function historySummary(item = {}) {
-  const parts = []
-  const title = String(item.title || '').trim()
-  if (title && title !== '任务结果') parts.push(title)
-  const lines = Array.isArray(item.lines) ? item.lines.map((line) => String(line || '').trim()).filter(Boolean) : []
-  if (lines.length) parts.push(lines.join(' / '))
-  return parts.join(' / ')
-}
-
 function applyPayload(payload = {}) {
   if (payload.status?.toy_status) {
     Object.assign(status, payload.status)
@@ -746,6 +735,33 @@ function openBox(box) {
     () => props.api.post(`${pluginBase}/open-box`, { box_key: box.box_key, quantity: Number(openQuantities[key] || 1) }),
     '开启完成',
   )
+}
+
+function openRecycleDialog(doll) {
+  if (!doll?.can_recycle || Number(doll.idle || 0) <= 0 || isBusy.value) return
+  recycleDialog.doll = doll
+  recycleDialog.quantity = 1
+  recycleDialog.open = true
+}
+
+function recycleDoll() {
+  const doll = recycleDialog.doll
+  if (!doll || recycleMax.value <= 0) return null
+  const quantity = Math.min(
+    recycleMax.value,
+    Math.max(1, Math.floor(Number(recycleDialog.quantity || 1))),
+  )
+  return withAction(
+    'recycle-confirm',
+    () => props.api.post(pluginBase + '/recycle-doll', {
+      doll_key: doll.doll_key,
+      quantity,
+    }),
+    '回收完成',
+  ).then((result) => {
+    if (result) recycleDialog.open = false
+    return result
+  })
 }
 
 function selectDoll(doll) {
@@ -878,14 +894,11 @@ onBeforeUnmount(() => {
 .stat-red .stat-icon, .stat-red .stat-title, .stat-red .stat-value { color: #ef4444; }
 .overview-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px !important; }
 .overview-grid > * { width: auto !important; max-width: none !important; padding: 0 !important; }
-.primary-grid { display: grid; grid-template-columns: minmax(420px, .92fr) minmax(560px, 1.35fr); gap: 12px; align-items: stretch; }
-.interaction-grid { display: grid; grid-template-columns: minmax(360px, .8fr) minmax(520px, 1.2fr); gap: 12px; align-items: stretch; }
-.primary-grid > .siqi-card,
+.interaction-grid { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: stretch; }
 .interaction-grid > .siqi-card { height: 100%; margin-bottom: 0 !important; }
-.primary-grid .personal-booth-card { display: flex !important; flex-direction: column; }
+.personal-booth-card { display: flex !important; flex-direction: column; margin-bottom: 12px !important; }
 .personal-booth-body { display: flex; flex: 1; }
-.primary-grid .personal-booth-card .slot-grid { width: 100%; flex: 1; align-items: stretch; }
-.primary-grid .personal-booth-card .slot-card { height: 100%; }
+.personal-booth-card .slot-grid { width: 100%; }
 
 .siqi-card { background: rgba(var(--v-theme-on-surface), .03) !important; backdrop-filter: blur(20px) saturate(150%); border-radius: 14px !important; border: .5px solid rgba(var(--v-theme-on-surface), .08) !important; box-shadow: 0 2px 10px rgba(0,0,0,.05) !important; overflow: hidden; }
 .siqi-card-title { min-height: 44px; padding: 10px 16px !important; font-size: 13px !important; font-weight: 700 !important; background: rgba(76,175,80,.08); border-bottom: .5px solid rgba(var(--v-theme-on-surface), .07); color: rgba(var(--v-theme-on-surface), .84); }
@@ -895,38 +908,22 @@ onBeforeUnmount(() => {
 .box-card .siqi-card-title { background: rgba(251,146,60,.10); }
 .target-card .siqi-card-title { background: rgba(239,68,68,.08); }
 .remote-card .siqi-card-title { background: rgba(6,182,212,.09); }
-.activity-card .siqi-card-title, .history-card .siqi-card-title { background: rgba(59,130,246,.09); }
+.activity-card .siqi-card-title { background: rgba(59,130,246,.09); }
 .section-count { color: rgba(var(--v-theme-on-surface), .6); font-size: .74rem; font-weight: 500; }
 
-.schedule-title-actions { display: flex; align-items: center; gap: 8px; }
+.next-run-card { margin-bottom: 12px !important; }
+.next-run-body { display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 10px 14px !important; background: rgba(76,175,80,.08); }
+.next-run-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; color: #16a34a; background: rgba(34,197,94,.13); }
+.next-run-copy { min-width: 0; flex: 1 1 auto; }
+.next-run-title { font-size: .88rem; font-weight: 750; }
+.next-run-sub, .next-run-guard { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .58); font-size: .7rem; line-height: 1.35; }
+.next-run-guard { color: #d97706; }
+.next-run-times { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.next-run-time { display: grid; gap: 1px; min-width: 142px; text-align: right; }
+.next-run-time span { color: rgba(var(--v-theme-on-surface), .52); font-size: .64rem; }
+.next-run-time strong { color: rgba(var(--v-theme-on-surface), .86); font-size: .72rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 .schedule-run-btn { min-height: 32px !important; height: 32px !important; border-radius: 999px !important; font-size: 11px !important; font-weight: 700; letter-spacing: 0; }
-.schedule-list { display: grid; gap: 9px; padding: 12px 14px 14px; }
-.schedule-row {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 11px;
-  min-height: 58px;
-  padding: 8px 11px;
-  border: 1px solid rgba(var(--v-theme-on-surface), .07);
-  border-radius: 13px;
-  background: rgba(var(--v-theme-surface), .86);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-.schedule-row:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,.07); }
-.schedule-row__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; }
-.tone-orange { color: #ea580c; background: rgba(249, 115, 22, .13); }
-.tone-cyan { color: #0ea5e9; background: rgba(14, 165, 233, .13); }
-.tone-green { color: #16a34a; background: rgba(34, 197, 94, .13); }
-.tone-blue { color: #2563eb; background: rgba(59, 130, 246, .13); }
-.schedule-row__copy { min-width: 0; }
-.schedule-row__title { font-size: .85rem; font-weight: 700; }
-.schedule-row__meta { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .6); font-size: .73rem; line-height: 1.35; }
-.schedule-row__value { max-width: 230px; color: rgba(var(--v-theme-on-surface), .72); font-size: .8rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-.schedule-row__value--orange { color: #f59e0b; }
-.schedule-row__value--cyan { color: #0ea5e9; }
-.schedule-row__value--blue { color: #3b82f6; }
-.schedule-row__value--green { color: #22c55e; }
 .summary-alert { margin-top: 2px; font-size: .78rem; }
 
 .slot-grid,
@@ -980,6 +977,8 @@ onBeforeUnmount(() => {
 .slot-progress { height: 5px; overflow: hidden; border-radius: 999px; background: rgba(var(--v-theme-on-surface), .08); }
 .slot-progress__bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .25s ease; }
 .card-action { min-height: 44px; margin-top: auto; }
+.doll-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: auto; }
+.doll-actions :deep(.v-btn) { min-width: 0; }
 
 .selection-strip {
   display: flex;
@@ -1008,8 +1007,7 @@ onBeforeUnmount(() => {
 
 .two-column-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .box-list,
-.activity-list,
-.history-list { display: grid; gap: 8px; }
+.activity-list { display: grid; gap: 8px; }
 .box-row {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 72px auto;
@@ -1037,8 +1035,7 @@ onBeforeUnmount(() => {
 .remote-name { font-size: .82rem; font-weight: 700; }
 .remote-meta { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .6); font-size: .68rem; }
 
-.activity-row,
-.history-row {
+.activity-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1050,10 +1047,8 @@ onBeforeUnmount(() => {
   font-size: .73rem;
   line-height: 1.45;
 }
-.activity-row span,
-.history-main { min-width: 0; overflow-wrap: anywhere; }
-.activity-row time,
-.history-time {
+.activity-row span { min-width: 0; overflow-wrap: anywhere; }
+.activity-row time {
   flex: 0 0 auto;
   margin-left: auto;
   color: rgba(var(--v-theme-on-surface), .52);
@@ -1062,6 +1057,11 @@ onBeforeUnmount(() => {
   text-align: right;
   white-space: nowrap;
 }
+.recycle-dialog-card { overflow: hidden; }
+.recycle-dialog-name { font-size: 1rem; font-weight: 750; }
+.recycle-dialog-hint { margin: 6px 0 14px; color: rgba(var(--v-theme-on-surface), .58); font-size: .72rem; line-height: 1.45; }
+.recycle-quantity :deep(.v-field__input) { min-height: 42px; text-align: center; }
+.recycle-estimate { margin-top: 10px; color: #d97706; font-size: .78rem; font-weight: 700; }
 .empty-state { padding: 22px 12px; color: rgba(var(--v-theme-on-surface), .52); font-size: .78rem; text-align: center; }
 
 @media (hover: hover) {
@@ -1078,11 +1078,6 @@ onBeforeUnmount(() => {
   .interaction-grid .remote-body { max-height: 430px; overflow-y: auto; }
 }
 
-@media (max-width: 1100px) {
-  .primary-grid,
-  .interaction-grid { grid-template-columns: 1fr; }
-}
-
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two-column-grid { grid-template-columns: 1fr; }
@@ -1091,9 +1086,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
-  .schedule-row { grid-template-columns: 38px minmax(0, 1fr); }
-  .schedule-row__icon { width: 36px; height: 36px; }
-  .schedule-row__value { grid-column: 2; max-width: none; text-align: left; }
   .slot-grid,
   .doll-grid,
   .remote-grid { grid-template-columns: 1fr; }
@@ -1103,6 +1095,11 @@ onBeforeUnmount(() => {
   .target-tools { grid-template-columns: 1fr; }
   .target-tools :deep(.v-input) { grid-column: auto; }
   .target-tools .v-btn { min-height: 44px; }
+  .next-run-body { align-items: flex-start; flex-wrap: wrap; }
+  .next-run-copy { flex-basis: calc(100% - 52px); }
+  .next-run-times { width: 100%; justify-content: flex-start; padding-left: 52px; }
+  .next-run-time { min-width: 0; flex: 1 1 160px; text-align: left; }
+  .next-run-time strong { white-space: normal; }
 }
 
 @media (max-width: 600px) {
@@ -1115,6 +1112,9 @@ onBeforeUnmount(() => {
   .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
   .stat-value { font-size: 17px; }
   .section-count { display: none; }
-  .schedule-title-actions .v-chip { display: none; }
+  .next-run-times { padding-left: 0; }
+  .next-run-times .v-chip { display: none; }
+  .next-run-time { flex-basis: 100%; }
+  .doll-actions { grid-template-columns: 1fr 1fr; }
 }
 </style>

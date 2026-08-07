@@ -26,7 +26,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.2.4"
+    plugin_version = "0.2.5"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -153,6 +153,7 @@ class VueToy(_PluginBase):
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行 Vue-玩偶"},
             {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
             {"path": "/collect-slot", "endpoint": self._collect_slot_api, "methods": ["POST"], "auth": "bear", "summary": "手动收回展位玩偶"},
+            {"path": "/recycle-doll", "endpoint": self._recycle_doll_api, "methods": ["POST"], "auth": "bear", "summary": "回收闲置盲盒玩偶"},
             {"path": "/place-personal", "endpoint": self._place_personal_api, "methods": ["POST"], "auth": "bear", "summary": "上架到我的展柜"},
             {"path": "/random-target", "endpoint": self._random_target_api, "methods": ["POST"], "auth": "bear", "summary": "随机匹配外展目标"},
             {"path": "/view-target", "endpoint": self._view_target_api, "methods": ["POST"], "auth": "bear", "summary": "查看指定展台"},
@@ -506,6 +507,20 @@ class VueToy(_PluginBase):
             return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
         return {"success": False, "message": "占位"}
 
+    def _recycle_doll_api(self, payload: Optional[dict] = None):
+        try:
+            result = self._manual_recycle_doll(payload or {})
+            return {
+                "success": True,
+                "message": result["message"],
+                "toy_status": result["toy_status"],
+                "status": self._build_status(auto_refresh=False),
+            }
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            logger.warning("%s 回收闲置玩偶失败：%s", self.plugin_name, detail)
+            return {"success": False, "message": detail, "status": self._build_status(auto_refresh=False)}
+
     def _place_personal_api(self, payload: Optional[dict] = None):
         try:
             result = self._manual_place_personal(payload or {})
@@ -840,6 +855,66 @@ class VueToy(_PluginBase):
             raise ValueError(result.get("message") or "收回失败")
         toy_status = self._refresh_state(reason="manual-collect", summary_lines=["✅ 收回：已手动收回展位玩偶"], history_manual=True)
         return {"message": "收回成功", "toy_status": toy_status}
+
+    def _manual_recycle_doll(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        doll_key = str(payload.get("doll_key") or "").strip()
+        quantity = max(1, self._safe_int(payload.get("quantity"), 1))
+        if not doll_key:
+            raise ValueError("缺少玩偶信息")
+
+        session = self._build_session()
+        state = self._fetch_bundle(session)["state"]
+        doll = next(
+            (
+                item
+                for item in self._iter_dicts(state.get("doll_inventory") or [])
+                if str(item.get("doll_key") or "").strip() == doll_key
+            ),
+            None,
+        )
+        if not doll:
+            raise ValueError("未找到指定玩偶")
+
+        idle = self._safe_int(doll.get("idle"), self._safe_int(doll.get("available"), 0))
+        can_recycle = bool(
+            doll.get("can_recycle")
+            or str(doll.get("origin_type") or "").strip().lower() == "box"
+            or str(doll.get("source") or "").strip().lower() == "box"
+        )
+        if not can_recycle:
+            raise ValueError("该玩偶不可回收")
+        if idle <= 0:
+            raise ValueError("当前没有闲置玩偶可回收")
+        if quantity > idle:
+            raise ValueError(f"最多只能回收 {idle} 个")
+
+        result = self._post_action(
+            session,
+            "recycle_doll",
+            {"doll_key": doll_key, "quantity": quantity},
+        )
+        if not result.get("success"):
+            raise ValueError(result.get("message") or result.get("msg") or "回收失败")
+
+        name = str(doll.get("name") or doll_key).strip()
+        recycle_value = self._safe_int(doll.get("recycle_value"), 0)
+        reward = self._safe_int(
+            result.get("magic")
+            or result.get("magic_reward")
+            or result.get("reward")
+            or result.get("added_magic"),
+            recycle_value * quantity,
+        )
+        summary_lines = [
+            f"♻️ 回收：{name}×{quantity}",
+            f"💰收益：魔力+{max(0, reward)}",
+        ]
+        toy_status = self._refresh_state(
+            reason="manual-recycle",
+            summary_lines=summary_lines,
+            history_manual=True,
+        )
+        return {"message": f"回收完成：{name}×{quantity}", "toy_status": toy_status}
 
     def _manual_place_personal(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         owner_id = self._safe_int(payload.get("owner_id"), 0)
@@ -1694,6 +1769,14 @@ class VueToy(_PluginBase):
                 "reward_text": f"曝光+{self._safe_int(item.get('final_exposure_reward'), 0)} 魔力+{self._safe_int(item.get('final_magic_reward'), 0)}",
                 "available": available,
                 "total": total,
+                "idle": self._safe_int(item.get("idle"), available),
+                "recycle_max": self._safe_int(item.get("idle"), available),
+                "can_recycle": bool(
+                    item.get("can_recycle")
+                    or str(item.get("origin_type") or "").strip().lower() == "box"
+                    or str(item.get("source") or "").strip().lower() == "box"
+                ),
+                "recycle_value": self._safe_int(item.get("recycle_value"), 0),
                 "display_count": max(total - available - cooling, 0),
                 "cooling_count": cooling,
                 "cooldown_text": self._describe_cooldown(item),

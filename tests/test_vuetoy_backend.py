@@ -243,6 +243,68 @@ class VueToyBackendTests(unittest.TestCase):
 
         self.plugin._ensure_cookie()
 
+    def test_cabinet_cards_expose_idle_recycle_state(self):
+        state = _toy_state()
+        state["doll_inventory"][0].update({
+            "idle": 2,
+            "can_recycle": True,
+            "recycle_value": 7000,
+            "cooling_count": 1,
+        })
+
+        card = self.plugin._build_cabinet_cards(state, {})[0]
+
+        self.assertEqual(2, card["idle"])
+        self.assertTrue(card["can_recycle"])
+        self.assertEqual(7000, card["recycle_value"])
+        self.assertEqual(2, card["recycle_max"])
+
+    def test_manual_recycle_uses_idle_quantity_and_real_site_action(self):
+        state = _toy_state(available=0)
+        state["doll_inventory"][0].update({
+            "idle": 2,
+            "can_recycle": True,
+            "recycle_value": 7000,
+        })
+        calls = []
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_bundle = lambda session: {"state": state}
+
+        def post_action(session, action, payload=None, retry_network=False):
+            calls.append((action, payload, retry_network))
+            return {"success": True, "magic": 14000}
+
+        self.plugin._post_action = post_action
+        self.plugin._refresh_state = lambda **kwargs: {"summary": kwargs["summary_lines"]}
+
+        result = self.plugin._manual_recycle_doll({"doll_key": "alucard", "quantity": 2})
+
+        self.assertEqual("recycle_doll", calls[0][0])
+        self.assertEqual({"doll_key": "alucard", "quantity": 2}, calls[0][1])
+        self.assertFalse(calls[0][2])
+        self.assertIn("阿鲁卡多×2", result["message"])
+
+    def test_manual_recycle_rejects_quantity_above_idle_count(self):
+        state = _toy_state(available=0)
+        state["doll_inventory"][0].update({
+            "idle": 1,
+            "can_recycle": True,
+            "recycle_value": 7000,
+        })
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_bundle = lambda session: {"state": state}
+        post_action = mock.Mock()
+        self.plugin._post_action = post_action
+
+        with self.assertRaises(ValueError):
+            self.plugin._manual_recycle_doll({"doll_key": "alucard", "quantity": 2})
+
+        post_action.assert_not_called()
+
+    def test_recycle_api_route_is_registered(self):
+        route = next(route for route in self.plugin.get_api() if route["path"] == "/recycle-doll")
+        self.assertEqual(["POST"], route["methods"])
+
 
 if __name__ == "__main__":
     unittest.main()

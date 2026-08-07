@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.4"
+EXPECTED_VERSION = "0.2.5"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -26,18 +26,18 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v024_layout_patch(self):
+    def test_market_history_describes_v025_layout_and_recycle_patch(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "左右分区",
-            "动态任务",
-            "自己展位",
-            "主题主色",
-            "浅色",
-            "深色",
-            "手机",
+            "单行下次运行卡",
+            "盲盒商店",
+            "我的展柜",
+            "抢占他人展位",
+            "最新操作记录",
+            "闲置玩偶回收",
+            "后端校验",
             "保留配置",
         ):
             self.assertIn(phrase, note)
@@ -70,6 +70,13 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertIn(f"| `Vue-玩偶` | `v{EXPECTED_VERSION}` |", self.readme)
         section = self.readme.split("### 🧸 Vue-玩偶", 1)[1].split("### ", 1)[0]
         for phrase in (
+            "单行下次运行时间卡",
+            "盲盒商店",
+            "我的盲盒",
+            "我的展柜",
+            "抢占他人展位",
+            "最新操作记录",
+            "闲置玩偶回收",
             "四列概览",
             "三列表单",
             "左右分区",

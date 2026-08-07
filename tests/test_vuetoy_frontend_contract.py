@@ -20,12 +20,13 @@ class VueToyFrontendContractTests(unittest.TestCase):
         for expected in (
             'class="siqi-page"',
             'class="siqi-topbar"',
-            'class="siqi-card schedule-board',
+            'class="siqi-card next-run-card',
             'class="stat-card',
             'class="siqi-card personal-booth-card',
             'class="siqi-card cabinet-card',
             'class="siqi-card target-card',
-            'class="siqi-card history-card',
+            'class="siqi-card remote-card',
+            'class="siqi-card activity-card',
         ):
             self.assertIn(expected, self.page)
 
@@ -37,6 +38,7 @@ class VueToyFrontendContractTests(unittest.TestCase):
             "/refresh",
             "/run",
             "/collect-slot",
+            "/recycle-doll",
             "/place-personal",
             "/random-target",
             "/view-target",
@@ -49,19 +51,35 @@ class VueToyFrontendContractTests(unittest.TestCase):
     def test_status_page_reads_backend_guard_hours(self):
         self.assertIn("placementGuard.value.hours", self.page)
 
-    def test_personal_booth_is_rendered_before_cabinet_and_remote_target(self):
-        personal = self.page.index('class="siqi-card personal-booth-card')
+    def test_status_page_orders_boxes_then_personal_target_remote_and_latest_logs(self):
+        schedule = self.page.index('class="siqi-card next-run-card')
+        shop = self.page.index('class="siqi-card box-card')
         cabinet = self.page.index('class="siqi-card cabinet-card')
+        personal = self.page.index('class="siqi-card personal-booth-card')
         target = self.page.index('class="siqi-card target-card')
+        remote = self.page.index('class="siqi-card remote-card')
+        activity = self.page.index('class="siqi-card activity-card')
 
-        self.assertLess(personal, cabinet)
-        self.assertLess(cabinet, target)
+        self.assertLess(schedule, shop)
+        self.assertLess(shop, cabinet)
+        self.assertLess(cabinet, personal)
+        self.assertLess(personal, target)
+        self.assertLess(target, remote)
+        self.assertLess(remote, activity)
 
-    def test_history_is_one_line_with_right_aligned_time(self):
-        self.assertIn('class="history-main"', self.page)
-        self.assertIn('class="history-time"', self.page)
-        self.assertIn("parts.join(' / ')", self.page)
-        self.assertRegex(self.page, r"\.history-time\s*\{[^}]*margin-left:\s*auto")
+    def test_status_page_removes_execution_history_and_adds_cabinet_recycle(self):
+        self.assertNotIn(">执行历史</", self.page)
+        self.assertIn("最新操作记录", self.page)
+        self.assertIn("openRecycleDialog", self.page)
+        self.assertIn("recycleDoll", self.page)
+        self.assertIn("recycleDialog", self.page)
+        self.assertIn("idle", self.page)
+        self.assertIn("can_recycle", self.page)
+
+    def test_latest_activity_is_one_line_with_right_aligned_time(self):
+        self.assertIn('class="activity-row"', self.page)
+        self.assertIn("<time>{{ item.time }}</time>", self.page)
+        self.assertRegex(self.page, r"\.activity-row time\s*\{[^}]*margin-left:\s*auto")
 
     def test_config_matches_siqifarm_and_exposes_guard_parameter(self):
         for expected in (
@@ -139,31 +157,32 @@ class VueToyFrontendContractTests(unittest.TestCase):
 
     def test_status_page_uses_the_same_desktop_bento_rhythm_as_farm_and_pill(self):
         for expected in (
-            'class="primary-grid mb-3"',
+            'class="siqi-card next-run-card',
+            'class="two-column-grid mb-3"',
             'class="interaction-grid mb-3"',
             'class="personal-booth-body"',
         ):
             self.assertIn(expected, self.page)
 
         for expected in (
-            ".primary-grid{display:grid;grid-template-columns:minmax(420px,.92fr)minmax(560px,1.35fr);gap:12px;align-items:stretch;}",
-            ".interaction-grid{display:grid;grid-template-columns:minmax(360px,.8fr)minmax(520px,1.2fr);gap:12px;align-items:stretch;}",
-            ".primary-grid.personal-booth-card{display:flex!important;flex-direction:column;}",
+            ".next-run-body{display:flex;align-items:center;gap:12px;",
+            ".interaction-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:stretch;}",
+            ".personal-booth-card{display:flex!important;flex-direction:column;",
             ".personal-booth-body{display:flex;flex:1;}",
-            ".primary-grid.personal-booth-card.slot-grid{width:100%;flex:1;align-items:stretch;}",
-            "@media(max-width:1100px)",
+            ".personal-booth-card.slot-grid{width:100%;}",
+            "@media(max-width:720px)",
         ):
             self.assertIn(expected, self.compact_page)
 
-    def test_schedule_status_colors_do_not_follow_moviepilot_primary_color(self):
-        self.assertIn(':class="`schedule-row__value--${row.tone}`"', self.page)
+    def test_next_run_card_does_not_follow_moviepilot_primary_color(self):
+        self.assertIn('class="next-run-time"', self.page)
+        self.assertIn('class="next-run-guard"', self.page)
         self.assertNotIn("color:rgb(var(--v-theme-primary))", self.compact_page)
 
         for expected in (
-            ".schedule-row__value--orange{color:#f59e0b;}",
-            ".schedule-row__value--cyan{color:#0ea5e9;}",
-            ".schedule-row__value--blue{color:#3b82f6;}",
-            ".schedule-row__value--green{color:#22c55e;}",
+            ".next-run-icon{display:grid;place-items:center;",
+            "color:#16a34a;",
+            ".next-run-guard{color:#d97706;}",
         ):
             self.assertIn(expected, self.compact_page)
 
