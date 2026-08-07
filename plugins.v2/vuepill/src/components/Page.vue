@@ -235,23 +235,29 @@
               <small>刷新后仍为空时，请以后端页面数据为准。</small>
             </div>
             <div v-else class="inventory-grid">
-              <button
+              <div
                 v-for="item in inventoryItems"
                 :key="item.name"
-                type="button"
                 class="gift-item"
-                :class="{ 'gift-item--available': canGiftItem(item) }"
-                :disabled="!canGiftItem(item)"
-                :aria-label="canGiftItem(item) ? `赠送 ${item.name}` : `${item.name} 当前不可赠送`"
-                @click="openGiftDialog(item)"
+                :class="{
+                  'gift-item--available': isGiftableInventoryItem(item),
+                  'gift-item--readonly': !isGiftableInventoryItem(item),
+                }"
               >
                 <span class="gift-item__icon">{{ item.icon || '📦' }}</span>
                 <span class="gift-item__main">
                   <strong>{{ item.name }}</strong>
                   <small>数量 {{ item.count ?? 0 }}</small>
                 </span>
-                <span class="gift-item__state">{{ canGiftItem(item) ? '点击赠送' : '不可赠送' }}</span>
-              </button>
+                <button
+                  v-if="isGiftableInventoryItem(item)"
+                  type="button"
+                  class="gift-item__action"
+                  :aria-label="`赠送 ${item.name}`"
+                  :disabled="writeActionsDisabled"
+                  @click="openGiftDialog(item)"
+                >赠送</button>
+              </div>
             </div>
           </v-card-text>
           </v-card>
@@ -291,26 +297,28 @@
                   <span v-for="(required, name) in recipe.ingredients || {}" :key="`${recipe.craft_id}-${name}`">{{ name }} ×{{ required }}</span>
                 </div>
                 <div class="recipe-controls">
-                  <v-text-field
-                    v-model="recipeQuantities[recipe.craft_id]"
-                    class="recipe-quantity-input"
-                    type="number"
-                    min="1"
-                    :max="recipe.max_count"
-                    label="数量"
-                    variant="outlined"
-                    density="compact"
-                    hide-details="auto"
-                    :error-messages="recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : []"
-                    :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0"
-                  />
-                  <v-btn
-                    color="cyan-darken-1"
-                    variant="tonal"
-                    :loading="actionLoading === `craft-${recipe.craft_id}`"
-                    :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe)"
-                    @click="craftRecipe(recipe)"
-                  >炼造</v-btn>
+                  <div class="recipe-controls__group">
+                    <v-text-field
+                      v-model="recipeQuantities[recipe.craft_id]"
+                      class="recipe-quantity-input"
+                      type="number"
+                      min="1"
+                      :max="recipe.max_count"
+                      label="数量"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      :error-messages="recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : []"
+                      :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0"
+                    />
+                    <v-btn
+                      color="cyan-darken-1"
+                      variant="tonal"
+                      :loading="actionLoading === `craft-${recipe.craft_id}`"
+                      :disabled="writeActionsDisabled || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe)"
+                      @click="craftRecipe(recipe)"
+                    >炼造</v-btn>
+                  </div>
                 </div>
                 <div v-if="recipeUnavailableReason(recipe)" class="unavailable-reason">
                   {{ recipeUnavailableReason(recipe) }}
@@ -649,6 +657,11 @@ const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.re
 function isAllowedGiftItem(item) {
   return GIFTABLE_ITEM_NAMES.has(String(item?.name || '').trim())
 }
+function isGiftableInventoryItem(item) {
+  return isAllowedGiftItem(item)
+    && item?.giftable === true
+    && Number(item?.count || 0) > 0
+}
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : [])
 const isBusy = computed(() => !!actionLoading.value)
 const writeActionsDisabled = computed(() => (
@@ -671,9 +684,7 @@ const giftFormError = computed(() => {
 })
 const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.value || 0}，最终以后端校验为准。`)
 
-const batchGiftableItems = computed(() => inventoryItems.value.filter((item) => (
-  isAllowedGiftItem(item) && item?.giftable === true && Number(item?.count || 0) > 0
-)))
+const batchGiftableItems = computed(() => inventoryItems.value.filter(isGiftableInventoryItem))
 const batchGiftSelectedRows = computed(() => batchGiftRows.value.filter((item) => item.selected))
 const batchGiftSummary = computed(() => batchGiftSelectedRows.value
   .map((item) => `${item.name}×${Number.parseInt(item.quantity, 10) || 0}`)
@@ -824,9 +835,7 @@ function overviewIcon(item) {
 
 function canGiftItem(item) {
   return !writeActionsDisabled.value
-    && isAllowedGiftItem(item)
-    && item?.giftable === true
-    && Number(item?.count || 0) > 0
+    && isGiftableInventoryItem(item)
 }
 
 function openGiftDialog(item) {
@@ -1279,8 +1288,8 @@ onBeforeUnmount(() => {
 .primary-grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(360px,.78fr);gap:12px;align-items:stretch}.primary-grid>.siqi-card{height:100%;margin-bottom:0!important}.resource-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:stretch}.resource-grid>.siqi-card{min-width:0}.card-subtitle{margin-left:10px;color:rgba(var(--v-theme-on-surface),.48);font-size:12px;font-weight:500}
 .schedule-board-body{padding:16px!important}.schedule-action-list{display:flex;flex-direction:column;gap:8px}.neu-action-card{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:76px;padding:10px 12px;border-radius:12px;background:rgba(var(--v-theme-surface),.86);border:1px solid rgba(76,175,80,.16);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.neu-action-card:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.07)}.neu-action-card--beach{border-color:rgba(14,165,233,.18)}.neu-action-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(76,175,80,.10);color:#22c55e}.neu-action-card--beach .neu-action-icon{background:rgba(14,165,233,.11);color:#0ea5e9}.neu-action-content{min-width:0}.neu-action-heading{display:flex;align-items:center;gap:8px;min-width:0}.neu-action-label{font-size:13px;font-weight:800;color:rgba(var(--v-theme-on-surface),.84);line-height:1.2}.neu-action-desc{margin-top:3px;color:rgba(var(--v-theme-on-surface),.52);font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.schedule-status{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.55);font-size:10px;font-weight:800;white-space:nowrap}.schedule-status--ready{background:rgba(34,197,94,.12);color:#22c55e}.schedule-status--done{background:rgba(245,158,11,.12);color:#f59e0b}.schedule-status--cooldown{background:rgba(14,165,233,.11);color:#0ea5e9}.schedule-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}.schedule-meta span{padding:3px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.045);border:1px solid rgba(var(--v-theme-on-surface),.065);font-size:10px;color:rgba(var(--v-theme-on-surface),.58);font-variant-numeric:tabular-nums}.neu-btn{height:32px!important;min-height:32px!important;border-radius:999px!important;font-weight:800;letter-spacing:0;font-size:11px!important;min-width:82px!important;box-shadow:none!important}.schedule-action{flex:0 0 auto}
 .exchange-body{padding:16px!important}.exchange-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.exchange-stat{padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);text-align:center}.exchange-stat span{display:block;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-stat strong{display:inline-block;margin-top:3px;font-size:21px;color:#f59e0b}.exchange-stat small{margin-left:3px;color:rgba(var(--v-theme-on-surface),.52)}.exchange-action-panel{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px}.exchange-quantity-field{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}.exchange-quantity-label{font-size:11px;font-weight:700;color:rgba(var(--v-theme-on-surface),.58);white-space:nowrap}.exchange-quantity-input{width:96px;flex:0 0 96px}.exchange-action-button{min-width:108px!important}
-.inventory-title-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item:disabled{cursor:not-allowed;opacity:.58}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__state{font-size:10px;font-weight:800;color:#f59e0b;white-space:nowrap}
-.recipe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.recipe-card{padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:40px}.recipe-quantity-input{width:96px;flex:0 0 96px}.recipe-controls :deep(.v-btn){min-width:64px}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
+.inventory-title-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.inventory-body,.workshop-body{padding:14px!important}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}.gift-item{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border-radius:12px;text-align:left;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.07);color:rgba(var(--v-theme-on-surface),.82);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;cursor:default}.gift-item--readonly{grid-template-columns:42px minmax(0,1fr);opacity:.82}.gift-item--available{cursor:pointer}.gift-item--available:hover{transform:translateY(-1px);border-color:rgba(251,146,60,.3);box-shadow:0 6px 16px rgba(15,23,42,.08)}.gift-item__icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(251,146,60,.12);font-size:24px}.gift-item__main{min-width:0}.gift-item__main strong,.gift-item__main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gift-item__main strong{font-size:13px}.gift-item__main small{margin-top:4px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.gift-item__action{justify-self:end;min-width:58px;padding:7px 10px;border:1px solid rgba(245,158,11,.24);border-radius:999px;background:rgba(245,158,11,.10);color:#f59e0b;font-size:11px;font-weight:800;line-height:1;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}.gift-item__action:hover:not(:disabled){transform:translateY(-1px);background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.38)}.gift-item__action:disabled{cursor:not-allowed;opacity:.55}
+.recipe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.recipe-card{display:flex;flex-direction:column;min-height:176px;padding:12px;border-radius:13px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(6,182,212,.16)}.recipe-card--disabled{border-color:rgba(var(--v-theme-on-surface),.08)}.recipe-head{display:flex;align-items:center;gap:10px}.recipe-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(6,182,212,.12);font-size:22px;flex:0 0 38px}.recipe-title{min-width:0}.recipe-title strong,.recipe-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipe-title strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.84)}.recipe-title small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.recipe-ingredients{display:flex;flex:1 1 auto;align-content:flex-start;gap:6px;flex-wrap:wrap;min-height:44px;margin:10px 0 4px}.recipe-ingredients span{padding:4px 7px;border-radius:999px;background:rgba(var(--v-theme-on-surface),.055);font-size:10px;color:rgba(var(--v-theme-on-surface),.65)}.recipe-controls{display:flex;align-items:center;justify-content:center;min-height:44px;margin-top:auto;padding-top:6px}.recipe-controls__group{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:214px}.recipe-quantity-input{width:88px;flex:0 0 88px}.recipe-controls :deep(.v-btn){min-width:64px}.unavailable-reason{margin-top:8px;padding:7px 9px;border-radius:9px;background:rgba(239,68,68,.08);color:#ef5350;font-size:11px;line-height:1.5}
 .history-body{max-height:360px;overflow-y:auto;padding:12px!important}.history-list{display:flex;flex-direction:column;border-radius:12px;background:rgba(var(--v-theme-surface),.68);border:1px solid rgba(var(--v-theme-on-surface),.06);overflow:hidden}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.07);font-size:12px}.history-item:last-child{border-bottom:none}.history-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.68)}.history-time{text-align:right;white-space:nowrap;color:rgba(var(--v-theme-on-surface),.48);font-size:11px;font-variant-numeric:tabular-nums}
 .empty-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;color:rgba(var(--v-theme-on-surface),.54)}.empty-state strong{font-size:13px}.empty-state small{font-size:11px;color:rgba(var(--v-theme-on-surface),.42)}.compact-empty{min-height:96px}
 .siqi-dialog{background:rgba(var(--v-theme-surface),.98)!important;border-radius:16px!important;border:1px solid rgba(var(--v-theme-on-surface),.10)!important;box-shadow:0 18px 48px rgba(15,23,42,.18)!important;overflow:hidden}.dialog-header{display:flex;align-items:center;gap:12px;padding:14px 16px!important;background:rgba(var(--v-theme-on-surface),.025);border-bottom:1px solid rgba(var(--v-theme-on-surface),.08)!important}.dialog-avatar{width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.12);display:grid;place-items:center;font-size:25px;flex:0 0 48px}.batch-gift-avatar{color:#f59e0b}.stats-avatar{color:#3b82f6;background:rgba(59,130,246,.12)}.dialog-copy{flex:1;min-width:0}.dialog-copy strong,.dialog-copy small{display:block}.dialog-copy strong{font-size:15px;color:rgba(var(--v-theme-on-surface),.84)}.dialog-copy small{margin-top:3px;font-size:11px;color:rgba(var(--v-theme-on-surface),.5)}.dialog-body{display:grid;gap:4px;padding:18px 18px 4px!important}.dialog-actions{padding:10px 16px 16px!important}.dialog-actions :deep(.v-spacer){flex:1 1 auto!important}.confirm-alert{margin-top:4px}.batch-gift-body{gap:12px!important}.batch-gift-list{display:flex;flex-direction:column;gap:8px;max-height:430px;overflow-y:auto;padding:2px}.batch-gift-row{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(120px,150px);align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:1px solid rgba(var(--v-theme-on-surface),.08);transition:border-color .16s ease,background .16s ease}.batch-gift-row--selected{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.24)}.batch-gift-item{display:flex;align-items:center;gap:10px;min-width:0}.batch-gift-item__icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(245,158,11,.12);font-size:22px;flex:0 0 38px}.batch-gift-item__copy{min-width:0}.batch-gift-item__copy strong,.batch-gift-item__copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.batch-gift-item__copy strong{font-size:13px;color:rgba(var(--v-theme-on-surface),.82)}.batch-gift-item__copy small{margin-top:3px;font-size:10px;color:rgba(var(--v-theme-on-surface),.5)}.stats-dialog-body{padding:16px!important}.stats-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats-applied-filter{margin:-2px 0 10px;font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.summary-stat{padding:13px;border-radius:12px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.16);text-align:center}.summary-stat span,.summary-stat strong{display:block}.summary-stat span{font-size:11px;color:rgba(var(--v-theme-on-surface),.52)}.summary-stat strong{margin-top:4px;font-size:22px;color:#3b82f6}.stats-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stats-section{min-width:0;padding:12px;border-radius:12px;background:rgba(var(--v-theme-surface),.66);border:1px solid rgba(var(--v-theme-on-surface),.07)}.stats-section h3{margin:0 0 8px;font-size:13px;color:rgba(var(--v-theme-on-surface),.8)}.stats-list{display:flex;flex-direction:column}.stats-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(var(--v-theme-on-surface),.06)}.stats-row:last-child{border-bottom:none}.stats-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}.stats-row small{white-space:nowrap;color:rgba(var(--v-theme-on-surface),.5)}.stats-empty{padding:20px 8px;text-align:center;font-size:12px;color:rgba(var(--v-theme-on-surface),.48)}

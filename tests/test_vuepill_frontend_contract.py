@@ -1133,8 +1133,43 @@ try {
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:flex-end",
+            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:center",
         )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-quantity-input\{[^}]*width:\d+px",
+        )
+
+    def test_inventory_hides_gift_controls_for_non_giftable_items(self):
+        self.assert_page_contains(
+            'v-for="item in inventoryItems"',
+            "isGiftableInventoryItem",
+            'v-if="isGiftableInventoryItem(item)"',
+            'class="gift-item__action"',
+        )
+        self.assertNotIn("当前不可赠送", self.page)
+        self.assertNotIn("不可赠送", self.page)
+        self.assertNotIn('class="gift-item__state"', self.page)
+        self.assertRegex(
+            self.page,
+            r'<button[\s\S]*v-if="isGiftableInventoryItem\(item\)"[\s\S]*'
+            r'class="gift-item__action"[\s\S]*@click="openGiftDialog\(item\)"',
+        )
+
+    def test_recipe_cards_keep_the_operation_group_at_the_bottom(self):
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-card\{[^}]*display:flex[^}]*flex-direction:column",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-ingredients\{[^}]*flex:11auto",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-controls\{[^}]*margin-top:auto",
+        )
+        self.assertIn("recipe-controls__group", self.page)
         self.assertRegex(
             self.compact_page,
             r"\.recipe-quantity-input\{[^}]*width:\d+px",

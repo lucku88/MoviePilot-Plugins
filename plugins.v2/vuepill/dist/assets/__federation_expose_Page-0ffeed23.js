@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-66d70fe2.js';
 
-const Page_vue_vue_type_style_index_0_scoped_a70e6a85_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_032669ac_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a70e6a85"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-032669ac"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -82,25 +82,25 @@ const _hoisted_53 = {
   key: 1,
   class: "inventory-grid"
 };
-const _hoisted_54 = ["disabled", "aria-label", "onClick"];
-const _hoisted_55 = { class: "gift-item__icon" };
-const _hoisted_56 = { class: "gift-item__main" };
-const _hoisted_57 = { class: "gift-item__state" };
-const _hoisted_58 = {
+const _hoisted_54 = { class: "gift-item__icon" };
+const _hoisted_55 = { class: "gift-item__main" };
+const _hoisted_56 = ["aria-label", "disabled", "onClick"];
+const _hoisted_57 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "后端暂未返回配方", -1));
-const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "页面不会自行补造配方或推测可炼造状态。", -1));
-const _hoisted_61 = {
+const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "后端暂未返回配方", -1));
+const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "页面不会自行补造配方或推测可炼造状态。", -1));
+const _hoisted_60 = {
   key: 1,
   class: "recipe-grid"
 };
-const _hoisted_62 = { class: "recipe-head" };
-const _hoisted_63 = { class: "recipe-icon" };
-const _hoisted_64 = { class: "recipe-title" };
-const _hoisted_65 = { class: "recipe-ingredients" };
-const _hoisted_66 = { class: "recipe-controls" };
+const _hoisted_61 = { class: "recipe-head" };
+const _hoisted_62 = { class: "recipe-icon" };
+const _hoisted_63 = { class: "recipe-title" };
+const _hoisted_64 = { class: "recipe-ingredients" };
+const _hoisted_65 = { class: "recipe-controls" };
+const _hoisted_66 = { class: "recipe-controls__group" };
 const _hoisted_67 = {
   key: 0,
   class: "unavailable-reason"
@@ -273,6 +273,11 @@ const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.re
 function isAllowedGiftItem(item) {
   return GIFTABLE_ITEM_NAMES.has(String(item?.name || '').trim())
 }
+function isGiftableInventoryItem(item) {
+  return isAllowedGiftItem(item)
+    && item?.giftable === true
+    && Number(item?.count || 0) > 0
+}
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : []);
 const isBusy = computed(() => !!actionLoading.value);
 const writeActionsDisabled = computed(() => (
@@ -295,9 +300,7 @@ const giftFormError = computed(() => {
 });
 const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.value || 0}，最终以后端校验为准。`);
 
-const batchGiftableItems = computed(() => inventoryItems.value.filter((item) => (
-  isAllowedGiftItem(item) && item?.giftable === true && Number(item?.count || 0) > 0
-)));
+const batchGiftableItems = computed(() => inventoryItems.value.filter(isGiftableInventoryItem));
 const batchGiftSelectedRows = computed(() => batchGiftRows.value.filter((item) => item.selected));
 const batchGiftSummary = computed(() => batchGiftSelectedRows.value
   .map((item) => `${item.name}×${Number.parseInt(item.quantity, 10) || 0}`)
@@ -448,9 +451,7 @@ function overviewIcon(item) {
 
 function canGiftItem(item) {
   return !writeActionsDisabled.value
-    && isAllowedGiftItem(item)
-    && item?.giftable === true
-    && Number(item?.count || 0) > 0
+    && isGiftableInventoryItem(item)
 }
 
 function openGiftDialog(item) {
@@ -1303,21 +1304,29 @@ return (_ctx, _cache) => {
                           ]))
                         : (_openBlock(), _createElementBlock("div", _hoisted_53, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
-                              return (_openBlock(), _createElementBlock("button", {
+                              return (_openBlock(), _createElementBlock("div", {
                                 key: item.name,
-                                type: "button",
-                                class: _normalizeClass(["gift-item", { 'gift-item--available': canGiftItem(item) }]),
-                                disabled: !canGiftItem(item),
-                                "aria-label": canGiftItem(item) ? `赠送 ${item.name}` : `${item.name} 当前不可赠送`,
-                                onClick: $event => (openGiftDialog(item))
+                                class: _normalizeClass(["gift-item", {
+                  'gift-item--available': isGiftableInventoryItem(item),
+                  'gift-item--readonly': !isGiftableInventoryItem(item),
+                }])
                               }, [
-                                _createElementVNode("span", _hoisted_55, _toDisplayString(item.icon || '📦'), 1),
-                                _createElementVNode("span", _hoisted_56, [
+                                _createElementVNode("span", _hoisted_54, _toDisplayString(item.icon || '📦'), 1),
+                                _createElementVNode("span", _hoisted_55, [
                                   _createElementVNode("strong", null, _toDisplayString(item.name), 1),
                                   _createElementVNode("small", null, "数量 " + _toDisplayString(item.count ?? 0), 1)
                                 ]),
-                                _createElementVNode("span", _hoisted_57, _toDisplayString(canGiftItem(item) ? '点击赠送' : '不可赠送'), 1)
-                              ], 10, _hoisted_54))
+                                (isGiftableInventoryItem(item))
+                                  ? (_openBlock(), _createElementBlock("button", {
+                                      key: 0,
+                                      type: "button",
+                                      class: "gift-item__action",
+                                      "aria-label": `赠送 ${item.name}`,
+                                      disabled: writeActionsDisabled.value,
+                                      onClick: $event => (openGiftDialog(item))
+                                    }, "赠送", 8, _hoisted_56))
+                                  : _createCommentVNode("", true)
+                              ], 2))
                             }), 128))
                           ]))
                     ]),
@@ -1359,23 +1368,23 @@ return (_ctx, _cache) => {
                   _createVNode(_component_v_card_text, { class: "workshop-body" }, {
                     default: _withCtx(() => [
                       (!recipes.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_58, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_57, [
                             _createVNode(_component_v_icon, {
                               icon: "mdi-flask-empty-outline",
                               size: "34"
                             }),
-                            _hoisted_59,
-                            _hoisted_60
+                            _hoisted_58,
+                            _hoisted_59
                           ]))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_61, [
+                        : (_openBlock(), _createElementBlock("div", _hoisted_60, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipes.value, (recipe) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: recipe.craft_id,
                                 class: _normalizeClass(["recipe-card", { 'recipe-card--disabled': recipe.enabled !== true }])
                               }, [
-                                _createElementVNode("div", _hoisted_62, [
-                                  _createElementVNode("span", _hoisted_63, _toDisplayString(recipe.icon || '⚒️'), 1),
-                                  _createElementVNode("div", _hoisted_64, [
+                                _createElementVNode("div", _hoisted_61, [
+                                  _createElementVNode("span", _hoisted_62, _toDisplayString(recipe.icon || '⚒️'), 1),
+                                  _createElementVNode("div", _hoisted_63, [
                                     _createElementVNode("strong", null, _toDisplayString(recipe.output_item || recipe.name || recipe.title), 1),
                                     _createElementVNode("small", null, [
                                       _createTextVNode(" 配方 ID " + _toDisplayString(recipe.craft_id) + " ", 1),
@@ -1387,40 +1396,42 @@ return (_ctx, _cache) => {
                                     ])
                                   ])
                                 ]),
-                                _createElementVNode("div", _hoisted_65, [
+                                _createElementVNode("div", _hoisted_64, [
                                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipe.ingredients || {}, (required, name) => {
                                     return (_openBlock(), _createElementBlock("span", {
                                       key: `${recipe.craft_id}-${name}`
                                     }, _toDisplayString(name) + " ×" + _toDisplayString(required), 1))
                                   }), 128))
                                 ]),
-                                _createElementVNode("div", _hoisted_66, [
-                                  _createVNode(_component_v_text_field, {
-                                    modelValue: recipeQuantities[recipe.craft_id],
-                                    "onUpdate:modelValue": $event => ((recipeQuantities[recipe.craft_id]) = $event),
-                                    class: "recipe-quantity-input",
-                                    type: "number",
-                                    min: "1",
-                                    max: recipe.max_count,
-                                    label: "数量",
-                                    variant: "outlined",
-                                    density: "compact",
-                                    "hide-details": "auto",
-                                    "error-messages": recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : [],
-                                    disabled: writeActionsDisabled.value || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0
-                                  }, null, 8, ["modelValue", "onUpdate:modelValue", "max", "error-messages", "disabled"]),
-                                  _createVNode(_component_v_btn, {
-                                    color: "cyan-darken-1",
-                                    variant: "tonal",
-                                    loading: actionLoading.value === `craft-${recipe.craft_id}`,
-                                    disabled: writeActionsDisabled.value || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe),
-                                    onClick: $event => (craftRecipe(recipe))
-                                  }, {
-                                    default: _withCtx(() => [
-                                      _createTextVNode("炼造")
-                                    ]),
-                                    _: 2
-                                  }, 1032, ["loading", "disabled", "onClick"])
+                                _createElementVNode("div", _hoisted_65, [
+                                  _createElementVNode("div", _hoisted_66, [
+                                    _createVNode(_component_v_text_field, {
+                                      modelValue: recipeQuantities[recipe.craft_id],
+                                      "onUpdate:modelValue": $event => ((recipeQuantities[recipe.craft_id]) = $event),
+                                      class: "recipe-quantity-input",
+                                      type: "number",
+                                      min: "1",
+                                      max: recipe.max_count,
+                                      label: "数量",
+                                      variant: "outlined",
+                                      density: "compact",
+                                      "hide-details": "auto",
+                                      "error-messages": recipeQuantityError(recipe) ? [recipeQuantityError(recipe)] : [],
+                                      disabled: writeActionsDisabled.value || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0
+                                    }, null, 8, ["modelValue", "onUpdate:modelValue", "max", "error-messages", "disabled"]),
+                                    _createVNode(_component_v_btn, {
+                                      color: "cyan-darken-1",
+                                      variant: "tonal",
+                                      loading: actionLoading.value === `craft-${recipe.craft_id}`,
+                                      disabled: writeActionsDisabled.value || recipe.enabled !== true || Number(recipe.max_count || 0) <= 0 || !!recipeQuantityError(recipe),
+                                      onClick: $event => (craftRecipe(recipe))
+                                    }, {
+                                      default: _withCtx(() => [
+                                        _createTextVNode("炼造")
+                                      ]),
+                                      _: 2
+                                    }, 1032, ["loading", "disabled", "onClick"])
+                                  ])
                                 ]),
                                 (recipeUnavailableReason(recipe))
                                   ? (_openBlock(), _createElementBlock("div", _hoisted_67, _toDisplayString(recipeUnavailableReason(recipe)), 1))
@@ -1975,6 +1986,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a70e6a85"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-032669ac"]]);
 
 export { PageView as default };
