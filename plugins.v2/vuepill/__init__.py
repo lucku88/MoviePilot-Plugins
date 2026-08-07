@@ -212,7 +212,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、单件/批量赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.10"
+    plugin_version = "0.2.11"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -271,6 +271,18 @@ class VuePill(_PluginBase):
     )
     BATCH_GIFT_REQUESTS_KEY = "batch_gift_requests"
     MAX_BATCH_GIFT_REQUEST_RECORDS = 50
+    GIFTABLE_ITEM_NAMES = frozenset(
+        {
+            "砖块",
+            "木材",
+            "塑料袋",
+            "瓶子",
+            "螺丝",
+            "旧电池",
+            "破铜片",
+            "蚯蚓",
+        }
+    )
     _SUMMARY_COUNT_FIELDS = {
         "count",
         "events",
@@ -1794,6 +1806,8 @@ class VuePill(_PluginBase):
         item_name = item_name.strip()
         if len(item_name) > 100 or self._contains_control_characters(item_name):
             raise ValueError("物品名称包含不安全字符")
+        if item_name not in self.GIFTABLE_ITEM_NAMES:
+            raise ValueError(f"物品 {item_name} 当前不可赠送")
 
         raw_target = payload.get("target_uid")
         if raw_target is None or (type(raw_target) is str and not raw_target.strip()):

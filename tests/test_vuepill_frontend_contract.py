@@ -1105,11 +1105,60 @@ try {
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)",
+            r"\.recipe-grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)",
         )
         self.assertNotIn(
             ".resource-grid .inventory-grid,.resource-grid .recipe-grid{grid-template-columns:1fr}",
             self.page,
+        )
+
+    def test_exchange_and_recipe_controls_use_compact_reference_layout(self):
+        self.assertNotIn("后端上限", self.page)
+        self.assert_page_contains(
+            'class="exchange-quantity-field"',
+            'class="exchange-quantity-input"',
+            'class="recipe-quantity-input"',
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.exchange-summary\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.exchange-action-panel\{[^}]*display:flex[^}]*justify-content:center",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.exchange-quantity-input\{[^}]*width:\d+px",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:flex-end",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-quantity-input\{[^}]*width:\d+px",
+        )
+
+    def test_gift_ui_limits_actions_to_basic_material_whitelist(self):
+        self.assert_page_contains(
+            "GIFTABLE_ITEM_NAMES",
+            "砖块",
+            "木材",
+            "塑料袋",
+            "瓶子",
+            "螺丝",
+            "旧电池",
+            "破铜片",
+            "蚯蚓",
+        )
+        self.assertRegex(
+            self.page,
+            r"function\s+isAllowedGiftItem\(item\)[\s\S]*GIFTABLE_ITEM_NAMES\.has",
+        )
+        self.assertRegex(
+            self.page,
+            r"batchGiftableItems\s*=\s*computed\(\(\)\s*=>\s*inventoryItems\.value\.filter",
         )
 
     def test_gift_stats_supports_direction_range_and_summaries(self):

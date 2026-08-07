@@ -3692,6 +3692,52 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.assertEqual([], action_calls)
 
+    def test_gift_item_rejects_crafted_item_even_when_site_marks_it_giftable(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        page["inventory"].append(
+            {"name": "木工件", "count": 3, "giftable": True}
+        )
+        self.plugin._fetch_page_state = lambda session: page
+        action_calls = []
+        self.plugin._post_action = lambda *args, **kwargs: action_calls.append(
+            (args, kwargs)
+        ) or {"success": True}
+
+        result = self.plugin._gift_item_api(
+            {"item_name": "木工件", "target_uid": "123", "quantity": 1}
+        )
+
+        self.assertIs(result["success"], False)
+        self.assertIn("不可赠送", result["message"])
+        self.assertEqual([], action_calls)
+
+    def test_batch_gift_rejects_crafted_item_before_any_post(self):
+        self._install_valid_site()
+        self.plugin._build_session = lambda: object()
+        page = self._gift_page()
+        page["inventory"].append(
+            {"name": "木工件", "count": 3, "giftable": True}
+        )
+        self.plugin._fetch_page_state = lambda session: page
+        action_calls = []
+        self.plugin._post_action = lambda *args, **kwargs: action_calls.append(
+            (args, kwargs)
+        ) or {"success": True}
+
+        result = self.plugin._gift_items_api(
+            {
+                "request_id": "batch-crafted-0000001",
+                "target_uid": "123",
+                "items": [{"item_name": "木工件", "quantity": 1}],
+            }
+        )
+
+        self.assertIs(result["success"], False)
+        self.assertIn("不可赠送", result["message"])
+        self.assertEqual([], action_calls)
+
     def test_gift_item_accepts_500_and_rejects_more_than_500(self):
         self._install_valid_site()
         self.plugin._build_session = lambda: object()

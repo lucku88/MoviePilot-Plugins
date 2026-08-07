@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc, s as safeResponseMessage, i as isStrictSuccess, r as resolveGiftStatsFilters, c as createLatestRequestGuard, e as extractStatusPayload } from './_plugin-vue_export-helper-66d70fe2.js';
 
-const Page_vue_vue_type_style_index_0_scoped_ed080f1e_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_a70e6a85_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-ed080f1e"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a70e6a85"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -67,107 +67,106 @@ const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 const _hoisted_42 = { class: "exchange-stat" };
 const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "单颗价值", -1));
 const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "魔力", -1));
-const _hoisted_45 = { class: "exchange-stat" };
-const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "后端上限", -1));
-const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "颗", -1));
-const _hoisted_48 = { class: "exchange-action-panel" };
-const _hoisted_49 = { class: "resource-grid mb-3" };
-const _hoisted_50 = { class: "inventory-title-actions" };
-const _hoisted_51 = {
+const _hoisted_45 = { class: "exchange-action-panel" };
+const _hoisted_46 = { class: "exchange-quantity-field" };
+const _hoisted_47 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "exchange-quantity-label" }, "兑换数量", -1));
+const _hoisted_48 = { class: "resource-grid mb-3" };
+const _hoisted_49 = { class: "inventory-title-actions" };
+const _hoisted_50 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "物品栏暂无内容", -1));
-const _hoisted_53 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "刷新后仍为空时，请以后端页面数据为准。", -1));
-const _hoisted_54 = {
+const _hoisted_51 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "物品栏暂无内容", -1));
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "刷新后仍为空时，请以后端页面数据为准。", -1));
+const _hoisted_53 = {
   key: 1,
   class: "inventory-grid"
 };
-const _hoisted_55 = ["disabled", "aria-label", "onClick"];
-const _hoisted_56 = { class: "gift-item__icon" };
-const _hoisted_57 = { class: "gift-item__main" };
-const _hoisted_58 = { class: "gift-item__state" };
-const _hoisted_59 = {
+const _hoisted_54 = ["disabled", "aria-label", "onClick"];
+const _hoisted_55 = { class: "gift-item__icon" };
+const _hoisted_56 = { class: "gift-item__main" };
+const _hoisted_57 = { class: "gift-item__state" };
+const _hoisted_58 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "后端暂未返回配方", -1));
-const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "页面不会自行补造配方或推测可炼造状态。", -1));
-const _hoisted_62 = {
+const _hoisted_59 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "后端暂未返回配方", -1));
+const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("small", null, "页面不会自行补造配方或推测可炼造状态。", -1));
+const _hoisted_61 = {
   key: 1,
   class: "recipe-grid"
 };
-const _hoisted_63 = { class: "recipe-head" };
-const _hoisted_64 = { class: "recipe-icon" };
-const _hoisted_65 = { class: "recipe-title" };
-const _hoisted_66 = { class: "recipe-ingredients" };
-const _hoisted_67 = { class: "recipe-controls" };
-const _hoisted_68 = {
+const _hoisted_62 = { class: "recipe-head" };
+const _hoisted_63 = { class: "recipe-icon" };
+const _hoisted_64 = { class: "recipe-title" };
+const _hoisted_65 = { class: "recipe-ingredients" };
+const _hoisted_66 = { class: "recipe-controls" };
+const _hoisted_67 = {
   key: 0,
   class: "unavailable-reason"
 };
-const _hoisted_69 = {
+const _hoisted_68 = {
   key: 0,
   class: "empty-state compact-empty"
 };
-const _hoisted_70 = {
+const _hoisted_69 = {
   key: 1,
   class: "history-list"
 };
-const _hoisted_71 = { class: "history-detail" };
-const _hoisted_72 = { class: "history-time" };
-const _hoisted_73 = { class: "dialog-avatar" };
-const _hoisted_74 = { class: "dialog-copy" };
-const _hoisted_75 = { class: "dialog-avatar batch-gift-avatar" };
-const _hoisted_76 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
+const _hoisted_70 = { class: "history-detail" };
+const _hoisted_71 = { class: "history-time" };
+const _hoisted_72 = { class: "dialog-avatar" };
+const _hoisted_73 = { class: "dialog-copy" };
+const _hoisted_74 = { class: "dialog-avatar batch-gift-avatar" };
+const _hoisted_75 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
   /*#__PURE__*/_createElementVNode("strong", null, "批量赠送"),
   /*#__PURE__*/_createElementVNode("small", null, "勾选多种物品，共用一个接收方 UID；每种物品单次最多赠送 500 个。")
 ], -1));
-const _hoisted_77 = { class: "batch-gift-list" };
-const _hoisted_78 = { class: "batch-gift-item" };
-const _hoisted_79 = { class: "batch-gift-item__icon" };
-const _hoisted_80 = { class: "batch-gift-item__copy" };
-const _hoisted_81 = { class: "dialog-avatar stats-avatar" };
-const _hoisted_82 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
+const _hoisted_76 = { class: "batch-gift-list" };
+const _hoisted_77 = { class: "batch-gift-item" };
+const _hoisted_78 = { class: "batch-gift-item__icon" };
+const _hoisted_79 = { class: "batch-gift-item__copy" };
+const _hoisted_80 = { class: "dialog-avatar stats-avatar" };
+const _hoisted_81 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "dialog-copy" }, [
   /*#__PURE__*/_createElementVNode("strong", null, "赠送统计"),
   /*#__PURE__*/_createElementVNode("small", null, "按后端记录查看赠出或收到的物品汇总。")
 ], -1));
-const _hoisted_83 = { class: "stats-filters" };
-const _hoisted_84 = {
+const _hoisted_82 = { class: "stats-filters" };
+const _hoisted_83 = {
   key: 1,
   class: "empty-state"
 };
-const _hoisted_85 = { class: "stats-applied-filter" };
-const _hoisted_86 = { class: "gift-stats summary-grid" };
-const _hoisted_87 = { class: "summary-stat" };
-const _hoisted_88 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总事件数", -1));
-const _hoisted_89 = { class: "summary-stat" };
-const _hoisted_90 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总数量", -1));
-const _hoisted_91 = {
+const _hoisted_84 = { class: "stats-applied-filter" };
+const _hoisted_85 = { class: "gift-stats summary-grid" };
+const _hoisted_86 = { class: "summary-stat" };
+const _hoisted_87 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总事件数", -1));
+const _hoisted_88 = { class: "summary-stat" };
+const _hoisted_89 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "总数量", -1));
+const _hoisted_90 = {
   key: 0,
   class: "empty-state compact-empty"
 };
-const _hoisted_92 = {
+const _hoisted_91 = {
   key: 1,
   class: "stats-columns"
 };
-const _hoisted_93 = { class: "stats-section" };
-const _hoisted_94 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "用户汇总", -1));
-const _hoisted_95 = {
+const _hoisted_92 = { class: "stats-section" };
+const _hoisted_93 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "用户汇总", -1));
+const _hoisted_94 = {
   key: 0,
   class: "stats-empty"
 };
-const _hoisted_96 = {
+const _hoisted_95 = {
   key: 1,
   class: "stats-list"
 };
-const _hoisted_97 = { class: "stats-section" };
-const _hoisted_98 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "物品汇总", -1));
-const _hoisted_99 = {
+const _hoisted_96 = { class: "stats-section" };
+const _hoisted_97 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("h3", null, "物品汇总", -1));
+const _hoisted_98 = {
   key: 0,
   class: "stats-empty"
 };
-const _hoisted_100 = {
+const _hoisted_99 = {
   key: 1,
   class: "stats-list"
 };
@@ -193,6 +192,16 @@ const apiPost = (path, data = {}) => props.api.post(`/plugin/${PLUGIN_ID}${path}
 
 const status = reactive({ pill_status: {}, history: [] });
 const message = reactive({ text: '', type: 'success' });
+const GIFTABLE_ITEM_NAMES = new Set([
+  '砖块',
+  '木材',
+  '塑料袋',
+  '瓶子',
+  '螺丝',
+  '旧电池',
+  '破铜片',
+  '蚯蚓',
+]);
 const initialLoading = ref(true);
 const actionLoading = ref('');
 const exchangeQuantity = ref('1');
@@ -261,6 +270,9 @@ const inventoryItems = computed(() => {
   return Array.isArray(inventory.items) ? inventory.items : []
 });
 const recipes = computed(() => Array.isArray(pill.value.recipes) ? pill.value.recipes : []);
+function isAllowedGiftItem(item) {
+  return GIFTABLE_ITEM_NAMES.has(String(item?.name || '').trim())
+}
 const historyItems = computed(() => Array.isArray(status.history) ? status.history : []);
 const isBusy = computed(() => !!actionLoading.value);
 const writeActionsDisabled = computed(() => (
@@ -284,7 +296,7 @@ const giftFormError = computed(() => {
 const giftQuantityHint = computed(() => `前端提示范围 1-${giftMaxQuantity.value || 0}，最终以后端校验为准。`);
 
 const batchGiftableItems = computed(() => inventoryItems.value.filter((item) => (
-  item?.giftable === true && Number(item?.count || 0) > 0
+  isAllowedGiftItem(item) && item?.giftable === true && Number(item?.count || 0) > 0
 )));
 const batchGiftSelectedRows = computed(() => batchGiftRows.value.filter((item) => item.selected));
 const batchGiftSummary = computed(() => batchGiftSelectedRows.value
@@ -413,8 +425,8 @@ async function runAction(key, request, fallbackMessage) {
 function quantityError(value, maximum, actionName) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1) return `${actionName}数量必须是正整数`
-  if (maximum <= 0) return `后端返回的${actionName}上限为 0`
-  if (quantity > maximum) return `${actionName}数量不能超过后端上限 ${maximum}`
+  if (maximum <= 0) return `${actionName}数量暂不可用`
+  if (quantity > maximum) return `${actionName}数量不能超过当前可用数量 ${maximum}`
   return ''
 }
 
@@ -435,7 +447,10 @@ function overviewIcon(item) {
 }
 
 function canGiftItem(item) {
-  return !writeActionsDisabled.value && item?.giftable === true && Number(item?.count || 0) > 0
+  return !writeActionsDisabled.value
+    && isAllowedGiftItem(item)
+    && item?.giftable === true
+    && Number(item?.count || 0) > 0
 }
 
 function openGiftDialog(item) {
@@ -1189,26 +1204,26 @@ return (_ctx, _cache) => {
                           _hoisted_43,
                           _createElementVNode("strong", null, _toDisplayString(exchange.value.pill_price ?? 0), 1),
                           _hoisted_44
-                        ]),
-                        _createElementVNode("div", _hoisted_45, [
-                          _hoisted_46,
-                          _createElementVNode("strong", null, _toDisplayString(exchange.value.max_count ?? 0), 1),
-                          _hoisted_47
                         ])
                       ]),
-                      _createElementVNode("div", _hoisted_48, [
-                        _createVNode(_component_v_text_field, {
-                          modelValue: exchangeQuantity.value,
-                          "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((exchangeQuantity).value = $event)),
-                          type: "number",
-                          min: "1",
-                          max: exchange.value.max_count,
-                          label: "兑换数量",
-                          variant: "outlined",
-                          density: "compact",
-                          "error-messages": exchangeQuantityError.value ? [exchangeQuantityError.value] : []
-                        }, null, 8, ["modelValue", "max", "error-messages"]),
+                      _createElementVNode("div", _hoisted_45, [
+                        _createElementVNode("div", _hoisted_46, [
+                          _hoisted_47,
+                          _createVNode(_component_v_text_field, {
+                            modelValue: exchangeQuantity.value,
+                            "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((exchangeQuantity).value = $event)),
+                            class: "exchange-quantity-input",
+                            type: "number",
+                            min: "1",
+                            max: exchange.value.max_count,
+                            variant: "outlined",
+                            density: "compact",
+                            "hide-details": "auto",
+                            "error-messages": exchangeQuantityError.value ? [exchangeQuantityError.value] : []
+                          }, null, 8, ["modelValue", "max", "error-messages"])
+                        ]),
                         _createVNode(_component_v_btn, {
+                          class: "exchange-action-button",
                           color: "amber-darken-2",
                           variant: "tonal",
                           loading: actionLoading.value === 'exchange',
@@ -1228,7 +1243,7 @@ return (_ctx, _cache) => {
                 _: 1
               })
             ]),
-            _createElementVNode("div", _hoisted_49, [
+            _createElementVNode("div", _hoisted_48, [
               _createVNode(_component_v_card, {
                 flat: "",
                 class: "siqi-card inventory-card"
@@ -1243,7 +1258,7 @@ return (_ctx, _cache) => {
                       }),
                       _createTextVNode("物品栏 "),
                       _createVNode(_component_v_spacer),
-                      _createElementVNode("div", _hoisted_50, [
+                      _createElementVNode("div", _hoisted_49, [
                         _createVNode(_component_v_btn, {
                           color: "orange-darken-1",
                           variant: "tonal",
@@ -1278,15 +1293,15 @@ return (_ctx, _cache) => {
                   _createVNode(_component_v_card_text, { class: "inventory-body" }, {
                     default: _withCtx(() => [
                       (!inventoryItems.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_51, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_50, [
                             _createVNode(_component_v_icon, {
                               icon: "mdi-package-variant",
                               size: "34"
                             }),
-                            _hoisted_52,
-                            _hoisted_53
+                            _hoisted_51,
+                            _hoisted_52
                           ]))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_54, [
+                        : (_openBlock(), _createElementBlock("div", _hoisted_53, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(inventoryItems.value, (item) => {
                               return (_openBlock(), _createElementBlock("button", {
                                 key: item.name,
@@ -1296,13 +1311,13 @@ return (_ctx, _cache) => {
                                 "aria-label": canGiftItem(item) ? `赠送 ${item.name}` : `${item.name} 当前不可赠送`,
                                 onClick: $event => (openGiftDialog(item))
                               }, [
-                                _createElementVNode("span", _hoisted_56, _toDisplayString(item.icon || '📦'), 1),
-                                _createElementVNode("span", _hoisted_57, [
+                                _createElementVNode("span", _hoisted_55, _toDisplayString(item.icon || '📦'), 1),
+                                _createElementVNode("span", _hoisted_56, [
                                   _createElementVNode("strong", null, _toDisplayString(item.name), 1),
                                   _createElementVNode("small", null, "数量 " + _toDisplayString(item.count ?? 0), 1)
                                 ]),
-                                _createElementVNode("span", _hoisted_58, _toDisplayString(canGiftItem(item) ? '点击赠送' : '不可赠送'), 1)
-                              ], 10, _hoisted_55))
+                                _createElementVNode("span", _hoisted_57, _toDisplayString(canGiftItem(item) ? '点击赠送' : '不可赠送'), 1)
+                              ], 10, _hoisted_54))
                             }), 128))
                           ]))
                     ]),
@@ -1344,23 +1359,23 @@ return (_ctx, _cache) => {
                   _createVNode(_component_v_card_text, { class: "workshop-body" }, {
                     default: _withCtx(() => [
                       (!recipes.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_59, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_58, [
                             _createVNode(_component_v_icon, {
                               icon: "mdi-flask-empty-outline",
                               size: "34"
                             }),
-                            _hoisted_60,
-                            _hoisted_61
+                            _hoisted_59,
+                            _hoisted_60
                           ]))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_62, [
+                        : (_openBlock(), _createElementBlock("div", _hoisted_61, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipes.value, (recipe) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: recipe.craft_id,
                                 class: _normalizeClass(["recipe-card", { 'recipe-card--disabled': recipe.enabled !== true }])
                               }, [
-                                _createElementVNode("div", _hoisted_63, [
-                                  _createElementVNode("span", _hoisted_64, _toDisplayString(recipe.icon || '⚒️'), 1),
-                                  _createElementVNode("div", _hoisted_65, [
+                                _createElementVNode("div", _hoisted_62, [
+                                  _createElementVNode("span", _hoisted_63, _toDisplayString(recipe.icon || '⚒️'), 1),
+                                  _createElementVNode("div", _hoisted_64, [
                                     _createElementVNode("strong", null, _toDisplayString(recipe.output_item || recipe.name || recipe.title), 1),
                                     _createElementVNode("small", null, [
                                       _createTextVNode(" 配方 ID " + _toDisplayString(recipe.craft_id) + " ", 1),
@@ -1372,17 +1387,18 @@ return (_ctx, _cache) => {
                                     ])
                                   ])
                                 ]),
-                                _createElementVNode("div", _hoisted_66, [
+                                _createElementVNode("div", _hoisted_65, [
                                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(recipe.ingredients || {}, (required, name) => {
                                     return (_openBlock(), _createElementBlock("span", {
                                       key: `${recipe.craft_id}-${name}`
                                     }, _toDisplayString(name) + " ×" + _toDisplayString(required), 1))
                                   }), 128))
                                 ]),
-                                _createElementVNode("div", _hoisted_67, [
+                                _createElementVNode("div", _hoisted_66, [
                                   _createVNode(_component_v_text_field, {
                                     modelValue: recipeQuantities[recipe.craft_id],
                                     "onUpdate:modelValue": $event => ((recipeQuantities[recipe.craft_id]) = $event),
+                                    class: "recipe-quantity-input",
                                     type: "number",
                                     min: "1",
                                     max: recipe.max_count,
@@ -1407,7 +1423,7 @@ return (_ctx, _cache) => {
                                   }, 1032, ["loading", "disabled", "onClick"])
                                 ]),
                                 (recipeUnavailableReason(recipe))
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_68, _toDisplayString(recipeUnavailableReason(recipe)), 1))
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_67, _toDisplayString(recipeUnavailableReason(recipe)), 1))
                                   : _createCommentVNode("", true)
                               ], 2))
                             }), 128))
@@ -1438,15 +1454,15 @@ return (_ctx, _cache) => {
                 _createVNode(_component_v_card_text, { class: "history-body" }, {
                   default: _withCtx(() => [
                     (!historyItems.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_69, "暂无执行记录"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_70, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_68, "暂无执行记录"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_69, [
                           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
                             return (_openBlock(), _createElementBlock("div", {
                               key: historyKey(item),
                               class: "history-item"
                             }, [
-                              _createElementVNode("span", _hoisted_71, _toDisplayString(historyText(item)), 1),
-                              _createElementVNode("time", _hoisted_72, _toDisplayString(item.time || ''), 1)
+                              _createElementVNode("span", _hoisted_70, _toDisplayString(historyText(item)), 1),
+                              _createElementVNode("time", _hoisted_71, _toDisplayString(item.time || ''), 1)
                             ]))
                           }), 128))
                         ]))
@@ -1472,8 +1488,8 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, { class: "dialog-header" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_73, _toDisplayString(selectedGiftItem.value?.icon || '🎁'), 1),
-                _createElementVNode("div", _hoisted_74, [
+                _createElementVNode("div", _hoisted_72, _toDisplayString(selectedGiftItem.value?.icon || '🎁'), 1),
+                _createElementVNode("div", _hoisted_73, [
                   _createElementVNode("strong", null, "赠送 " + _toDisplayString(selectedGiftItem.value?.name || '物品'), 1),
                   _createElementVNode("small", null, "当前库存 " + _toDisplayString(selectedGiftItem.value?.count ?? 0) + "，网站单次最多接受 500 个。", 1)
                 ]),
@@ -1608,10 +1624,10 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, { class: "dialog-header" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_75, [
+                _createElementVNode("div", _hoisted_74, [
                   _createVNode(_component_v_icon, { icon: "mdi-gift-open-outline" })
                 ]),
-                _hoisted_76,
+                _hoisted_75,
                 _createVNode(_component_v_btn, {
                   icon: "",
                   variant: "text",
@@ -1637,7 +1653,7 @@ return (_ctx, _cache) => {
                   autocomplete: "off",
                   disabled: batchGiftLoading.value
                 }, null, 8, ["modelValue", "disabled"]),
-                _createElementVNode("div", _hoisted_77, [
+                _createElementVNode("div", _hoisted_76, [
                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(batchGiftRows.value, (item) => {
                     return (_openBlock(), _createElementBlock("div", {
                       key: item.name,
@@ -1650,9 +1666,9 @@ return (_ctx, _cache) => {
                         "aria-label": `${item.name} 加入批量赠送`,
                         disabled: batchGiftLoading.value
                       }, null, 8, ["modelValue", "onUpdate:modelValue", "aria-label", "disabled"]),
-                      _createElementVNode("div", _hoisted_78, [
-                        _createElementVNode("span", _hoisted_79, _toDisplayString(item.icon || '📦'), 1),
-                        _createElementVNode("span", _hoisted_80, [
+                      _createElementVNode("div", _hoisted_77, [
+                        _createElementVNode("span", _hoisted_78, _toDisplayString(item.icon || '📦'), 1),
+                        _createElementVNode("span", _hoisted_79, [
                           _createElementVNode("strong", null, _toDisplayString(item.name), 1),
                           _createElementVNode("small", null, "库存 " + _toDisplayString(item.count) + " · 最多 " + _toDisplayString(item.maxQuantity), 1)
                         ])
@@ -1778,10 +1794,10 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, { class: "dialog-header" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_81, [
+                _createElementVNode("div", _hoisted_80, [
                   _createVNode(_component_v_icon, { icon: "mdi-chart-box-outline" })
                 ]),
-                _hoisted_82,
+                _hoisted_81,
                 _createVNode(_component_v_btn, {
                   icon: "",
                   variant: "text",
@@ -1799,7 +1815,7 @@ return (_ctx, _cache) => {
             }),
             _createVNode(_component_v_card_text, { class: "stats-dialog-body" }, {
               default: _withCtx(() => [
-                _createElementVNode("div", _hoisted_83, [
+                _createElementVNode("div", _hoisted_82, [
                   _createVNode(_component_v_btn_toggle, {
                     modelValue: giftStatsDraftDirection.value,
                     "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((giftStatsDraftDirection).value = $event)),
@@ -1877,28 +1893,28 @@ return (_ctx, _cache) => {
                       _: 1
                     }))
                   : (giftStatsLoading.value && !giftStats.value)
-                    ? (_openBlock(), _createElementBlock("div", _hoisted_84, "正在加载赠送统计..."))
+                    ? (_openBlock(), _createElementBlock("div", _hoisted_83, "正在加载赠送统计..."))
                     : (giftStats.value)
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 2 }, [
-                          _createElementVNode("div", _hoisted_85, "当前数据：" + _toDisplayString(giftStatsAppliedDirectionLabel.value) + " · " + _toDisplayString(giftStatsAppliedRangeLabel.value), 1),
-                          _createElementVNode("div", _hoisted_86, [
-                            _createElementVNode("div", _hoisted_87, [
-                              _hoisted_88,
+                          _createElementVNode("div", _hoisted_84, "当前数据：" + _toDisplayString(giftStatsAppliedDirectionLabel.value) + " · " + _toDisplayString(giftStatsAppliedRangeLabel.value), 1),
+                          _createElementVNode("div", _hoisted_85, [
+                            _createElementVNode("div", _hoisted_86, [
+                              _hoisted_87,
                               _createElementVNode("strong", null, _toDisplayString(giftStats.value.total_events ?? 0), 1)
                             ]),
-                            _createElementVNode("div", _hoisted_89, [
-                              _hoisted_90,
+                            _createElementVNode("div", _hoisted_88, [
+                              _hoisted_89,
                               _createElementVNode("strong", null, _toDisplayString(giftStats.value.total_quantity ?? 0), 1)
                             ])
                           ]),
                           (giftStatsEmpty.value)
-                            ? (_openBlock(), _createElementBlock("div", _hoisted_91, "当前筛选范围暂无赠送记录"))
-                            : (_openBlock(), _createElementBlock("div", _hoisted_92, [
-                                _createElementVNode("section", _hoisted_93, [
-                                  _hoisted_94,
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_90, "当前筛选范围暂无赠送记录"))
+                            : (_openBlock(), _createElementBlock("div", _hoisted_91, [
+                                _createElementVNode("section", _hoisted_92, [
+                                  _hoisted_93,
                                   (!giftStatsUsers.value.length)
-                                    ? (_openBlock(), _createElementBlock("div", _hoisted_95, "暂无用户数据"))
-                                    : (_openBlock(), _createElementBlock("div", _hoisted_96, [
+                                    ? (_openBlock(), _createElementBlock("div", _hoisted_94, "暂无用户数据"))
+                                    : (_openBlock(), _createElementBlock("div", _hoisted_95, [
                                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(giftStatsUsers.value, (row) => {
                                           return (_openBlock(), _createElementBlock("div", {
                                             key: row.uid || row.name || row.display_name,
@@ -1910,11 +1926,11 @@ return (_ctx, _cache) => {
                                         }), 128))
                                       ]))
                                 ]),
-                                _createElementVNode("section", _hoisted_97, [
-                                  _hoisted_98,
+                                _createElementVNode("section", _hoisted_96, [
+                                  _hoisted_97,
                                   (!giftStatsItems.value.length)
-                                    ? (_openBlock(), _createElementBlock("div", _hoisted_99, "暂无物品数据"))
-                                    : (_openBlock(), _createElementBlock("div", _hoisted_100, [
+                                    ? (_openBlock(), _createElementBlock("div", _hoisted_98, "暂无物品数据"))
+                                    : (_openBlock(), _createElementBlock("div", _hoisted_99, [
                                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(giftStatsItems.value, (row) => {
                                           return (_openBlock(), _createElementBlock("div", {
                                             key: row.item_name || row.name,
@@ -1959,6 +1975,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ed080f1e"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a70e6a85"]]);
 
 export { PageView as default };
