@@ -212,7 +212,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、单件/批量赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.9"
+    plugin_version = "0.2.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -1463,7 +1463,8 @@ class VuePill(_PluginBase):
                 "gift_item",
                 {
                     "item_name": item_name,
-                    "target_uid": target_uid,
+                    # si-qi.xyz 的表单字段叫 uid；target_uid 只作为插件 API 的兼容字段。
+                    "uid": target_uid,
                     "quantity": quantity,
                 },
                 retry_network=False,
@@ -1599,7 +1600,7 @@ class VuePill(_PluginBase):
                     result = self._post_action(
                         session,
                         "gift_item",
-                        {**current_item, "target_uid": target_uid},
+                        {**current_item, "uid": target_uid},
                         retry_network=False,
                     )
                     if not isinstance(result, dict) or result.get("success") is not True:

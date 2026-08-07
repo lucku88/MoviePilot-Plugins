@@ -3520,12 +3520,12 @@ class VuePillLifecycleTests(unittest.TestCase):
             [
                 (
                     "gift_item",
-                    {"item_name": "木材", "target_uid": "123", "quantity": 2},
+                    {"item_name": "木材", "uid": "123", "quantity": 2},
                     {"retry_network": False},
                 ),
                 (
                     "gift_item",
-                    {"item_name": "塑料袋", "target_uid": "123", "quantity": 3},
+                    {"item_name": "塑料袋", "uid": "123", "quantity": 3},
                     {"retry_network": False},
                 ),
             ],
@@ -3593,8 +3593,8 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIn("已用于其他赠送内容", changed["message"])
         self.assertEqual(
             [
-                {"item_name": "木材", "target_uid": "123", "quantity": 2},
-                {"item_name": "木材", "target_uid": "123", "quantity": 2},
+                {"item_name": "木材", "uid": "123", "quantity": 2},
+                {"item_name": "木材", "uid": "123", "quantity": 2},
             ],
             action_calls,
         )
@@ -3804,7 +3804,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             {
                 "action": "gift_item",
                 "item_name": "木材",
-                "target_uid": "12345",
+                "uid": "12345",
                 "quantity": 5,
             },
             session.post_calls[0]["data"],

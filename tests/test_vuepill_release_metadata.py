@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.9"
+EXPECTED_VERSION = "0.2.10"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -33,6 +33,11 @@ EXPECTED_HISTORY_V029 = (
     "精简兑换魔力区域说明，物品栏与炼造工坊改为分别占据整行；新增批量赠送，"
     "可勾选多种物品共用一个 UID，后端先完整校验再顺序赠送，并在部分失败时停止和报告"
     "已成功项目；同一请求编号只执行一次，网络响应丢失后重试不会重复赠送。"
+    "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
+)
+EXPECTED_HISTORY_V0210 = (
+    "修复 si-qi.xyz 真实赠送接口要求使用 uid 而插件发送 target_uid 导致的参数错误；"
+    "单件赠送和批量赠送均已修正，继续保留批量完整校验、按顺序赠送、失败即停和请求防重复机制。"
     "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V028 = (
@@ -85,6 +90,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.10",
     "v0.2.9",
     "v0.2.8",
     "v0.2.7",
@@ -490,7 +496,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v029(self):
+    def test_release_versions_are_consistently_v0210(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -514,10 +520,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v029_release(self):
+    def test_market_history_and_readme_describe_the_v0210_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V0210, history["v0.2.10"])
         self.assertEqual(EXPECTED_HISTORY_V029, history["v0.2.9"])
         self.assertEqual(EXPECTED_HISTORY_V028, history["v0.2.8"])
         self.assertEqual(EXPECTED_HISTORY_V027, history["v0.2.7"])
@@ -531,7 +538,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.9` |",
+            "| `Vue-魔丸` | `v0.2.10` |",
+            "真实赠送接口要求使用 `uid`",
+            "单件和批量赠送均已修正",
             "物品栏与炼造工坊分别占据整行",
             "批量赠送",
             "后端先完整校验再顺序赠送",
