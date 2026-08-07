@@ -1133,7 +1133,7 @@ try {
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:center",
+            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:flex-end",
         )
         self.assertRegex(
             self.compact_page,
