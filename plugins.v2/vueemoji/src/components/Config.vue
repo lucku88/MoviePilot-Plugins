@@ -7,7 +7,7 @@
         </div>
         <div class="siqi-topbar__copy">
           <div class="siqi-topbar__title">Vue-表情 · 配置</div>
-          <div class="siqi-topbar__sub">管理老虎机、开包和舞台演出策略</div>
+          <div class="siqi-topbar__sub">管理老虎机、开包、舞台演出和自动挖角策略</div>
         </div>
       </div>
       <div class="siqi-topbar__right">
@@ -153,6 +153,14 @@
                 <v-switch v-model="config.auto_open_bags" color="success" density="compact" hide-details inset />
               </div>
 
+              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_recruit }" style="--siqi-accent:236,72,153">
+                <div class="siqi-switch-main">
+                  <v-icon icon="mdi-account-search-outline" size="20" />
+                  <div><div class="siqi-switch-label">自动挖角</div><div class="siqi-switch-desc">按时间段随机访问舞台，只挖选中等级</div></div>
+                </div>
+                <v-switch v-model="config.auto_recruit" color="pink" density="compact" hide-details inset />
+              </div>
+
             </div>
           </section>
 
@@ -207,6 +215,79 @@
                   class="siqi-input siqi-number-input"
                 />
                 <div class="siqi-field-hint">任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。</div>
+              </div>
+
+              <div class="siqi-field">
+                <v-select
+                  v-model="config.recruit_tiers"
+                  :items="recruitTierOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="挖角演员等级"
+                  prepend-inner-icon="mdi-account-star-outline"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  multiple
+                  chips
+                  closable-chips
+                  :disabled="!config.auto_recruit"
+                  class="siqi-input"
+                />
+                <div class="siqi-field-hint">可同时选择新人、实力、知名和顶流；随机到其他等级会自动跳过。</div>
+              </div>
+
+              <div class="siqi-field">
+                <v-text-field
+                  v-model="config.recruit_time_windows"
+                  label="挖角检查时间段"
+                  placeholder="07:00-23:00"
+                  prepend-inner-icon="mdi-clock-time-eight-outline"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  :disabled="!config.auto_recruit"
+                  class="siqi-input"
+                />
+                <div class="siqi-field-hint">默认 07:00-23:00；多个时间段可用逗号分隔，例如 07:00-12:00,18:00-23:00。</div>
+              </div>
+
+              <div class="siqi-field">
+                <v-text-field
+                  v-model="config.recruit_interval_minutes"
+                  type="number"
+                  min="5"
+                  max="1440"
+                  step="1"
+                  label="挖角检查间隔"
+                  suffix="分钟"
+                  prepend-inner-icon="mdi-timer-sync-outline"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  :disabled="!config.auto_recruit"
+                  class="siqi-input siqi-number-input"
+                />
+                <div class="siqi-field-hint">默认每 30 分钟检查一轮；没有可挖目标时会按这个间隔继续检查。</div>
+              </div>
+
+              <div class="siqi-field">
+                <v-text-field
+                  v-model="config.recruit_visit_count"
+                  type="number"
+                  min="1"
+                  max="50"
+                  step="1"
+                  label="每轮随机访问"
+                  suffix="人"
+                  prepend-inner-icon="mdi-account-multiple-outline"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  :disabled="!config.auto_recruit"
+                  class="siqi-input siqi-number-input"
+                />
+                <div class="siqi-field-hint">默认每轮访问 10 人；同一轮随机到重复用户会自动跳过。</div>
               </div>
             </div>
           </section>
@@ -267,6 +348,12 @@ const saving = ref(false)
 const syncingCookie = ref(false)
 const cookieVisible = ref(false)
 const effectOptions = ref([{ title: '自动选择演出舞台效果', value: 'auto' }])
+const recruitTierOptions = [
+  { title: '新人', value: 1 },
+  { title: '实力', value: 2 },
+  { title: '知名', value: 3 },
+  { title: '顶流', value: 4 },
+]
 const message = reactive({ text: '', type: 'success' })
 const config = reactive({
   enabled: false,
@@ -276,6 +363,7 @@ const config = reactive({
   auto_stage: true,
   auto_spin: false,
   auto_open_bags: false,
+  auto_recruit: false,
   use_proxy: false,
   cookie: '',
   spin_cron: '5 0 * * *',
@@ -286,6 +374,10 @@ const config = reactive({
   http_retry_delay: 1500,
   skip_before_seconds: 60,
   auto_stage_effect_key: 'auto',
+  recruit_tiers: [1, 2, 3, 4],
+  recruit_time_windows: '07:00-23:00',
+  recruit_interval_minutes: 30,
+  recruit_visit_count: 10,
 })
 
 const formLocked = computed(() => loading.value || saving.value || syncingCookie.value)
@@ -301,6 +393,11 @@ function normalizeNumber(value, fallback, min, max) {
   return Math.max(min, Math.min(max, Math.round(parsed)))
 }
 
+function normalizeRecruitTiers(value) {
+  const source = Array.isArray(value) ? value : []
+  return [...new Set(source.map((item) => Number(item)).filter((item) => item >= 1 && item <= 4))].sort((a, b) => a - b)
+}
+
 function applyConfig(data = {}) {
   if (Array.isArray(data.effect_options) && data.effect_options.length) {
     effectOptions.value = data.effect_options
@@ -311,6 +408,10 @@ function applyConfig(data = {}) {
   delete rest[legacyIpv4Key]
   Object.assign(config, rest)
   config.random_delay_max_seconds = normalizeNumber(config.random_delay_max_seconds, 5, 0, 60)
+  config.recruit_tiers = normalizeRecruitTiers(config.recruit_tiers)
+  config.recruit_time_windows = String(config.recruit_time_windows || '07:00-23:00')
+  config.recruit_interval_minutes = normalizeNumber(config.recruit_interval_minutes, 30, 5, 1440)
+  config.recruit_visit_count = normalizeNumber(config.recruit_visit_count, 10, 1, 50)
   if (!effectOptions.value.some((item) => item.value === config.auto_stage_effect_key)) {
     config.auto_stage_effect_key = 'auto'
   }
@@ -334,6 +435,9 @@ async function saveConfig() {
     const payload = {
       ...config,
       random_delay_max_seconds: normalizeNumber(config.random_delay_max_seconds, 5, 0, 60),
+      recruit_tiers: normalizeRecruitTiers(config.recruit_tiers),
+      recruit_interval_minutes: normalizeNumber(config.recruit_interval_minutes, 30, 5, 1440),
+      recruit_visit_count: normalizeNumber(config.recruit_visit_count, 10, 1, 50),
     }
     const result = await props.api.post(`${pluginBase}/config`, payload)
     if (result?.config) applyConfig(result.config)

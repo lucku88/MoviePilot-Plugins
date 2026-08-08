@@ -3,7 +3,7 @@
     <div class="siqi-topbar">
       <div class="siqi-topbar__left">
         <div class="siqi-topbar__icon"><v-icon icon="mdi-emoticon-excited-outline" size="24" /></div>
-        <div class="siqi-topbar__copy"><div class="siqi-topbar__title">Vue-表情</div><div class="siqi-topbar__sub">老虎机、表情包与动态舞台演出</div></div>
+        <div class="siqi-topbar__copy"><div class="siqi-topbar__title">Vue-表情</div><div class="siqi-topbar__sub">老虎机、表情包、动态舞台演出与自动挖角</div></div>
       </div>
       <div class="siqi-topbar__right">
         <v-btn-group variant="tonal" density="compact" class="elevation-0">
@@ -42,6 +42,34 @@
             </div>
           </v-card-text>
           <div v-if="showSummary" class="summary-panel"><div class="summary-panel__head"><span><v-icon icon="mdi-check-circle-outline" size="17" />本次摘要</span><v-btn icon="mdi-close" size="x-small" variant="text" aria-label="关闭本次摘要" @click="dismissSummary" /></div><div class="summary-lines">{{ summaryLines.join(' / ') }}</div></div>
+        </v-card>
+
+        <v-card v-if="emoji.recruit" flat class="siqi-card recruit-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--recruit d-flex align-center">
+            <v-icon icon="mdi-account-search-outline" size="19" color="pink" class="mr-2" />自动挖角
+            <v-spacer />
+            <v-chip size="small" :color="recruit.enabled ? 'pink' : 'default'" variant="tonal">{{ recruit.enabled ? '已开启' : '未开启' }}</v-chip>
+          </v-card-title>
+          <v-card-text class="recruit-body">
+            <div class="recruit-summary">
+              <div class="recruit-summary__icon"><v-icon icon="mdi-drama-masks" size="22" /></div>
+              <div class="recruit-summary__copy">
+                <strong>{{ recruit.status_text || (recruit.enabled ? '等待下一轮检查' : '自动挖角未启用') }}</strong>
+                <span>只按网站返回的可挖状态执行，不猜测别人舞台结束时间</span>
+              </div>
+              <v-btn color="pink" variant="tonal" size="small" :loading="loading" :disabled="loading" @click="recruitNow">
+                <v-icon icon="mdi-radar" size="17" class="mr-1" />检查挖角
+              </v-btn>
+            </div>
+            <div class="recruit-meta-grid">
+              <div class="recruit-meta"><span>下次检查</span><strong>{{ recruit.next_check_time || '等待排期' }}</strong></div>
+              <div class="recruit-meta"><span>检查时间段</span><strong>{{ recruit.recruit_time_windows || recruit.time_windows || '07:00-23:00' }}</strong></div>
+              <div class="recruit-meta"><span>目标等级</span><strong>{{ recruitTierText }}</strong></div>
+              <div class="recruit-meta"><span>扫描设置</span><strong>每 {{ recruit.interval_minutes || 30 }} 分钟 · {{ recruit.visit_count || 10 }} 人</strong></div>
+              <div class="recruit-meta"><span>今日额度</span><strong>{{ recruitQuotaText }}</strong></div>
+              <div class="recruit-meta"><span>最近结果</span><strong>{{ recruit.last_result?.message || '暂无记录' }}</strong></div>
+            </div>
+          </v-card-text>
         </v-card>
 
         <div class="emoji-hub-grid">
@@ -156,6 +184,7 @@ const spinCount = ref('1')
 const lastRunAutoRefreshTs = ref(0)
 const lastTriggerAutoRefreshTs = ref(0)
 const lastStageRefreshTs = ref(0)
+const lastRecruitAutoRefreshTs = ref(0)
 
 const openCounts = reactive({})
 const upgradeCounts = reactive({})
@@ -183,12 +212,14 @@ const actorsByTier = computed(() => emoji.value.actors_by_tier || {})
 const effects = computed(() => emoji.value.effects || [])
 const stage = computed(() => emoji.value.stage || {})
 const stageRows = computed(() => emoji.value.stage_rows || [])
+const recruit = computed(() => emoji.value.recruit || {})
 const operationLogs = computed(() => emoji.value.operation_logs || status.operation_logs || [])
 const summaryLines = computed(() => (emoji.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
 const nextRunTs = computed(() => Number(emoji.value.next_run_ts || 0) || parseDateTime(emoji.value.next_run_time))
 const nextTriggerTs = computed(() => Number(emoji.value.next_trigger_ts || 0) || parseDateTime(emoji.value.next_trigger_time))
+const nextRecruitTs = computed(() => Number(recruit.value.next_check_ts || 0) || parseDateTime(recruit.value.next_check_time))
 const spinMax = computed(() => Math.max(1, Math.min(Number(slotMachine.value.remaining || 0), Number(slotMachine.value.max_batch || 1)) || 1))
 const pendingKey = computed(() => JSON.stringify(pendingOpen.value || {}))
 const pendingOpenVisible = computed(() => !!pendingOpen.value.items?.length && hiddenPendingKey.value !== pendingKey.value)
@@ -224,6 +255,21 @@ const stageHeaderMeta = computed(() => {
   if (Number(stage.value.expected_magic || 0) > 0) rewards.push(`魔力+${stage.value.expected_magic}`)
   const rewardText = rewards.length ? ` · 预计${rewards.join('，')}` : ''
   return `演员${Number(stage.value.active_count || 0)}位${rewardText}`
+})
+const recruitTierText = computed(() => {
+  const names = Array.isArray(recruit.value.tier_names) ? recruit.value.tier_names.filter(Boolean) : []
+  if (names.length) return names.join('、')
+  const tierMap = { 1: '新人', 2: '实力', 3: '知名', 4: '顶流' }
+  const tiers = Array.isArray(recruit.value.recruit_tiers) ? recruit.value.recruit_tiers : []
+  return tiers.map((tier) => tierMap[Number(tier)]).filter(Boolean).join('、') || '未选择'
+})
+const recruitQuotaText = computed(() => {
+  const quota = recruit.value.quota || {}
+  const limit = Number(quota.limit || 0)
+  const used = Number(quota.used || 0)
+  if (limit > 0) return `${used}/${limit}`
+  if (quota.remaining !== undefined && quota.remaining !== null) return `剩余 ${quota.remaining}`
+  return '等待刷新'
 })
 
 const sortOptions = [
@@ -315,6 +361,10 @@ watch(nextRunTs, (value) => {
 
 watch(nextTriggerTs, (value) => {
   if (!value || value > nowTs.value) lastTriggerAutoRefreshTs.value = 0
+})
+
+watch(nextRecruitTs, (value) => {
+  if (!value || value > nowTs.value) lastRecruitAutoRefreshTs.value = 0
 })
 
 watch(
@@ -633,6 +683,11 @@ async function maybeAutoRefreshStatus() {
     shouldRefresh = true
   }
 
+  if (nextRecruitTs.value && nowTs.value >= nextRecruitTs.value && nextRecruitTs.value !== lastRecruitAutoRefreshTs.value) {
+    lastRecruitAutoRefreshTs.value = nextRecruitTs.value
+    shouldRefresh = true
+  }
+
   const stageEndTs = Number(stage.value.remaining_end_ts || 0)
   if (stageEndTs && nowTs.value >= stageEndTs && stageEndTs !== lastStageRefreshTs.value) {
     lastStageRefreshTs.value = stageEndTs
@@ -668,6 +723,10 @@ function refreshData() {
 
 function runNow() {
   return withAction(() => props.api.post(`${pluginBase}/run`), '执行完成')
+}
+
+function recruitNow() {
+  return withAction(() => props.api.post(`${pluginBase}/recruit`), '挖角检查完成')
 }
 
 function syncCookie() {
@@ -797,6 +856,6 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 420px){.actor-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.stage-slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 
-.next-run-card{margin-bottom:12px!important}.next-run-body{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 14px!important;background:rgba(76,175,80,.08)}.next-run-icon{width:40px;height:40px;display:grid;place-items:center;flex:0 0 40px;border-radius:12px;color:#16a34a;background:rgba(34,197,94,.13)}.next-run-copy{min-width:0;flex:1 1 auto}.next-run-title{font-size:14px;font-weight:800}.next-run-guard{margin-top:3px;color:rgba(var(--v-theme-on-surface),.55);font-size:10px;line-height:1.35}.next-run-times{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}.next-run-time{display:grid;gap:1px;min-width:142px;text-align:right}.next-run-time span{color:rgba(var(--v-theme-on-surface),.52);font-size:10px}.next-run-time strong{color:rgba(var(--v-theme-on-surface),.86);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}.next-run-card .schedule-run-btn{min-width:100px!important;min-height:32px!important;height:32px!important;border-radius:999px!important;font-size:11px!important}.next-run-card .summary-panel{margin:0 14px 12px}.siqi-card-title--slot{background:rgba(249,115,22,.09)}.slot-card{display:flex;flex-direction:column}.slot-card-body{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:16px!important}.slot-today{color:rgba(var(--v-theme-on-surface),.66);font-size:11px;line-height:1.5}.slot-reels--large{width:100%;max-width:300px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px auto}.slot-reels--large span{width:auto;height:68px;display:grid;place-items:center;border:1px solid rgba(249,115,22,.2);border-radius:12px;background:rgba(var(--v-theme-surface),.72);font-size:32px}.slot-center-row{justify-content:center}.slot-center-row .number-input{width:86px}.slot-center-row :deep(.v-btn){min-width:58px!important}.log-card{margin-top:0}.log-body{max-height:430px;overflow-y:auto;padding:12px!important}.log-list{display:grid;gap:8px}.log-item{min-width:0;padding:10px 12px;border:1px solid rgba(var(--v-theme-on-surface),.08);border-radius:11px;background:rgba(var(--v-theme-surface),.68);font-size:11px;line-height:1.5}.log-item-head{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;color:rgba(var(--v-theme-on-surface),.84)}.log-item-head strong{font-size:11px}.log-item-head time{color:rgba(var(--v-theme-on-surface),.5);font-size:10px;font-variant-numeric:tabular-nums}.log-item-detail{margin-top:3px;color:rgba(var(--v-theme-on-surface),.68);overflow-wrap:anywhere;text-align:center}.log-item-detail:empty{display:none}
-@media (max-width: 600px){.next-run-body{align-items:flex-start;flex-wrap:wrap}.next-run-copy{flex-basis:calc(100% - 52px)}.next-run-times{width:100%;justify-content:flex-start;padding-left:52px}.next-run-time{min-width:0;flex:1 1 140px;text-align:left}.next-run-time strong{white-space:normal}.slot-card-body{min-height:220px}.slot-reels--large{max-width:none}.slot-reels--large span{height:58px;font-size:28px}.log-item-head,.log-item-detail{text-align:left}.log-item-head{justify-content:flex-start}}
+.next-run-card{margin-bottom:12px!important}.next-run-body{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 14px!important;background:rgba(76,175,80,.08)}.next-run-icon{width:40px;height:40px;display:grid;place-items:center;flex:0 0 40px;border-radius:12px;color:#16a34a;background:rgba(34,197,94,.13)}.next-run-copy{min-width:0;flex:1 1 auto}.next-run-title{font-size:14px;font-weight:800}.next-run-guard{margin-top:3px;color:rgba(var(--v-theme-on-surface),.55);font-size:10px;line-height:1.35}.next-run-times{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}.next-run-time{display:grid;gap:1px;min-width:142px;text-align:right}.next-run-time span{color:rgba(var(--v-theme-on-surface),.52);font-size:10px}.next-run-time strong{color:rgba(var(--v-theme-on-surface),.86);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}.next-run-card .schedule-run-btn{min-width:100px!important;min-height:32px!important;height:32px!important;border-radius:999px!important;font-size:11px!important}.next-run-card .summary-panel{margin:0 14px 12px}.siqi-card-title--recruit{background:rgba(236,72,153,.08)}.recruit-body{display:grid;gap:10px;padding:12px 14px!important}.recruit-summary{display:flex;align-items:center;gap:10px;min-width:0}.recruit-summary__icon{width:38px;height:38px;display:grid;place-items:center;flex:0 0 38px;border-radius:11px;color:#ec4899;background:rgba(236,72,153,.12)}.recruit-summary__copy{min-width:0;flex:1;display:flex;flex-direction:column}.recruit-summary__copy strong{color:rgba(var(--v-theme-on-surface),.84);font-size:12px}.recruit-summary__copy span{margin-top:2px;color:rgba(var(--v-theme-on-surface),.48);font-size:10px;line-height:1.35}.recruit-meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.recruit-meta{min-width:0;padding:8px 10px;border:1px solid rgba(236,72,153,.12);border-radius:10px;background:rgba(var(--v-theme-surface),.62)}.recruit-meta span,.recruit-meta strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recruit-meta span{color:rgba(var(--v-theme-on-surface),.45);font-size:9px}.recruit-meta strong{margin-top:2px;color:rgba(var(--v-theme-on-surface),.76);font-size:10px;font-variant-numeric:tabular-nums}.siqi-card-title--slot{background:rgba(249,115,22,.09)}.slot-card{display:flex;flex-direction:column}.slot-card-body{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:16px!important}.slot-today{color:rgba(var(--v-theme-on-surface),.66);font-size:11px;line-height:1.5}.slot-reels--large{width:100%;max-width:300px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px auto}.slot-reels--large span{width:auto;height:68px;display:grid;place-items:center;border:1px solid rgba(249,115,22,.2);border-radius:12px;background:rgba(var(--v-theme-surface),.72);font-size:32px}.slot-center-row{justify-content:center}.slot-center-row .number-input{width:86px}.slot-center-row :deep(.v-btn){min-width:58px!important}.log-card{margin-top:0}.log-body{max-height:430px;overflow-y:auto;padding:12px!important}.log-list{display:grid;gap:8px}.log-item{min-width:0;padding:10px 12px;border:1px solid rgba(var(--v-theme-on-surface),.08);border-radius:11px;background:rgba(var(--v-theme-surface),.68);font-size:11px;line-height:1.5}.log-item-head{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;color:rgba(var(--v-theme-on-surface),.84)}.log-item-head strong{font-size:11px}.log-item-head time{color:rgba(var(--v-theme-on-surface),.5);font-size:10px;font-variant-numeric:tabular-nums}.log-item-detail{margin-top:3px;color:rgba(var(--v-theme-on-surface),.68);overflow-wrap:anywhere;text-align:center}.log-item-detail:empty{display:none}
+@media (max-width: 600px){.next-run-body{align-items:flex-start;flex-wrap:wrap}.next-run-copy{flex-basis:calc(100% - 52px)}.next-run-times{width:100%;justify-content:flex-start;padding-left:52px}.next-run-time{min-width:0;flex:1 1 140px;text-align:left}.next-run-time strong{white-space:normal}.recruit-summary{align-items:flex-start;flex-wrap:wrap}.recruit-summary__copy{flex-basis:calc(100% - 48px)}.recruit-summary :deep(.v-btn){width:100%}.recruit-meta-grid{grid-template-columns:1fr 1fr}.recruit-meta strong{white-space:normal}.slot-card-body{min-height:220px}.slot-reels--large{max-width:none}.slot-reels--large span{height:58px;font-size:28px}.log-item-head,.log-item-detail{text-align:left}.log-item-head{justify-content:flex-start}}
 </style>

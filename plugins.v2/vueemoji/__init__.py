@@ -28,9 +28,9 @@ from app.schemas import NotificationType
 
 class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
-    plugin_desc = "老虎机、开包、舞台演出、网页操作日志。"
+    plugin_desc = "老虎机、开包、舞台演出、网页操作日志、自动挖角。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.12"
+    plugin_version = "0.1.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -40,6 +40,15 @@ class VueEmoji(_PluginBase):
     DEFAULT_SITE_URL = "https://si-qi.xyz"
     DEFAULT_SITE_DOMAIN = "si-qi.xyz"
     DEFAULT_SPIN_CRON = "5 0 * * *"
+    DEFAULT_RECRUIT_TIME_WINDOWS = "07:00-23:00"
+    DEFAULT_RECRUIT_INTERVAL_MINUTES = 30
+    DEFAULT_RECRUIT_VISIT_COUNT = 10
+    RECRUIT_TIER_NAMES = {
+        1: "新人",
+        2: "实力",
+        3: "知名",
+        4: "顶流",
+    }
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -59,6 +68,7 @@ class VueEmoji(_PluginBase):
     _auto_stage: bool = True
     _auto_spin: bool = False
     _auto_open_bags: bool = False
+    _auto_recruit: bool = False
     _use_proxy: bool = False
     _cookie: str = ""
     _cookie_source: str = "未配置"
@@ -73,15 +83,21 @@ class VueEmoji(_PluginBase):
     _skip_before_seconds: int = 60
     _auto_stage_effect_key: str = "auto"
     _spin_cron: str = DEFAULT_SPIN_CRON
+    _recruit_tiers: List[int] = [1, 2, 3, 4]
+    _recruit_time_windows: str = DEFAULT_RECRUIT_TIME_WINDOWS
+    _recruit_interval_minutes: int = DEFAULT_RECRUIT_INTERVAL_MINUTES
+    _recruit_visit_count: int = DEFAULT_RECRUIT_VISIT_COUNT
 
     _next_run_time: Optional[datetime] = None
     _next_trigger_time: Optional[datetime] = None
     _next_trigger_mode: str = ""
     _bootstrap_pending: bool = False
+    _recruit_next_check_ts: int = 0
 
     def __init__(self):
         super().__init__()
         self._operation_logs: List[Dict[str, str]] = list(self.get_data("operation_logs") or [])
+        self._recruit_next_check_ts = self._safe_int(self.get_data("recruit_next_check_ts"), 0)
 
     def init_plugin(self, config: Optional[dict] = None):
         self._restore_legacy_address_family_selector()
@@ -103,6 +119,10 @@ class VueEmoji(_PluginBase):
         self._load_saved_next_trigger()
         self._load_saved_next_trigger_mode()
         self._bootstrap_pending = self._enabled and self._has_auto_jobs_enabled() and not self._onlyonce
+        if self._enabled and self._auto_recruit:
+            self._ensure_recruit_next_check()
+        elif not self._auto_recruit:
+            self._set_recruit_next_check(0, reregister=False)
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -140,6 +160,7 @@ class VueEmoji(_PluginBase):
             {"path": "/expand-stage-row", "endpoint": self._expand_stage_row_api, "methods": ["POST"], "auth": "bear", "summary": "扩展舞台格子"},
             {"path": "/confirm-stage", "endpoint": self._confirm_stage_api, "methods": ["POST"], "auth": "bear", "summary": "确认演出阵容"},
             {"path": "/recall-stage", "endpoint": self._recall_stage_api, "methods": ["POST"], "auth": "bear", "summary": "收回演出"},
+            {"path": "/recruit", "endpoint": self._recruit_api, "methods": ["POST"], "auth": "bear", "summary": "立即检查并挖角"},
         ]
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
@@ -162,6 +183,16 @@ class VueEmoji(_PluginBase):
                     "trigger": "date",
                     "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
                     "kwargs": {"run_date": next_run},
+                })
+        if self._enabled and self._auto_recruit:
+            recruit_run = self._get_recruit_next_run_for_service()
+            if recruit_run:
+                services.append({
+                    "id": "VueEmoji_recruit",
+                    "name": "Vue-表情自动挖角",
+                    "trigger": "date",
+                    "func": self._recruit_worker,
+                    "kwargs": {"run_date": recruit_run},
                 })
         return services
 
@@ -353,6 +384,9 @@ class VueEmoji(_PluginBase):
     def _auto_worker(self):
         return self.run_job(force=False, reason="schedule")
 
+    def _recruit_worker(self):
+        return self._run_recruit_cycle(force=False)
+
     def _capture_refresh_catchup_state(self) -> Dict[str, Any]:
         now = self._aware_now()
         next_run = self._load_saved_next_run()
@@ -484,6 +518,10 @@ class VueEmoji(_PluginBase):
         except Exception as err:
             return {"success": False, "message": self._get_error_detail(err), "status": self._build_status(auto_refresh=False)}
 
+    def _recruit_api(self, payload: Optional[dict] = None):
+        result = self._run_recruit_cycle(force=True)
+        return {**result, "status": self._build_status(auto_refresh=False)}
+
     def _build_status(self, auto_refresh: bool = True) -> Dict[str, Any]:
         emoji_status = self.get_data("emoji_status") or {}
         needs_refresh = not emoji_status or emoji_status.get("schema_version") != self.plugin_version
@@ -502,6 +540,7 @@ class VueEmoji(_PluginBase):
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
+            "auto_recruit": self._auto_recruit,
             "cookie_source": self._cookie_source,
             "next_run_time": self._format_time(next_run),
             "next_run_ts": int(next_run.timestamp()) if next_run else 0,
@@ -511,6 +550,7 @@ class VueEmoji(_PluginBase):
             "emoji_status": emoji_status,
             "history": (self.get_data("history") or [])[:20],
             "operation_logs": (self.get_data("operation_logs") or self._operation_logs or [])[:30],
+            "recruit": emoji_status.get("recruit") or self._build_recruit_status(self.get_data("state") or {}),
             "config": self._get_config(),
         }
 
@@ -523,6 +563,7 @@ class VueEmoji(_PluginBase):
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
+            "auto_recruit": self._auto_recruit,
             "use_proxy": self._use_proxy,
             "cookie": self._cookie,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
@@ -533,6 +574,10 @@ class VueEmoji(_PluginBase):
             "skip_before_seconds": self._skip_before_seconds,
             "auto_stage_effect_key": self._auto_stage_effect_key,
             "spin_cron": self._spin_cron,
+            "recruit_tiers": list(self._recruit_tiers),
+            "recruit_time_windows": self._recruit_time_windows,
+            "recruit_interval_minutes": self._recruit_interval_minutes,
+            "recruit_visit_count": self._recruit_visit_count,
             "effect_options": self._build_effect_options() if include_options else None,
             "capture_tips": [] if include_options else None,
         }
@@ -544,7 +589,7 @@ class VueEmoji(_PluginBase):
         merged.update(config_payload or {})
         self.init_plugin(merged)
         self._update_config()
-        if self._enabled and self._has_auto_jobs_enabled():
+        if self._enabled and self._has_any_auto_jobs_enabled():
             self._reregister_plugin("save-config")
         catchup_result: Optional[Dict[str, Any]] = None
         try:
@@ -571,7 +616,7 @@ class VueEmoji(_PluginBase):
 
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
-        if result.get("success") and self._enabled and self._has_auto_jobs_enabled():
+        if result.get("success") and self._enabled and self._has_any_auto_jobs_enabled():
             self._reregister_plugin("sync-cookie")
         return {**result, "config": self._get_config(), "status": self._build_status(auto_refresh=False)}
 
@@ -584,6 +629,7 @@ class VueEmoji(_PluginBase):
             "auto_stage": True,
             "auto_spin": False,
             "auto_open_bags": False,
+            "auto_recruit": False,
             "use_proxy": False,
             "cookie": "",
             "schedule_buffer_seconds": 5,
@@ -594,6 +640,10 @@ class VueEmoji(_PluginBase):
             "skip_before_seconds": 60,
             "auto_stage_effect_key": "auto",
             "spin_cron": self.DEFAULT_SPIN_CRON,
+            "recruit_tiers": [1, 2, 3, 4],
+            "recruit_time_windows": self.DEFAULT_RECRUIT_TIME_WINDOWS,
+            "recruit_interval_minutes": self.DEFAULT_RECRUIT_INTERVAL_MINUTES,
+            "recruit_visit_count": self.DEFAULT_RECRUIT_VISIT_COUNT,
         }
 
     def _apply_config(self, config: Dict[str, Any]):
@@ -604,6 +654,7 @@ class VueEmoji(_PluginBase):
         self._auto_stage = self._to_bool(config.get("auto_stage", True))
         self._auto_spin = self._to_bool(config.get("auto_spin", False))
         self._auto_open_bags = self._to_bool(config.get("auto_open_bags", False))
+        self._auto_recruit = self._to_bool(config.get("auto_recruit", False))
         self._use_proxy = self._to_bool(config.get("use_proxy", False))
         self._cookie = (config.get("cookie") or "").strip()
         self._schedule_buffer_seconds = max(0, self._safe_int(config.get("schedule_buffer_seconds"), 5))
@@ -615,6 +666,18 @@ class VueEmoji(_PluginBase):
         auto_stage_effect_key = str(config.get("auto_stage_effect_key") or "auto").strip()
         self._auto_stage_effect_key = auto_stage_effect_key or "auto"
         self._spin_cron = (config.get("spin_cron") or self.DEFAULT_SPIN_CRON).strip() or self.DEFAULT_SPIN_CRON
+        self._recruit_tiers = self._normalize_recruit_tiers(config.get("recruit_tiers"))
+        self._recruit_time_windows = str(
+            config.get("recruit_time_windows") or self.DEFAULT_RECRUIT_TIME_WINDOWS
+        ).strip() or self.DEFAULT_RECRUIT_TIME_WINDOWS
+        self._recruit_interval_minutes = max(
+            5,
+            min(1440, self._safe_int(config.get("recruit_interval_minutes"), self.DEFAULT_RECRUIT_INTERVAL_MINUTES)),
+        )
+        self._recruit_visit_count = max(
+            1,
+            min(50, self._safe_int(config.get("recruit_visit_count"), self.DEFAULT_RECRUIT_VISIT_COUNT)),
+        )
 
     def _update_config(self):
         self.update_config({
@@ -625,6 +688,7 @@ class VueEmoji(_PluginBase):
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
+            "auto_recruit": self._auto_recruit,
             "use_proxy": self._use_proxy,
             "cookie": self._cookie,
             "schedule_buffer_seconds": self._schedule_buffer_seconds,
@@ -635,6 +699,10 @@ class VueEmoji(_PluginBase):
             "skip_before_seconds": self._skip_before_seconds,
             "auto_stage_effect_key": self._auto_stage_effect_key,
             "spin_cron": self._spin_cron,
+            "recruit_tiers": list(self._recruit_tiers),
+            "recruit_time_windows": self._recruit_time_windows,
+            "recruit_interval_minutes": self._recruit_interval_minutes,
+            "recruit_visit_count": self._recruit_visit_count,
         })
 
     def _get_error_retry_count(self) -> int:
@@ -971,6 +1039,19 @@ class VueEmoji(_PluginBase):
             )
         )
 
+    def _recruit_inventory_signature(self, state: Dict[str, Any]) -> Tuple[Tuple[Any, ...], ...]:
+        inventory = state.get("actor_inventory_by_tier") or {}
+        values: List[Tuple[Any, ...]] = []
+        for tier in range(1, 5):
+            for item in self._iter_dicts(inventory.get(str(tier)) or inventory.get(tier) or []):
+                values.append((
+                    tier,
+                    str(item.get("code") or item.get("emoji_code") or item.get("emoji") or ""),
+                    self._safe_int(item.get("quantity"), 0),
+                    self._safe_int(item.get("available"), 0),
+                ))
+        return tuple(sorted(values))
+
     def _stage_row_slot_count(self, state: Dict[str, Any], row_index: int) -> int:
         for row in self._iter_dicts((state.get("stage") or {}).get("rows") or []):
             if self._safe_int(row.get("row_index"), 0) == row_index:
@@ -1022,6 +1103,12 @@ class VueEmoji(_PluginBase):
                 self._safe_int(user.get("total_points"), 0),
                 self._safe_int(user.get("total_magic_earned"), 0),
                 user_magic,
+            )
+        if action == "steal_actor":
+            steal = state.get("steal") or {}
+            return (
+                self._safe_int(steal.get("used"), 0),
+                self._recruit_inventory_signature(state),
             )
         return (json.dumps(state, ensure_ascii=False, sort_keys=True, default=str),)
 
@@ -1101,6 +1188,27 @@ class VueEmoji(_PluginBase):
 
         if action == "recall_stage":
             return "applied" if before[0] and not after[0] else "ambiguous"
+
+        if action == "steal_actor":
+            before_used, before_inventory = before
+            after_used, after_inventory = after
+            before_map = {
+                (tier, code): (quantity, available)
+                for tier, code, quantity, available in before_inventory
+            }
+            after_map = {
+                (tier, code): (quantity, available)
+                for tier, code, quantity, available in after_inventory
+            }
+            inventory_increased = any(
+                after_map.get(key, (0, 0))[0] > values[0]
+                or after_map.get(key, (0, 0))[1] > values[1]
+                for key, values in before_map.items()
+            ) or any(
+                key not in before_map and (values[0] > 0 or values[1] > 0)
+                for key, values in after_map.items()
+            )
+            return "applied" if after_used > before_used or inventory_increased else "ambiguous"
 
         return "ambiguous"
 
@@ -1662,6 +1770,8 @@ class VueEmoji(_PluginBase):
             "bags": state.get("bags") or [],
             "effects": state.get("effects") or [],
             "stage": state.get("stage") or {},
+            "steal": state.get("steal") or {},
+            "recruit": self._build_recruit_status(state),
             "operation_logs": (self._operation_logs or [])[:30],
         }
 
@@ -1734,7 +1844,7 @@ class VueEmoji(_PluginBase):
             self.save_data("next_run_time", "")
             self.save_data("next_trigger_time", "")
             self.save_data("next_trigger_mode", "")
-        if self._enabled and self._has_auto_jobs_enabled():
+        if self._enabled and self._has_any_auto_jobs_enabled():
             self._bootstrap_pending = False
             self._reregister_plugin(reason or "schedule-next-run")
 
@@ -1806,6 +1916,7 @@ class VueEmoji(_PluginBase):
             "effects": self._build_effects(state),
             "stage": self._build_stage_runtime(state),
             "stage_rows": self._build_stage_rows(state),
+            "recruit": self._build_recruit_status(state),
             "history": (self.get_data("history") or [])[:20],
             "operation_logs": (self._operation_logs or self.get_data("operation_logs") or [])[:30],
         }
@@ -2307,6 +2418,459 @@ class VueEmoji(_PluginBase):
 
     def _has_auto_jobs_enabled(self) -> bool:
         return bool(self._auto_stage or self._auto_spin or self._auto_open_bags)
+
+    def _has_any_auto_jobs_enabled(self) -> bool:
+        return bool(self._has_auto_jobs_enabled() or self._auto_recruit)
+
+    @classmethod
+    def _normalize_recruit_tiers(cls, value: Any) -> List[int]:
+        if value is None:
+            return [1, 2, 3, 4]
+        values: Any = value
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return []
+            try:
+                decoded = json.loads(text)
+                values = decoded if isinstance(decoded, list) else re.split(r"[,，;；\s]+", text)
+            except Exception:
+                values = re.split(r"[,，;；\s]+", text)
+        if not isinstance(values, (list, tuple, set)):
+            values = [values]
+        tiers = sorted({
+            cls._safe_int(item, 0)
+            for item in values
+            if 1 <= cls._safe_int(item, 0) <= 4
+        })
+        return tiers
+
+    def _parse_recruit_windows(self) -> List[Tuple[int, int, str]]:
+        windows: List[Tuple[int, int, str]] = []
+        for raw_window in re.split(r"[,，;；\n]+", self._recruit_time_windows or ""):
+            matched = re.match(r"^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$", raw_window)
+            if not matched:
+                continue
+            start_hour, start_minute, end_hour, end_minute = (int(value) for value in matched.groups())
+            if start_hour > 23 or end_hour > 23 or start_minute > 59 or end_minute > 59:
+                continue
+            start = start_hour * 60 + start_minute
+            end = end_hour * 60 + end_minute
+            label = f"{start_hour:02d}:{start_minute:02d}-{end_hour:02d}:{end_minute:02d}"
+            windows.append((start, end, label))
+        return windows
+
+    def _active_recruit_window(self, now: Optional[datetime] = None) -> str:
+        current = now or self._aware_now()
+        minute = current.hour * 60 + current.minute
+        windows = self._parse_recruit_windows()
+        if not windows:
+            return f"{current.strftime('%Y-%m-%d')}|全天"
+        for start, end, label in windows:
+            if start == end:
+                return f"{current.strftime('%Y-%m-%d')}|{label}"
+            if start < end and start <= minute < end:
+                return f"{current.strftime('%Y-%m-%d')}|{label}"
+            if start > end and (minute >= start or minute < end):
+                window_date = current if minute >= start else current - timedelta(days=1)
+                return f"{window_date.strftime('%Y-%m-%d')}|{label}"
+        return ""
+
+    def _is_in_recruit_time_window(self, now: Optional[datetime] = None) -> bool:
+        return bool(self._active_recruit_window(now))
+
+    def _next_recruit_window_start_ts(
+        self,
+        now: Optional[datetime] = None,
+        next_day: bool = False,
+    ) -> int:
+        current = now or self._aware_now()
+        windows = self._parse_recruit_windows()
+        if not windows:
+            delay_days = 1 if next_day else 0
+            return int((current + timedelta(days=delay_days, minutes=self._recruit_interval_minutes)).timestamp())
+
+        search_from = current
+        minimum_day_offset = 1 if next_day else 0
+        candidates: List[datetime] = []
+        for day_offset in range(minimum_day_offset, minimum_day_offset + 3):
+            day = current + timedelta(days=day_offset)
+            for start, _, _ in windows:
+                start_hour, start_minute = divmod(start, 60)
+                candidate = day.replace(
+                    hour=start_hour,
+                    minute=start_minute,
+                    second=0,
+                    microsecond=0,
+                )
+                if candidate > search_from + timedelta(seconds=1):
+                    candidates.append(candidate)
+        if candidates:
+            return int(min(candidates).timestamp())
+        return int((current + timedelta(days=1)).timestamp())
+
+    def _next_recruit_check_ts(
+        self,
+        now: Optional[datetime] = None,
+        immediate: bool = False,
+        next_day: bool = False,
+    ) -> int:
+        current = now or self._aware_now()
+        if next_day:
+            return self._next_recruit_window_start_ts(current, next_day=True)
+        if self._is_in_recruit_time_window(current):
+            delay = timedelta(seconds=3) if immediate else timedelta(minutes=self._recruit_interval_minutes)
+            candidate = current + delay
+            if self._is_in_recruit_time_window(candidate):
+                return int(candidate.timestamp())
+        return self._next_recruit_window_start_ts(current)
+
+    def _load_saved_recruit_next_check(self) -> int:
+        if self._recruit_next_check_ts > 0:
+            return self._recruit_next_check_ts
+        raw = self.get_data("recruit_next_check_ts")
+        self._recruit_next_check_ts = max(0, self._safe_int(raw, 0))
+        return self._recruit_next_check_ts
+
+    def _set_recruit_next_check(self, next_check_ts: Any, reregister: bool = True) -> int:
+        self._recruit_next_check_ts = max(0, self._safe_int(next_check_ts, 0))
+        self.save_data("recruit_next_check_ts", self._recruit_next_check_ts)
+        if reregister and self._enabled and self._auto_recruit:
+            self._reregister_plugin("recruit-next-check")
+        return self._recruit_next_check_ts
+
+    def _ensure_recruit_next_check(self) -> int:
+        now = self._aware_now()
+        existing = self._load_saved_recruit_next_check()
+        if existing > int(now.timestamp()) + 2:
+            return existing
+        next_check = self._next_recruit_check_ts(now, immediate=True)
+        return self._set_recruit_next_check(next_check, reregister=False)
+
+    def _get_recruit_next_run_for_service(self) -> Optional[datetime]:
+        if not self._enabled or not self._auto_recruit:
+            return None
+        next_check = self._ensure_recruit_next_check()
+        if next_check <= 0:
+            return None
+        run_date = self._aware_from_timestamp(next_check)
+        now = self._aware_now()
+        if run_date <= now:
+            run_date = now + timedelta(seconds=3)
+            self._set_recruit_next_check(int(run_date.timestamp()), reregister=False)
+        return run_date
+
+    def _recruit_quota(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        steal = state.get("steal") or {}
+        used = self._safe_int(steal.get("used") or steal.get("daily_used"), 0)
+        limit = self._safe_int(steal.get("limit") or steal.get("daily_limit"), 0)
+        remaining_raw = steal.get("remaining")
+        remaining = self._safe_int(remaining_raw, -1) if remaining_raw is not None else -1
+        if remaining < 0 and limit > 0:
+            remaining = max(0, limit - used)
+        return {
+            "used": used,
+            "limit": limit,
+            "remaining": remaining if remaining >= 0 else None,
+            "exhausted": bool((limit > 0 and used >= limit) or remaining == 0),
+        }
+
+    @staticmethod
+    def _is_recruit_quota_message(message: Any) -> bool:
+        text = str(message or "")
+        return any(token in text for token in (
+            "今日挖角次数已用完",
+            "挖角次数已用完",
+            "今日次数已用完",
+            "达到上限",
+            "没有剩余",
+            "无剩余",
+            "次数不足",
+        ))
+
+    def _collect_recruit_slots(self, visit_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if not isinstance(visit_result, dict) or not visit_result.get("can_steal"):
+            return []
+        allowed = set(self._recruit_tiers)
+        slots: List[Dict[str, Any]] = []
+        for row in self._iter_dicts(visit_result.get("rows") or []):
+            for slot in self._iter_dicts(row.get("slots") or []):
+                if not slot.get("can_steal"):
+                    continue
+                tier = (
+                    self._safe_int(slot.get("bag_tier"), 0)
+                    or self._safe_int(slot.get("data_tier"), 0)
+                    or self._safe_int(slot.get("emoji_tier"), 0)
+                    or self._safe_int(slot.get("tier"), 0)
+                )
+                slot_id = slot.get("slot_id")
+                if tier not in allowed or slot_id in (None, ""):
+                    continue
+                item = dict(slot)
+                item["tier"] = tier
+                item["tier_name"] = self.RECRUIT_TIER_NAMES.get(tier, f"{tier}级")
+                slots.append(item)
+        return slots
+
+    def _choose_recruit_slot(self, visit_result: Dict[str, Any]) -> Dict[str, Any]:
+        slots = self._collect_recruit_slots(visit_result)
+        slots.sort(
+            key=lambda item: (
+                self._safe_int(item.get("tier"), 0),
+                self._safe_int(item.get("point_bonus"), 0),
+                self._safe_int(item.get("magic_bonus"), 0),
+                -self._safe_int(item.get("slot_id"), 0),
+            ),
+            reverse=True,
+        )
+        return slots[0] if slots else {}
+
+    def _format_recruit_counts(self, counts: Dict[str, int]) -> str:
+        ordered = sorted(
+            counts.items(),
+            key=lambda item: next(
+                (tier for tier, name in self.RECRUIT_TIER_NAMES.items() if name == item[0]),
+                99,
+            ),
+        )
+        return "、".join(f"{name}×{count}" for name, count in ordered if count > 0)
+
+    def _build_recruit_status(self, state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        source = state or {}
+        quota = self._recruit_quota(source)
+        last_result = self.get_data("recruit_last_result") or {}
+        next_check = self._load_saved_recruit_next_check()
+        tier_names = [self.RECRUIT_TIER_NAMES[tier] for tier in self._recruit_tiers if tier in self.RECRUIT_TIER_NAMES]
+        if not self._auto_recruit:
+            status_text = "未启用"
+        elif quota.get("exhausted"):
+            status_text = "今日挖角次数已用完"
+        elif not self._is_in_recruit_time_window():
+            status_text = "等待访问时间段"
+        else:
+            status_text = str(last_result.get("message") or "等待下一轮检查")
+        return {
+            "enabled": self._auto_recruit,
+            "recruit_tiers": list(self._recruit_tiers),
+            "tier_names": tier_names,
+            "recruit_time_windows": self._recruit_time_windows,
+            "time_windows": self._recruit_time_windows,
+            "interval_minutes": self._recruit_interval_minutes,
+            "visit_count": self._recruit_visit_count,
+            "next_check_ts": next_check,
+            "next_check_time": self._format_ts(next_check),
+            "in_time_window": self._is_in_recruit_time_window(),
+            "quota": quota,
+            "status_text": status_text,
+            "last_result": last_result,
+            "error_streak": max(0, self._safe_int(self.get_data("recruit_error_streak"), 0)),
+        }
+
+    def _store_recruit_status(self, state: Dict[str, Any], result: Dict[str, Any]) -> None:
+        stored_result = {
+            "time": self._format_time(self._aware_now()),
+            "message": str(result.get("message") or ""),
+            "visited": self._safe_int(result.get("visited"), 0),
+            "stolen": self._safe_int(result.get("stolen"), 0),
+            "stolen_by_tier": dict(result.get("stolen_by_tier") or {}),
+            "targets": list(result.get("targets") or [])[:10],
+        }
+        self.save_data("recruit_last_result", stored_result)
+        emoji_status = dict(self.get_data("emoji_status") or {})
+        if not emoji_status:
+            next_run = self._load_saved_next_run()
+            emoji_status = self._build_ui_state(
+                state,
+                int(next_run.timestamp()) if next_run else 0,
+                [],
+            )
+        emoji_status["schema_version"] = self.plugin_version
+        emoji_status["recruit"] = self._build_recruit_status(state)
+        self.save_data("emoji_status", emoji_status)
+
+    def _run_recruit_cycle(self, force: bool = False) -> Dict[str, Any]:
+        if not force and (not self._enabled or not self._auto_recruit):
+            return {"success": True, "message": "自动挖角未启用", "stolen": 0, "visited": 0}
+
+        now = self._aware_now()
+        if not force and not self._is_in_recruit_time_window(now):
+            next_check = self._set_recruit_next_check(self._next_recruit_check_ts(now))
+            return {
+                "success": True,
+                "message": "当前不在挖角时间段，等待下次检查",
+                "stolen": 0,
+                "visited": 0,
+                "next_check_ts": next_check,
+            }
+
+        try:
+            self._ensure_cookie()
+            session = self._build_session()
+            bundle = self._fetch_bundle(session)
+            state = bundle.get("state") or {}
+            if not state or not isinstance(state.get("user"), dict):
+                raise ValueError("获取表情页失败，Cookie 可能已失效")
+
+            quota = self._recruit_quota(state)
+            if quota.get("exhausted"):
+                next_check = self._set_recruit_next_check(
+                    self._next_recruit_check_ts(now, next_day=True)
+                    if self._auto_recruit else 0
+                )
+                result = {
+                    "success": True,
+                    "message": "今日挖角次数已用完",
+                    "stolen": 0,
+                    "visited": 0,
+                    "stolen_by_tier": {},
+                    "targets": [],
+                    "exhausted": True,
+                    "next_check_ts": next_check,
+                }
+                self.save_data("recruit_error_streak", 0)
+                self._store_recruit_status(state, result)
+                return result
+
+            if not self._recruit_tiers:
+                next_check = self._set_recruit_next_check(
+                    self._next_recruit_check_ts(now) if self._auto_recruit else 0
+                )
+                result = {
+                    "success": True,
+                    "message": "未选择要挖的演员等级",
+                    "stolen": 0,
+                    "visited": 0,
+                    "stolen_by_tier": {},
+                    "targets": [],
+                    "exhausted": False,
+                    "next_check_ts": next_check,
+                }
+                self._store_recruit_status(state, result)
+                return result
+
+            self_uid = self._safe_int((state.get("user") or {}).get("id"), 0)
+            visited = 0
+            stolen = 0
+            exhausted = False
+            attempts = 0
+            max_visits = max(1, min(50, self._recruit_visit_count))
+            max_attempts = max(max_visits * 3, max_visits + 5)
+            seen_users = set()
+            stolen_by_tier: Dict[str, int] = {}
+            targets: List[str] = []
+
+            while visited < max_visits and attempts < max_attempts:
+                attempts += 1
+                visit_result = self._request_with_retry(
+                    "viewStage",
+                    lambda: self._post_action(session, "view_stage", {"random": "1"}),
+                )
+                if not isinstance(visit_result, dict) or not visit_result.get("success"):
+                    message = str((visit_result or {}).get("message") or (visit_result or {}).get("msg") or "访问失败")
+                    if self._is_recruit_quota_message(message):
+                        exhausted = True
+                        break
+                    continue
+
+                visit_uid = self._safe_int(visit_result.get("user_id"), 0)
+                username = str(visit_result.get("username") or f"UID {visit_uid}" or "随机用户")
+                target_key = str(visit_uid or username)
+                if visit_uid and visit_uid == self_uid:
+                    continue
+                if target_key in seen_users:
+                    continue
+                seen_users.add(target_key)
+                visited += 1
+
+                picked = self._choose_recruit_slot(visit_result)
+                if not picked:
+                    continue
+
+                action_result = self._post_action_confirmed(
+                    session,
+                    "steal_actor",
+                    {"slot_id": str(picked.get("slot_id"))},
+                    state,
+                )
+                if not action_result.get("success", True):
+                    message = str(action_result.get("message") or action_result.get("msg") or "挖角失败")
+                    if self._is_recruit_quota_message(message):
+                        exhausted = True
+                        break
+                    continue
+
+                stolen += 1
+                tier_name = str(picked.get("tier_name") or self.RECRUIT_TIER_NAMES.get(self._safe_int(picked.get("tier"), 0), "演员"))
+                stolen_by_tier[tier_name] = stolen_by_tier.get(tier_name, 0) + 1
+                targets.append(username)
+
+                action_state = self._extract_action_state(action_result)
+                if action_state:
+                    state = action_state
+                else:
+                    try:
+                        state = self._fetch_bundle(session).get("state") or state
+                    except Exception as refresh_err:
+                        logger.warning("%s 挖角成功后刷新状态失败：%s", self.plugin_name, self._get_error_detail(refresh_err))
+                quota = self._recruit_quota(state)
+                if quota.get("exhausted"):
+                    exhausted = True
+                    break
+                time.sleep(0.3)
+
+            next_check = self._set_recruit_next_check(
+                self._next_recruit_check_ts(now, next_day=exhausted)
+                if self._auto_recruit else 0
+            )
+            counts_text = self._format_recruit_counts(stolen_by_tier)
+            if stolen > 0:
+                message = f"挖角完成：访问 {visited} 人，挖到 {counts_text}"
+                line = f"🎭 挖角：访问 {visited} 人，挖到 {counts_text}"
+                self._append_history([line], next_check)
+                if self._notify and not force:
+                    self.post_message(
+                        title="【🎭Vue-表情】 自动挖角",
+                        mtype=NotificationType.Plugin,
+                        text=line,
+                    )
+            elif exhausted:
+                message = "今日挖角次数已用完"
+            else:
+                selected = "、".join(self.RECRUIT_TIER_NAMES[tier] for tier in self._recruit_tiers)
+                message = f"本轮访问 {visited} 人，没有找到可挖的{selected}演员，等待下一轮"
+
+            result = {
+                "success": True,
+                "message": message,
+                "visited": visited,
+                "stolen": stolen,
+                "stolen_by_tier": stolen_by_tier,
+                "targets": targets,
+                "exhausted": exhausted,
+                "next_check_ts": next_check,
+            }
+            self.save_data("recruit_error_streak", 0)
+            self._store_recruit_status(state, result)
+            return result
+        except Exception as err:
+            detail = self._get_error_detail(err)
+            error_streak = max(0, self._safe_int(self.get_data("recruit_error_streak"), 0)) + 1
+            self.save_data("recruit_error_streak", error_streak)
+            next_check = self._set_recruit_next_check(
+                self._next_recruit_check_ts(now) if self._auto_recruit else 0
+            )
+            logger.error("%s 自动挖角失败（连续 %s 次）：%s", self.plugin_name, error_streak, detail)
+            return {
+                "success": False,
+                "message": f"自动挖角失败：{detail}",
+                "visited": 0,
+                "stolen": 0,
+                "stolen_by_tier": {},
+                "targets": [],
+                "exhausted": False,
+                "next_check_ts": next_check,
+                "error_streak": error_streak,
+            }
 
     def _recover_spin_state(
         self,
