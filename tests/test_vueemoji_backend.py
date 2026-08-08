@@ -478,6 +478,40 @@ class VueEmojiBackendTests(unittest.TestCase):
 
         self.assertEqual([], self.plugin._extract_operation_logs(html))
 
+    def test_extract_operation_logs_from_web_state_logs(self):
+        state = {
+            "logs": [
+                {
+                    "action_text": "召回结算",
+                    "created_at": "2026-08-08 06:00:13",
+                    "summary": "召回60名演员，积分+2036 魔力+642",
+                },
+                {
+                    "action_text": "确认演出",
+                    "created_at": "2026-08-08 06:00:14",
+                    "summary": "确认演出：效果[知名舞台效果]，演员60名",
+                },
+            ]
+        }
+
+        logs = self.plugin._extract_operation_logs_from_state(state)
+
+        self.assertEqual(
+            [
+                {
+                    "title": "召回结算",
+                    "time": "2026-08-08 06:00:13",
+                    "detail": "召回60名演员，积分+2036 魔力+642",
+                },
+                {
+                    "title": "确认演出",
+                    "time": "2026-08-08 06:00:14",
+                    "detail": "确认演出：效果[知名舞台效果]，演员60名",
+                },
+            ],
+            logs,
+        )
+
     def test_manual_action_refreshes_web_logs_before_returning_status(self):
         before = _base_state()
         after_action = copy.deepcopy(before)

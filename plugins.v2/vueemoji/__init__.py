@@ -30,7 +30,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、网页操作日志。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.9"
+    plugin_version = "0.1.10"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -759,7 +759,9 @@ class VueEmoji(_PluginBase):
         state = self._extract_initial_state(html)
         if not state:
             raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
-        operation_logs = self._extract_operation_logs(html)
+        operation_logs = self._extract_operation_logs_from_state(state)
+        if not operation_logs:
+            operation_logs = self._extract_operation_logs(html)
         self._operation_logs = operation_logs
         return {"state": state, "html": html, "operation_logs": operation_logs}
 
@@ -797,6 +799,34 @@ class VueEmoji(_PluginBase):
                 "title": title_text or "操作",
                 "time": time_text,
                 "detail": detail_text,
+            })
+            if len(logs) >= 30:
+                break
+        return logs
+
+    def _extract_operation_logs_from_state(self, state: Dict[str, Any]) -> List[Dict[str, str]]:
+        """从网页内嵌的 SIQI_EMOJI_DATA.logs 读取真实操作记录。"""
+        if not isinstance(state, dict):
+            return []
+        raw_logs = state.get("logs")
+        if not isinstance(raw_logs, list):
+            return []
+
+        logs: List[Dict[str, str]] = []
+        for item in raw_logs:
+            if not isinstance(item, dict):
+                continue
+            title = self._strip_html(
+                item.get("action_text") or item.get("action") or item.get("title")
+            )
+            timestamp = self._strip_html(item.get("created_at") or item.get("time"))
+            detail = self._strip_html(item.get("summary") or item.get("detail"))
+            if not title and not detail:
+                continue
+            logs.append({
+                "title": title or "操作",
+                "time": timestamp,
+                "detail": detail,
             })
             if len(logs) >= 30:
                 break
