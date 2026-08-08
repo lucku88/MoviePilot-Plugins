@@ -48,6 +48,18 @@ class VueToyFrontendContractTests(unittest.TestCase):
         ):
             self.assertIn(endpoint, self.page)
 
+    def test_remote_records_offer_early_collect_with_existing_collect_action(self):
+        self.assertIn("remoteActionKind(item)", self.page)
+        self.assertIn("remoteActionLabel(item)", self.page)
+        self.assertIn("@click=\"collectSlot(item)\"", self.page)
+        self.assertIn("actionLoading === `collect-${item.owner_id}-${item.slot_index}`", self.page)
+
+    def test_remote_records_render_the_collect_button_in_the_record_card(self):
+        remote_block = self.page.split('class="siqi-card remote-card', 1)[1].split('class="siqi-card activity-card', 1)[0]
+        self.assertIn("remoteActionKind(item)", remote_block)
+        self.assertIn("remoteActionLabel(item)", remote_block)
+        self.assertIn("collectSlot(item)", remote_block)
+
     def test_status_page_reads_backend_guard_hours(self):
         self.assertIn("placementGuard.value.hours", self.page)
 

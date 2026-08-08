@@ -436,9 +436,15 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.assertEqual(65, result["result"]["magic_gain"])
 
     def test_extract_operation_logs_from_page_html(self):
-        html = """
+        unrelated_logs = """
+        <div class=\"log-list\">
+          <div class=\"log-item\"><div><b>错误区域</b> <span class=\"muted\">2099-01-01 00:00:00</span></div><div>不能读取这里</div></div>
+        </div>
+        """
+        actor_noise = '<button class="actor-card">😀</button>' * 5000
+        html = unrelated_logs + actor_noise + """
         <section class=\"emoji-card\">
-          <div class=\"log-list\">
+          <div data-scroll-key=\"user-log-list\" class=\"log-list\">
             <div class=\"log-item\"><div><b>确认演出</b> <span class=\"muted\">2026-08-08 06:00:14</span></div><div>确认演出：效果[知名舞台效果]，演员60名</div></div>
             <div class=\"log-item\"><div><b>召回结算</b> <span class=\"muted\">2026-08-08 06:00:13</span></div><div>召回60名演员，积分+2036 魔力+642</div></div>
           </div>
@@ -462,6 +468,15 @@ class VueEmojiBackendTests(unittest.TestCase):
             ],
             logs,
         )
+
+    def test_extract_operation_logs_requires_the_exact_web_log_container(self):
+        html = """
+        <div class=\"log-list\">
+          <div class=\"log-item\"><div><b>伪日志</b> <span class=\"muted\">2026-08-08 06:00:14</span></div><div>页面其他区域</div></div>
+        </div>
+        """
+
+        self.assertEqual([], self.plugin._extract_operation_logs(html))
 
     def test_manual_action_refreshes_web_logs_before_returning_status(self):
         before = _base_state()
@@ -495,7 +510,7 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.plugin._fetch_bundle_once.assert_called_once()
         self.assertEqual(fresh_logs, result["emoji_status"]["operation_logs"])
 
-    def test_ui_state_exposes_operation_logs_and_effect_animation(self):
+    def test_ui_state_exposes_operation_logs_without_effect_animation_payload(self):
         self.plugin._operation_logs = [
             {"title": "老虎机", "time": "2026-08-08 00:35:19", "detail": "获得新人表情包x1"}
         ]
@@ -507,8 +522,9 @@ class VueEmojiBackendTests(unittest.TestCase):
         ui_state = self.plugin._build_ui_state(state, 123, [])
 
         self.assertEqual(self.plugin._operation_logs, ui_state["operation_logs"])
-        self.assertEqual("stage-anim-famous", ui_state["effects"][0]["animation_class"])
-        self.assertEqual(["🎵", "💃", "🕺", "✨", "🎭"], ui_state["effects"][0]["preview_emojis"])
+        self.assertNotIn("animation_class", ui_state["effects"][0])
+        self.assertNotIn("preview_emojis", ui_state["effects"][0])
+        self.assertNotIn("animation_class", ui_state["stage_rows"][0]["slots"][0])
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_6a8af6de_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_fafcef1e_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,withKeys:_withKeys,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-6a8af6de"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-fafcef1e"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -186,17 +186,18 @@ const _hoisted_86 = { class: "remote-copy" };
 const _hoisted_87 = { class: "remote-name" };
 const _hoisted_88 = { class: "remote-meta" };
 const _hoisted_89 = { class: "remote-meta" };
-const _hoisted_90 = {
+const _hoisted_90 = { class: "remote-actions" };
+const _hoisted_91 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_91 = {
+const _hoisted_92 = {
   key: 1,
   class: "activity-list"
 };
-const _hoisted_92 = { class: "recycle-dialog-name" };
-const _hoisted_93 = { class: "recycle-dialog-hint" };
-const _hoisted_94 = { class: "recycle-estimate" };
+const _hoisted_93 = { class: "recycle-dialog-name" };
+const _hoisted_94 = { class: "recycle-dialog-hint" };
+const _hoisted_95 = { class: "recycle-estimate" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -356,6 +357,20 @@ function slotRemainText(slot = {}) {
 function remoteRemainText(item = {}) {
   const remain = liveRemaining(item);
   return remain <= 0 ? '现在可收回' : `距完成 ${formatDuration(remain)}`
+}
+
+function remoteActionKind(item = {}) {
+  const explicit = String(item.action_kind || '').toLowerCase();
+  if (explicit === 'ready' || explicit === 'early') return explicit
+  if (item.can_collect === true) return 'ready'
+  const hasRemaining = Number(item.remaining_end_ts || 0) > 0
+    || item.remaining_seconds !== null && item.remaining_seconds !== undefined;
+  if (!hasRemaining) return 'early'
+  return liveRemaining(item) <= 0 ? 'ready' : 'early'
+}
+
+function remoteActionLabel(item = {}) {
+  return remoteActionKind(item) === 'ready' ? '收回玩偶' : '提前收回'
 }
 
 function cabinetCooldownText(doll = {}) {
@@ -1379,7 +1394,7 @@ return (_ctx, _cache) => {
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(remoteRecords.value, (item) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: `${item.owner_id}-${item.slot_index}`,
-                                class: "remote-row"
+                                class: _normalizeClass(["remote-row", { 'remote-row--ready': remoteActionKind(item) === 'ready' }])
                               }, [
                                 (item.image)
                                   ? (_openBlock(), _createElementBlock("img", {
@@ -1400,19 +1415,34 @@ return (_ctx, _cache) => {
                                   _createElementVNode("div", _hoisted_88, _toDisplayString(item.owner_name) + " · 展位 " + _toDisplayString(item.slot_index), 1),
                                   _createElementVNode("div", _hoisted_89, _toDisplayString(remoteRemainText(item)), 1)
                                 ]),
-                                _createVNode(_component_v_btn, {
-                                  size: "small",
-                                  color: "indigo",
-                                  variant: "tonal",
-                                  disabled: isBusy.value,
-                                  onClick: $event => (viewTarget(item.owner_id))
-                                }, {
-                                  default: _withCtx(() => [
-                                    _createTextVNode("查看")
-                                  ]),
-                                  _: 2
-                                }, 1032, ["disabled", "onClick"])
-                              ]))
+                                _createElementVNode("div", _hoisted_90, [
+                                  _createVNode(_component_v_btn, {
+                                    size: "small",
+                                    color: "indigo",
+                                    variant: "tonal",
+                                    disabled: isBusy.value,
+                                    onClick: $event => (viewTarget(item.owner_id))
+                                  }, {
+                                    default: _withCtx(() => [
+                                      _createTextVNode("查看")
+                                    ]),
+                                    _: 2
+                                  }, 1032, ["disabled", "onClick"]),
+                                  _createVNode(_component_v_btn, {
+                                    size: "small",
+                                    color: remoteActionKind(item) === 'ready' ? 'success' : 'warning',
+                                    variant: "tonal",
+                                    disabled: isBusy.value || item.action_disabled === true,
+                                    loading: actionLoading.value === `collect-${item.owner_id}-${item.slot_index}`,
+                                    onClick: $event => (collectSlot(item))
+                                  }, {
+                                    default: _withCtx(() => [
+                                      _createTextVNode(_toDisplayString(remoteActionLabel(item)), 1)
+                                    ]),
+                                    _: 2
+                                  }, 1032, ["color", "disabled", "loading", "onClick"])
+                                ])
+                              ], 2))
                             }), 128))
                           ]))
                     ]),
@@ -1442,8 +1472,8 @@ return (_ctx, _cache) => {
                 _createVNode(_component_v_card_text, null, {
                   default: _withCtx(() => [
                     (!activityLogs.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_90, "暂无操作记录"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_91, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_91, "暂无操作记录"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_92, [
                           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(activityLogs.value, (item, index) => {
                             return (_openBlock(), _createElementBlock("div", {
                               key: `${item.time}-${index}`,
@@ -1484,8 +1514,8 @@ return (_ctx, _cache) => {
               (recycleDialog.doll)
                 ? (_openBlock(), _createBlock(_component_v_card_text, { key: 0 }, {
                     default: _withCtx(() => [
-                      _createElementVNode("div", _hoisted_92, _toDisplayString(recycleDialog.doll.name), 1),
-                      _createElementVNode("div", _hoisted_93, " 当前闲置 " + _toDisplayString(recycleDialog.doll.idle || 0) + " 个，仅回收未展出、未冷却的玩偶 ", 1),
+                      _createElementVNode("div", _hoisted_93, _toDisplayString(recycleDialog.doll.name), 1),
+                      _createElementVNode("div", _hoisted_94, " 当前闲置 " + _toDisplayString(recycleDialog.doll.idle || 0) + " 个，仅回收未展出、未冷却的玩偶 ", 1),
                       _createVNode(_component_v_text_field, {
                         modelValue: recycleDialog.quantity,
                         "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((recycleDialog.quantity) = $event)),
@@ -1500,7 +1530,7 @@ return (_ctx, _cache) => {
                         "hide-details": "",
                         class: "recycle-quantity"
                       }, null, 8, ["modelValue", "max"]),
-                      _createElementVNode("div", _hoisted_94, "预计获得魔力：" + _toDisplayString(recycleEstimate.value), 1)
+                      _createElementVNode("div", _hoisted_95, "预计获得魔力：" + _toDisplayString(recycleEstimate.value), 1)
                     ]),
                     _: 1
                   }))
@@ -1544,6 +1574,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6a8af6de"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-fafcef1e"]]);
 
 export { PageView as default };

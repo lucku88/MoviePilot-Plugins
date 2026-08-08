@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.1.8"
+EXPECTED_VERSION = "0.1.9"
 
 
 class VueEmojiReleaseMetadataTests(unittest.TestCase):
@@ -26,15 +26,15 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_shared_theme_release(self):
+    def test_market_history_describes_compact_web_log_release(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "动态运行",
-            "合成",
-            "操作日志",
-            "舞台动画",
+            "左右布局",
+            "缩小",
+            "强定位",
+            "网页操作日志",
             "保留配置",
         ):
             self.assertIn(phrase, note)
@@ -42,7 +42,7 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
     def test_readme_lists_version_and_upgrade_behaviour(self):
         self.assertIn(f"| `Vue-表情` | `v{EXPECTED_VERSION}`", self.readme)
         section = self.readme.split("### 🎭 Vue-表情", 1)[1].split("### ", 1)[0]
-        for phrase in (f"v{EXPECTED_VERSION}", "动态运行", "合成", "操作日志", "舞台动画", "保留配置"):
+        for phrase in (f"v{EXPECTED_VERSION}", "左右布局", "缩小", "强定位", "网页操作日志", "保留配置"):
             self.assertIn(phrase, section)
 
     def test_federation_entries_reference_existing_build_assets(self):

@@ -26,7 +26,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.2.6"
+    plugin_version = "0.2.7"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -1937,6 +1937,7 @@ class VueToy(_PluginBase):
             name = item.get("doll_name") or ""
             meta = doll_map.get(name, {})
             remaining = self._get_remote_remain_sec(item)
+            can_collect = remaining is not None and remaining <= 0
             records.append({
                 "owner_id": self._safe_int(item.get("owner_id"), 0),
                 "owner_name": self._strip_html(item.get("owner_name") or ""),
@@ -1948,6 +1949,11 @@ class VueToy(_PluginBase):
                 "remaining_seconds": remaining if remaining is not None else None,
                 "remaining_end_ts": self._get_future_ts(0, remaining),
                 "remaining": remaining if remaining is not None else 10**9,
+                "viewer_is_occupant": True,
+                "can_collect": can_collect,
+                "action_kind": "ready" if can_collect else "early",
+                "action_label": "收回玩偶" if can_collect else "提前收回",
+                "action_disabled": False,
             })
         return sorted(records, key=lambda item: item["remaining"])
 

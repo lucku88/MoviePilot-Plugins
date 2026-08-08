@@ -23,6 +23,7 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             'class="mb-3 overview-grid"',
             'class="stat-card',
             'class="siqi-card next-run-card mb-3"',
+            'class="emoji-hub-grid"',
             'class="siqi-card slot-card mb-3"',
             'class="siqi-card bag-card',
             'class="siqi-card catalog-card',
@@ -52,24 +53,48 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             'v-model="upgradeCounts[bag.upgrade_rule.key]"',
             '@click="upgradeBag(bag)"',
             'class="siqi-card log-card',
-            '🧾 最近30次操作日志',
+            '最近30次操作日志',
             'operationLogs',
         ):
             self.assertIn(expected, self.page)
+        self.assertNotIn('🧾 最近30次操作日志', self.page)
         self.assertNotIn('>执行历史</', self.page)
 
-    def test_stage_effects_and_slots_expose_animation_classes(self):
-        self.assertIn('effect.animation_class', self.page)
-        self.assertIn('effect.preview_emojis', self.page)
-        self.assertIn('slot.animation_class', self.page)
-        for expected in (
-            '.stage-anim-basic',
-            '.stage-anim-newbie',
-            '.stage-anim-skill',
-            '.stage-anim-famous',
-            '.stage-anim-top',
+    def test_slot_and_bags_share_a_compact_responsive_two_column_hub(self):
+        self.assertLess(
+            self.page.index('class="siqi-card slot-card'),
+            self.page.index('class="siqi-card bag-card'),
+        )
+        self.assertIn(
+            ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:stretch;margin-bottom:12px}",
+            self.compact_page,
+        )
+        self.assertIn(
+            "@media(max-width:1100px){.emoji-hub-grid{grid-template-columns:1fr}",
+            self.compact_page,
+        )
+
+    def test_stage_effect_preview_is_removed_and_emoji_density_is_compact(self):
+        for forbidden in (
+            'class="effect-grid"',
+            'effect.animation_class',
+            'effect.preview_emojis',
+            'slot.animation_class',
+            '.stage-anim-',
+            '@keyframes vueemoji-',
         ):
-            self.assertIn(expected, self.page)
+            self.assertNotIn(forbidden, self.page)
+
+        self.assertIn(
+            ".actor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}",
+            self.compact_page,
+        )
+        self.assertIn(".actor-main{font-size:22px", self.compact_page)
+        self.assertIn(
+            ".stage-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px",
+            self.compact_page,
+        )
+        self.assertIn(".stage-slot-emoji{font-size:18px", self.compact_page)
 
     def test_status_page_keeps_all_manual_actions(self):
         for endpoint in (
@@ -121,14 +146,14 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             'siqi-card-title--bags',
             'siqi-card-title--catalog',
             'siqi-card-title--stage',
-            'siqi-card-title--history',
+            'siqi-card-title--logs',
             '.stat-card{--stat-rgb:',
             '.stat-red{--stat-rgb:239,68,68;',
             '.siqi-card-title--schedule{background:rgba(76,175,80,.08)}',
             '.siqi-card-title--bags{background:rgba(249,115,22,.09)}',
             '.siqi-card-title--catalog{background:rgba(59,130,246,.09)}',
             '.siqi-card-title--stage{background:rgba(245,158,11,.09)}',
-            '.siqi-card-title--history{background:rgba(20,184,166,.08)}',
+            '.siqi-card-title--logs{background:rgba(20,184,166,.08)}',
         ):
             self.assertIn(expected, self.compact_page)
 
@@ -211,10 +236,10 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
         )
         self.assertRegex(
             self.page,
-            r"\.slot-machine-action,\.bag-action\s*\{[^}]*align-items:\s*center[^}]*min-width:\s*0",
+            r"\.slot-center-row,\.bag-action\s*\{[^}]*align-items:\s*center[^}]*min-width:\s*0",
         )
         self.assertIn(
-            ".slot-machine-action:deep(.v-btn),.bag-action:deep(.v-btn){height:44px",
+            ".slot-center-row:deep(.v-btn),.bag-action:deep(.v-btn){height:44px",
             self.compact_page,
         )
 

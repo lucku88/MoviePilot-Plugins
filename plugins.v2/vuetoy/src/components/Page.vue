@@ -411,7 +411,12 @@
           <v-card-text class="remote-body">
             <div v-if="!remoteRecords.length" class="empty-state">暂无外展记录</div>
             <div v-else class="remote-grid">
-              <article v-for="item in remoteRecords" :key="`${item.owner_id}-${item.slot_index}`" class="remote-row">
+              <article
+                v-for="item in remoteRecords"
+                :key="`${item.owner_id}-${item.slot_index}`"
+                class="remote-row"
+                :class="{ 'remote-row--ready': remoteActionKind(item) === 'ready' }"
+              >
                 <img v-if="item.image" :src="item.image" :alt="item.doll_name" class="remote-image" loading="lazy" />
                 <div v-else class="remote-image remote-image--placeholder"><v-icon icon="mdi-teddy-bear" size="27" /></div>
                 <div class="remote-copy">
@@ -419,7 +424,19 @@
                   <div class="remote-meta">{{ item.owner_name }} · 展位 {{ item.slot_index }}</div>
                   <div class="remote-meta">{{ remoteRemainText(item) }}</div>
                 </div>
-                <v-btn size="small" color="indigo" variant="tonal" :disabled="isBusy" @click="viewTarget(item.owner_id)">查看</v-btn>
+                <div class="remote-actions">
+                  <v-btn size="small" color="indigo" variant="tonal" :disabled="isBusy" @click="viewTarget(item.owner_id)">查看</v-btn>
+                  <v-btn
+                    size="small"
+                    :color="remoteActionKind(item) === 'ready' ? 'success' : 'warning'"
+                    variant="tonal"
+                    :disabled="isBusy || item.action_disabled === true"
+                    :loading="actionLoading === `collect-${item.owner_id}-${item.slot_index}`"
+                    @click="collectSlot(item)"
+                  >
+                    {{ remoteActionLabel(item) }}
+                  </v-btn>
+                </div>
               </article>
             </div>
           </v-card-text>
@@ -633,6 +650,20 @@ function slotRemainText(slot = {}) {
 function remoteRemainText(item = {}) {
   const remain = liveRemaining(item)
   return remain <= 0 ? '现在可收回' : `距完成 ${formatDuration(remain)}`
+}
+
+function remoteActionKind(item = {}) {
+  const explicit = String(item.action_kind || '').toLowerCase()
+  if (explicit === 'ready' || explicit === 'early') return explicit
+  if (item.can_collect === true) return 'ready'
+  const hasRemaining = Number(item.remaining_end_ts || 0) > 0
+    || item.remaining_seconds !== null && item.remaining_seconds !== undefined
+  if (!hasRemaining) return 'early'
+  return liveRemaining(item) <= 0 ? 'ready' : 'early'
+}
+
+function remoteActionLabel(item = {}) {
+  return remoteActionKind(item) === 'ready' ? '收回玩偶' : '提前收回'
 }
 
 function cabinetCooldownText(doll = {}) {
@@ -1025,10 +1056,13 @@ onBeforeUnmount(() => {
 .target-tools { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 9px; margin-bottom: 11px; }
 .remote-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 .remote-row { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 9px; }
+.remote-row--ready { border-color: rgba(34, 197, 94, .38); background: rgba(34, 197, 94, .045); }
 .remote-image { width: 50px; height: 50px; }
 .remote-copy { min-width: 0; }
 .remote-name { font-size: .82rem; font-weight: 700; }
 .remote-meta { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .6); font-size: .68rem; }
+.remote-actions { display: flex; flex-direction: column; gap: 6px; min-width: 76px; }
+.remote-actions :deep(.v-btn) { min-width: 76px; }
 
 .activity-row {
   display: flex;
@@ -1095,6 +1129,8 @@ onBeforeUnmount(() => {
   .slot-grid,
   .doll-grid,
   .remote-grid { grid-template-columns: 1fr; }
+  .remote-actions { flex-direction: row; min-width: 0; }
+  .remote-actions :deep(.v-btn) { flex: 1 1 0; min-width: 0; }
   .box-row { grid-template-columns: 44px minmax(0, 1fr) 64px; }
   .box-image { width: 44px; height: 44px; }
   .box-row > .v-btn { grid-column: 2 / -1; width: 100%; min-height: 44px; }

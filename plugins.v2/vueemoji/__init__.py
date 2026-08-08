@@ -30,7 +30,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、网页操作日志。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.8"
+    plugin_version = "0.1.9"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -48,8 +48,6 @@ class VueEmoji(_PluginBase):
     PRE_REFRESH_SECONDS = 60
     MAX_NETWORK_RETRY_TIMES = 5
     MAX_CONSECUTIVE_ERROR_RETRIES = 5
-    STAGE_PREVIEW_EMOJIS = ["🎵", "💃", "🕺", "✨", "🎭"]
-    STAGE_ANIMATION_KEYS = {"basic", "newbie", "skill", "famous", "top"}
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -766,16 +764,30 @@ class VueEmoji(_PluginBase):
         return {"state": state, "html": html, "operation_logs": operation_logs}
 
     def _extract_operation_logs(self, html: str) -> List[Dict[str, str]]:
-        """从站点页面提取最近操作，保持和网页显示的标题、时间、详情一致。"""
+        """只从网页的真实日志容器提取最近操作，避免扫描整页表情。"""
+        source = str(html or "")
+        container_open = re.search(
+            r"<div\b(?=[^>]*\bclass=[\"'][^\"']*\blog-list\b[^\"']*[\"'])"
+            r"(?=[^>]*\bdata-scroll-key=[\"']user-log-list[\"'])[^>]*>",
+            source,
+            re.IGNORECASE,
+        )
+        if not container_open:
+            return []
+
+        container = self._extract_balanced_div(source, container_open.start())
+        if not container:
+            return []
+
         pattern = re.compile(
-            r'<div\s+class=["\']log-item["\'][^>]*>\s*'
+            r'<div\b(?=[^>]*\bclass=["\'][^"\']*\blog-item\b[^"\']*["\'])[^>]*>\s*'
             r'<div[^>]*>\s*<b[^>]*>(.*?)</b>\s*'
             r'<span[^>]*class=["\'][^"\']*\bmuted\b[^"\']*["\'][^>]*>(.*?)</span>.*?</div>\s*'
             r'<div[^>]*>(.*?)</div>\s*</div>',
             re.IGNORECASE | re.DOTALL,
         )
         logs: List[Dict[str, str]] = []
-        for title, timestamp, detail in pattern.findall(str(html or "")):
+        for title, timestamp, detail in pattern.findall(container):
             title_text = self._strip_html(title)
             time_text = self._strip_html(timestamp)
             detail_text = self._strip_html(detail)
@@ -789,6 +801,20 @@ class VueEmoji(_PluginBase):
             if len(logs) >= 30:
                 break
         return logs
+
+    @staticmethod
+    def _extract_balanced_div(html: str, start: int) -> str:
+        """按 div 层级截取日志容器，不让后续正则遍历整页 HTML。"""
+        tag_pattern = re.compile(r"</?div\b[^>]*>", re.IGNORECASE)
+        depth = 0
+        for match in tag_pattern.finditer(html, start):
+            if match.group(0).lstrip().startswith("</"):
+                depth -= 1
+            else:
+                depth += 1
+            if depth == 0:
+                return html[start:match.end()]
+        return ""
 
     def _extract_initial_state(self, html: str) -> Dict[str, Any]:
         marker = "const SIQI_EMOJI_DATA ="
@@ -1910,16 +1936,8 @@ class VueEmoji(_PluginBase):
                 "unlocked": bool(effect.get("unlocked")),
                 "unlock_text": effect.get("unlock_text") or "",
                 "active": str(effect.get("key") or "") == selected,
-                "animation_class": self._stage_animation_class(effect.get("key")),
-                "preview_emojis": list(self.STAGE_PREVIEW_EMOJIS),
             })
         return result
-
-    def _stage_animation_class(self, effect_key: Any) -> str:
-        key = str(effect_key or "basic").strip().lower()
-        if key not in self.STAGE_ANIMATION_KEYS:
-            key = "basic"
-        return f"stage-anim-{key}"
 
     def _build_effect_options(self) -> List[Dict[str, Any]]:
         options: List[Dict[str, Any]] = [{"title": "自动选择演出舞台效果", "value": "auto"}]
@@ -2051,9 +2069,6 @@ class VueEmoji(_PluginBase):
                     "remaining_seconds": remaining,
                     "remaining_end_ts": self._extract_slot_end_ts(active, remaining) if active else 0,
                     "effect_key": str(active.get("effect_key") or stage.get("selected_effect") or "basic"),
-                    "animation_class": self._stage_animation_class(
-                        active.get("effect_key") or stage.get("selected_effect") or "basic"
-                    ),
                 })
             result.append({
                 "row_index": row_index,

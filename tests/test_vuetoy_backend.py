@@ -259,6 +259,36 @@ class VueToyBackendTests(unittest.TestCase):
         self.assertEqual(7000, card["recycle_value"])
         self.assertEqual(2, card["recycle_max"])
 
+    def test_remote_records_expose_early_and_ready_collect_actions(self):
+        state = {
+            "remote_deployments": [
+                {
+                    "owner_id": 22,
+                    "owner_name": "目标用户",
+                    "slot_index": 3,
+                    "doll_name": "拾荒者",
+                    "time_until_collect": 1800,
+                },
+                {
+                    "owner_id": 23,
+                    "owner_name": "另一个用户",
+                    "slot_index": 4,
+                    "doll_name": "拾荒者",
+                    "time_until_collect": 0,
+                },
+            ]
+        }
+
+        records = self.plugin._build_remote_records(state, {})
+
+        by_owner = {record["owner_id"]: record for record in records}
+        self.assertEqual("early", by_owner[22]["action_kind"])
+        self.assertEqual("提前收回", by_owner[22]["action_label"])
+        self.assertFalse(by_owner[22]["can_collect"])
+        self.assertEqual("ready", by_owner[23]["action_kind"])
+        self.assertEqual("收回玩偶", by_owner[23]["action_label"])
+        self.assertTrue(by_owner[23]["can_collect"])
+
     def test_manual_recycle_uses_idle_quantity_and_real_site_action(self):
         state = _toy_state(available=0)
         state["doll_inventory"][0].update({
