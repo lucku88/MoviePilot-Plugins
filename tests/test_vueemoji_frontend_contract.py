@@ -50,6 +50,8 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
     def test_bag_cards_render_upgrade_controls_and_operation_logs(self):
         for expected in (
             'class="bag-upgrade-row"',
+            'class="bag-upgrade-controls"',
+            'class="number-input bag-upgrade-input"',
             'v-model="upgradeCounts[bag.upgrade_rule.key]"',
             '@click="upgradeBag(bag)"',
             'class="siqi-card log-card',
@@ -59,6 +61,20 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.assertIn(expected, self.page)
         self.assertNotIn('🧾 最近30次操作日志', self.page)
         self.assertNotIn('>执行历史</', self.page)
+
+    def test_bag_upgrade_controls_are_compact_and_right_aligned(self):
+        self.assertRegex(
+            self.page,
+            r"\.bag-upgrade-row\s*\{[^}]*justify-content:\s*flex-end",
+        )
+        self.assertRegex(
+            self.page,
+            r"\.bag-upgrade-input\s*\{[^}]*width:\s*76px",
+        )
+        self.assertRegex(
+            self.page,
+            r"\.bag-tip\s*\{[^}]*margin-top:\s*-",
+        )
 
     def test_slot_and_bags_share_a_compact_responsive_two_column_hub(self):
         self.assertLess(
@@ -74,9 +90,21 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.compact_page,
         )
 
-    def test_stage_effect_preview_is_removed_and_emoji_density_is_compact(self):
-        for forbidden in (
+    def test_stage_effect_choices_keep_text_controls_without_preview_animation(self):
+        for expected in (
             'class="effect-grid"',
+            'class="effect-card"',
+            'v-for="effect in effects"',
+            '@click="selectEffect(effect)"',
+            'effect.point_bonus_pct',
+            'effect.magic_bonus_pct',
+            'effect.duration_text',
+        ):
+            self.assertIn(expected, self.page)
+
+        for forbidden in (
+            'class="effect-preview"',
+            'effect-preview-emoji',
             'effect.animation_class',
             'effect.preview_emojis',
             'slot.animation_class',

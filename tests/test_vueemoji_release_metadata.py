@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.1.10"
+EXPECTED_VERSION = "0.1.11"
 
 
 class VueEmojiReleaseMetadataTests(unittest.TestCase):
@@ -26,17 +26,18 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_web_log_state_release(self):
+    def test_market_history_describes_latest_ui_release(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "SIQI_EMOJI_DATA.logs",
-            "旧版日志容器",
-            "网页操作日志",
+            "舞台效果",
+            "动画预览",
+            "合成目标数",
             "保留配置",
         ):
             self.assertIn(phrase, note)
+        self.assertIn("SIQI_EMOJI_DATA.logs", history["v0.1.10"])
 
     def test_readme_lists_version_and_upgrade_behaviour(self):
         self.assertIn(f"| `Vue-表情` | `v{EXPECTED_VERSION}`", self.readme)
