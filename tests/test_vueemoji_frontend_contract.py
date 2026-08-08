@@ -64,16 +64,31 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
 
     def test_bag_upgrade_controls_are_compact_and_right_aligned(self):
         self.assertRegex(
-            self.page,
-            r"\.bag-upgrade-row\s*\{[^}]*justify-content:\s*flex-end",
+            self.compact_page,
+            r"\.bag-upgrade-row\{[^}]*grid-template-columns:minmax\(0,1fr\)auto",
         )
         self.assertRegex(
             self.page,
             r"\.bag-upgrade-input\s*\{[^}]*width:\s*76px",
         )
-        self.assertRegex(
+
+    def test_bag_upgrade_tip_shares_row_with_right_aligned_controls(self):
+        self.assertIn(
+            '<div class="bag-upgrade-tip">{{ bag.upgrade_rule.tip }}</div>',
             self.page,
-            r"\.bag-tip\s*\{[^}]*margin-top:\s*-",
+        )
+        self.assertNotIn('class="bag-tip"', self.page)
+        self.assertLess(
+            self.page.index('class="bag-upgrade-tip"'),
+            self.page.index('class="bag-upgrade-controls"'),
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.bag-upgrade-row\{[^}]*grid-template-columns:minmax\(0,1fr\)auto",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.bag-upgrade-tip\{[^}]*min-width:0",
         )
 
     def test_slot_and_bags_share_a_compact_responsive_two_column_hub(self):

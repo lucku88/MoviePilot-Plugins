@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_5ab9146a_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_119ebbfd_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-5ab9146a"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-119ebbfd"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -74,13 +74,10 @@ const _hoisted_41 = {
   key: 2,
   class: "bag-upgrade-row"
 };
-const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "bag-upgrade-label" }, "目标数", -1));
+const _hoisted_42 = { class: "bag-upgrade-tip" };
 const _hoisted_43 = { class: "bag-upgrade-controls" };
-const _hoisted_44 = ["onUpdate:modelValue", "max", "aria-label", "disabled"];
-const _hoisted_45 = {
-  key: 3,
-  class: "bag-tip"
-};
+const _hoisted_44 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", { class: "bag-upgrade-label" }, "目标数", -1));
+const _hoisted_45 = ["onUpdate:modelValue", "max", "aria-label", "disabled"];
 const _hoisted_46 = {
   key: 0,
   class: "pending-panel"
@@ -1149,8 +1146,9 @@ return (_ctx, _cache) => {
                             ]),
                             (bag.upgrade_rule)
                               ? (_openBlock(), _createElementBlock("div", _hoisted_41, [
-                                  _hoisted_42,
+                                  _createElementVNode("div", _hoisted_42, _toDisplayString(bag.upgrade_rule.tip), 1),
                                   _createElementVNode("div", _hoisted_43, [
+                                    _hoisted_44,
                                     _withDirectives(_createElementVNode("input", {
                                       "onUpdate:modelValue": $event => ((upgradeCounts[bag.upgrade_rule.key]) = $event),
                                       class: "number-input bag-upgrade-input",
@@ -1159,7 +1157,7 @@ return (_ctx, _cache) => {
                                       max: Math.max(bag.upgrade_rule.max_times || 1, 1),
                                       "aria-label": bag.name + '合成次数',
                                       disabled: loading.value || !bag.upgrade_rule.enabled
-                                    }, null, 8, _hoisted_44), [
+                                    }, null, 8, _hoisted_45), [
                                       [_vModelText, upgradeCounts[bag.upgrade_rule.key]]
                                     ]),
                                     _createVNode(_component_v_btn, {
@@ -1177,9 +1175,6 @@ return (_ctx, _cache) => {
                                     }, 1032, ["loading", "disabled", "onClick"])
                                   ])
                                 ]))
-                              : _createCommentVNode("", true),
-                            (bag.upgrade_rule)
-                              ? (_openBlock(), _createElementBlock("div", _hoisted_45, _toDisplayString(bag.upgrade_rule.tip), 1))
                               : _createCommentVNode("", true)
                           ], 4))
                         }), 128))
@@ -1551,6 +1546,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-5ab9146a"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-119ebbfd"]]);
 
 export { PageView as default };
