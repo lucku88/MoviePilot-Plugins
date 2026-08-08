@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_da9bbcfb_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_23299414_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,vModelText:_vModelText,withDirectives:_withDirectives,normalizeStyle:_normalizeStyle,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-da9bbcfb"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-23299414"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -35,113 +35,125 @@ const _hoisted_17 = {
   key: 0,
   class: "stat-desc"
 };
-const _hoisted_18 = { class: "primary-grid mb-3" };
-const _hoisted_19 = { class: "schedule-list" };
-const _hoisted_20 = { class: "schedule-row__copy" };
-const _hoisted_21 = { class: "schedule-row__title" };
-const _hoisted_22 = { class: "schedule-row__meta" };
-const _hoisted_23 = {
+const _hoisted_18 = { class: "next-run-icon" };
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "next-run-copy" }, [
+  /*#__PURE__*/_createElementVNode("div", { class: "next-run-title" }, "动态运行"),
+  /*#__PURE__*/_createElementVNode("div", { class: "next-run-guard" }, "按舞台完成时间和老虎机计划动态安排")
+], -1));
+const _hoisted_20 = { class: "next-run-times" };
+const _hoisted_21 = { class: "next-run-time" };
+const _hoisted_22 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "计划触发", -1));
+const _hoisted_23 = { class: "next-run-time" };
+const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "执行时间", -1));
+const _hoisted_25 = {
   key: 0,
   class: "summary-panel"
 };
-const _hoisted_24 = { class: "summary-panel__head" };
-const _hoisted_25 = { class: "summary-lines" };
-const _hoisted_26 = { class: "section-count" };
-const _hoisted_27 = { class: "slot-machine-panel" };
-const _hoisted_28 = { class: "slot-machine-copy" };
-const _hoisted_29 = { class: "slot-machine-title" };
-const _hoisted_30 = { class: "slot-machine-meta" };
-const _hoisted_31 = {
-  class: "slot-reels",
+const _hoisted_26 = { class: "summary-panel__head" };
+const _hoisted_27 = { class: "summary-lines" };
+const _hoisted_28 = { class: "slot-today" };
+const _hoisted_29 = {
+  class: "slot-reels slot-reels--large",
   "aria-label": "老虎机当前图案"
 };
-const _hoisted_32 = { class: "slot-machine-action" };
-const _hoisted_33 = ["max"];
-const _hoisted_34 = { class: "bag-grid" };
-const _hoisted_35 = {
+const _hoisted_30 = { class: "slot-center-row" };
+const _hoisted_31 = ["max"];
+const _hoisted_32 = { class: "section-count" };
+const _hoisted_33 = { class: "bag-grid" };
+const _hoisted_34 = {
   key: 1,
   class: "bag-image bag-image--placeholder"
 };
-const _hoisted_36 = { class: "bag-copy" };
-const _hoisted_37 = { class: "bag-name" };
-const _hoisted_38 = { class: "bag-count" };
-const _hoisted_39 = { class: "bag-action" };
-const _hoisted_40 = ["onUpdate:modelValue", "max", "aria-label"];
-const _hoisted_41 = {
+const _hoisted_35 = { class: "bag-copy" };
+const _hoisted_36 = { class: "bag-name" };
+const _hoisted_37 = { class: "bag-count" };
+const _hoisted_38 = { class: "bag-action" };
+const _hoisted_39 = ["onUpdate:modelValue", "max", "aria-label"];
+const _hoisted_40 = {
+  key: 2,
+  class: "bag-upgrade-row"
+};
+const _hoisted_41 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "目标数", -1));
+const _hoisted_42 = ["onUpdate:modelValue", "max", "aria-label", "disabled"];
+const _hoisted_43 = {
+  key: 3,
+  class: "bag-tip"
+};
+const _hoisted_44 = {
   key: 0,
   class: "pending-panel"
 };
-const _hoisted_42 = { class: "pending-head" };
-const _hoisted_43 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "待处理开包结果", -1));
-const _hoisted_44 = { class: "result-emoji" };
-const _hoisted_45 = { class: "result-attr" };
-const _hoisted_46 = { class: "result-owned" };
-const _hoisted_47 = { class: "pending-actions" };
-const _hoisted_48 = { class: "card-title-copy" };
-const _hoisted_49 = { class: "catalog-progress" };
-const _hoisted_50 = { class: "tier-tabs" };
-const _hoisted_51 = ["onClick"];
-const _hoisted_52 = {
+const _hoisted_45 = { class: "pending-head" };
+const _hoisted_46 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("strong", null, "待处理开包结果", -1));
+const _hoisted_47 = { class: "result-emoji" };
+const _hoisted_48 = { class: "result-attr" };
+const _hoisted_49 = { class: "result-owned" };
+const _hoisted_50 = { class: "pending-actions" };
+const _hoisted_51 = { class: "card-title-copy" };
+const _hoisted_52 = { class: "catalog-progress" };
+const _hoisted_53 = { class: "tier-tabs" };
+const _hoisted_54 = ["onClick"];
+const _hoisted_55 = {
   class: "sort-tabs",
   "aria-label": "表情图鉴排序"
 };
-const _hoisted_53 = ["onClick"];
-const _hoisted_54 = {
+const _hoisted_56 = ["onClick"];
+const _hoisted_57 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_55 = { class: "actor-grid" };
-const _hoisted_56 = ["disabled", "onClick"];
-const _hoisted_57 = { class: "actor-main" };
-const _hoisted_58 = { class: "actor-attr" };
-const _hoisted_59 = { class: "actor-count" };
-const _hoisted_60 = {
+const _hoisted_58 = { class: "actor-grid" };
+const _hoisted_59 = ["disabled", "onClick"];
+const _hoisted_60 = { class: "actor-main" };
+const _hoisted_61 = { class: "actor-attr" };
+const _hoisted_62 = { class: "actor-count" };
+const _hoisted_63 = {
   key: 2,
   class: "actor-actions"
 };
-const _hoisted_61 = { class: "card-title-copy" };
-const _hoisted_62 = { class: "stage-current" };
-const _hoisted_63 = { class: "effect-grid" };
-const _hoisted_64 = ["disabled", "onClick"];
-const _hoisted_65 = { class: "effect-title" };
-const _hoisted_66 = { class: "effect-boost" };
-const _hoisted_67 = { class: "effect-subline" };
-const _hoisted_68 = { class: "effect-unlock" };
-const _hoisted_69 = { class: "stage-toolbar" };
-const _hoisted_70 = { class: "stage-toolbar-copy" };
-const _hoisted_71 = { key: 0 };
-const _hoisted_72 = { key: 1 };
-const _hoisted_73 = { class: "stage-toolbar-actions" };
-const _hoisted_74 = { class: "stage-rows" };
-const _hoisted_75 = { class: "stage-row-head" };
-const _hoisted_76 = { class: "stage-row-state" };
-const _hoisted_77 = {
+const _hoisted_64 = { class: "card-title-copy" };
+const _hoisted_65 = { class: "stage-current" };
+const _hoisted_66 = { class: "effect-grid" };
+const _hoisted_67 = ["disabled", "onClick"];
+const _hoisted_68 = { class: "effect-title" };
+const _hoisted_69 = { class: "effect-boost" };
+const _hoisted_70 = { class: "effect-subline" };
+const _hoisted_71 = { class: "effect-unlock" };
+const _hoisted_72 = { class: "stage-toolbar" };
+const _hoisted_73 = { class: "stage-toolbar-copy" };
+const _hoisted_74 = { key: 0 };
+const _hoisted_75 = { key: 1 };
+const _hoisted_76 = { class: "stage-toolbar-actions" };
+const _hoisted_77 = { class: "stage-rows" };
+const _hoisted_78 = { class: "stage-row-head" };
+const _hoisted_79 = { class: "stage-row-state" };
+const _hoisted_80 = {
   key: 1,
   class: "stage-slot-grid"
 };
-const _hoisted_78 = ["title", "disabled", "onClick"];
-const _hoisted_79 = {
-  key: 0,
-  class: "stage-slot-emoji"
-};
-const _hoisted_80 = {
-  key: 1,
-  class: "stage-slot-emoji"
-};
-const _hoisted_81 = {
-  key: 2,
-  class: "stage-slot-empty"
-};
+const _hoisted_81 = ["title", "disabled", "onClick"];
 const _hoisted_82 = {
   key: 0,
-  class: "empty-state"
+  class: "stage-slot-emoji"
 };
 const _hoisted_83 = {
   key: 1,
-  class: "history-list"
+  class: "stage-slot-emoji"
 };
-const _hoisted_84 = { class: "history-detail" };
-const _hoisted_85 = { class: "history-time" };
+const _hoisted_84 = {
+  key: 2,
+  class: "stage-slot-empty"
+};
+const _hoisted_85 = {
+  key: 0,
+  class: "empty-state"
+};
+const _hoisted_86 = {
+  key: 1,
+  class: "log-list"
+};
+const _hoisted_87 = { class: "log-item-head" };
+const _hoisted_88 = { class: "log-item-detail" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -166,7 +178,7 @@ const props = __props;
 
 const loading = ref(false);
 const initialLoading = ref(true);
-const status = reactive({ emoji_status: {}, history: [] });
+const status = reactive({ emoji_status: {}, operation_logs: [] });
 const message = reactive({ text: '', type: 'success' });
 const nowTs = ref(Math.floor(Date.now() / 1000));
 const stageRemainingCapturedTs = ref(nowTs.value);
@@ -207,7 +219,7 @@ const actorsByTier = computed(() => emoji.value.actors_by_tier || {});
 const effects = computed(() => emoji.value.effects || []);
 const stage = computed(() => emoji.value.stage || {});
 const stageRows = computed(() => emoji.value.stage_rows || []);
-const historyItems = computed(() => status.history || emoji.value.history || []);
+const operationLogs = computed(() => emoji.value.operation_logs || status.operation_logs || []);
 const summaryLines = computed(() => (emoji.value.summary || []).filter(Boolean));
 const summaryKey = computed(() => summaryLines.value.join('||'));
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value);
@@ -236,7 +248,7 @@ const stageRemainText = computed(() => {
   const remaining = Math.max(0, endTs - nowTs.value);
   return remaining > 0 ? formatCountdown(remaining) : (stage.value.has_active ? '可收回' : '等待刷新')
 });
-const stageTaskMeta = computed(() => (
+computed(() => (
   stage.value.has_active
     ? `${stage.value.current_effect_name || '舞台效果'} · 演员${Number(stage.value.active_count || 0)}位`
     : '等待安排演员和舞台效果'
@@ -249,13 +261,6 @@ const stageHeaderMeta = computed(() => {
   const rewardText = rewards.length ? ` · 预计${rewards.join('，')}` : '';
   return `演员${Number(stage.value.active_count || 0)}位${rewardText}`
 });
-
-const scheduleRows = computed(() => [
-  { title: '下次运行', value: emoji.value.next_run_time || '等待刷新', meta: '按真实可执行时间动态安排', icon: 'mdi-clock-check-outline', tone: 'green' },
-  { title: '计划触发', value: emoji.value.next_trigger_time || '等待识别', meta: '提前刷新状态，错过时间会自动补跑', icon: 'mdi-calendar-clock-outline', tone: 'blue' },
-  { title: '舞台演出', value: stage.value.has_active ? stageRemainText.value : '当前未演出', meta: stageTaskMeta.value, icon: 'mdi-drama-masks', tone: 'orange' },
-  { title: 'Cookie 来源', value: emoji.value.cookie_source || '未同步', meta: '配置页可自动同步或手动填写', icon: 'mdi-cookie-outline', tone: 'teal' },
-]);
 
 const sortOptions = [
   { key: 'points_desc', label: 'P↓' },
@@ -396,21 +401,6 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor((safe % 3600) / 60);
   const seconds = safe % 60;
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
-function historySummary(item) {
-  const parts = [];
-  const title = String(item?.title || '').trim();
-  if (title && title !== '任务结果') {
-    parts.push(title);
-  }
-  const lines = Array.isArray(item?.lines)
-    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
-    : [];
-  if (lines.length) {
-    parts.push(lines.join(' / '));
-  }
-  return parts.join(' / ') || '任务结果'
 }
 
 function bagCardStyle(bag) {
@@ -653,10 +643,13 @@ function applyStatusPayload(payload = {}) {
       stageRemainingCapturedTs.value = receivedAt;
     }
   }
-  if (Array.isArray(payload.history)) {
-    status.history = payload.history;
-  } else if (Array.isArray(payload.status?.history)) {
-    status.history = payload.status.history;
+  if (Array.isArray(payload.history)) ;
+  if (Array.isArray(payload.operation_logs)) {
+    status.operation_logs = payload.operation_logs;
+  } else if (Array.isArray(payload.status?.operation_logs)) {
+    status.operation_logs = payload.status.operation_logs;
+  } else if (Array.isArray(nextStatus?.operation_logs)) {
+    status.operation_logs = nextStatus.operation_logs;
   }
 }
 
@@ -737,6 +730,14 @@ function rerollPending() {
   return withAction(() => props.api.post(`${pluginBase}/reroll-open`), '已重开')
 }
 
+function upgradeBag(bag) {
+  const rule = bag.upgrade_rule;
+  if (!rule) return
+  const count = Math.min(normalizePositiveInt(upgradeCounts[rule.key], 1), Math.max(Number(rule.max_times || 1), 1));
+  upgradeCounts[rule.key] = String(count);
+  return withAction(() => props.api.post(`${pluginBase}/upgrade-bag`, { rule_key: rule.key, times: count }), '合成完成')
+}
+
 function expandRow(row) {
   return withAction(() => props.api.post(`${pluginBase}/expand-stage-row`, { row_index: row.row_index }), '扩展完成')
 }
@@ -795,10 +796,10 @@ return (_ctx, _cache) => {
   const _component_v_progress_linear = _resolveComponent("v-progress-linear");
   const _component_v_col = _resolveComponent("v-col");
   const _component_v_row = _resolveComponent("v-row");
-  const _component_v_spacer = _resolveComponent("v-spacer");
-  const _component_v_card_title = _resolveComponent("v-card-title");
   const _component_v_card_text = _resolveComponent("v-card-text");
   const _component_v_card = _resolveComponent("v-card");
+  const _component_v_card_title = _resolveComponent("v-card-title");
+  const _component_v_spacer = _resolveComponent("v-spacer");
 
   return (_openBlock(), _createElementBlock("div", _hoisted_1, [
     _createElementVNode("div", _hoisted_2, [
@@ -943,22 +944,29 @@ return (_ctx, _cache) => {
               ]),
               _: 1
             }),
-            _createElementVNode("div", _hoisted_18, [
-              _createVNode(_component_v_card, {
-                flat: "",
-                class: "siqi-card schedule-board"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--schedule d-flex align-center" }, {
-                    default: _withCtx(() => [
+            _createVNode(_component_v_card, {
+              flat: "",
+              class: "siqi-card next-run-card mb-3"
+            }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_card_text, { class: "next-run-body" }, {
+                  default: _withCtx(() => [
+                    _createElementVNode("div", _hoisted_18, [
                       _createVNode(_component_v_icon, {
-                        icon: "mdi-clock-outline",
-                        size: "19",
-                        color: "success",
-                        class: "mr-2"
-                      }),
-                      _createTextVNode("动态任务"),
-                      _createVNode(_component_v_spacer),
+                        icon: "mdi-calendar-clock-outline",
+                        size: "23"
+                      })
+                    ]),
+                    _hoisted_19,
+                    _createElementVNode("div", _hoisted_20, [
+                      _createElementVNode("div", _hoisted_21, [
+                        _hoisted_22,
+                        _createElementVNode("strong", null, _toDisplayString(emoji.value.next_trigger_time || '等待刷新'), 1)
+                      ]),
+                      _createElementVNode("div", _hoisted_23, [
+                        _hoisted_24,
+                        _createElementVNode("strong", null, _toDisplayString(emoji.value.next_run_time || '等待刷新'), 1)
+                      ]),
                       _createVNode(_component_v_btn, {
                         color: "success",
                         variant: "tonal",
@@ -978,245 +986,262 @@ return (_ctx, _cache) => {
                         ]),
                         _: 1
                       }, 8, ["loading", "disabled"])
-                    ]),
-                    _: 1
-                  }),
-                  _createVNode(_component_v_card_text, { class: "schedule-board-body" }, {
-                    default: _withCtx(() => [
-                      _createElementVNode("div", _hoisted_19, [
-                        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(scheduleRows.value, (row) => {
-                          return (_openBlock(), _createElementBlock("div", {
-                            key: row.title,
-                            class: _normalizeClass(["schedule-row", 'tone-' + row.tone])
-                          }, [
-                            _createElementVNode("div", {
-                              class: _normalizeClass(["schedule-row__icon", 'tone-' + row.tone])
-                            }, [
-                              _createVNode(_component_v_icon, {
-                                icon: row.icon,
-                                size: "20"
-                              }, null, 8, ["icon"])
-                            ], 2),
-                            _createElementVNode("div", _hoisted_20, [
-                              _createElementVNode("div", _hoisted_21, _toDisplayString(row.title), 1),
-                              _createElementVNode("div", _hoisted_22, _toDisplayString(row.meta), 1)
-                            ]),
-                            _createElementVNode("div", {
-                              class: _normalizeClass(["schedule-row__value", 'tone-' + row.tone])
-                            }, _toDisplayString(row.value), 3)
-                          ], 2))
-                        }), 128))
+                    ])
+                  ]),
+                  _: 1
+                }),
+                (showSummary.value)
+                  ? (_openBlock(), _createElementBlock("div", _hoisted_25, [
+                      _createElementVNode("div", _hoisted_26, [
+                        _createElementVNode("span", null, [
+                          _createVNode(_component_v_icon, {
+                            icon: "mdi-check-circle-outline",
+                            size: "17"
+                          }),
+                          _createTextVNode("本次摘要")
+                        ]),
+                        _createVNode(_component_v_btn, {
+                          icon: "mdi-close",
+                          size: "x-small",
+                          variant: "text",
+                          "aria-label": "关闭本次摘要",
+                          onClick: dismissSummary
+                        })
                       ]),
-                      (showSummary.value)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_23, [
-                            _createElementVNode("div", _hoisted_24, [
-                              _createElementVNode("span", null, [
+                      _createElementVNode("div", _hoisted_27, _toDisplayString(summaryLines.value.join(' / ')), 1)
+                    ]))
+                  : _createCommentVNode("", true)
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_v_card, {
+              flat: "",
+              class: "siqi-card slot-card mb-3"
+            }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--slot d-flex align-center" }, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_icon, {
+                      icon: "mdi-slot-machine-outline",
+                      size: "19",
+                      color: "deep-orange",
+                      class: "mr-2"
+                    }),
+                    _createTextVNode("表情老虎机")
+                  ]),
+                  _: 1
+                }),
+                _createVNode(_component_v_card_text, { class: "slot-card-body" }, {
+                  default: _withCtx(() => [
+                    _createElementVNode("div", _hoisted_28, "今日次数：" + _toDisplayString(slotMachine.value.used || 0) + "/" + _toDisplayString(slotMachine.value.limit || 0) + "（基础" + _toDisplayString(slotMachine.value.base || 0) + " + f(hnr*发种等级) " + _toDisplayString(slotMachine.value.extra || 0) + "）", 1),
+                    _createElementVNode("div", _hoisted_29, [
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(slotMachine.value.reels || [], (reel, index) => {
+                        return (_openBlock(), _createElementBlock("span", {
+                          key: 'reel-' + index
+                        }, _toDisplayString(reel), 1))
+                      }), 128))
+                    ]),
+                    _createElementVNode("div", _hoisted_30, [
+                      _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((spinCount).value = $event)),
+                        class: "number-input",
+                        type: "number",
+                        min: "1",
+                        max: Math.max(spinMax.value, 1),
+                        "aria-label": "老虎机转动次数"
+                      }, null, 8, _hoisted_31), [
+                        [_vModelText, spinCount.value]
+                      ]),
+                      _createVNode(_component_v_btn, {
+                        color: "deep-orange",
+                        variant: "tonal",
+                        size: "small",
+                        loading: loading.value,
+                        disabled: loading.value || !slotMachine.value.remaining,
+                        onClick: spinSlot
+                      }, {
+                        default: _withCtx(() => [
+                          _createTextVNode("转动")
+                        ]),
+                        _: 1
+                      }, 8, ["loading", "disabled"])
+                    ])
+                  ]),
+                  _: 1
+                })
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_v_card, {
+              flat: "",
+              class: "siqi-card bag-card mb-3"
+            }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--bags d-flex align-center" }, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_icon, {
+                      icon: "mdi-bag-personal-outline",
+                      size: "19",
+                      color: "orange",
+                      class: "mr-2"
+                    }),
+                    _createTextVNode("我的表情包"),
+                    _createVNode(_component_v_spacer),
+                    _createElementVNode("span", _hoisted_32, _toDisplayString(bags.value.length) + " 个层级", 1)
+                  ]),
+                  _: 1
+                }),
+                _createVNode(_component_v_card_text, { class: "bag-card-body" }, {
+                  default: _withCtx(() => [
+                    _createElementVNode("div", _hoisted_33, [
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bags.value, (bag) => {
+                        return (_openBlock(), _createElementBlock("article", {
+                          key: bag.tier,
+                          class: "bag-item",
+                          style: _normalizeStyle(bagCardStyle(bag))
+                        }, [
+                          (bag.bg_image)
+                            ? (_openBlock(), _createElementBlock("div", {
+                                key: 0,
+                                class: "bag-image",
+                                style: _normalizeStyle({ backgroundImage: 'url(' + bag.bg_image + ')' })
+                              }, null, 4))
+                            : (_openBlock(), _createElementBlock("div", _hoisted_34, [
                                 _createVNode(_component_v_icon, {
-                                  icon: "mdi-check-circle-outline",
-                                  size: "17"
-                                }),
-                                _createTextVNode("本次摘要")
+                                  icon: "mdi-package-variant-closed",
+                                  size: "26"
+                                })
+                              ])),
+                          _createElementVNode("div", _hoisted_35, [
+                            _createElementVNode("div", _hoisted_36, _toDisplayString(bag.name), 1),
+                            _createElementVNode("div", _hoisted_37, "持有 " + _toDisplayString(bag.quantity), 1)
+                          ]),
+                          _createElementVNode("div", _hoisted_38, [
+                            _withDirectives(_createElementVNode("input", {
+                              "onUpdate:modelValue": $event => ((openCounts[bag.tier]) = $event),
+                              class: "number-input",
+                              type: "number",
+                              min: "1",
+                              max: Math.max(bag.open_max || 1, 1),
+                              "aria-label": bag.name + '开包数量'
+                            }, null, 8, _hoisted_39), [
+                              [_vModelText, openCounts[bag.tier]]
+                            ]),
+                            _createVNode(_component_v_btn, {
+                              color: "deep-orange",
+                              variant: "tonal",
+                              size: "small",
+                              loading: loading.value,
+                              disabled: loading.value || !bag.can_open,
+                              onClick: $event => (openBag(bag))
+                            }, {
+                              default: _withCtx(() => [
+                                _createTextVNode("开包")
                               ]),
-                              _createVNode(_component_v_btn, {
-                                icon: "mdi-close",
-                                size: "x-small",
-                                variant: "text",
-                                "aria-label": "关闭本次摘要",
-                                onClick: dismissSummary
-                              })
-                            ]),
-                            _createElementVNode("div", _hoisted_25, _toDisplayString(summaryLines.value.join(' / ')), 1)
-                          ]))
-                        : _createCommentVNode("", true)
-                    ]),
-                    _: 1
-                  })
-                ]),
-                _: 1
-              }),
-              _createVNode(_component_v_card, {
-                flat: "",
-                class: "siqi-card bag-card"
-              }, {
-                default: _withCtx(() => [
-                  _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--bags d-flex align-center" }, {
-                    default: _withCtx(() => [
-                      _createVNode(_component_v_icon, {
-                        icon: "mdi-bag-personal-outline",
-                        size: "19",
-                        color: "orange",
-                        class: "mr-2"
-                      }),
-                      _createTextVNode("我的表情包"),
-                      _createVNode(_component_v_spacer),
-                      _createElementVNode("span", _hoisted_26, _toDisplayString(bags.value.length) + " 个层级", 1)
-                    ]),
-                    _: 1
-                  }),
-                  _createVNode(_component_v_card_text, { class: "bag-card-body" }, {
-                    default: _withCtx(() => [
-                      _createElementVNode("div", _hoisted_27, [
-                        _createElementVNode("div", _hoisted_28, [
-                          _createElementVNode("div", _hoisted_29, [
-                            _createVNode(_component_v_icon, {
-                              icon: "mdi-slot-machine-outline",
-                              size: "19"
-                            }),
-                            _createTextVNode("老虎机")
+                              _: 2
+                            }, 1032, ["loading", "disabled", "onClick"])
                           ]),
-                          _createElementVNode("div", _hoisted_30, "今日剩余 " + _toDisplayString(slotMachine.value.remaining || 0) + " 次", 1)
-                        ]),
-                        _createElementVNode("div", _hoisted_31, [
-                          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(slotMachine.value.reels || [], (reel, index) => {
-                            return (_openBlock(), _createElementBlock("span", {
-                              key: 'reel-' + index
-                            }, _toDisplayString(reel), 1))
-                          }), 128))
-                        ]),
-                        _createElementVNode("div", _hoisted_32, [
-                          _withDirectives(_createElementVNode("input", {
-                            "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((spinCount).value = $event)),
-                            class: "number-input",
-                            type: "number",
-                            min: "1",
-                            max: Math.max(spinMax.value, 1),
-                            "aria-label": "老虎机转动次数"
-                          }, null, 8, _hoisted_33), [
-                            [_vModelText, spinCount.value]
-                          ]),
-                          _createVNode(_component_v_btn, {
-                            color: "deep-orange",
-                            variant: "tonal",
-                            size: "small",
-                            loading: loading.value,
-                            disabled: loading.value || !slotMachine.value.remaining,
-                            onClick: spinSlot
-                          }, {
-                            default: _withCtx(() => [
-                              _createTextVNode("转动")
+                          (bag.upgrade_rule)
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_40, [
+                                _hoisted_41,
+                                _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((upgradeCounts[bag.upgrade_rule.key]) = $event),
+                                  class: "number-input",
+                                  type: "number",
+                                  min: "1",
+                                  max: Math.max(bag.upgrade_rule.max_times || 1, 1),
+                                  "aria-label": bag.name + '合成次数',
+                                  disabled: loading.value || !bag.upgrade_rule.enabled
+                                }, null, 8, _hoisted_42), [
+                                  [_vModelText, upgradeCounts[bag.upgrade_rule.key]]
+                                ]),
+                                _createVNode(_component_v_btn, {
+                                  color: "deep-orange",
+                                  variant: "tonal",
+                                  size: "small",
+                                  loading: loading.value,
+                                  disabled: loading.value || !bag.upgrade_rule.enabled,
+                                  onClick: $event => (upgradeBag(bag))
+                                }, {
+                                  default: _withCtx(() => [
+                                    _createTextVNode("合成")
+                                  ]),
+                                  _: 2
+                                }, 1032, ["loading", "disabled", "onClick"])
+                              ]))
+                            : _createCommentVNode("", true),
+                          (bag.upgrade_rule)
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_43, _toDisplayString(bag.upgrade_rule.tip), 1))
+                            : _createCommentVNode("", true)
+                        ], 4))
+                      }), 128))
+                    ]),
+                    (pendingOpenVisible.value && pendingOpen.value.items?.length)
+                      ? (_openBlock(), _createElementBlock("article", _hoisted_44, [
+                          _createElementVNode("div", _hoisted_45, [
+                            _createElementVNode("div", null, [
+                              _hoisted_46,
+                              _createElementVNode("span", null, _toDisplayString(pendingOpen.value.bag_name) + " ×" + _toDisplayString(pendingOpen.value.bag_count) + " · 已重开 " + _toDisplayString(pendingOpen.value.reroll_count || 0) + " 次", 1)
                             ]),
-                            _: 1
-                          }, 8, ["loading", "disabled"])
-                        ])
-                      ]),
-                      _createElementVNode("div", _hoisted_34, [
-                        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bags.value, (bag) => {
-                          return (_openBlock(), _createElementBlock("article", {
-                            key: bag.tier,
-                            class: "bag-item",
-                            style: _normalizeStyle(bagCardStyle(bag))
+                            _createVNode(_component_v_btn, {
+                              icon: "mdi-close",
+                              size: "x-small",
+                              variant: "text",
+                              "aria-label": "关闭开包结果",
+                              onClick: closePendingPanel
+                            })
+                          ]),
+                          _createElementVNode("div", {
+                            class: _normalizeClass(["result-grid", { single: pendingOpen.value.items.length === 1 }])
                           }, [
-                            (bag.bg_image)
-                              ? (_openBlock(), _createElementBlock("div", {
-                                  key: 0,
-                                  class: "bag-image",
-                                  style: _normalizeStyle({ backgroundImage: 'url(' + bag.bg_image + ')' })
-                                }, null, 4))
-                              : (_openBlock(), _createElementBlock("div", _hoisted_35, [
-                                  _createVNode(_component_v_icon, {
-                                    icon: "mdi-package-variant-closed",
-                                    size: "26"
-                                  })
-                                ])),
-                            _createElementVNode("div", _hoisted_36, [
-                              _createElementVNode("div", _hoisted_37, _toDisplayString(bag.name), 1),
-                              _createElementVNode("div", _hoisted_38, "持有 " + _toDisplayString(bag.quantity), 1)
-                            ]),
-                            _createElementVNode("div", _hoisted_39, [
-                              _withDirectives(_createElementVNode("input", {
-                                "onUpdate:modelValue": $event => ((openCounts[bag.tier]) = $event),
-                                class: "number-input",
-                                type: "number",
-                                min: "1",
-                                max: Math.max(bag.open_max || 1, 1),
-                                "aria-label": bag.name + '开包数量'
-                              }, null, 8, _hoisted_40), [
-                                [_vModelText, openCounts[bag.tier]]
-                              ]),
+                            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(pendingOpen.value.items, (item, index) => {
+                              return (_openBlock(), _createElementBlock("article", {
+                                key: 'pending-' + index,
+                                class: "result-item"
+                              }, [
+                                _createElementVNode("div", _hoisted_47, _toDisplayString(item.emoji), 1),
+                                _createElementVNode("div", _hoisted_48, "P" + _toDisplayString(item.points) + " · M" + _toDisplayString(item.magic), 1),
+                                _createElementVNode("div", _hoisted_49, "已有 " + _toDisplayString(item.owned_count), 1)
+                              ]))
+                            }), 128))
+                          ], 2),
+                          _createElementVNode("div", _hoisted_50, [
+                            _createElementVNode("span", null, "下次重开消耗 " + _toDisplayString(pendingOpen.value.next_reroll_cost || 0) + " 魔力", 1),
+                            _createElementVNode("div", null, [
                               _createVNode(_component_v_btn, {
-                                color: "deep-orange",
+                                color: "primary",
                                 variant: "tonal",
                                 size: "small",
                                 loading: loading.value,
-                                disabled: loading.value || !bag.can_open,
-                                onClick: $event => (openBag(bag))
+                                onClick: rerollPending
                               }, {
                                 default: _withCtx(() => [
-                                  _createTextVNode("开包")
+                                  _createTextVNode("重开")
                                 ]),
-                                _: 2
-                              }, 1032, ["loading", "disabled", "onClick"])
-                            ])
-                          ], 4))
-                        }), 128))
-                      ]),
-                      (pendingOpenVisible.value && pendingOpen.value.items?.length)
-                        ? (_openBlock(), _createElementBlock("article", _hoisted_41, [
-                            _createElementVNode("div", _hoisted_42, [
-                              _createElementVNode("div", null, [
-                                _hoisted_43,
-                                _createElementVNode("span", null, _toDisplayString(pendingOpen.value.bag_name) + " ×" + _toDisplayString(pendingOpen.value.bag_count) + " · 已重开 " + _toDisplayString(pendingOpen.value.reroll_count || 0) + " 次", 1)
-                              ]),
+                                _: 1
+                              }, 8, ["loading"]),
                               _createVNode(_component_v_btn, {
-                                icon: "mdi-close",
-                                size: "x-small",
-                                variant: "text",
-                                "aria-label": "关闭开包结果",
-                                onClick: closePendingPanel
-                              })
-                            ]),
-                            _createElementVNode("div", {
-                              class: _normalizeClass(["result-grid", { single: pendingOpen.value.items.length === 1 }])
-                            }, [
-                              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(pendingOpen.value.items, (item, index) => {
-                                return (_openBlock(), _createElementBlock("article", {
-                                  key: 'pending-' + index,
-                                  class: "result-item"
-                                }, [
-                                  _createElementVNode("div", _hoisted_44, _toDisplayString(item.emoji), 1),
-                                  _createElementVNode("div", _hoisted_45, "P" + _toDisplayString(item.points) + " · M" + _toDisplayString(item.magic), 1),
-                                  _createElementVNode("div", _hoisted_46, "已有 " + _toDisplayString(item.owned_count), 1)
-                                ]))
-                              }), 128))
-                            ], 2),
-                            _createElementVNode("div", _hoisted_47, [
-                              _createElementVNode("span", null, "下次重开消耗 " + _toDisplayString(pendingOpen.value.next_reroll_cost || 0) + " 魔力", 1),
-                              _createElementVNode("div", null, [
-                                _createVNode(_component_v_btn, {
-                                  color: "primary",
-                                  variant: "tonal",
-                                  size: "small",
-                                  loading: loading.value,
-                                  onClick: rerollPending
-                                }, {
-                                  default: _withCtx(() => [
-                                    _createTextVNode("重开")
-                                  ]),
-                                  _: 1
-                                }, 8, ["loading"]),
-                                _createVNode(_component_v_btn, {
-                                  color: "success",
-                                  variant: "tonal",
-                                  size: "small",
-                                  loading: loading.value,
-                                  onClick: acceptPending
-                                }, {
-                                  default: _withCtx(() => [
-                                    _createTextVNode("收下")
-                                  ]),
-                                  _: 1
-                                }, 8, ["loading"])
-                              ])
+                                color: "success",
+                                variant: "tonal",
+                                size: "small",
+                                loading: loading.value,
+                                onClick: acceptPending
+                              }, {
+                                default: _withCtx(() => [
+                                  _createTextVNode("收下")
+                                ]),
+                                _: 1
+                              }, 8, ["loading"])
                             ])
-                          ]))
-                        : _createCommentVNode("", true)
-                    ]),
-                    _: 1
-                  })
-                ]),
-                _: 1
-              })
-            ]),
+                          ])
+                        ]))
+                      : _createCommentVNode("", true)
+                  ]),
+                  _: 1
+                })
+              ]),
+              _: 1
+            }),
             _createVNode(_component_v_card, {
               flat: "",
               class: "siqi-card catalog-card mb-3"
@@ -1224,7 +1249,7 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--catalog catalog-title-row" }, {
                   default: _withCtx(() => [
-                    _createElementVNode("span", _hoisted_48, [
+                    _createElementVNode("span", _hoisted_51, [
                       _createVNode(_component_v_icon, {
                         icon: "mdi-book-open-page-variant-outline",
                         size: "19",
@@ -1232,7 +1257,7 @@ return (_ctx, _cache) => {
                       }),
                       _createTextVNode("表情图鉴")
                     ]),
-                    _createElementVNode("span", _hoisted_49, [
+                    _createElementVNode("span", _hoisted_52, [
                       _createElementVNode("strong", null, _toDisplayString(catalogStat.value.value), 1),
                       _createElementVNode("small", null, _toDisplayString(catalogStat.value.desc || '按层级切换查看演员'), 1)
                     ])
@@ -1241,7 +1266,7 @@ return (_ctx, _cache) => {
                 }),
                 _createVNode(_component_v_card_text, { class: "catalog-body" }, {
                   default: _withCtx(() => [
-                    _createElementVNode("div", _hoisted_50, [
+                    _createElementVNode("div", _hoisted_53, [
                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(actorTabs.value, (tab) => {
                         return (_openBlock(), _createElementBlock("button", {
                           key: tab.tier,
@@ -1249,26 +1274,26 @@ return (_ctx, _cache) => {
                           class: _normalizeClass(["tier-chip", { active: String(selectedTier.value) === String(tab.tier) }]),
                           style: _normalizeStyle(tierChipStyle(tab)),
                           onClick: $event => (selectedTier.value = String(tab.tier))
-                        }, _toDisplayString(tab.name) + " " + _toDisplayString(tab.owned) + "/" + _toDisplayString(tab.total || '❓'), 15, _hoisted_51))
+                        }, _toDisplayString(tab.name) + " " + _toDisplayString(tab.owned) + "/" + _toDisplayString(tab.total || '❓'), 15, _hoisted_54))
                       }), 128))
                     ]),
-                    _createElementVNode("div", _hoisted_52, [
+                    _createElementVNode("div", _hoisted_55, [
                       (_openBlock(), _createElementBlock(_Fragment, null, _renderList(sortOptions, (item) => {
                         return _createElementVNode("button", {
                           key: item.key,
                           type: "button",
                           class: _normalizeClass(["sort-chip", { active: actorSort.value === item.key }]),
                           onClick: $event => (actorSort.value = item.key)
-                        }, _toDisplayString(item.label), 11, _hoisted_53)
+                        }, _toDisplayString(item.label), 11, _hoisted_56)
                       }), 64))
                     ]),
                     (!currentActors.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_54, "当前层级暂无可用演员"))
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_57, "当前层级暂无可用演员"))
                       : (_openBlock(), _createElementBlock("div", {
                           key: 1,
                           class: _normalizeClass(["actor-scroll", { expanded: actorVisibleLimit.value >= sortedActors.value.length }])
                         }, [
-                          _createElementVNode("div", _hoisted_55, [
+                          _createElementVNode("div", _hoisted_58, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(visibleActors.value, (actor) => {
                               return (_openBlock(), _createElementBlock("button", {
                                 key: actor.code,
@@ -1278,15 +1303,15 @@ return (_ctx, _cache) => {
                                 disabled: stage.value.has_active || !actor.can_place || draftRemaining(actor.code) <= 0,
                                 onClick: $event => (pickActor(actor))
                               }, [
-                                _createElementVNode("div", _hoisted_57, _toDisplayString(actor.emoji), 1),
-                                _createElementVNode("div", _hoisted_58, "P" + _toDisplayString(actor.points) + " · M" + _toDisplayString(actor.magic), 1),
-                                _createElementVNode("div", _hoisted_59, "×" + _toDisplayString(draftRemaining(actor.code)), 1)
-                              ], 12, _hoisted_56))
+                                _createElementVNode("div", _hoisted_60, _toDisplayString(actor.emoji), 1),
+                                _createElementVNode("div", _hoisted_61, "P" + _toDisplayString(actor.points) + " · M" + _toDisplayString(actor.magic), 1),
+                                _createElementVNode("div", _hoisted_62, "×" + _toDisplayString(draftRemaining(actor.code)), 1)
+                              ], 12, _hoisted_59))
                             }), 128))
                           ])
                         ], 2)),
                     (hasMoreActors.value || actorVisibleLimit.value > actorLimitStep)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_60, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_63, [
                           (hasMoreActors.value)
                             ? (_openBlock(), _createBlock(_component_v_btn, {
                                 key: 0,
@@ -1329,7 +1354,7 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--stage stage-title-row" }, {
                   default: _withCtx(() => [
-                    _createElementVNode("span", _hoisted_61, [
+                    _createElementVNode("span", _hoisted_64, [
                       _createVNode(_component_v_icon, {
                         icon: "mdi-drama-masks",
                         size: "19",
@@ -1337,7 +1362,7 @@ return (_ctx, _cache) => {
                       }),
                       _createTextVNode("表情演出舞台")
                     ]),
-                    _createElementVNode("span", _hoisted_62, [
+                    _createElementVNode("span", _hoisted_65, [
                       _createElementVNode("strong", null, _toDisplayString(stage.value.current_effect_name || '未开始'), 1),
                       _createElementVNode("small", null, _toDisplayString(stageHeaderMeta.value), 1)
                     ])
@@ -1346,7 +1371,7 @@ return (_ctx, _cache) => {
                 }),
                 _createVNode(_component_v_card_text, { class: "stage-body" }, {
                   default: _withCtx(() => [
-                    _createElementVNode("div", _hoisted_63, [
+                    _createElementVNode("div", _hoisted_66, [
                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(effects.value, (effect) => {
                         return (_openBlock(), _createElementBlock("button", {
                           key: effect.key,
@@ -1355,21 +1380,32 @@ return (_ctx, _cache) => {
                           disabled: !effect.unlocked || stage.value.has_active,
                           onClick: $event => (selectEffect(effect))
                         }, [
-                          _createElementVNode("span", _hoisted_65, _toDisplayString(effect.name), 1),
-                          _createElementVNode("span", _hoisted_66, "积分+" + _toDisplayString(effect.point_bonus_pct) + "% · 魔力+" + _toDisplayString(effect.magic_bonus_pct) + "%", 1),
-                          _createElementVNode("span", _hoisted_67, _toDisplayString(effect.duration_text || (effect.duration_seconds || 0) + ' 秒'), 1),
-                          _createElementVNode("span", _hoisted_68, _toDisplayString(effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁'), 1)
-                        ], 10, _hoisted_64))
+                          _createElementVNode("span", {
+                            class: _normalizeClass(["effect-preview", effect.animation_class])
+                          }, [
+                            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(effect.preview_emojis || [], (preview, index) => {
+                              return (_openBlock(), _createElementBlock("span", {
+                                key: effect.key + '-preview-' + index,
+                                class: "effect-preview-emoji",
+                                style: _normalizeStyle({ '--anim-delay': (index * 0.12) + 's' })
+                              }, _toDisplayString(preview), 5))
+                            }), 128))
+                          ], 2),
+                          _createElementVNode("span", _hoisted_68, _toDisplayString(effect.name), 1),
+                          _createElementVNode("span", _hoisted_69, "积分+" + _toDisplayString(effect.point_bonus_pct) + "% · 魔力+" + _toDisplayString(effect.magic_bonus_pct) + "%", 1),
+                          _createElementVNode("span", _hoisted_70, _toDisplayString(effect.duration_text || (effect.duration_seconds || 0) + ' 秒'), 1),
+                          _createElementVNode("span", _hoisted_71, _toDisplayString(effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁'), 1)
+                        ], 10, _hoisted_67))
                       }), 128))
                     ]),
-                    _createElementVNode("div", _hoisted_69, [
-                      _createElementVNode("div", _hoisted_70, [
+                    _createElementVNode("div", _hoisted_72, [
+                      _createElementVNode("div", _hoisted_73, [
                         (stage.value.has_active)
-                          ? (_openBlock(), _createElementBlock("strong", _hoisted_71, "演出剩余 " + _toDisplayString(stageRemainText.value), 1))
-                          : (_openBlock(), _createElementBlock("strong", _hoisted_72, "当前效果 " + _toDisplayString(selectedEffectName.value), 1)),
+                          ? (_openBlock(), _createElementBlock("strong", _hoisted_74, "演出剩余 " + _toDisplayString(stageRemainText.value), 1))
+                          : (_openBlock(), _createElementBlock("strong", _hoisted_75, "当前效果 " + _toDisplayString(selectedEffectName.value), 1)),
                         _createElementVNode("span", null, _toDisplayString(stage.value.has_active ? '演出结束后可收回奖励' : '已选择 ' + draftCount.value + ' 位演员'), 1)
                       ]),
-                      _createElementVNode("div", _hoisted_73, [
+                      _createElementVNode("div", _hoisted_76, [
                         _createVNode(_component_v_btn, {
                           color: "warning",
                           variant: "tonal",
@@ -1408,18 +1444,18 @@ return (_ctx, _cache) => {
                         }, 8, ["disabled"])
                       ])
                     ]),
-                    _createElementVNode("div", _hoisted_74, [
+                    _createElementVNode("div", _hoisted_77, [
                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(stageRows.value, (row) => {
                         return (_openBlock(), _createElementBlock("article", {
                           key: row.row_index,
                           class: "stage-row-card"
                         }, [
-                          _createElementVNode("div", _hoisted_75, [
+                          _createElementVNode("div", _hoisted_78, [
                             _createElementVNode("div", null, [
                               _createElementVNode("strong", null, _toDisplayString(row.name), 1),
                               _createElementVNode("span", null, "解锁声誉 " + _toDisplayString(row.unlock_points), 1)
                             ]),
-                            _createElementVNode("div", _hoisted_76, _toDisplayString(row.unlocked ? '已开 ' + row.slot_count + '/' + row.max_slots + ' 格' : '未解锁'), 1)
+                            _createElementVNode("div", _hoisted_79, _toDisplayString(row.unlocked ? '已开 ' + row.slot_count + '/' + row.max_slots + ' 格' : '未解锁'), 1)
                           ]),
                           (row.unlocked)
                             ? (_openBlock(), _createBlock(_component_v_btn, {
@@ -1439,23 +1475,23 @@ return (_ctx, _cache) => {
                               }, 1032, ["loading", "disabled", "onClick"]))
                             : _createCommentVNode("", true),
                           (row.unlocked)
-                            ? (_openBlock(), _createElementBlock("div", _hoisted_77, [
+                            ? (_openBlock(), _createElementBlock("div", _hoisted_80, [
                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.slots, (slot) => {
                                   return (_openBlock(), _createElementBlock("button", {
                                     key: row.row_index + '-' + slot.slot_index,
                                     type: "button",
-                                    class: _normalizeClass(["stage-slot", { filled: slot.filled, draft: !!draftMap[slotKey(slot)] }]),
+                                    class: _normalizeClass(["stage-slot", [slot.filled ? slot.animation_class : '', { filled: slot.filled, draft: !!draftMap[slotKey(slot)] }]]),
                                     style: _normalizeStyle(stageSlotStyle(row, slot)),
                                     title: stageSlotTitle(slot),
                                     disabled: slot.filled || stage.value.has_active,
                                     onClick: $event => (handleStageSlot(row, slot))
                                   }, [
                                     (slot.filled)
-                                      ? (_openBlock(), _createElementBlock("span", _hoisted_79, _toDisplayString(slot.emoji), 1))
+                                      ? (_openBlock(), _createElementBlock("span", _hoisted_82, _toDisplayString(slot.emoji), 1))
                                       : (draftMap[slotKey(slot)])
-                                        ? (_openBlock(), _createElementBlock("span", _hoisted_80, _toDisplayString(draftMap[slotKey(slot)].emoji), 1))
-                                        : (_openBlock(), _createElementBlock("span", _hoisted_81, "待定"))
-                                  ], 14, _hoisted_78))
+                                        ? (_openBlock(), _createElementBlock("span", _hoisted_83, _toDisplayString(draftMap[slotKey(slot)].emoji), 1))
+                                        : (_openBlock(), _createElementBlock("span", _hoisted_84, "待定"))
+                                  ], 14, _hoisted_81))
                                 }), 128))
                               ]))
                             : _createCommentVNode("", true)
@@ -1470,33 +1506,36 @@ return (_ctx, _cache) => {
             }),
             _createVNode(_component_v_card, {
               flat: "",
-              class: "siqi-card history-card"
+              class: "siqi-card log-card"
             }, {
               default: _withCtx(() => [
-                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--history d-flex align-center" }, {
+                _createVNode(_component_v_card_title, { class: "siqi-card-title siqi-card-title--logs d-flex align-center" }, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_icon, {
-                      icon: "mdi-history",
+                      icon: "mdi-text-box-outline",
                       size: "19",
                       color: "teal",
                       class: "mr-2"
                     }),
-                    _createTextVNode("执行历史")
+                    _createTextVNode("🧾 最近30次操作日志")
                   ]),
                   _: 1
                 }),
-                _createVNode(_component_v_card_text, { class: "history-body" }, {
+                _createVNode(_component_v_card_text, { class: "log-body" }, {
                   default: _withCtx(() => [
-                    (!historyItems.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_82, "暂无执行历史"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_83, [
-                          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(historyItems.value, (item) => {
+                    (!operationLogs.value.length)
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_85, "暂无操作日志"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_86, [
+                          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(operationLogs.value, (item, index) => {
                             return (_openBlock(), _createElementBlock("article", {
-                              key: item.time + '-' + item.title,
-                              class: "history-item"
+                              key: item.time + '-' + item.title + '-' + index,
+                              class: "log-item"
                             }, [
-                              _createElementVNode("div", _hoisted_84, _toDisplayString(historySummary(item)), 1),
-                              _createElementVNode("time", _hoisted_85, _toDisplayString(item.time), 1)
+                              _createElementVNode("div", _hoisted_87, [
+                                _createElementVNode("strong", null, _toDisplayString(item.title), 1),
+                                _createElementVNode("time", null, _toDisplayString(item.time), 1)
+                              ]),
+                              _createElementVNode("div", _hoisted_88, _toDisplayString(item.detail), 1)
                             ]))
                           }), 128))
                         ]))
@@ -1513,6 +1552,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-da9bbcfb"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-23299414"]]);
 
 export { PageView as default };

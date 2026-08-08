@@ -28,50 +28,54 @@
           </v-col>
         </v-row>
 
-        <div class="primary-grid mb-3">
-          <v-card flat class="siqi-card schedule-board">
-            <v-card-title class="siqi-card-title siqi-card-title--schedule d-flex align-center">
-              <v-icon icon="mdi-clock-outline" size="19" color="success" class="mr-2" />动态任务<v-spacer />
+        <v-card flat class="siqi-card next-run-card mb-3">
+          <v-card-text class="next-run-body">
+            <div class="next-run-icon"><v-icon icon="mdi-calendar-clock-outline" size="23" /></div>
+            <div class="next-run-copy">
+              <div class="next-run-title">动态运行</div>
+              <div class="next-run-guard">按舞台完成时间和老虎机计划动态安排</div>
+            </div>
+            <div class="next-run-times">
+              <div class="next-run-time"><span>计划触发</span><strong>{{ emoji.next_trigger_time || '等待刷新' }}</strong></div>
+              <div class="next-run-time"><span>执行时间</span><strong>{{ emoji.next_run_time || '等待刷新' }}</strong></div>
               <v-btn color="success" variant="tonal" size="small" class="schedule-run-btn" :loading="loading" :disabled="loading" @click="runNow"><v-icon icon="mdi-play-circle-outline" size="17" class="mr-1" />立即执行</v-btn>
-            </v-card-title>
-            <v-card-text class="schedule-board-body">
-              <div class="schedule-list">
-                <div v-for="row in scheduleRows" :key="row.title" class="schedule-row" :class="'tone-' + row.tone">
-                  <div class="schedule-row__icon" :class="'tone-' + row.tone"><v-icon :icon="row.icon" size="20" /></div>
-                  <div class="schedule-row__copy"><div class="schedule-row__title">{{ row.title }}</div><div class="schedule-row__meta">{{ row.meta }}</div></div>
-                  <div class="schedule-row__value" :class="'tone-' + row.tone">{{ row.value }}</div>
-                </div>
-              </div>
-              <div v-if="showSummary" class="summary-panel">
-                <div class="summary-panel__head"><span><v-icon icon="mdi-check-circle-outline" size="17" />本次摘要</span><v-btn icon="mdi-close" size="x-small" variant="text" aria-label="关闭本次摘要" @click="dismissSummary" /></div>
-                <div class="summary-lines">{{ summaryLines.join(' / ') }}</div>
-              </div>
-            </v-card-text>
-          </v-card>
+            </div>
+          </v-card-text>
+          <div v-if="showSummary" class="summary-panel"><div class="summary-panel__head"><span><v-icon icon="mdi-check-circle-outline" size="17" />本次摘要</span><v-btn icon="mdi-close" size="x-small" variant="text" aria-label="关闭本次摘要" @click="dismissSummary" /></div><div class="summary-lines">{{ summaryLines.join(' / ') }}</div></div>
+        </v-card>
 
-          <v-card flat class="siqi-card bag-card">
-            <v-card-title class="siqi-card-title siqi-card-title--bags d-flex align-center"><v-icon icon="mdi-bag-personal-outline" size="19" color="orange" class="mr-2" />我的表情包<v-spacer /><span class="section-count">{{ bags.length }} 个层级</span></v-card-title>
-            <v-card-text class="bag-card-body">
-              <div class="slot-machine-panel">
-                <div class="slot-machine-copy"><div class="slot-machine-title"><v-icon icon="mdi-slot-machine-outline" size="19" />老虎机</div><div class="slot-machine-meta">今日剩余 {{ slotMachine.remaining || 0 }} 次</div></div>
-                <div class="slot-reels" aria-label="老虎机当前图案"><span v-for="(reel, index) in slotMachine.reels || []" :key="'reel-' + index">{{ reel }}</span></div>
-                <div class="slot-machine-action"><input v-model="spinCount" class="number-input" type="number" min="1" :max="Math.max(spinMax, 1)" aria-label="老虎机转动次数" /><v-btn color="deep-orange" variant="tonal" size="small" :loading="loading" :disabled="loading || !slotMachine.remaining" @click="spinSlot">转动</v-btn></div>
-              </div>
-              <div class="bag-grid">
-                <article v-for="bag in bags" :key="bag.tier" class="bag-item" :style="bagCardStyle(bag)">
-                  <div v-if="bag.bg_image" class="bag-image" :style="{ backgroundImage: 'url(' + bag.bg_image + ')' }" /><div v-else class="bag-image bag-image--placeholder"><v-icon icon="mdi-package-variant-closed" size="26" /></div>
-                  <div class="bag-copy"><div class="bag-name">{{ bag.name }}</div><div class="bag-count">持有 {{ bag.quantity }}</div></div>
-                  <div class="bag-action"><input v-model="openCounts[bag.tier]" class="number-input" type="number" min="1" :max="Math.max(bag.open_max || 1, 1)" :aria-label="bag.name + '开包数量'" /><v-btn color="deep-orange" variant="tonal" size="small" :loading="loading" :disabled="loading || !bag.can_open" @click="openBag(bag)">开包</v-btn></div>
-                </article>
-              </div>
-              <article v-if="pendingOpenVisible && pendingOpen.items?.length" class="pending-panel">
-                <div class="pending-head"><div><strong>待处理开包结果</strong><span>{{ pendingOpen.bag_name }} ×{{ pendingOpen.bag_count }} · 已重开 {{ pendingOpen.reroll_count || 0 }} 次</span></div><v-btn icon="mdi-close" size="x-small" variant="text" aria-label="关闭开包结果" @click="closePendingPanel" /></div>
-                <div class="result-grid" :class="{ single: pendingOpen.items.length === 1 }"><article v-for="(item, index) in pendingOpen.items" :key="'pending-' + index" class="result-item"><div class="result-emoji">{{ item.emoji }}</div><div class="result-attr">P{{ item.points }} · M{{ item.magic }}</div><div class="result-owned">已有 {{ item.owned_count }}</div></article></div>
-                <div class="pending-actions"><span>下次重开消耗 {{ pendingOpen.next_reroll_cost || 0 }} 魔力</span><div><v-btn color="primary" variant="tonal" size="small" :loading="loading" @click="rerollPending">重开</v-btn><v-btn color="success" variant="tonal" size="small" :loading="loading" @click="acceptPending">收下</v-btn></div></div>
+        <v-card flat class="siqi-card slot-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--slot d-flex align-center"><v-icon icon="mdi-slot-machine-outline" size="19" color="deep-orange" class="mr-2" />表情老虎机</v-card-title>
+          <v-card-text class="slot-card-body">
+            <div class="slot-today">今日次数：{{ slotMachine.used || 0 }}/{{ slotMachine.limit || 0 }}（基础{{ slotMachine.base || 0 }} + f(hnr*发种等级) {{ slotMachine.extra || 0 }}）</div>
+            <div class="slot-reels slot-reels--large" aria-label="老虎机当前图案"><span v-for="(reel, index) in slotMachine.reels || []" :key="'reel-' + index">{{ reel }}</span></div>
+            <div class="slot-center-row"><input v-model="spinCount" class="number-input" type="number" min="1" :max="Math.max(spinMax, 1)" aria-label="老虎机转动次数" /><v-btn color="deep-orange" variant="tonal" size="small" :loading="loading" :disabled="loading || !slotMachine.remaining" @click="spinSlot">转动</v-btn></div>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="siqi-card bag-card mb-3">
+          <v-card-title class="siqi-card-title siqi-card-title--bags d-flex align-center"><v-icon icon="mdi-bag-personal-outline" size="19" color="orange" class="mr-2" />我的表情包<v-spacer /><span class="section-count">{{ bags.length }} 个层级</span></v-card-title>
+          <v-card-text class="bag-card-body">
+            <div class="bag-grid">
+              <article v-for="bag in bags" :key="bag.tier" class="bag-item" :style="bagCardStyle(bag)">
+                <div v-if="bag.bg_image" class="bag-image" :style="{ backgroundImage: 'url(' + bag.bg_image + ')' }" /><div v-else class="bag-image bag-image--placeholder"><v-icon icon="mdi-package-variant-closed" size="26" /></div>
+                <div class="bag-copy"><div class="bag-name">{{ bag.name }}</div><div class="bag-count">持有 {{ bag.quantity }}</div></div>
+                <div class="bag-action"><input v-model="openCounts[bag.tier]" class="number-input" type="number" min="1" :max="Math.max(bag.open_max || 1, 1)" :aria-label="bag.name + '开包数量'" /><v-btn color="deep-orange" variant="tonal" size="small" :loading="loading" :disabled="loading || !bag.can_open" @click="openBag(bag)">开包</v-btn></div>
+                <div v-if="bag.upgrade_rule" class="bag-upgrade-row">
+                  <span>目标数</span>
+                  <input v-model="upgradeCounts[bag.upgrade_rule.key]" class="number-input" type="number" min="1" :max="Math.max(bag.upgrade_rule.max_times || 1, 1)" :aria-label="bag.name + '合成次数'" :disabled="loading || !bag.upgrade_rule.enabled" />
+                  <v-btn color="deep-orange" variant="tonal" size="small" :loading="loading" :disabled="loading || !bag.upgrade_rule.enabled" @click="upgradeBag(bag)">合成</v-btn>
+                </div>
+                <div v-if="bag.upgrade_rule" class="bag-tip">{{ bag.upgrade_rule.tip }}</div>
               </article>
-            </v-card-text>
-          </v-card>
-        </div>
+            </div>
+            <article v-if="pendingOpenVisible && pendingOpen.items?.length" class="pending-panel">
+              <div class="pending-head"><div><strong>待处理开包结果</strong><span>{{ pendingOpen.bag_name }} ×{{ pendingOpen.bag_count }} · 已重开 {{ pendingOpen.reroll_count || 0 }} 次</span></div><v-btn icon="mdi-close" size="x-small" variant="text" aria-label="关闭开包结果" @click="closePendingPanel" /></div>
+              <div class="result-grid" :class="{ single: pendingOpen.items.length === 1 }"><article v-for="(item, index) in pendingOpen.items" :key="'pending-' + index" class="result-item"><div class="result-emoji">{{ item.emoji }}</div><div class="result-attr">P{{ item.points }} · M{{ item.magic }}</div><div class="result-owned">已有 {{ item.owned_count }}</div></article></div>
+              <div class="pending-actions"><span>下次重开消耗 {{ pendingOpen.next_reroll_cost || 0 }} 魔力</span><div><v-btn color="primary" variant="tonal" size="small" :loading="loading" @click="rerollPending">重开</v-btn><v-btn color="success" variant="tonal" size="small" :loading="loading" @click="acceptPending">收下</v-btn></div></div>
+            </article>
+          </v-card-text>
+        </v-card>
 
         <v-card flat class="siqi-card catalog-card mb-3">
           <v-card-title class="siqi-card-title siqi-card-title--catalog catalog-title-row"><span class="card-title-copy"><v-icon icon="mdi-book-open-page-variant-outline" size="19" color="blue" />表情图鉴</span><span class="catalog-progress"><strong>{{ catalogStat.value }}</strong><small>{{ catalogStat.desc || '按层级切换查看演员' }}</small></span></v-card-title>
@@ -89,7 +93,7 @@
         <v-card flat class="siqi-card stage-card mb-3">
           <v-card-title class="siqi-card-title siqi-card-title--stage stage-title-row"><span class="card-title-copy"><v-icon icon="mdi-drama-masks" size="19" color="deep-orange" />表情演出舞台</span><span class="stage-current"><strong>{{ stage.current_effect_name || '未开始' }}</strong><small>{{ stageHeaderMeta }}</small></span></v-card-title>
           <v-card-text class="stage-body">
-            <div class="effect-grid"><button v-for="effect in effects" :key="effect.key" type="button" class="effect-card" :class="{ active: selectedEffect === effect.key, locked: !effect.unlocked }" :disabled="!effect.unlocked || stage.has_active" @click="selectEffect(effect)"><span class="effect-title">{{ effect.name }}</span><span class="effect-boost">积分+{{ effect.point_bonus_pct }}% · 魔力+{{ effect.magic_bonus_pct }}%</span><span class="effect-subline">{{ effect.duration_text || (effect.duration_seconds || 0) + ' 秒' }}</span><span class="effect-unlock">{{ effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁' }}</span></button></div>
+            <div class="effect-grid"><button v-for="effect in effects" :key="effect.key" type="button" class="effect-card" :class="{ active: selectedEffect === effect.key, locked: !effect.unlocked }" :disabled="!effect.unlocked || stage.has_active" @click="selectEffect(effect)"><span class="effect-preview" :class="effect.animation_class"><span v-for="(preview, index) in effect.preview_emojis || []" :key="effect.key + '-preview-' + index" class="effect-preview-emoji" :style="{ '--anim-delay': (index * 0.12) + 's' }">{{ preview }}</span></span><span class="effect-title">{{ effect.name }}</span><span class="effect-boost">积分+{{ effect.point_bonus_pct }}% · 魔力+{{ effect.magic_bonus_pct }}%</span><span class="effect-subline">{{ effect.duration_text || (effect.duration_seconds || 0) + ' 秒' }}</span><span class="effect-unlock">{{ effect.unlocked ? '已解锁' : effect.unlock_text || '未解锁' }}</span></button></div>
             <div class="stage-toolbar">
               <div class="stage-toolbar-copy"><strong v-if="stage.has_active">演出剩余 {{ stageRemainText }}</strong><strong v-else>当前效果 {{ selectedEffectName }}</strong><span>{{ stage.has_active ? '演出结束后可收回奖励' : '已选择 ' + draftCount + ' 位演员' }}</span></div>
               <div class="stage-toolbar-actions"><v-btn color="warning" variant="tonal" size="small" :disabled="loading || stage.has_active || !sortedActors.length" @click="fillCurrentTier">一键放置当前层级</v-btn><v-btn color="primary" variant="tonal" size="small" :disabled="loading || !draftCount || stage.has_active" @click="confirmStage">确认演出</v-btn><v-btn color="success" variant="tonal" size="small" :disabled="loading || !stage.has_active" @click="recallStage">收回演出</v-btn></div>
@@ -98,15 +102,15 @@
               <article v-for="row in stageRows" :key="row.row_index" class="stage-row-card">
                 <div class="stage-row-head"><div><strong>{{ row.name }}</strong><span>解锁声誉 {{ row.unlock_points }}</span></div><div class="stage-row-state">{{ row.unlocked ? '已开 ' + row.slot_count + '/' + row.max_slots + ' 格' : '未解锁' }}</div></div>
                 <v-btn v-if="row.unlocked" color="amber-darken-2" variant="tonal" size="small" class="expand-btn" :loading="loading" :disabled="loading || !row.can_expand" @click="expandRow(row)">扩展一格（{{ row.next_expand_cost || 0 }} 魔力）</v-btn>
-                <div v-if="row.unlocked" class="stage-slot-grid"><button v-for="slot in row.slots" :key="row.row_index + '-' + slot.slot_index" type="button" class="stage-slot" :class="{ filled: slot.filled, draft: !!draftMap[slotKey(slot)] }" :style="stageSlotStyle(row, slot)" :title="stageSlotTitle(slot)" :disabled="slot.filled || stage.has_active" @click="handleStageSlot(row, slot)"><span v-if="slot.filled" class="stage-slot-emoji">{{ slot.emoji }}</span><span v-else-if="draftMap[slotKey(slot)]" class="stage-slot-emoji">{{ draftMap[slotKey(slot)].emoji }}</span><span v-else class="stage-slot-empty">待定</span></button></div>
+                <div v-if="row.unlocked" class="stage-slot-grid"><button v-for="slot in row.slots" :key="row.row_index + '-' + slot.slot_index" type="button" class="stage-slot" :class="[slot.filled ? slot.animation_class : '', { filled: slot.filled, draft: !!draftMap[slotKey(slot)] }]" :style="stageSlotStyle(row, slot)" :title="stageSlotTitle(slot)" :disabled="slot.filled || stage.has_active" @click="handleStageSlot(row, slot)"><span v-if="slot.filled" class="stage-slot-emoji">{{ slot.emoji }}</span><span v-else-if="draftMap[slotKey(slot)]" class="stage-slot-emoji">{{ draftMap[slotKey(slot)].emoji }}</span><span v-else class="stage-slot-empty">待定</span></button></div>
               </article>
             </div>
           </v-card-text>
         </v-card>
 
-        <v-card flat class="siqi-card history-card">
-          <v-card-title class="siqi-card-title siqi-card-title--history d-flex align-center"><v-icon icon="mdi-history" size="19" color="teal" class="mr-2" />执行历史</v-card-title>
-          <v-card-text class="history-body"><div v-if="!historyItems.length" class="empty-state">暂无执行历史</div><div v-else class="history-list"><article v-for="item in historyItems" :key="item.time + '-' + item.title" class="history-item"><div class="history-detail">{{ historySummary(item) }}</div><time class="history-time">{{ item.time }}</time></article></div></v-card-text>
+        <v-card flat class="siqi-card log-card">
+          <v-card-title class="siqi-card-title siqi-card-title--logs d-flex align-center"><v-icon icon="mdi-text-box-outline" size="19" color="teal" class="mr-2" />🧾 最近30次操作日志</v-card-title>
+          <v-card-text class="log-body"><div v-if="!operationLogs.length" class="empty-state">暂无操作日志</div><div v-else class="log-list"><article v-for="(item, index) in operationLogs" :key="item.time + '-' + item.title + '-' + index" class="log-item"><div class="log-item-head"><strong>{{ item.title }}</strong><time>{{ item.time }}</time></div><div class="log-item-detail">{{ item.detail }}</div></article></div></v-card-text>
         </v-card>
       </template>
     </div>
@@ -126,7 +130,7 @@ const emit = defineEmits(['switch', 'close'])
 const pluginBase = '/plugin/VueEmoji'
 const loading = ref(false)
 const initialLoading = ref(true)
-const status = reactive({ emoji_status: {}, history: [] })
+const status = reactive({ emoji_status: {}, operation_logs: [] })
 const message = reactive({ text: '', type: 'success' })
 const nowTs = ref(Math.floor(Date.now() / 1000))
 const stageRemainingCapturedTs = ref(nowTs.value)
@@ -168,7 +172,7 @@ const actorsByTier = computed(() => emoji.value.actors_by_tier || {})
 const effects = computed(() => emoji.value.effects || [])
 const stage = computed(() => emoji.value.stage || {})
 const stageRows = computed(() => emoji.value.stage_rows || [])
-const historyItems = computed(() => status.history || emoji.value.history || [])
+const operationLogs = computed(() => emoji.value.operation_logs || status.operation_logs || [])
 const summaryLines = computed(() => (emoji.value.summary || []).filter(Boolean))
 const summaryKey = computed(() => summaryLines.value.join('||'))
 const showSummary = computed(() => !!summaryLines.value.length && dismissedSummaryKey.value !== summaryKey.value)
@@ -210,13 +214,6 @@ const stageHeaderMeta = computed(() => {
   const rewardText = rewards.length ? ` · 预计${rewards.join('，')}` : ''
   return `演员${Number(stage.value.active_count || 0)}位${rewardText}`
 })
-
-const scheduleRows = computed(() => [
-  { title: '下次运行', value: emoji.value.next_run_time || '等待刷新', meta: '按真实可执行时间动态安排', icon: 'mdi-clock-check-outline', tone: 'green' },
-  { title: '计划触发', value: emoji.value.next_trigger_time || '等待识别', meta: '提前刷新状态，错过时间会自动补跑', icon: 'mdi-calendar-clock-outline', tone: 'blue' },
-  { title: '舞台演出', value: stage.value.has_active ? stageRemainText.value : '当前未演出', meta: stageTaskMeta.value, icon: 'mdi-drama-masks', tone: 'orange' },
-  { title: 'Cookie 来源', value: emoji.value.cookie_source || '未同步', meta: '配置页可自动同步或手动填写', icon: 'mdi-cookie-outline', tone: 'teal' },
-])
 
 const sortOptions = [
   { key: 'points_desc', label: 'P↓' },
@@ -357,21 +354,6 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor((safe % 3600) / 60)
   const seconds = safe % 60
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
-function historySummary(item) {
-  const parts = []
-  const title = String(item?.title || '').trim()
-  if (title && title !== '任务结果') {
-    parts.push(title)
-  }
-  const lines = Array.isArray(item?.lines)
-    ? item.lines.map((line) => String(line || '').trim()).filter(Boolean)
-    : []
-  if (lines.length) {
-    parts.push(lines.join(' / '))
-  }
-  return parts.join(' / ') || '任务结果'
 }
 
 function bagCardStyle(bag) {
@@ -615,9 +597,14 @@ function applyStatusPayload(payload = {}) {
     }
   }
   if (Array.isArray(payload.history)) {
-    status.history = payload.history
-  } else if (Array.isArray(payload.status?.history)) {
-    status.history = payload.status.history
+    // Legacy execution history remains accepted by the backend but is no longer rendered here.
+  }
+  if (Array.isArray(payload.operation_logs)) {
+    status.operation_logs = payload.operation_logs
+  } else if (Array.isArray(payload.status?.operation_logs)) {
+    status.operation_logs = payload.status.operation_logs
+  } else if (Array.isArray(nextStatus?.operation_logs)) {
+    status.operation_logs = nextStatus.operation_logs
   }
 }
 
@@ -798,4 +785,9 @@ onBeforeUnmount(() => {
   .sort-tabs{justify-content:flex-start;overflow-x:auto}.actor-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.stage-toolbar-actions{display:grid;grid-template-columns:1fr;width:100%}.stage-toolbar-actions :deep(.v-btn){width:100%}.stage-row-head{align-items:flex-start}.stage-slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.history-item{gap:6px;padding-inline:10px}.history-detail{font-size:11px}.history-time{font-size:10px}
 }
 @media (max-width: 420px){.actor-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stage-slot-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.next-run-card{margin-bottom:12px!important}.next-run-body{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 14px!important;background:rgba(76,175,80,.08)}.next-run-icon{width:40px;height:40px;display:grid;place-items:center;flex:0 0 40px;border-radius:12px;color:#16a34a;background:rgba(34,197,94,.13)}.next-run-copy{min-width:0;flex:1 1 auto}.next-run-title{font-size:14px;font-weight:800}.next-run-guard{margin-top:3px;color:rgba(var(--v-theme-on-surface),.55);font-size:10px;line-height:1.35}.next-run-times{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}.next-run-time{display:grid;gap:1px;min-width:142px;text-align:right}.next-run-time span{color:rgba(var(--v-theme-on-surface),.52);font-size:10px}.next-run-time strong{color:rgba(var(--v-theme-on-surface),.86);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}.next-run-card .schedule-run-btn{min-width:100px!important;min-height:32px!important;height:32px!important;border-radius:999px!important;font-size:11px!important}.next-run-card .summary-panel{margin:0 14px 12px}.siqi-card-title--slot{background:rgba(249,115,22,.09)}.slot-card-body{text-align:center;padding:14px!important}.slot-today{color:rgba(var(--v-theme-on-surface),.66);font-size:11px}.slot-reels--large{justify-content:center;gap:8px;margin:12px auto}.slot-reels--large span{width:148px;height:78px;display:grid;place-items:center;border:1px solid rgba(249,115,22,.22);border-radius:12px;background:rgba(var(--v-theme-surface),.78);font-size:40px}.slot-center-row{display:flex;align-items:center;justify-content:center;gap:8px}.slot-center-row .number-input{width:110px}.slot-center-row :deep(.v-btn){min-width:58px!important;height:40px;min-height:40px!important}.bag-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.bag-item{display:flex;align-items:center;flex-direction:column;gap:7px;min-height:380px;padding:12px;border:1px solid rgba(var(--bag-tone),.24);background:linear-gradient(180deg,rgba(var(--bag-tone),.10),rgba(var(--v-theme-surface),.68));text-align:center}.bag-image{width:150px;height:132px;flex:0 0 132px;border-radius:14px;background-position:center;background-size:contain;background-repeat:no-repeat}.bag-image--placeholder{background-size:58px}.bag-copy{width:100%;text-align:center}.bag-name{color:var(--bag-badge);font-size:14px;font-weight:800}.bag-count{margin-top:4px;color:rgba(var(--v-theme-on-surface),.55);font-size:11px}.bag-action{width:100%;justify-content:center}.bag-action .number-input{width:92px}.bag-action :deep(.v-btn){min-width:54px!important;height:40px;min-height:40px!important}.bag-upgrade-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;width:100%;margin-top:2px;padding:8px;border:1px dashed rgba(var(--bag-tone),.28);border-radius:10px;color:rgba(var(--v-theme-on-surface),.62);font-size:10px}.bag-upgrade-row .number-input{width:100%;height:38px;line-height:38px}.bag-upgrade-row :deep(.v-btn){min-width:54px!important;height:38px;min-height:38px!important}.bag-tip{min-height:30px;margin-top:auto;color:rgba(var(--v-theme-on-surface),.52);font-size:10px;line-height:1.45}.effect-card{min-height:150px}.effect-preview{display:flex;align-items:center;justify-content:center;gap:2px;width:100%;min-height:42px;margin-bottom:2px;overflow:hidden;border-radius:10px;background:rgba(var(--v-theme-surface),.46)}.effect-preview-emoji{display:inline-block;font-size:22px;line-height:1;animation-delay:var(--anim-delay,0s);animation-iteration-count:infinite;animation-timing-function:ease-in-out}.stage-slot-emoji{font-size:21px}.stage-slot.stage-anim-basic .stage-slot-emoji,.stage-anim-basic .effect-preview-emoji{animation:vueemoji-float 2.4s ease-in-out infinite}.stage-slot.stage-anim-newbie .stage-slot-emoji,.stage-anim-newbie .effect-preview-emoji{animation:vueemoji-bounce 1.8s ease-in-out infinite}.stage-slot.stage-anim-skill .stage-slot-emoji,.stage-anim-skill .effect-preview-emoji{animation:vueemoji-pulse 1.7s ease-in-out infinite}.stage-slot.stage-anim-famous .stage-slot-emoji,.stage-anim-famous .effect-preview-emoji{animation:vueemoji-sway 2.1s ease-in-out infinite}.stage-slot.stage-anim-top .stage-slot-emoji,.stage-anim-top .effect-preview-emoji{animation:vueemoji-glow 1.8s ease-in-out infinite}.log-card{margin-top:0}.siqi-card-title--logs{background:rgba(20,184,166,.08)}.log-body{max-height:430px;overflow-y:auto;padding:12px!important}.log-list{display:grid;gap:8px}.log-item{min-width:0;padding:10px 12px;border:1px solid rgba(var(--v-theme-on-surface),.08);border-radius:11px;background:rgba(var(--v-theme-surface),.68);font-size:11px;line-height:1.5}.log-item-head{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;color:rgba(var(--v-theme-on-surface),.84)}.log-item-head strong{font-size:11px}.log-item-head time{color:rgba(var(--v-theme-on-surface),.5);font-size:10px;font-variant-numeric:tabular-nums}.log-item-detail{margin-top:3px;color:rgba(var(--v-theme-on-surface),.68);overflow-wrap:anywhere;text-align:center}.log-item-detail:empty{display:none}@keyframes vueemoji-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-4px)}}@keyframes vueemoji-bounce{0%,100%{transform:translateY(1px) scale(.96)}50%{transform:translateY(-4px) scale(1.04)}}@keyframes vueemoji-pulse{0%,100%{transform:scale(.96);filter:saturate(.9)}50%{transform:scale(1.08);filter:saturate(1.35)}}@keyframes vueemoji-sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}@keyframes vueemoji-glow{0%,100%{transform:scale(.96);text-shadow:0 0 0 transparent}50%{transform:scale(1.08);text-shadow:0 0 12px rgba(245,158,11,.55)}}
+@media (prefers-reduced-motion: reduce){.effect-preview-emoji,.stage-slot-emoji{animation:none!important}}
+@media (max-width: 900px){.bag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width: 600px){.next-run-body{align-items:flex-start;flex-wrap:wrap}.next-run-copy{flex-basis:calc(100% - 52px)}.next-run-times{width:100%;justify-content:flex-start;padding-left:52px}.next-run-time{min-width:0;flex:1 1 140px;text-align:left}.next-run-time strong{white-space:normal}.slot-reels--large span{width:clamp(76px,27vw,120px);height:64px;font-size:31px}.bag-grid{grid-template-columns:1fr}.bag-item{min-height:0}.bag-image{width:128px;height:112px;flex-basis:112px}.log-item-head,.log-item-detail{text-align:left}.log-item-head{justify-content:flex-start}}
 </style>

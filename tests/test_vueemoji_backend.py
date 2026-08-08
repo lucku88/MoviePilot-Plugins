@@ -435,6 +435,81 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.assertEqual(455, result["result"]["point_gain"])
         self.assertEqual(65, result["result"]["magic_gain"])
 
+    def test_extract_operation_logs_from_page_html(self):
+        html = """
+        <section class=\"emoji-card\">
+          <div class=\"log-list\">
+            <div class=\"log-item\"><div><b>确认演出</b> <span class=\"muted\">2026-08-08 06:00:14</span></div><div>确认演出：效果[知名舞台效果]，演员60名</div></div>
+            <div class=\"log-item\"><div><b>召回结算</b> <span class=\"muted\">2026-08-08 06:00:13</span></div><div>召回60名演员，积分+2036 魔力+642</div></div>
+          </div>
+        </section>
+        """
+
+        logs = self.plugin._extract_operation_logs(html)
+
+        self.assertEqual(
+            [
+                {
+                    "title": "确认演出",
+                    "time": "2026-08-08 06:00:14",
+                    "detail": "确认演出：效果[知名舞台效果]，演员60名",
+                },
+                {
+                    "title": "召回结算",
+                    "time": "2026-08-08 06:00:13",
+                    "detail": "召回60名演员，积分+2036 魔力+642",
+                },
+            ],
+            logs,
+        )
+
+    def test_manual_action_refreshes_web_logs_before_returning_status(self):
+        before = _base_state()
+        after_action = copy.deepcopy(before)
+        after_action["spin"]["used"] = 2
+        after_action["bags"][0]["quantity"] = 6
+        fresh_logs = [
+            {
+                "title": "老虎机",
+                "time": "2026-08-08 00:35:19",
+                "detail": "老虎机：获得实力表情包x1",
+            }
+        ]
+        def refresh_bundle_once(_session):
+            self.plugin._operation_logs = fresh_logs
+            return {"state": after_action}
+
+        self.plugin._build_session = mock.Mock(return_value=object())
+        self.plugin._operation_logs = []
+        self.plugin._fetch_bundle = mock.Mock(return_value={"state": before})
+        self.plugin._fetch_bundle_once = mock.Mock(side_effect=refresh_bundle_once)
+        self.plugin._post_action_confirmed = mock.Mock(
+            return_value={"success": True, "data": after_action}
+        )
+        self.plugin._schedule_next_run = mock.Mock()
+        self.plugin._append_history = mock.Mock()
+
+        result = self.plugin._manual_spin({"count": 1})
+
+        self.assertEqual(1, self.plugin._fetch_bundle.call_count)
+        self.plugin._fetch_bundle_once.assert_called_once()
+        self.assertEqual(fresh_logs, result["emoji_status"]["operation_logs"])
+
+    def test_ui_state_exposes_operation_logs_and_effect_animation(self):
+        self.plugin._operation_logs = [
+            {"title": "老虎机", "time": "2026-08-08 00:35:19", "detail": "获得新人表情包x1"}
+        ]
+        state = _base_state()
+        state["effects"] = [
+            {"key": "famous", "name": "知名舞台效果", "unlocked": True}
+        ]
+
+        ui_state = self.plugin._build_ui_state(state, 123, [])
+
+        self.assertEqual(self.plugin._operation_logs, ui_state["operation_logs"])
+        self.assertEqual("stage-anim-famous", ui_state["effects"][0]["animation_class"])
+        self.assertEqual(["🎵", "💃", "🕺", "✨", "🎭"], ui_state["effects"][0]["preview_emojis"])
+
 
 if __name__ == "__main__":
     unittest.main()

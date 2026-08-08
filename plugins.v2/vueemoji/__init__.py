@@ -28,9 +28,9 @@ from app.schemas import NotificationType
 
 class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
-    plugin_desc = "老虎机、开包、舞台演出、获取执行记录。"
+    plugin_desc = "老虎机、开包、舞台演出、网页操作日志。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.7"
+    plugin_version = "0.1.8"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -48,6 +48,8 @@ class VueEmoji(_PluginBase):
     PRE_REFRESH_SECONDS = 60
     MAX_NETWORK_RETRY_TIMES = 5
     MAX_CONSECUTIVE_ERROR_RETRIES = 5
+    STAGE_PREVIEW_EMOJIS = ["🎵", "💃", "🕺", "✨", "🎭"]
+    STAGE_ANIMATION_KEYS = {"basic", "newbie", "skill", "famous", "top"}
 
     _scheduler: Optional[BackgroundScheduler] = None
     _siteoper: Optional[SiteOper] = None
@@ -81,6 +83,7 @@ class VueEmoji(_PluginBase):
 
     def __init__(self):
         super().__init__()
+        self._operation_logs: List[Dict[str, str]] = list(self.get_data("operation_logs") or [])
 
     def init_plugin(self, config: Optional[dict] = None):
         self._restore_legacy_address_family_selector()
@@ -509,6 +512,7 @@ class VueEmoji(_PluginBase):
             "last_run": self.get_data("last_run") or "",
             "emoji_status": emoji_status,
             "history": (self.get_data("history") or [])[:20],
+            "operation_logs": (self.get_data("operation_logs") or self._operation_logs or [])[:30],
             "config": self._get_config(),
         }
 
@@ -757,7 +761,34 @@ class VueEmoji(_PluginBase):
         state = self._extract_initial_state(html)
         if not state:
             raise ValueError("页面返回成功，但未解析到 SIQI_EMOJI_DATA")
-        return {"state": state, "html": html}
+        operation_logs = self._extract_operation_logs(html)
+        self._operation_logs = operation_logs
+        return {"state": state, "html": html, "operation_logs": operation_logs}
+
+    def _extract_operation_logs(self, html: str) -> List[Dict[str, str]]:
+        """从站点页面提取最近操作，保持和网页显示的标题、时间、详情一致。"""
+        pattern = re.compile(
+            r'<div\s+class=["\']log-item["\'][^>]*>\s*'
+            r'<div[^>]*>\s*<b[^>]*>(.*?)</b>\s*'
+            r'<span[^>]*class=["\'][^"\']*\bmuted\b[^"\']*["\'][^>]*>(.*?)</span>.*?</div>\s*'
+            r'<div[^>]*>(.*?)</div>\s*</div>',
+            re.IGNORECASE | re.DOTALL,
+        )
+        logs: List[Dict[str, str]] = []
+        for title, timestamp, detail in pattern.findall(str(html or "")):
+            title_text = self._strip_html(title)
+            time_text = self._strip_html(timestamp)
+            detail_text = self._strip_html(detail)
+            if not title_text and not detail_text:
+                continue
+            logs.append({
+                "title": title_text or "操作",
+                "time": time_text,
+                "detail": detail_text,
+            })
+            if len(logs) >= 30:
+                break
+        return logs
 
     def _extract_initial_state(self, html: str) -> Dict[str, Any]:
         marker = "const SIQI_EMOJI_DATA ="
@@ -1121,6 +1152,17 @@ class VueEmoji(_PluginBase):
             return data
         return None
 
+    def _refresh_operation_logs_after_action(self, session: requests.Session) -> None:
+        """动作成功后重抓网页，让操作日志立即出现在状态页。"""
+        try:
+            self._fetch_bundle_once(session)
+        except Exception as err:
+            logger.warning(
+                "%s 动作已完成，但刷新网页操作日志失败：%s",
+                self.plugin_name,
+                self._get_error_detail(err),
+            )
+
     def _run_auto_spin(self, session: requests.Session, state: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         spin = state.get("spin") or {}
         remaining = max(0, self._safe_int(spin.get("limit"), 0) - self._safe_int(spin.get("used"), 0))
@@ -1298,6 +1340,7 @@ class VueEmoji(_PluginBase):
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         diff_text = self._format_named_counts(self._bag_quantity_diff(before_bags, after_state))
         lines = [f"🎰 老虎机：{diff_text or f'已转动 {count} 次'}"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or lines[0], "emoji_status": emoji_status}
 
@@ -1324,6 +1367,7 @@ class VueEmoji(_PluginBase):
             raise ValueError(result.get("message") or "开包失败")
         after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         lines = [f"📦 开包：{self._compact_bag_name(bag.get('name') or f'表情包{tier}')}×{count}"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "开包成功", "emoji_status": emoji_status}
 
@@ -1356,6 +1400,7 @@ class VueEmoji(_PluginBase):
                     raise ValueError(result.get("message") or "收下失败")
                 after_state = recovered_state
         lines = [f"📥 收下：{item_text or (pending.get('bag_name') or '开包结果')}"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已收下", "emoji_status": emoji_status}
 
@@ -1376,6 +1421,7 @@ class VueEmoji(_PluginBase):
             raise ValueError(result.get("message") or "重开失败")
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         lines = [f"🔁 重开：消耗 {next_cost} 魔力"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已重开", "emoji_status": emoji_status}
 
@@ -1404,6 +1450,7 @@ class VueEmoji(_PluginBase):
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         produce = self._safe_int(rule.get("produce"), 1) * run_times
         lines = [f"🧪 合成：{rule.get('to_name') or '高级表情包'}×{produce}"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "合成成功", "emoji_status": emoji_status}
 
@@ -1421,6 +1468,7 @@ class VueEmoji(_PluginBase):
             raise ValueError(result.get("message") or "扩展失败")
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         lines = [f"🧱 扩展：舞台第 {row_index} 行 +1 格"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "扩展成功", "emoji_status": emoji_status}
 
@@ -1449,6 +1497,7 @@ class VueEmoji(_PluginBase):
         after_state = self._ensure_stage_state_after_confirm(session, self._extract_action_state(result) or {})
         effect = self._find_effect(after_state, effect_key) or {}
         lines = [f"🎭 演出：{effect.get('name') or effect_key} / 演员{len(placements)}位"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "演出已开始", "emoji_status": emoji_status}
 
@@ -1466,6 +1515,7 @@ class VueEmoji(_PluginBase):
         recall = result.get("result") or {}
         after_state = self._extract_action_state(result) or self._fetch_bundle(session)["state"]
         lines = [f"🎁 召回：声誉+{self._safe_int(recall.get('point_gain'), 0)}，魔力+{self._safe_int(recall.get('magic_gain'), 0)}"]
+        self._refresh_operation_logs_after_action(session)
         emoji_status = self._refresh_and_store_status(after_state, self._compute_next_run(after_state), lines)
         return {"message": result.get("message") or "已收回演出", "emoji_status": emoji_status}
 
@@ -1534,6 +1584,8 @@ class VueEmoji(_PluginBase):
     ) -> Dict[str, Any]:
         summary_lines = self._normalize_summary_lines(summary_lines)
         self._schedule_next_run(next_run, reason="refresh-state")
+        self._operation_logs = list(self._operation_logs or self.get_data("operation_logs") or [])[:30]
+        self.save_data("operation_logs", self._operation_logs)
         emoji_status = self._build_ui_state(state, next_run, summary_lines)
         self.save_data("emoji_status", emoji_status)
         self.save_data("state", self._build_state_record(state, next_run, summary_lines))
@@ -1554,6 +1606,7 @@ class VueEmoji(_PluginBase):
             "bags": state.get("bags") or [],
             "effects": state.get("effects") or [],
             "stage": state.get("stage") or {},
+            "operation_logs": (self._operation_logs or [])[:30],
         }
 
     def _compute_next_run(self, state: Dict[str, Any]) -> Optional[int]:
@@ -1681,7 +1734,7 @@ class VueEmoji(_PluginBase):
         return {
             "schema_version": self.plugin_version,
             "title": "表情演出",
-            "subtitle": "老虎机、开包、舞台演出、获取执行记录。",
+            "subtitle": "老虎机、开包、舞台演出、网页操作日志。",
             "cookie_source": self._cookie_source,
             "summary": summary_lines,
             "next_run_time": self._format_ts(next_run),
@@ -1698,6 +1751,7 @@ class VueEmoji(_PluginBase):
             "stage": self._build_stage_runtime(state),
             "stage_rows": self._build_stage_rows(state),
             "history": (self.get_data("history") or [])[:20],
+            "operation_logs": (self._operation_logs or self.get_data("operation_logs") or [])[:30],
         }
 
     def _build_stats(self, state: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1856,8 +1910,16 @@ class VueEmoji(_PluginBase):
                 "unlocked": bool(effect.get("unlocked")),
                 "unlock_text": effect.get("unlock_text") or "",
                 "active": str(effect.get("key") or "") == selected,
+                "animation_class": self._stage_animation_class(effect.get("key")),
+                "preview_emojis": list(self.STAGE_PREVIEW_EMOJIS),
             })
         return result
+
+    def _stage_animation_class(self, effect_key: Any) -> str:
+        key = str(effect_key or "basic").strip().lower()
+        if key not in self.STAGE_ANIMATION_KEYS:
+            key = "basic"
+        return f"stage-anim-{key}"
 
     def _build_effect_options(self) -> List[Dict[str, Any]]:
         options: List[Dict[str, Any]] = [{"title": "自动选择演出舞台效果", "value": "auto"}]
@@ -1988,6 +2050,10 @@ class VueEmoji(_PluginBase):
                     "magic": self._safe_int(active.get("magic_bonus"), 0),
                     "remaining_seconds": remaining,
                     "remaining_end_ts": self._extract_slot_end_ts(active, remaining) if active else 0,
+                    "effect_key": str(active.get("effect_key") or stage.get("selected_effect") or "basic"),
+                    "animation_class": self._stage_animation_class(
+                        active.get("effect_key") or stage.get("selected_effect") or "basic"
+                    ),
                 })
             result.append({
                 "row_index": row_index,

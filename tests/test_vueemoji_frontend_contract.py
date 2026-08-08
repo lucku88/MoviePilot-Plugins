@@ -22,12 +22,12 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             'class="siqi-topbar"',
             'class="mb-3 overview-grid"',
             'class="stat-card',
-            'class="primary-grid mb-3"',
-            'class="siqi-card schedule-board',
+            'class="siqi-card next-run-card mb-3"',
+            'class="siqi-card slot-card mb-3"',
             'class="siqi-card bag-card',
             'class="siqi-card catalog-card',
             'class="siqi-card stage-card',
-            'class="siqi-card history-card',
+            'class="siqi-card log-card',
         ):
             self.assertIn(expected, self.page)
 
@@ -38,6 +38,38 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             "prefers-color-scheme",
         ):
             self.assertNotIn(forbidden, self.page)
+
+    def test_status_page_uses_single_line_dynamic_run_card(self):
+        self.assertIn('class="siqi-card next-run-card mb-3"', self.page)
+        self.assertIn('class="next-run-body"', self.page)
+        self.assertIn('动态运行', self.page)
+        self.assertIn('class="next-run-time"', self.page)
+        self.assertNotIn('class="siqi-card schedule-board', self.page)
+
+    def test_bag_cards_render_upgrade_controls_and_operation_logs(self):
+        for expected in (
+            'class="bag-upgrade-row"',
+            'v-model="upgradeCounts[bag.upgrade_rule.key]"',
+            '@click="upgradeBag(bag)"',
+            'class="siqi-card log-card',
+            '🧾 最近30次操作日志',
+            'operationLogs',
+        ):
+            self.assertIn(expected, self.page)
+        self.assertNotIn('>执行历史</', self.page)
+
+    def test_stage_effects_and_slots_expose_animation_classes(self):
+        self.assertIn('effect.animation_class', self.page)
+        self.assertIn('effect.preview_emojis', self.page)
+        self.assertIn('slot.animation_class', self.page)
+        for expected in (
+            '.stage-anim-basic',
+            '.stage-anim-newbie',
+            '.stage-anim-skill',
+            '.stage-anim-famous',
+            '.stage-anim-top',
+        ):
+            self.assertIn(expected, self.page)
 
     def test_status_page_keeps_all_manual_actions(self):
         for endpoint in (
@@ -105,10 +137,10 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.compact_page,
         )
 
-    def test_history_is_one_line_with_right_aligned_time(self):
-        self.assertIn('class="history-detail"', self.page)
-        self.assertIn('class="history-time"', self.page)
-        self.assertRegex(self.page, r"\.history-time\s*\{[^}]*margin-left:\s*auto")
+    def test_operation_logs_wrap_long_details(self):
+        self.assertIn('class="log-item-head"', self.page)
+        self.assertIn('class="log-item-detail"', self.page)
+        self.assertIn("overflow-wrap:anywhere", self.compact_page)
 
     def test_config_uses_shared_form_shell(self):
         for expected in (
