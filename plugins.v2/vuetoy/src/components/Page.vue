@@ -91,8 +91,7 @@
               <v-icon icon="mdi-calendar-clock-outline" size="23" />
             </div>
             <div class="next-run-copy">
-              <div class="next-run-title">下次运行</div>
-              <div class="next-run-sub">按展位完成时间动态运行，不使用固定周期</div>
+              <div class="next-run-title">动态运行</div>
               <div v-if="placementGuardText" class="next-run-guard">{{ placementGuardText }}</div>
             </div>
             <div class="next-run-times">
@@ -104,9 +103,6 @@
                 <span>执行时间</span>
                 <strong>{{ toy.next_run_time || status.next_run_time || '等待刷新' }}</strong>
               </div>
-              <v-chip size="small" :color="status.enabled ? 'success' : 'grey'" variant="tonal">
-                {{ status.enabled ? '已启用' : '未启用' }}
-              </v-chip>
               <v-btn
                 color="success"
                 variant="tonal"
@@ -916,8 +912,7 @@ onBeforeUnmount(() => {
 .next-run-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; color: #16a34a; background: rgba(34,197,94,.13); }
 .next-run-copy { min-width: 0; flex: 1 1 auto; }
 .next-run-title { font-size: .88rem; font-weight: 750; }
-.next-run-sub, .next-run-guard { margin-top: 2px; color: rgba(var(--v-theme-on-surface), .58); font-size: .7rem; line-height: 1.35; }
-.next-run-guard { color: #d97706; }
+.next-run-guard { margin-top: 2px; color: #d97706; font-size: .7rem; line-height: 1.35; }
 .next-run-times { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .next-run-time { display: grid; gap: 1px; min-width: 142px; text-align: right; }
 .next-run-time span { color: rgba(var(--v-theme-on-surface), .52); font-size: .64rem; }
@@ -1057,9 +1052,20 @@ onBeforeUnmount(() => {
   text-align: right;
   white-space: nowrap;
 }
-.recycle-dialog-card { overflow: hidden; }
+.recycle-dialog-card {
+  overflow: hidden;
+  color: rgb(var(--v-theme-on-surface)) !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), .14) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .28) !important;
+  backdrop-filter: none;
+}
+.recycle-dialog-card .siqi-card-title { background: rgba(245, 158, 11, .12); }
+.recycle-dialog-card :deep(.v-card-text),
+.recycle-dialog-card :deep(.v-card-actions) { background: rgb(var(--v-theme-surface)); }
 .recycle-dialog-name { font-size: 1rem; font-weight: 750; }
 .recycle-dialog-hint { margin: 6px 0 14px; color: rgba(var(--v-theme-on-surface), .58); font-size: .72rem; line-height: 1.45; }
+.recycle-quantity :deep(.v-field) { background: rgba(var(--v-theme-on-surface), .035); }
 .recycle-quantity :deep(.v-field__input) { min-height: 42px; text-align: center; }
 .recycle-estimate { margin-top: 10px; color: #d97706; font-size: .78rem; font-weight: 700; }
 .empty-state { padding: 22px 12px; color: rgba(var(--v-theme-on-surface), .52); font-size: .78rem; text-align: center; }
@@ -1113,7 +1119,6 @@ onBeforeUnmount(() => {
   .stat-value { font-size: 17px; }
   .section-count { display: none; }
   .next-run-times { padding-left: 0; }
-  .next-run-times .v-chip { display: none; }
   .next-run-time { flex-basis: 100%; }
   .doll-actions { grid-template-columns: 1fr 1fr; }
 }

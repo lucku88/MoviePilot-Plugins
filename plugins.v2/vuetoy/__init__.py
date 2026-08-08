@@ -26,7 +26,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.2.5"
+    plugin_version = "0.2.6"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"

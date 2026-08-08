@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Page_vue_vue_type_style_index_0_scoped_f897972f_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_6a8af6de_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,renderList:_renderList,Fragment:_Fragment,normalizeClass:_normalizeClass,normalizeStyle:_normalizeStyle,withKeys:_withKeys,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-f897972f"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-6a8af6de"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-page" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -33,171 +33,170 @@ const _hoisted_15 = { class: "stat-title" };
 const _hoisted_16 = { class: "stat-value" };
 const _hoisted_17 = { class: "next-run-icon" };
 const _hoisted_18 = { class: "next-run-copy" };
-const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "next-run-title" }, "下次运行", -1));
-const _hoisted_20 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "next-run-sub" }, "按展位完成时间动态运行，不使用固定周期", -1));
-const _hoisted_21 = {
+const _hoisted_19 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "next-run-title" }, "动态运行", -1));
+const _hoisted_20 = {
   key: 0,
   class: "next-run-guard"
 };
-const _hoisted_22 = { class: "next-run-times" };
-const _hoisted_23 = { class: "next-run-time" };
-const _hoisted_24 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "计划触发", -1));
-const _hoisted_25 = { class: "next-run-time" };
-const _hoisted_26 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "执行时间", -1));
-const _hoisted_27 = { class: "two-column-grid mb-3" };
+const _hoisted_21 = { class: "next-run-times" };
+const _hoisted_22 = { class: "next-run-time" };
+const _hoisted_23 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "计划触发", -1));
+const _hoisted_24 = { class: "next-run-time" };
+const _hoisted_25 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("span", null, "执行时间", -1));
+const _hoisted_26 = { class: "two-column-grid mb-3" };
+const _hoisted_27 = {
+  key: 0,
+  class: "empty-state"
+};
 const _hoisted_28 = {
-  key: 0,
-  class: "empty-state"
-};
-const _hoisted_29 = {
   key: 1,
   class: "box-list"
 };
-const _hoisted_30 = ["src", "alt"];
-const _hoisted_31 = {
+const _hoisted_29 = ["src", "alt"];
+const _hoisted_30 = {
   key: 1,
   class: "box-image box-image--placeholder"
 };
-const _hoisted_32 = { class: "box-copy" };
-const _hoisted_33 = { class: "box-name" };
-const _hoisted_34 = { class: "box-desc" };
+const _hoisted_31 = { class: "box-copy" };
+const _hoisted_32 = { class: "box-name" };
+const _hoisted_33 = { class: "box-desc" };
+const _hoisted_34 = {
+  key: 0,
+  class: "empty-state"
+};
 const _hoisted_35 = {
-  key: 0,
-  class: "empty-state"
-};
-const _hoisted_36 = {
   key: 1,
   class: "box-list"
 };
-const _hoisted_37 = ["src", "alt"];
-const _hoisted_38 = {
+const _hoisted_36 = ["src", "alt"];
+const _hoisted_37 = {
   key: 1,
   class: "box-image box-image--placeholder"
 };
-const _hoisted_39 = { class: "box-copy" };
-const _hoisted_40 = { class: "box-name" };
-const _hoisted_41 = { class: "box-desc" };
-const _hoisted_42 = { class: "section-count" };
-const _hoisted_43 = {
+const _hoisted_38 = { class: "box-copy" };
+const _hoisted_39 = { class: "box-name" };
+const _hoisted_40 = { class: "box-desc" };
+const _hoisted_41 = { class: "section-count" };
+const _hoisted_42 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_44 = {
+const _hoisted_43 = {
   key: 1,
   class: "doll-grid"
 };
-const _hoisted_45 = { class: "doll-card__head" };
-const _hoisted_46 = ["src", "alt"];
-const _hoisted_47 = {
+const _hoisted_44 = { class: "doll-card__head" };
+const _hoisted_45 = ["src", "alt"];
+const _hoisted_46 = {
   key: 1,
   class: "doll-image doll-image--placeholder"
 };
-const _hoisted_48 = { class: "doll-name" };
+const _hoisted_47 = { class: "doll-name" };
+const _hoisted_48 = { class: "doll-meta" };
 const _hoisted_49 = { class: "doll-meta" };
-const _hoisted_50 = { class: "doll-meta" };
-const _hoisted_51 = { class: "doll-stats" };
-const _hoisted_52 = {
+const _hoisted_50 = { class: "doll-stats" };
+const _hoisted_51 = {
   key: 2,
   class: "doll-cooldown"
 };
-const _hoisted_53 = { class: "doll-actions" };
-const _hoisted_54 = { class: "section-count" };
-const _hoisted_55 = {
+const _hoisted_52 = { class: "doll-actions" };
+const _hoisted_53 = { class: "section-count" };
+const _hoisted_54 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_56 = {
+const _hoisted_55 = {
   key: 1,
   class: "slot-grid"
 };
-const _hoisted_57 = { class: "slot-card__head" };
-const _hoisted_58 = {
+const _hoisted_56 = { class: "slot-card__head" };
+const _hoisted_57 = {
   key: 0,
   class: "slot-empty-body"
 };
-const _hoisted_59 = {
+const _hoisted_58 = {
   key: 1,
   class: "slot-main"
 };
-const _hoisted_60 = ["src", "alt"];
-const _hoisted_61 = {
+const _hoisted_59 = ["src", "alt"];
+const _hoisted_60 = {
   key: 1,
   class: "slot-image slot-image--placeholder"
 };
-const _hoisted_62 = { class: "slot-info" };
-const _hoisted_63 = { class: "slot-name" };
-const _hoisted_64 = { class: "slot-owner" };
-const _hoisted_65 = { class: "slot-meta" };
-const _hoisted_66 = {
+const _hoisted_61 = { class: "slot-info" };
+const _hoisted_62 = { class: "slot-name" };
+const _hoisted_63 = { class: "slot-owner" };
+const _hoisted_64 = { class: "slot-meta" };
+const _hoisted_65 = {
   key: 0,
   class: "slot-meta"
 };
-const _hoisted_67 = {
+const _hoisted_66 = {
   key: 2,
   class: "slot-progress",
   "aria-hidden": "true"
 };
-const _hoisted_68 = { class: "interaction-grid mb-3" };
-const _hoisted_69 = {
+const _hoisted_67 = { class: "interaction-grid mb-3" };
+const _hoisted_68 = {
   key: 0,
   class: "section-count"
 };
-const _hoisted_70 = { class: "target-tools" };
-const _hoisted_71 = {
+const _hoisted_69 = { class: "target-tools" };
+const _hoisted_70 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_72 = {
+const _hoisted_71 = {
   key: 1,
   class: "slot-grid target-slot-grid"
 };
-const _hoisted_73 = { class: "slot-card__head" };
-const _hoisted_74 = {
+const _hoisted_72 = { class: "slot-card__head" };
+const _hoisted_73 = {
   key: 0,
   class: "slot-empty-body"
 };
-const _hoisted_75 = {
+const _hoisted_74 = {
   key: 1,
   class: "slot-main"
 };
-const _hoisted_76 = ["src", "alt"];
-const _hoisted_77 = {
+const _hoisted_75 = ["src", "alt"];
+const _hoisted_76 = {
   key: 1,
   class: "slot-image slot-image--placeholder"
 };
-const _hoisted_78 = { class: "slot-info" };
-const _hoisted_79 = { class: "slot-name" };
-const _hoisted_80 = { class: "slot-owner" };
-const _hoisted_81 = { class: "slot-meta" };
-const _hoisted_82 = { class: "section-count" };
-const _hoisted_83 = {
+const _hoisted_77 = { class: "slot-info" };
+const _hoisted_78 = { class: "slot-name" };
+const _hoisted_79 = { class: "slot-owner" };
+const _hoisted_80 = { class: "slot-meta" };
+const _hoisted_81 = { class: "section-count" };
+const _hoisted_82 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_84 = {
+const _hoisted_83 = {
   key: 1,
   class: "remote-grid"
 };
-const _hoisted_85 = ["src", "alt"];
-const _hoisted_86 = {
+const _hoisted_84 = ["src", "alt"];
+const _hoisted_85 = {
   key: 1,
   class: "remote-image remote-image--placeholder"
 };
-const _hoisted_87 = { class: "remote-copy" };
-const _hoisted_88 = { class: "remote-name" };
+const _hoisted_86 = { class: "remote-copy" };
+const _hoisted_87 = { class: "remote-name" };
+const _hoisted_88 = { class: "remote-meta" };
 const _hoisted_89 = { class: "remote-meta" };
-const _hoisted_90 = { class: "remote-meta" };
-const _hoisted_91 = {
+const _hoisted_90 = {
   key: 0,
   class: "empty-state"
 };
-const _hoisted_92 = {
+const _hoisted_91 = {
   key: 1,
   class: "activity-list"
 };
-const _hoisted_93 = { class: "recycle-dialog-name" };
-const _hoisted_94 = { class: "recycle-dialog-hint" };
-const _hoisted_95 = { class: "recycle-estimate" };
+const _hoisted_92 = { class: "recycle-dialog-name" };
+const _hoisted_93 = { class: "recycle-dialog-hint" };
+const _hoisted_94 = { class: "recycle-estimate" };
 
 const {computed,onBeforeUnmount,onMounted,reactive,ref,watch} = await importShared('vue');
 
@@ -563,12 +562,12 @@ return (_ctx, _cache) => {
   const _component_v_progress_linear = _resolveComponent("v-progress-linear");
   const _component_v_col = _resolveComponent("v-col");
   const _component_v_row = _resolveComponent("v-row");
-  const _component_v_chip = _resolveComponent("v-chip");
   const _component_v_card_text = _resolveComponent("v-card-text");
   const _component_v_card = _resolveComponent("v-card");
   const _component_v_card_title = _resolveComponent("v-card-title");
   const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_spacer = _resolveComponent("v-spacer");
+  const _component_v_chip = _resolveComponent("v-chip");
   const _component_v_card_actions = _resolveComponent("v-card-actions");
   const _component_v_dialog = _resolveComponent("v-dialog");
 
@@ -727,30 +726,19 @@ return (_ctx, _cache) => {
                     ]),
                     _createElementVNode("div", _hoisted_18, [
                       _hoisted_19,
-                      _hoisted_20,
                       (placementGuardText.value)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_21, _toDisplayString(placementGuardText.value), 1))
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_20, _toDisplayString(placementGuardText.value), 1))
                         : _createCommentVNode("", true)
                     ]),
-                    _createElementVNode("div", _hoisted_22, [
-                      _createElementVNode("div", _hoisted_23, [
-                        _hoisted_24,
+                    _createElementVNode("div", _hoisted_21, [
+                      _createElementVNode("div", _hoisted_22, [
+                        _hoisted_23,
                         _createElementVNode("strong", null, _toDisplayString(toy.value.next_trigger_time || status.next_trigger_time || '等待刷新'), 1)
                       ]),
-                      _createElementVNode("div", _hoisted_25, [
-                        _hoisted_26,
+                      _createElementVNode("div", _hoisted_24, [
+                        _hoisted_25,
                         _createElementVNode("strong", null, _toDisplayString(toy.value.next_run_time || status.next_run_time || '等待刷新'), 1)
                       ]),
-                      _createVNode(_component_v_chip, {
-                        size: "small",
-                        color: status.enabled ? 'success' : 'grey',
-                        variant: "tonal"
-                      }, {
-                        default: _withCtx(() => [
-                          _createTextVNode(_toDisplayString(status.enabled ? '已启用' : '未启用'), 1)
-                        ]),
-                        _: 1
-                      }, 8, ["color"]),
                       _createVNode(_component_v_btn, {
                         color: "success",
                         variant: "tonal",
@@ -791,7 +779,7 @@ return (_ctx, _cache) => {
               ]),
               _: 1
             }),
-            _createElementVNode("div", _hoisted_27, [
+            _createElementVNode("div", _hoisted_26, [
               _createVNode(_component_v_card, {
                 flat: "",
                 class: "siqi-card box-card"
@@ -812,8 +800,8 @@ return (_ctx, _cache) => {
                   _createVNode(_component_v_card_text, null, {
                     default: _withCtx(() => [
                       (!shopBoxes.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_28, "暂未获取到盲盒商店"))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_29, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_27, "暂未获取到盲盒商店"))
+                        : (_openBlock(), _createElementBlock("div", _hoisted_28, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(shopBoxes.value, (box) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: box.box_key || box.name,
@@ -826,16 +814,16 @@ return (_ctx, _cache) => {
                                       alt: box.name,
                                       class: "box-image",
                                       loading: "lazy"
-                                    }, null, 8, _hoisted_30))
-                                  : (_openBlock(), _createElementBlock("div", _hoisted_31, [
+                                    }, null, 8, _hoisted_29))
+                                  : (_openBlock(), _createElementBlock("div", _hoisted_30, [
                                       _createVNode(_component_v_icon, {
                                         icon: "mdi-package-variant-closed",
                                         size: "26"
                                       })
                                     ])),
-                                _createElementVNode("div", _hoisted_32, [
-                                  _createElementVNode("div", _hoisted_33, _toDisplayString(box.name), 1),
-                                  _createElementVNode("div", _hoisted_34, _toDisplayString(box.lock_text || box.desc), 1)
+                                _createElementVNode("div", _hoisted_31, [
+                                  _createElementVNode("div", _hoisted_32, _toDisplayString(box.name), 1),
+                                  _createElementVNode("div", _hoisted_33, _toDisplayString(box.lock_text || box.desc), 1)
                                 ]),
                                 _createVNode(_component_v_text_field, {
                                   modelValue: buyQuantities[box.box_key],
@@ -890,8 +878,8 @@ return (_ctx, _cache) => {
                   _createVNode(_component_v_card_text, null, {
                     default: _withCtx(() => [
                       (!myBoxes.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_35, "暂无盲盒"))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_36, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_34, "暂无盲盒"))
+                        : (_openBlock(), _createElementBlock("div", _hoisted_35, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(myBoxes.value, (box) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: `owned-${box.box_key || box.name}`,
@@ -904,16 +892,16 @@ return (_ctx, _cache) => {
                                       alt: box.name,
                                       class: "box-image",
                                       loading: "lazy"
-                                    }, null, 8, _hoisted_37))
-                                  : (_openBlock(), _createElementBlock("div", _hoisted_38, [
+                                    }, null, 8, _hoisted_36))
+                                  : (_openBlock(), _createElementBlock("div", _hoisted_37, [
                                       _createVNode(_component_v_icon, {
                                         icon: "mdi-package-variant",
                                         size: "26"
                                       })
                                     ])),
-                                _createElementVNode("div", _hoisted_39, [
-                                  _createElementVNode("div", _hoisted_40, _toDisplayString(box.name), 1),
-                                  _createElementVNode("div", _hoisted_41, "拥有 " + _toDisplayString(box.count) + " 个", 1)
+                                _createElementVNode("div", _hoisted_38, [
+                                  _createElementVNode("div", _hoisted_39, _toDisplayString(box.name), 1),
+                                  _createElementVNode("div", _hoisted_40, "拥有 " + _toDisplayString(box.count) + " 个", 1)
                                 ]),
                                 _createVNode(_component_v_text_field, {
                                   modelValue: openQuantities[box.box_key || box.name],
@@ -964,7 +952,7 @@ return (_ctx, _cache) => {
                     }),
                     _createTextVNode("玩偶柜 "),
                     _createVNode(_component_v_spacer),
-                    _createElementVNode("span", _hoisted_42, _toDisplayString(cabinetCards.value.length) + " 类玩偶", 1)
+                    _createElementVNode("span", _hoisted_41, _toDisplayString(cabinetCards.value.length) + " 类玩偶", 1)
                   ]),
                   _: 1
                 }),
@@ -993,14 +981,14 @@ return (_ctx, _cache) => {
                         : _createCommentVNode("", true)
                     ], 2),
                     (!cabinetCards.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_43, "暂无玩偶"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_44, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_42, "暂无玩偶"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_43, [
                           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cabinetCards.value, (doll) => {
                             return (_openBlock(), _createElementBlock("article", {
                               key: doll.doll_key || doll.name,
                               class: _normalizeClass(["doll-card", { 'doll-card--selected': selectedDollKey.value === doll.doll_key, 'doll-card--disabled': !doll.can_place }])
                             }, [
-                              _createElementVNode("div", _hoisted_45, [
+                              _createElementVNode("div", _hoisted_44, [
                                 _createVNode(_component_v_chip, {
                                   size: "x-small",
                                   color: "blue",
@@ -1020,25 +1008,25 @@ return (_ctx, _cache) => {
                                     alt: doll.name,
                                     class: "doll-image",
                                     loading: "lazy"
-                                  }, null, 8, _hoisted_46))
-                                : (_openBlock(), _createElementBlock("div", _hoisted_47, [
+                                  }, null, 8, _hoisted_45))
+                                : (_openBlock(), _createElementBlock("div", _hoisted_46, [
                                     _createVNode(_component_v_icon, {
                                       icon: "mdi-teddy-bear",
                                       size: "38"
                                     })
                                   ])),
-                              _createElementVNode("div", _hoisted_48, _toDisplayString(doll.name), 1),
-                              _createElementVNode("div", _hoisted_49, _toDisplayString(doll.display_text), 1),
-                              _createElementVNode("div", _hoisted_50, _toDisplayString(doll.reward_text), 1),
-                              _createElementVNode("div", _hoisted_51, [
+                              _createElementVNode("div", _hoisted_47, _toDisplayString(doll.name), 1),
+                              _createElementVNode("div", _hoisted_48, _toDisplayString(doll.display_text), 1),
+                              _createElementVNode("div", _hoisted_49, _toDisplayString(doll.reward_text), 1),
+                              _createElementVNode("div", _hoisted_50, [
                                 _createElementVNode("span", null, "可用 " + _toDisplayString(doll.available), 1),
                                 _createElementVNode("span", null, "展出 " + _toDisplayString(doll.display_count), 1),
                                 _createElementVNode("span", null, "冷却 " + _toDisplayString(doll.cooling_count), 1)
                               ]),
                               (cabinetCooldownText(doll))
-                                ? (_openBlock(), _createElementBlock("div", _hoisted_52, _toDisplayString(cabinetCooldownText(doll)), 1))
+                                ? (_openBlock(), _createElementBlock("div", _hoisted_51, _toDisplayString(cabinetCooldownText(doll)), 1))
                                 : _createCommentVNode("", true),
-                              _createElementVNode("div", _hoisted_53, [
+                              _createElementVNode("div", _hoisted_52, [
                                 _createVNode(_component_v_btn, {
                                   color: "blue",
                                   variant: "tonal",
@@ -1087,15 +1075,15 @@ return (_ctx, _cache) => {
                     }),
                     _createTextVNode("我的展柜 "),
                     _createVNode(_component_v_spacer),
-                    _createElementVNode("span", _hoisted_54, "自己的玩偶 " + _toDisplayString(ownedPersonalCount.value) + "/" + _toDisplayString(personalSlots.value.length), 1)
+                    _createElementVNode("span", _hoisted_53, "自己的玩偶 " + _toDisplayString(ownedPersonalCount.value) + "/" + _toDisplayString(personalSlots.value.length), 1)
                   ]),
                   _: 1
                 }),
                 _createVNode(_component_v_card_text, { class: "personal-booth-body" }, {
                   default: _withCtx(() => [
                     (!personalSlots.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_55, "暂未获取到自己展位"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_56, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_54, "暂未获取到自己展位"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_55, [
                           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(personalSlots.value, (slot) => {
                             return (_openBlock(), _createElementBlock("article", {
                               key: `personal-${slot.slot_index}`,
@@ -1105,7 +1093,7 @@ return (_ctx, _cache) => {
                   'slot-card--empty': slot.empty,
                 }])
                             }, [
-                              _createElementVNode("div", _hoisted_57, [
+                              _createElementVNode("div", _hoisted_56, [
                                 _createElementVNode("span", null, "展位 " + _toDisplayString(slot.slot_index), 1),
                                 _createVNode(_component_v_chip, {
                                   size: "x-small",
@@ -1119,7 +1107,7 @@ return (_ctx, _cache) => {
                                 }, 1032, ["color"])
                               ]),
                               (slot.empty)
-                                ? (_openBlock(), _createElementBlock("div", _hoisted_58, [
+                                ? (_openBlock(), _createElementBlock("div", _hoisted_57, [
                                     _createVNode(_component_v_icon, {
                                       icon: slot.cooldown_active ? 'mdi-timer-sand' : 'mdi-plus-circle-outline',
                                       size: "34"
@@ -1127,7 +1115,7 @@ return (_ctx, _cache) => {
                                     _createElementVNode("strong", null, _toDisplayString(slot.cooldown_active ? '展位冷却中' : '空展位'), 1),
                                     _createElementVNode("span", null, _toDisplayString(slot.cooldown_active ? '等待冷却结束后再上架' : selectedDoll.value ? `准备上架 ${selectedDoll.value.name}` : '请先从玩偶柜选择玩偶'), 1)
                                   ]))
-                                : (_openBlock(), _createElementBlock("div", _hoisted_59, [
+                                : (_openBlock(), _createElementBlock("div", _hoisted_58, [
                                     (slot.image)
                                       ? (_openBlock(), _createElementBlock("img", {
                                           key: 0,
@@ -1135,24 +1123,24 @@ return (_ctx, _cache) => {
                                           alt: slot.doll_name,
                                           class: "slot-image",
                                           loading: "lazy"
-                                        }, null, 8, _hoisted_60))
-                                      : (_openBlock(), _createElementBlock("div", _hoisted_61, [
+                                        }, null, 8, _hoisted_59))
+                                      : (_openBlock(), _createElementBlock("div", _hoisted_60, [
                                           _createVNode(_component_v_icon, {
                                             icon: "mdi-teddy-bear",
                                             size: "34"
                                           })
                                         ])),
-                                    _createElementVNode("div", _hoisted_62, [
-                                      _createElementVNode("div", _hoisted_63, _toDisplayString(slot.doll_name || '未知玩偶'), 1),
-                                      _createElementVNode("div", _hoisted_64, _toDisplayString(slot.owner_name || (slot.viewer_is_occupant ? '自己' : '其他用户')), 1),
-                                      _createElementVNode("div", _hoisted_65, _toDisplayString(slotRemainText(slot)), 1),
+                                    _createElementVNode("div", _hoisted_61, [
+                                      _createElementVNode("div", _hoisted_62, _toDisplayString(slot.doll_name || '未知玩偶'), 1),
+                                      _createElementVNode("div", _hoisted_63, _toDisplayString(slot.owner_name || (slot.viewer_is_occupant ? '自己' : '其他用户')), 1),
+                                      _createElementVNode("div", _hoisted_64, _toDisplayString(slotRemainText(slot)), 1),
                                       (slot.reward_text)
-                                        ? (_openBlock(), _createElementBlock("div", _hoisted_66, _toDisplayString(slot.reward_text), 1))
+                                        ? (_openBlock(), _createElementBlock("div", _hoisted_65, _toDisplayString(slot.reward_text), 1))
                                         : _createCommentVNode("", true)
                                     ])
                                   ])),
                               (!slot.empty)
-                                ? (_openBlock(), _createElementBlock("div", _hoisted_67, [
+                                ? (_openBlock(), _createElementBlock("div", _hoisted_66, [
                                     _createElementVNode("div", {
                                       class: "slot-progress__bar",
                                       style: _normalizeStyle({ width: `${Math.max(0, Math.min(100, Number(slot.progress || 0)))}%` })
@@ -1213,7 +1201,7 @@ return (_ctx, _cache) => {
               ]),
               _: 1
             }),
-            _createElementVNode("div", _hoisted_68, [
+            _createElementVNode("div", _hoisted_67, [
               _createVNode(_component_v_card, {
                 flat: "",
                 class: "siqi-card target-card"
@@ -1230,14 +1218,14 @@ return (_ctx, _cache) => {
                       _createTextVNode("抢占他人展位 "),
                       _createVNode(_component_v_spacer),
                       (targetPanel.value.username)
-                        ? (_openBlock(), _createElementBlock("span", _hoisted_69, "当前目标：" + _toDisplayString(targetPanel.value.username), 1))
+                        ? (_openBlock(), _createElementBlock("span", _hoisted_68, "当前目标：" + _toDisplayString(targetPanel.value.username), 1))
                         : _createCommentVNode("", true)
                     ]),
                     _: 1
                   }),
                   _createVNode(_component_v_card_text, { class: "target-body" }, {
                     default: _withCtx(() => [
-                      _createElementVNode("div", _hoisted_70, [
+                      _createElementVNode("div", _hoisted_69, [
                         _createVNode(_component_v_text_field, {
                           modelValue: targetKeyword.value,
                           "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((targetKeyword).value = $event)),
@@ -1276,14 +1264,14 @@ return (_ctx, _cache) => {
                         }, 8, ["disabled", "loading"])
                       ]),
                       (!targetPanel.value.slots?.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_71, "尚未选择目标，自动任务会按限制随机寻找空展位"))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_72, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_70, "尚未选择目标，自动任务会按限制随机寻找空展位"))
+                        : (_openBlock(), _createElementBlock("div", _hoisted_71, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(targetPanel.value.slots, (slot) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: `target-${slot.owner_id}-${slot.slot_index}`,
                                 class: "slot-card"
                               }, [
-                                _createElementVNode("div", _hoisted_73, [
+                                _createElementVNode("div", _hoisted_72, [
                                   _createElementVNode("span", null, "展位 " + _toDisplayString(slot.slot_index), 1),
                                   _createVNode(_component_v_chip, {
                                     size: "x-small",
@@ -1297,7 +1285,7 @@ return (_ctx, _cache) => {
                                   }, 1032, ["color"])
                                 ]),
                                 (slot.empty)
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_74, [
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_73, [
                                       _createVNode(_component_v_icon, {
                                         icon: slot.cooldown_active ? 'mdi-timer-sand' : 'mdi-plus-circle-outline',
                                         size: "34"
@@ -1305,7 +1293,7 @@ return (_ctx, _cache) => {
                                       _createElementVNode("strong", null, _toDisplayString(slot.cooldown_active ? '展位冷却中' : '空位可抢'), 1),
                                       _createElementVNode("span", null, _toDisplayString(selectedDoll.value ? `准备展出 ${selectedDoll.value.name}` : '请先选择玩偶'), 1)
                                     ]))
-                                  : (_openBlock(), _createElementBlock("div", _hoisted_75, [
+                                  : (_openBlock(), _createElementBlock("div", _hoisted_74, [
                                       (slot.image)
                                         ? (_openBlock(), _createElementBlock("img", {
                                             key: 0,
@@ -1313,17 +1301,17 @@ return (_ctx, _cache) => {
                                             alt: slot.doll_name,
                                             class: "slot-image",
                                             loading: "lazy"
-                                          }, null, 8, _hoisted_76))
-                                        : (_openBlock(), _createElementBlock("div", _hoisted_77, [
+                                          }, null, 8, _hoisted_75))
+                                        : (_openBlock(), _createElementBlock("div", _hoisted_76, [
                                             _createVNode(_component_v_icon, {
                                               icon: "mdi-teddy-bear",
                                               size: "34"
                                             })
                                           ])),
-                                      _createElementVNode("div", _hoisted_78, [
-                                        _createElementVNode("div", _hoisted_79, _toDisplayString(slot.doll_name || slot.status_text), 1),
-                                        _createElementVNode("div", _hoisted_80, _toDisplayString(slot.owner_name || '其他用户'), 1),
-                                        _createElementVNode("div", _hoisted_81, _toDisplayString(slotRemainText(slot)), 1)
+                                      _createElementVNode("div", _hoisted_77, [
+                                        _createElementVNode("div", _hoisted_78, _toDisplayString(slot.doll_name || slot.status_text), 1),
+                                        _createElementVNode("div", _hoisted_79, _toDisplayString(slot.owner_name || '其他用户'), 1),
+                                        _createElementVNode("div", _hoisted_80, _toDisplayString(slotRemainText(slot)), 1)
                                       ])
                                     ])),
                                 (slot.empty && !slot.cooldown_active)
@@ -1379,15 +1367,15 @@ return (_ctx, _cache) => {
                       }),
                       _createTextVNode("我的外展记录 "),
                       _createVNode(_component_v_spacer),
-                      _createElementVNode("span", _hoisted_82, _toDisplayString(remoteRecords.value.length) + " 个展位", 1)
+                      _createElementVNode("span", _hoisted_81, _toDisplayString(remoteRecords.value.length) + " 个展位", 1)
                     ]),
                     _: 1
                   }),
                   _createVNode(_component_v_card_text, { class: "remote-body" }, {
                     default: _withCtx(() => [
                       (!remoteRecords.value.length)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_83, "暂无外展记录"))
-                        : (_openBlock(), _createElementBlock("div", _hoisted_84, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_82, "暂无外展记录"))
+                        : (_openBlock(), _createElementBlock("div", _hoisted_83, [
                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(remoteRecords.value, (item) => {
                               return (_openBlock(), _createElementBlock("article", {
                                 key: `${item.owner_id}-${item.slot_index}`,
@@ -1400,17 +1388,17 @@ return (_ctx, _cache) => {
                                       alt: item.doll_name,
                                       class: "remote-image",
                                       loading: "lazy"
-                                    }, null, 8, _hoisted_85))
-                                  : (_openBlock(), _createElementBlock("div", _hoisted_86, [
+                                    }, null, 8, _hoisted_84))
+                                  : (_openBlock(), _createElementBlock("div", _hoisted_85, [
                                       _createVNode(_component_v_icon, {
                                         icon: "mdi-teddy-bear",
                                         size: "27"
                                       })
                                     ])),
-                                _createElementVNode("div", _hoisted_87, [
-                                  _createElementVNode("div", _hoisted_88, _toDisplayString(item.doll_name), 1),
-                                  _createElementVNode("div", _hoisted_89, _toDisplayString(item.owner_name) + " · 展位 " + _toDisplayString(item.slot_index), 1),
-                                  _createElementVNode("div", _hoisted_90, _toDisplayString(remoteRemainText(item)), 1)
+                                _createElementVNode("div", _hoisted_86, [
+                                  _createElementVNode("div", _hoisted_87, _toDisplayString(item.doll_name), 1),
+                                  _createElementVNode("div", _hoisted_88, _toDisplayString(item.owner_name) + " · 展位 " + _toDisplayString(item.slot_index), 1),
+                                  _createElementVNode("div", _hoisted_89, _toDisplayString(remoteRemainText(item)), 1)
                                 ]),
                                 _createVNode(_component_v_btn, {
                                   size: "small",
@@ -1454,8 +1442,8 @@ return (_ctx, _cache) => {
                 _createVNode(_component_v_card_text, null, {
                   default: _withCtx(() => [
                     (!activityLogs.value.length)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_91, "暂无操作记录"))
-                      : (_openBlock(), _createElementBlock("div", _hoisted_92, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_90, "暂无操作记录"))
+                      : (_openBlock(), _createElementBlock("div", _hoisted_91, [
                           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(activityLogs.value, (item, index) => {
                             return (_openBlock(), _createElementBlock("div", {
                               key: `${item.time}-${index}`,
@@ -1496,8 +1484,8 @@ return (_ctx, _cache) => {
               (recycleDialog.doll)
                 ? (_openBlock(), _createBlock(_component_v_card_text, { key: 0 }, {
                     default: _withCtx(() => [
-                      _createElementVNode("div", _hoisted_93, _toDisplayString(recycleDialog.doll.name), 1),
-                      _createElementVNode("div", _hoisted_94, " 当前闲置 " + _toDisplayString(recycleDialog.doll.idle || 0) + " 个，仅回收未展出、未冷却的玩偶 ", 1),
+                      _createElementVNode("div", _hoisted_92, _toDisplayString(recycleDialog.doll.name), 1),
+                      _createElementVNode("div", _hoisted_93, " 当前闲置 " + _toDisplayString(recycleDialog.doll.idle || 0) + " 个，仅回收未展出、未冷却的玩偶 ", 1),
                       _createVNode(_component_v_text_field, {
                         modelValue: recycleDialog.quantity,
                         "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((recycleDialog.quantity) = $event)),
@@ -1512,7 +1500,7 @@ return (_ctx, _cache) => {
                         "hide-details": "",
                         class: "recycle-quantity"
                       }, null, 8, ["modelValue", "max"]),
-                      _createElementVNode("div", _hoisted_95, "预计获得魔力：" + _toDisplayString(recycleEstimate.value), 1)
+                      _createElementVNode("div", _hoisted_94, "预计获得魔力：" + _toDisplayString(recycleEstimate.value), 1)
                     ]),
                     _: 1
                   }))
@@ -1556,6 +1544,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f897972f"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6a8af6de"]]);
 
 export { PageView as default };

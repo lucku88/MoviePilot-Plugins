@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.5"
+EXPECTED_VERSION = "0.2.6"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -26,21 +26,22 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v025_layout_and_recycle_patch(self):
+    def test_market_history_describes_v026_recycle_dialog_and_dynamic_copy_patch(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "单行下次运行卡",
-            "盲盒商店",
-            "我的展柜",
-            "抢占他人展位",
-            "最新操作记录",
-            "闲置玩偶回收",
-            "后端校验",
+            "动态运行",
+            "回收弹窗",
+            "浅色",
+            "深色",
             "保留配置",
         ):
             self.assertIn(phrase, note)
+
+        v025_note = history["v0.2.5"]
+        for phrase in ("单行下次运行卡", "闲置玩偶回收", "后端校验", "保留配置"):
+            self.assertIn(phrase, v025_note)
 
         v023_note = history["v0.2.3"]
         for phrase in ("四列概览", "三列表单", "卡片层级", "保留配置"):

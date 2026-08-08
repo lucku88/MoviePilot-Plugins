@@ -182,9 +182,26 @@ class VueToyFrontendContractTests(unittest.TestCase):
         for expected in (
             ".next-run-icon{display:grid;place-items:center;",
             "color:#16a34a;",
-            ".next-run-guard{color:#d97706;}",
+            ".next-run-guard{margin-top:2px;color:#d97706;",
         ):
             self.assertIn(expected, self.compact_page)
+
+    def test_next_run_card_uses_dynamic_run_copy_without_enabled_badge(self):
+        self.assertIn('<div class="next-run-title">动态运行</div>', self.page)
+        self.assertIn('class="next-run-guard"', self.page)
+        self.assertNotIn("按展位完成时间动态运行，不使用固定周期", self.page)
+        self.assertNotIn("{{ status.enabled ? '已启用' : '未启用' }}", self.page)
+
+    def test_recycle_dialog_uses_an_opaque_theme_surface(self):
+        self.assertIn('class="siqi-card recycle-dialog-card"', self.page)
+        self.assertRegex(
+            self.compact_page,
+            r"\.recycle-dialog-card\{[^}]*background:rgb\(var\(--v-theme-surface\)\)!important",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recycle-dialog-card\{[^}]*color:rgb\(var\(--v-theme-on-surface\)\)!important",
+        )
 
     def test_manual_run_action_follows_farm_and_pill_toolbar_hierarchy(self):
         topbar = self.page.split('<div class="siqi-content">', 1)[0]
