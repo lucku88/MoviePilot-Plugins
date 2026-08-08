@@ -1133,7 +1133,11 @@ try {
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-controls\{[^}]*display:flex[^}]*justify-content:flex-end",
+            r"\.recipe-card\{[^}]*display:grid[^}]*grid-template-columns:minmax\(0,1fr\)auto",
+        )
+        self.assertRegex(
+            self.compact_page,
+            r"\.recipe-controls\{[^}]*grid-area:controls[^}]*justify-content:flex-end",
         )
         self.assertRegex(
             self.compact_page,
@@ -1156,24 +1160,26 @@ try {
             r'class="gift-item__action"[\s\S]*@click="openGiftDialog\(item\)"',
         )
 
-    def test_recipe_cards_keep_the_operation_group_at_the_bottom(self):
+    def test_recipe_cards_place_operations_beside_the_title_without_duplicate_footer(self):
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-card\{[^}]*display:flex[^}]*flex-direction:column",
+            r"\.recipe-card\{[^}]*grid-template-areas:\"headcontrols\"\"ingredientsingredients\"",
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-ingredients\{[^}]*flex:11auto",
+            r"\.recipe-head\{[^}]*grid-area:head",
         )
         self.assertRegex(
             self.compact_page,
-            r"\.recipe-controls\{[^}]*margin-top:auto",
+            r"\.recipe-ingredients\{[^}]*grid-area:ingredients",
         )
         self.assertIn("recipe-controls__group", self.page)
         self.assertRegex(
             self.compact_page,
             r"\.recipe-quantity-input\{[^}]*width:\d+px",
         )
+        self.assertNotIn('class="unavailable-reason"', self.page)
+        self.assertNotIn("recipeUnavailableReason", self.page)
 
     def test_gift_ui_limits_actions_to_basic_material_whitelist(self):
         self.assert_page_contains(
@@ -1553,18 +1559,12 @@ assert.equal(extractStatusPayload(incompleteFailure), null)
             with self.subTest(removed=removed):
                 self.assertNotIn(removed, self.page)
         self.assertIn('v-if="Number(recipe.max_count || 0) > 0"', self.page)
-        self.assertIn('v-if="recipeUnavailableReason(recipe)"', self.page)
-        self.assertRegex(
-            self.page,
-            r"if \(Number\(recipe\.max_count \|\| 0\) <= 0\) return ''",
-        )
+        self.assertNotIn('class="unavailable-reason"', self.page)
+        self.assertNotIn("recipeUnavailableReason", self.page)
+        self.assertNotIn("后端标记该配方", self.page)
         self.assertRegex(
             self.page,
             r"function recipeQuantityError\(recipe\)\s*\{\s*const maximum = Number\(recipe\.max_count \|\| 0\)\s*if \(maximum <= 0\) return ''",
-        )
-        self.assertRegex(
-            self.page,
-            r"recipe\.status && !/材料不足\|炼造上限为\\s\*0\|最大可炼造数量为\\s\*0/",
         )
 
 

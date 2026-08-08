@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.13"
+EXPECTED_VERSION = "0.2.14"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -48,6 +48,11 @@ EXPECTED_HISTORY_V0211 = (
 EXPECTED_HISTORY_V0213 = (
     "微调 Vue-魔丸 炼造工坊三列配方的操作区：数量框和炼造按钮统一靠右对齐，减少卡片空白，"
     "并保持浅色、深色和移动端布局；不可赠送物品不显示赠送控件。"
+    "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
+)
+EXPECTED_HISTORY_V0214 = (
+    "修正 Vue-魔丸 炼造工坊操作区：配方名称与数量框、炼造按钮合并到同一行，材料独立排列，"
+    "去掉重复的红色上限提示；手机端按标题、材料、操作纵向排列，并继续适配浅色和深色主题。"
     "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V0212 = (
@@ -105,6 +110,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.14",
     "v0.2.13",
     "v0.2.12",
     "v0.2.11",
@@ -514,7 +520,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v0213(self):
+    def test_release_versions_are_consistently_v0214(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -538,10 +544,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v0213_release(self):
+    def test_market_history_and_readme_describe_the_v0214_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V0214, history["v0.2.14"])
         self.assertEqual(EXPECTED_HISTORY_V0213, history["v0.2.13"])
         self.assertEqual(EXPECTED_HISTORY_V0212, history["v0.2.12"])
         self.assertEqual(EXPECTED_HISTORY_V0211, history["v0.2.11"])
@@ -559,7 +566,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.13` |",
+            "| `Vue-魔丸` | `v0.2.14` |",
+            "修正 Vue-魔丸 炼造工坊操作区",
+            "配方名称与数量框、炼造按钮合并到同一行",
+            "材料独立排列",
+            "去掉重复的红色上限提示",
             "微调 Vue-魔丸 炼造工坊三列配方的操作区",
             "数量框和炼造按钮统一靠右对齐",
             "不可赠送的物品保留库存信息但不显示赠送控件",
