@@ -24,7 +24,7 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             'class="stat-card',
             'class="siqi-card next-run-card mb-3"',
             'class="emoji-hub-grid"',
-            'class="siqi-card slot-card mb-3"',
+            'class="siqi-card slot-card"',
             'class="siqi-card bag-card',
             'class="siqi-card catalog-card',
             'class="siqi-card stage-card',
@@ -96,13 +96,43 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.page.index('class="siqi-card slot-card'),
             self.page.index('class="siqi-card bag-card'),
         )
+        self.assertIn('class="emoji-hub-stack"', self.page)
+        self.assertLess(
+            self.page.index('class="emoji-hub-stack"'),
+            self.page.index('class="siqi-card bag-card'),
+        )
         self.assertIn(
             ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:stretch;margin-bottom:12px}",
             self.compact_page,
         )
         self.assertIn(
+            ".emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:100%;min-height:0}",
+            self.compact_page,
+        )
+        self.assertIn(
+            ".emoji-hub-stack{display:grid;grid-template-rows:minmax(190px,1fr)minmax(140px,1fr);gap:12px;min-height:0}",
+            self.compact_page,
+        )
+        self.assertIn(
             "@media(max-width:1100px){.emoji-hub-grid{grid-template-columns:1fr}",
             self.compact_page,
+        )
+
+    def test_recruit_card_is_compact_and_keeps_required_status_fields(self):
+        for expected in (
+            'class="siqi-card recruit-card"',
+            'class="recruit-meta-grid"',
+            '<span>下次检查</span>',
+            '<span>时间段</span>',
+            '<span>今日额度</span>',
+            '目标：{{ recruitTierText }}',
+        ):
+            self.assertIn(expected, self.page)
+        for removed in ('<span>目标等级</span>', '<span>扫描设置</span>', '<span>最近结果</span>'):
+            self.assertNotIn(removed, self.page)
+        self.assertRegex(
+            self.compact_page,
+            r"\.recruit-body\{display:grid;gap:8px;padding:10px12px!important\}",
         )
 
     def test_stage_effect_choices_keep_text_controls_without_preview_animation(self):
@@ -133,6 +163,10 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.compact_page,
         )
         self.assertIn(".actor-main{font-size:22px", self.compact_page)
+
+    def test_recruit_time_window_input_is_centered(self):
+        self.assertIn('class="siqi-input siqi-time-input"', self.config)
+        self.assertIn('.siqi-time-input :deep(input) { text-align: center; }', self.config)
         self.assertIn(
             ".stage-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px",
             self.compact_page,

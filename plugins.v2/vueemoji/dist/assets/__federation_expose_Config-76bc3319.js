@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_fbd5e8e5_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_a320eb38_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-fbd5e8e5"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-a320eb38"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -672,7 +672,7 @@ return (_ctx, _cache) => {
                       density: "comfortable",
                       "hide-details": "",
                       disabled: !config.auto_recruit,
-                      class: "siqi-input"
+                      class: "siqi-input siqi-time-input"
                     }, null, 8, ["modelValue", "disabled"]),
                     _hoisted_54
                   ]),
@@ -783,6 +783,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-fbd5e8e5"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a320eb38"]]);
 
 export { ConfigView as default };

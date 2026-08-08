@@ -247,7 +247,7 @@
                   density="comfortable"
                   hide-details
                   :disabled="!config.auto_recruit"
-                  class="siqi-input"
+                  class="siqi-input siqi-time-input"
                 />
                 <div class="siqi-field-hint">默认 07:00-23:00；多个时间段可用逗号分隔，例如 07:00-12:00,18:00-23:00。</div>
               </div>
@@ -584,6 +584,7 @@ onMounted(async () => {
 .siqi-number-input :deep(input) { align-self: center; line-height: 24px; text-align: center; }
 .siqi-number-input :deep(.v-field__prepend-inner),
 .siqi-number-input :deep(.v-field__append-inner) { align-self: center; padding-top: 0; }
+.siqi-time-input :deep(input) { text-align: center; }
 .cron-field { min-height: 44px; }
 
 .cookie-body { display: grid; gap: 10px; }
