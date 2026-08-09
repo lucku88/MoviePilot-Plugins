@@ -91,7 +91,7 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             r"\.bag-upgrade-tip\{[^}]*min-width:0",
         )
 
-    def test_slot_and_bags_share_a_compact_responsive_two_column_hub(self):
+    def test_slot_and_bags_use_content_height_in_responsive_two_column_hub(self):
         self.assertLess(
             self.page.index('class="siqi-card slot-card'),
             self.page.index('class="siqi-card bag-card'),
@@ -102,15 +102,19 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.page.index('class="siqi-card bag-card'),
         )
         self.assertIn(
-            ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:stretch;margin-bottom:12px}",
+            ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:start;margin-bottom:12px}",
             self.compact_page,
         )
         self.assertIn(
-            ".emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:100%;min-height:0}",
+            ".emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:auto;min-height:0}",
             self.compact_page,
         )
         self.assertIn(
-            ".emoji-hub-stack{display:grid;grid-template-rows:minmax(190px,1fr)minmax(140px,1fr);gap:12px;min-height:0}",
+            ".emoji-hub-stack{display:grid;grid-template-rows:autoauto;gap:12px;min-height:0}",
+            self.compact_page,
+        )
+        self.assertNotIn(
+            "grid-template-rows:minmax(190px,1fr)minmax(140px,1fr)",
             self.compact_page,
         )
         self.assertIn(
