@@ -216,61 +216,60 @@
                 />
                 <div class="siqi-field-hint">任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。</div>
               </div>
+            </div>
 
-              <div class="siqi-field">
-                <v-select
-                  v-model="config.recruit_tiers"
-                  :items="recruitTierOptions"
-                  item-title="title"
-                  item-value="value"
-                  label="挖角演员等级"
-                  prepend-inner-icon="mdi-account-star-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  multiple
-                  chips
-                  closable-chips
-                  :disabled="!config.auto_recruit"
-                  class="siqi-input"
-                />
-                <div class="siqi-field-hint">可同时选择新人、实力、知名和顶流；随机到其他等级会自动跳过。</div>
-              </div>
+            <div class="siqi-form-grid recruit-settings-grid">
+              <v-select
+                v-model="config.recruit_tiers"
+                :items="recruitTierOptions"
+                item-title="title"
+                item-value="value"
+                label="挖角演员等级（可多选）"
+                prepend-inner-icon="mdi-account-star-outline"
+                variant="outlined"
+                density="compact"
+                hide-details
+                multiple
+                chips
+                closable-chips
+                clearable
+                :disabled="!config.auto_recruit"
+                class="siqi-input recruit-tier-select"
+              />
 
-              <div class="siqi-field">
-                <v-text-field
-                  v-model="config.recruit_time_windows"
-                  label="挖角检查时间段"
-                  placeholder="07:00-23:00"
-                  prepend-inner-icon="mdi-clock-time-eight-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  :disabled="!config.auto_recruit"
-                  class="siqi-input siqi-time-input"
-                />
-                <div class="siqi-field-hint">默认 07:00-23:00；多个时间段可用逗号分隔，例如 07:00-12:00,18:00-23:00。</div>
-              </div>
+              <v-text-field
+                v-model="config.recruit_time_windows"
+                label="挖角检查时间段"
+                placeholder="07:00-23:00"
+                prepend-inner-icon="mdi-clock-time-eight-outline"
+                variant="outlined"
+                density="compact"
+                hide-details
+                :disabled="!config.auto_recruit"
+                class="siqi-input siqi-time-input"
+              />
 
-              <div class="siqi-field">
-                <v-text-field
-                  v-model="config.recruit_interval_minutes"
-                  type="number"
-                  min="5"
-                  max="1440"
-                  step="1"
-                  label="挖角检查间隔"
-                  suffix="分钟"
-                  prepend-inner-icon="mdi-timer-sync-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  :disabled="!config.auto_recruit"
-                  class="siqi-input siqi-number-input"
-                />
-                <div class="siqi-field-hint">默认每 30 分钟检查一轮；没有可挖目标时会按这个间隔继续检查。</div>
-              </div>
+              <v-text-field
+                v-model="config.recruit_interval_minutes"
+                type="number"
+                min="5"
+                max="1440"
+                step="1"
+                label="挖角检查间隔"
+                suffix="分钟"
+                prepend-inner-icon="mdi-timer-sync-outline"
+                variant="outlined"
+                density="compact"
+                hide-details
+                :disabled="!config.auto_recruit"
+                class="siqi-input siqi-number-input"
+              />
+            </div>
+            <div class="siqi-field-hint recruit-settings-hint">
+              可同时选择新人、实力、知名和顶流；默认 07:00-23:00，每 30 分钟检查一轮，多个时间段可用逗号分隔。
+            </div>
 
+            <div class="siqi-form-grid recruit-visit-grid">
               <div class="siqi-field">
                 <v-text-field
                   v-model="config.recruit_visit_count"
@@ -574,6 +573,7 @@ onMounted(async () => {
 .siqi-switch-item :deep(.v-input__details) { display: none; }
 
 .siqi-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.recruit-settings-grid { align-items: center }
 .siqi-field { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .siqi-input { min-width: 0; }
 .siqi-input :deep(.v-field),

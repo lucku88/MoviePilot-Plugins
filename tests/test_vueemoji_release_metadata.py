@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.1.15"
+EXPECTED_VERSION = "0.1.16"
 
 
 class VueEmojiReleaseMetadataTests(unittest.TestCase):
@@ -31,9 +31,9 @@ class VueEmojiReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
         for phrase in (
-            "自动挖角",
-            "我的表情包",
-            "自然收口",
+            "挖角演员等级",
+            "多选",
+            "紧凑",
             "保留配置",
         ):
             self.assertIn(phrase, note)

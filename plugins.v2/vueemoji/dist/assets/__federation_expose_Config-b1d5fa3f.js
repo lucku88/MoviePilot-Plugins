@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_a320eb38_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_52711166_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-a320eb38"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-52711166"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -92,20 +92,17 @@ const _hoisted_47 = { class: "siqi-field" };
 const _hoisted_48 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "自动演出时优先使用指定效果，选择自动时由插件挑选可用效果。", -1));
 const _hoisted_49 = { class: "siqi-field" };
 const _hoisted_50 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
-const _hoisted_51 = { class: "siqi-field" };
-const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "可同时选择新人、实力、知名和顶流；随机到其他等级会自动跳过。", -1));
-const _hoisted_53 = { class: "siqi-field" };
-const _hoisted_54 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认 07:00-23:00；多个时间段可用逗号分隔，例如 07:00-12:00,18:00-23:00。", -1));
-const _hoisted_55 = { class: "siqi-field" };
-const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认每 30 分钟检查一轮；没有可挖目标时会按这个间隔继续检查。", -1));
-const _hoisted_57 = { class: "siqi-field" };
-const _hoisted_58 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认每轮访问 10 人；同一轮随机到重复用户会自动跳过。", -1));
-const _hoisted_59 = { class: "siqi-card cookie-card" };
-const _hoisted_60 = { class: "siqi-card__header" };
-const _hoisted_61 = { class: "siqi-card__title" };
-const _hoisted_62 = { class: "cookie-body" };
-const _hoisted_63 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "cookie-note" }, " 开启自动同步时，插件会优先读取 MoviePilot 的 si-qi.xyz Cookie；关闭时使用这里保存的值。 ", -1));
-const _hoisted_64 = { class: "cookie-actions" };
+const _hoisted_51 = { class: "siqi-form-grid recruit-settings-grid" };
+const _hoisted_52 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint recruit-settings-hint" }, " 可同时选择新人、实力、知名和顶流；默认 07:00-23:00，每 30 分钟检查一轮，多个时间段可用逗号分隔。 ", -1));
+const _hoisted_53 = { class: "siqi-form-grid recruit-visit-grid" };
+const _hoisted_54 = { class: "siqi-field" };
+const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认每轮访问 10 人；同一轮随机到重复用户会自动跳过。", -1));
+const _hoisted_56 = { class: "siqi-card cookie-card" };
+const _hoisted_57 = { class: "siqi-card__header" };
+const _hoisted_58 = { class: "siqi-card__title" };
+const _hoisted_59 = { class: "cookie-body" };
+const _hoisted_60 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "cookie-note" }, " 开启自动同步时，插件会优先读取 MoviePilot 的 si-qi.xyz Cookie；关闭时使用这里保存的值。 ", -1));
+const _hoisted_61 = { class: "cookie-actions" };
 
 const {computed,onMounted,reactive,ref} = await importShared('vue');
 
@@ -640,62 +637,59 @@ return (_ctx, _cache) => {
                       class: "siqi-input siqi-number-input"
                     }, null, 8, ["modelValue"]),
                     _hoisted_50
-                  ]),
-                  _createElementVNode("div", _hoisted_51, [
-                    _createVNode(_component_v_select, {
-                      modelValue: config.recruit_tiers,
-                      "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.recruit_tiers) = $event)),
-                      items: recruitTierOptions,
-                      "item-title": "title",
-                      "item-value": "value",
-                      label: "挖角演员等级",
-                      "prepend-inner-icon": "mdi-account-star-outline",
-                      variant: "outlined",
-                      density: "comfortable",
-                      "hide-details": "",
-                      multiple: "",
-                      chips: "",
-                      "closable-chips": "",
-                      disabled: !config.auto_recruit,
-                      class: "siqi-input"
-                    }, null, 8, ["modelValue", "disabled"]),
-                    _hoisted_52
-                  ]),
-                  _createElementVNode("div", _hoisted_53, [
-                    _createVNode(_component_v_text_field, {
-                      modelValue: config.recruit_time_windows,
-                      "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.recruit_time_windows) = $event)),
-                      label: "挖角检查时间段",
-                      placeholder: "07:00-23:00",
-                      "prepend-inner-icon": "mdi-clock-time-eight-outline",
-                      variant: "outlined",
-                      density: "comfortable",
-                      "hide-details": "",
-                      disabled: !config.auto_recruit,
-                      class: "siqi-input siqi-time-input"
-                    }, null, 8, ["modelValue", "disabled"]),
-                    _hoisted_54
-                  ]),
-                  _createElementVNode("div", _hoisted_55, [
-                    _createVNode(_component_v_text_field, {
-                      modelValue: config.recruit_interval_minutes,
-                      "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.recruit_interval_minutes) = $event)),
-                      type: "number",
-                      min: "5",
-                      max: "1440",
-                      step: "1",
-                      label: "挖角检查间隔",
-                      suffix: "分钟",
-                      "prepend-inner-icon": "mdi-timer-sync-outline",
-                      variant: "outlined",
-                      density: "comfortable",
-                      "hide-details": "",
-                      disabled: !config.auto_recruit,
-                      class: "siqi-input siqi-number-input"
-                    }, null, 8, ["modelValue", "disabled"]),
-                    _hoisted_56
-                  ]),
-                  _createElementVNode("div", _hoisted_57, [
+                  ])
+                ]),
+                _createElementVNode("div", _hoisted_51, [
+                  _createVNode(_component_v_select, {
+                    modelValue: config.recruit_tiers,
+                    "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((config.recruit_tiers) = $event)),
+                    items: recruitTierOptions,
+                    "item-title": "title",
+                    "item-value": "value",
+                    label: "挖角演员等级（可多选）",
+                    "prepend-inner-icon": "mdi-account-star-outline",
+                    variant: "outlined",
+                    density: "compact",
+                    "hide-details": "",
+                    multiple: "",
+                    chips: "",
+                    "closable-chips": "",
+                    clearable: "",
+                    disabled: !config.auto_recruit,
+                    class: "siqi-input recruit-tier-select"
+                  }, null, 8, ["modelValue", "disabled"]),
+                  _createVNode(_component_v_text_field, {
+                    modelValue: config.recruit_time_windows,
+                    "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((config.recruit_time_windows) = $event)),
+                    label: "挖角检查时间段",
+                    placeholder: "07:00-23:00",
+                    "prepend-inner-icon": "mdi-clock-time-eight-outline",
+                    variant: "outlined",
+                    density: "compact",
+                    "hide-details": "",
+                    disabled: !config.auto_recruit,
+                    class: "siqi-input siqi-time-input"
+                  }, null, 8, ["modelValue", "disabled"]),
+                  _createVNode(_component_v_text_field, {
+                    modelValue: config.recruit_interval_minutes,
+                    "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.recruit_interval_minutes) = $event)),
+                    type: "number",
+                    min: "5",
+                    max: "1440",
+                    step: "1",
+                    label: "挖角检查间隔",
+                    suffix: "分钟",
+                    "prepend-inner-icon": "mdi-timer-sync-outline",
+                    variant: "outlined",
+                    density: "compact",
+                    "hide-details": "",
+                    disabled: !config.auto_recruit,
+                    class: "siqi-input siqi-number-input"
+                  }, null, 8, ["modelValue", "disabled"])
+                ]),
+                _hoisted_52,
+                _createElementVNode("div", _hoisted_53, [
+                  _createElementVNode("div", _hoisted_54, [
                     _createVNode(_component_v_text_field, {
                       modelValue: config.recruit_visit_count,
                       "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => ((config.recruit_visit_count) = $event)),
@@ -712,13 +706,13 @@ return (_ctx, _cache) => {
                       disabled: !config.auto_recruit,
                       class: "siqi-input siqi-number-input"
                     }, null, 8, ["modelValue", "disabled"]),
-                    _hoisted_58
+                    _hoisted_55
                   ])
                 ])
               ]),
-              _createElementVNode("section", _hoisted_59, [
-                _createElementVNode("div", _hoisted_60, [
-                  _createElementVNode("span", _hoisted_61, [
+              _createElementVNode("section", _hoisted_56, [
+                _createElementVNode("div", _hoisted_57, [
+                  _createElementVNode("span", _hoisted_58, [
                     _createVNode(_component_v_icon, {
                       icon: "mdi-cookie-outline",
                       size: "19",
@@ -737,7 +731,7 @@ return (_ctx, _cache) => {
                     _: 1
                   })
                 ]),
-                _createElementVNode("div", _hoisted_62, [
+                _createElementVNode("div", _hoisted_59, [
                   _createVNode(_component_v_text_field, {
                     modelValue: config.cookie,
                     "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => ((config.cookie) = $event)),
@@ -753,8 +747,8 @@ return (_ctx, _cache) => {
                     class: "siqi-input",
                     "onClick:appendInner": _cache[20] || (_cache[20] = $event => (cookieVisible.value = !cookieVisible.value))
                   }, null, 8, ["modelValue", "type", "append-inner-icon"]),
-                  _hoisted_63,
-                  _createElementVNode("div", _hoisted_64, [
+                  _hoisted_60,
+                  _createElementVNode("div", _hoisted_61, [
                     _createVNode(_component_v_btn, {
                       color: "teal",
                       variant: "tonal",
@@ -783,6 +777,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-a320eb38"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-52711166"]]);
 
 export { ConfigView as default };
