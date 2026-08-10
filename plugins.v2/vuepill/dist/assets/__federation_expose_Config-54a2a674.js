@@ -209,14 +209,14 @@ function validateVuePillConfig(source) {
   }
 }
 
-const Config_vue_vue_type_style_index_0_scoped_12a104ad_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_4b3bb0f0_lang = '';
 
 const Config_vue_vue_type_style_index_1_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-12a104ad"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-4b3bb0f0"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -337,11 +337,13 @@ const _hoisted_60 = {
   class: "siqi-field",
   "data-config-field": "cookie"
 };
-const _hoisted_61 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "手动 Cookie 优先；留空时插件会自动读取 MoviePilot 站点 Cookie，清空后恢复自动同步。", -1));
+const _hoisted_61 = { class: "siqi-cookie-actions" };
+const _hoisted_62 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "MoviePilot 站点 Cookie 优先；你填写的内容仅在站点同步失败时作为备用，右侧按钮可立即重新读取。", -1));
 
 const {computed,nextTick,onBeforeUnmount,onMounted,reactive,ref} = await importShared('vue');
 
 const CONFIG_ENDPOINT = '/plugin/VuePill/config';
+const COOKIE_ENDPOINT = '/plugin/VuePill/cookie';
 
 const _sfc_main = {
   __name: 'Config',
@@ -397,11 +399,12 @@ const DEFAULT_CONFIG = Object.freeze({
 const config = reactive({ ...DEFAULT_CONFIG });
 const configLoading = ref(false);
 const configSaving = ref(false);
+const syncingCookie = ref(false);
 const showCookie = ref(false);
 const cookieAutoFilled = ref(false);
 const cookieEdited = ref(false);
 const upgradeRestartRequired = ref(false);
-const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value);
+const formLocked = computed(() => configLoading.value || configSaving.value || syncingCookie.value || upgradeRestartRequired.value);
 const fieldErrors = reactive({});
 const message = ref('');
 const messageType = ref('success');
@@ -562,6 +565,28 @@ async function saveConfig() {
   }
 }
 
+async function syncCookie() {
+  if (formLocked.value) return
+  syncingCookie.value = true;
+  try {
+    const result = await props.api.get(COOKIE_ENDPOINT);
+    if (!isStrictSuccess(result)) {
+      show(safeResponseMessage(result, '同步 Cookie 失败'), 'error');
+      return
+    }
+    if (isCompletePublicConfig(result?.config)) {
+      applyPublicConfig(result.config);
+    } else {
+      await loadConfig({ silent: true });
+    }
+    show(safeResponseMessage(result, '已读取 MoviePilot 站点 Cookie'));
+  } catch (error) {
+    show(`同步 Cookie 失败：${errorMessage(error, '请求异常')}`, 'error');
+  } finally {
+    syncingCookie.value = false;
+  }
+}
+
 onMounted(loadConfig);
 
 onBeforeUnmount(() => {
@@ -580,7 +605,6 @@ return (_ctx, _cache) => {
   const _component_v_switch = _resolveComponent("v-switch");
   const _component_VCronField = _resolveComponent("VCronField");
   const _component_v_text_field = _resolveComponent("v-text-field");
-  const _component_v_textarea = _resolveComponent("v-textarea");
 
   return (_openBlock(), _createElementBlock("div", _hoisted_1, [
     _createElementVNode("div", _hoisted_2, [
@@ -1090,18 +1114,19 @@ return (_ctx, _cache) => {
             ])
           ]),
           _createElementVNode("div", _hoisted_60, [
-            _createVNode(_component_v_textarea, {
+            _createVNode(_component_v_text_field, {
               modelValue: config.cookie,
               "onUpdate:modelValue": [
                 _cache[26] || (_cache[26] = $event => ((config.cookie) = $event)),
                 markCookieEdited
               ],
-              label: "站点 Cookie（留空自动同步）",
-              rows: "2",
-              "auto-grow": "",
+              type: showCookie.value ? 'text' : 'password',
+              label: "站点 Cookie",
+              placeholder: "自动读取 MoviePilot 站点管理中的 si-qi.xyz Cookie",
               variant: "outlined",
+              density: "compact",
               "hide-details": "auto",
-              class: _normalizeClass(["siqi-input", {'siqi-secret-input': !showCookie.value}]),
+              class: "siqi-input",
               "prepend-inner-icon": "mdi-cookie",
               autocomplete: "off",
               disabled: formLocked.value,
@@ -1109,28 +1134,50 @@ return (_ctx, _cache) => {
               "aria-invalid": Boolean(fieldErrors.cookie)
             }, {
               "append-inner": _withCtx(() => [
-                _createVNode(_component_v_btn, {
-                  variant: "text",
-                  density: "comfortable",
-                  size: "x-small",
-                  icon: "",
-                  class: "siqi-secret-toggle",
-                  disabled: formLocked.value,
-                  "aria-label": showCookie.value ? '隐藏 Cookie' : '显示 Cookie',
-                  onClick: _cache[25] || (_cache[25] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
-                }, {
-                  default: _withCtx(() => [
-                    _createVNode(_component_v_icon, {
-                      icon: showCookie.value ? 'mdi-eye-off-outline' : 'mdi-eye-outline',
-                      size: "18"
-                    }, null, 8, ["icon"])
-                  ]),
-                  _: 1
-                }, 8, ["disabled", "aria-label"])
+                _createElementVNode("div", _hoisted_61, [
+                  _createVNode(_component_v_btn, {
+                    variant: "text",
+                    density: "comfortable",
+                    size: "x-small",
+                    icon: "",
+                    class: "siqi-secret-toggle",
+                    disabled: formLocked.value,
+                    "aria-label": showCookie.value ? '隐藏 Cookie' : '显示 Cookie',
+                    onClick: _cache[25] || (_cache[25] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
+                  }, {
+                    default: _withCtx(() => [
+                      _createVNode(_component_v_icon, {
+                        icon: showCookie.value ? 'mdi-eye-off-outline' : 'mdi-eye-outline',
+                        size: "18"
+                      }, null, 8, ["icon"])
+                    ]),
+                    _: 1
+                  }, 8, ["disabled", "aria-label"]),
+                  _createVNode(_component_v_btn, {
+                    variant: "tonal",
+                    color: "deep-purple",
+                    density: "comfortable",
+                    size: "x-small",
+                    icon: "",
+                    class: "siqi-cookie-sync",
+                    loading: syncingCookie.value,
+                    disabled: configLoading.value || configSaving.value || upgradeRestartRequired.value,
+                    "aria-label": "使用 MoviePilot 站点 Cookie",
+                    onClick: _withModifiers(syncCookie, ["stop"])
+                  }, {
+                    default: _withCtx(() => [
+                      _createVNode(_component_v_icon, {
+                        icon: "mdi-content-paste",
+                        size: "17"
+                      })
+                    ]),
+                    _: 1
+                  }, 8, ["loading", "disabled", "onClick"])
+                ])
               ]),
               _: 1
-            }, 8, ["modelValue", "class", "disabled", "error-messages", "aria-invalid"]),
-            _hoisted_61
+            }, 8, ["modelValue", "type", "disabled", "error-messages", "aria-invalid"]),
+            _hoisted_62
           ])
         ])
       ])
@@ -1140,6 +1187,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-12a104ad"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4b3bb0f0"]]);
 
 export { ConfigView as default };

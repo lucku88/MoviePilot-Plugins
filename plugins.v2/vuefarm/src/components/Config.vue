@@ -155,18 +155,32 @@
           <span class="siqi-card__title d-flex align-center">
             <v-icon icon="mdi-cookie" size="18" color="#8b5cf6" class="mr-1" />站点 Cookie
           </span>
-          <v-btn color="deep-purple" variant="tonal" size="small" :loading="syncingCookie" @click="syncCookie">
-            <v-icon icon="mdi-sync" size="16" class="mr-1" />从站点同步
-          </v-btn>
         </div>
-        <v-textarea v-model="config.cookie" label="站点 Cookie（自动同步）" rows="2" auto-grow variant="outlined" class="siqi-input" :class="{'siqi-secret-input': !showCookie}" prepend-inner-icon="mdi-cookie" autocomplete="off">
+        <v-text-field
+          v-model="config.cookie"
+          :type="showCookie ? 'text' : 'password'"
+          label="站点 Cookie"
+          placeholder="自动读取 MoviePilot 站点管理中的 si-qi.xyz Cookie"
+          variant="outlined"
+          density="compact"
+          hide-details
+          class="siqi-input"
+          prepend-inner-icon="mdi-cookie"
+          autocomplete="off"
+          :disabled="loading || saving"
+        >
           <template #append-inner>
-            <v-btn variant="text" density="comfortable" size="x-small" icon class="siqi-secret-toggle" @click.stop="showCookie = !showCookie">
-              <v-icon :icon="showCookie ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" size="18" />
-            </v-btn>
+            <div class="siqi-cookie-actions">
+              <v-btn variant="text" density="comfortable" size="x-small" icon class="siqi-secret-toggle" :aria-label="showCookie ? '隐藏 Cookie' : '显示 Cookie'" @click.stop="showCookie = !showCookie">
+                <v-icon :icon="showCookie ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" size="18" />
+              </v-btn>
+              <v-btn variant="tonal" color="deep-purple" density="comfortable" size="x-small" icon class="siqi-cookie-sync" :loading="syncingCookie" :disabled="loading || saving" aria-label="使用 MoviePilot 站点 Cookie" @click.stop="syncCookie">
+                <v-icon icon="mdi-content-paste" size="17" />
+              </v-btn>
+            </div>
           </template>
-        </v-textarea>
-        <div class="siqi-field-hint">插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。</div>
+        </v-text-field>
+        <div class="siqi-field-hint">插件默认使用 MoviePilot 站点管理中的 Cookie；输入框内容仅在站点同步失败时作为备用，右侧按钮可立即重新读取。</div>
       </div>
 
     </div>
@@ -403,7 +417,7 @@ onMounted(async () => {
 .siqi-toast{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:99999!important;width:min(520px,calc(100vw - 32px))!important;margin:0!important;box-shadow:0 12px 36px rgba(15,23,42,.18)!important;border-radius:12px!important}
 .siqi-config-col{display:flex;flex-direction:column;gap:16px}.siqi-card{background:rgba(var(--v-theme-on-surface),.03);backdrop-filter:blur(20px) saturate(150%);border-radius:14px;border:.5px solid rgba(var(--v-theme-on-surface),.08);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;display:flex;flex-direction:column;gap:14px}.siqi-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.siqi-card__title{font-size:13px;font-weight:700;color:rgba(var(--v-theme-on-surface),.85)}
 .siqi-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.siqi-switch-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:rgba(var(--v-theme-on-surface),.025);border:.5px solid rgba(var(--v-theme-on-surface),.06);transition:background .2s ease,border-color .2s ease,transform .2s ease}.siqi-switch-item:hover{transform:translateY(-1px)}.siqi-switch-item--active{background:rgba(var(--siqi-accent,34,197,94),.07);border-color:rgba(var(--siqi-accent,34,197,94),.18)}.siqi-switch-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;color:rgba(var(--v-theme-on-surface),.58)}.siqi-switch-item--active .siqi-switch-main{color:rgb(var(--siqi-accent,34,197,94))}.siqi-switch-label{font-size:13px;font-weight:600;color:rgba(var(--v-theme-on-surface),.86)}.siqi-switch-desc{font-size:11px;color:rgba(var(--v-theme-on-surface),.46);line-height:1.35;margin-top:1px}.siqi-switch-item :deep(.v-switch){flex:0 0 auto}.siqi-switch-item :deep(.v-selection-control){min-height:unset}.siqi-switch-item :deep(.v-input__details){display:none}
-.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.steal-interaction-grid{align-items:center}.like-target-grid{margin-top:2px}.like-cron-field{grid-column:1/-1}.siqi-cron-field,.siqi-wide-field{grid-column:span 2}.siqi-input :deep(.v-field){border-radius:12px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.seed-select :deep(.v-input__control){border-radius:12px;clip-path:inset(-10px 0 0 0 round 12px)}.seed-select :deep(.v-input__loader){left:1px!important;right:1px!important;width:auto!important;margin:0!important;overflow:hidden!important;border-radius:12px 12px 0 0!important}.seed-select :deep(.v-progress-linear){border-radius:12px 12px 0 0;overflow:hidden}.siqi-secret-input :deep(textarea){-webkit-text-security:disc}.siqi-secret-toggle{min-width:28px;width:28px;height:28px;color:rgba(var(--v-theme-on-surface),.55)}.siqi-secret-toggle :deep(.v-btn__overlay),.siqi-secret-toggle :deep(.v-btn__underlay){display:none}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.48);margin-top:-6px}
+.siqi-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.steal-interaction-grid{align-items:center}.like-target-grid{margin-top:2px}.like-cron-field{grid-column:1/-1}.siqi-cron-field,.siqi-wide-field{grid-column:span 2}.siqi-input :deep(.v-field){border-radius:12px}.siqi-input :deep(.v-field__loader){left:1px;right:1px;width:auto;border-radius:12px 12px 0 0;overflow:hidden}.seed-select :deep(.v-input__control){border-radius:12px;clip-path:inset(-10px 0 0 0 round 12px)}.seed-select :deep(.v-input__loader){left:1px!important;right:1px!important;width:auto!important;margin:0!important;overflow:hidden!important;border-radius:12px 12px 0 0!important}.seed-select :deep(.v-progress-linear){border-radius:12px 12px 0 0;overflow:hidden}.siqi-cookie-actions{display:flex;align-items:center;gap:3px}.siqi-secret-toggle,.siqi-cookie-sync{min-width:28px!important;min-height:28px!important;width:28px;height:28px}.siqi-secret-toggle{color:rgba(var(--v-theme-on-surface),.55)}.siqi-secret-toggle :deep(.v-btn__overlay),.siqi-secret-toggle :deep(.v-btn__underlay){display:none}.siqi-field-hint{font-size:11px;line-height:1.5;color:rgba(var(--v-theme-on-surface),.48);margin-top:-6px}
 @media(max-width:900px){.siqi-switch-grid,.siqi-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.siqi-config{padding:14px}.siqi-topbar{align-items:flex-start;gap:10px}.siqi-topbar__left{min-width:0}.siqi-topbar__right :deep(.v-btn){min-width:36px!important;padding-inline:0!important}.siqi-switch-grid,.siqi-form-grid{grid-template-columns:1fr}.siqi-cron-field,.siqi-wide-field{grid-column:span 1}.siqi-switch-item{align-items:center}}
 </style>

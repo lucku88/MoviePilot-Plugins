@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_f0cf5cd4_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_8747456a_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,normalizeClass:_normalizeClass,createElementBlock:_createElementBlock,normalizeProps:_normalizeProps,guardReactiveProps:_guardReactiveProps,renderList:_renderList,Fragment:_Fragment,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-f0cf5cd4"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-8747456a"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -94,7 +94,8 @@ const _hoisted_51 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElement
 const _hoisted_52 = { class: "siqi-card" };
 const _hoisted_53 = { class: "siqi-card__header" };
 const _hoisted_54 = { class: "siqi-card__title d-flex align-center" };
-const _hoisted_55 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件会在启动、保存配置和每次请求前自动读取 MoviePilot 站点 Cookie；右上角按钮可立即同步，输入框内容仅在站点同步失败时作为备用。", -1));
+const _hoisted_55 = { class: "siqi-cookie-actions" };
+const _hoisted_56 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "插件默认使用 MoviePilot 站点管理中的 Cookie；输入框内容仅在站点同步失败时作为备用，右侧按钮可立即重新读取。", -1));
 
 const {computed,reactive,ref,onMounted} = await importShared('vue');
 
@@ -876,57 +877,66 @@ return (_ctx, _cache) => {
               class: "mr-1"
             }),
             _createTextVNode("站点 Cookie ")
-          ]),
-          _createVNode(_component_v_btn, {
-            color: "deep-purple",
-            variant: "tonal",
-            size: "small",
-            loading: syncingCookie.value,
-            onClick: syncCookie
-          }, {
-            default: _withCtx(() => [
-              _createVNode(_component_v_icon, {
-                icon: "mdi-sync",
-                size: "16",
-                class: "mr-1"
-              }),
-              _createTextVNode("从站点同步 ")
-            ]),
-            _: 1
-          }, 8, ["loading"])
+          ])
         ]),
-        _createVNode(_component_v_textarea, {
+        _createVNode(_component_v_text_field, {
           modelValue: config.cookie,
           "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => ((config.cookie) = $event)),
-          label: "站点 Cookie（自动同步）",
-          rows: "2",
-          "auto-grow": "",
+          type: showCookie.value ? 'text' : 'password',
+          label: "站点 Cookie",
+          placeholder: "自动读取 MoviePilot 站点管理中的 si-qi.xyz Cookie",
           variant: "outlined",
-          class: _normalizeClass(["siqi-input", {'siqi-secret-input': !showCookie.value}]),
+          density: "compact",
+          "hide-details": "",
+          class: "siqi-input",
           "prepend-inner-icon": "mdi-cookie",
-          autocomplete: "off"
+          autocomplete: "off",
+          disabled: loading.value || saving.value
         }, {
           "append-inner": _withCtx(() => [
-            _createVNode(_component_v_btn, {
-              variant: "text",
-              density: "comfortable",
-              size: "x-small",
-              icon: "",
-              class: "siqi-secret-toggle",
-              onClick: _cache[25] || (_cache[25] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
-            }, {
-              default: _withCtx(() => [
-                _createVNode(_component_v_icon, {
-                  icon: showCookie.value ? 'mdi-eye-off-outline' : 'mdi-eye-outline',
-                  size: "18"
-                }, null, 8, ["icon"])
-              ]),
-              _: 1
-            })
+            _createElementVNode("div", _hoisted_55, [
+              _createVNode(_component_v_btn, {
+                variant: "text",
+                density: "comfortable",
+                size: "x-small",
+                icon: "",
+                class: "siqi-secret-toggle",
+                "aria-label": showCookie.value ? '隐藏 Cookie' : '显示 Cookie',
+                onClick: _cache[25] || (_cache[25] = _withModifiers($event => (showCookie.value = !showCookie.value), ["stop"]))
+              }, {
+                default: _withCtx(() => [
+                  _createVNode(_component_v_icon, {
+                    icon: showCookie.value ? 'mdi-eye-off-outline' : 'mdi-eye-outline',
+                    size: "18"
+                  }, null, 8, ["icon"])
+                ]),
+                _: 1
+              }, 8, ["aria-label"]),
+              _createVNode(_component_v_btn, {
+                variant: "tonal",
+                color: "deep-purple",
+                density: "comfortable",
+                size: "x-small",
+                icon: "",
+                class: "siqi-cookie-sync",
+                loading: syncingCookie.value,
+                disabled: loading.value || saving.value,
+                "aria-label": "使用 MoviePilot 站点 Cookie",
+                onClick: _withModifiers(syncCookie, ["stop"])
+              }, {
+                default: _withCtx(() => [
+                  _createVNode(_component_v_icon, {
+                    icon: "mdi-content-paste",
+                    size: "17"
+                  })
+                ]),
+                _: 1
+              }, 8, ["loading", "disabled", "onClick"])
+            ])
           ]),
           _: 1
-        }, 8, ["modelValue", "class"]),
-        _hoisted_55
+        }, 8, ["modelValue", "type", "disabled"]),
+        _hoisted_56
       ])
     ])
   ]))
@@ -934,6 +944,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-f0cf5cd4"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8747456a"]]);
 
 export { ConfigView as default };

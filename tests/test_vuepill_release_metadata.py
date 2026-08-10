@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.14"
+EXPECTED_VERSION = "0.2.15"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -53,6 +53,11 @@ EXPECTED_HISTORY_V0213 = (
 EXPECTED_HISTORY_V0214 = (
     "修正 Vue-魔丸 炼造工坊操作区：配方名称与数量框、炼造按钮合并到同一行，材料独立排列，"
     "去掉重复的红色上限提示；手机端按标题、材料、操作纵向排列，并继续适配浅色和深色主题。"
+    "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
+)
+EXPECTED_HISTORY_V0215 = (
+    "统一 Vue-魔丸 Cookie 配置为 Vue-思齐农场同款紧凑密码框，查看和站点同步按钮都放在输入框内；"
+    "运行时优先读取 MoviePilot 的 si-qi.xyz 站点 Cookie，读取失败时才使用已保存值作为备用。"
     "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V0212 = (
@@ -110,6 +115,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.15",
     "v0.2.14",
     "v0.2.13",
     "v0.2.12",
@@ -544,10 +550,11 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             f"VuePill 发布版本不一致：{versions}",
         )
 
-    def test_market_history_and_readme_describe_the_v0214_release(self):
+    def test_market_history_and_readme_describe_the_latest_release(self):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V0215, history["v0.2.15"])
         self.assertEqual(EXPECTED_HISTORY_V0214, history["v0.2.14"])
         self.assertEqual(EXPECTED_HISTORY_V0213, history["v0.2.13"])
         self.assertEqual(EXPECTED_HISTORY_V0212, history["v0.2.12"])
@@ -566,7 +573,10 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.14` |",
+            "| `Vue-魔丸` | `v0.2.15` |",
+            "Cookie 配置改为 `Vue-思齐农场` 同款紧凑密码框",
+            "优先读取 MoviePilot 的 `si-qi.xyz` 站点 Cookie",
+            "站点读取失败时才使用已保存值作为备用",
             "修正 Vue-魔丸 炼造工坊操作区",
             "配方名称与数量框、炼造按钮合并到同一行",
             "材料独立排列",
@@ -651,15 +661,15 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         self.assertIn("showCookie", config_source)
         self.assertIn("cookieAutoFilled", config_source)
         self.assertIn("cookieEdited", config_source)
-        self.assertIn("手动 Cookie 优先", config_source)
-        self.assertIn("清空后恢复自动同步", config_source)
+        self.assertIn("MoviePilot 站点 Cookie 优先", config_source)
+        self.assertIn("同步失败时作为备用", config_source)
+        self.assertIn("mdi-content-paste", config_source)
+        self.assertIn("syncCookie", config_source)
+        self.assertIn("/plugin/VuePill/cookie", config_source)
         self.assertNotIn("config.cookie", page_source)
         for forbidden in (
             "auto_cookie",
             "cookieFieldValue",
-            "syncCookie",
-            "同步 Cookie",
-            "/cookie",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, f"{page_source}\n{config_source}")
@@ -778,7 +788,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                 flush=True,
             )
 
-    def test_dist_contains_v022_features_without_legacy_ui(self):
+    def test_dist_contains_current_features_without_legacy_ui(self):
         asset_paths, dist_text = read_dist_text()
         self.assertTrue(asset_paths, "VuePill dist 中没有可检查的 JS/CSS 产物")
 
@@ -791,11 +801,14 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
             "gift-stats",
             "VCronField",
             "config.cookie",
-            "站点 Cookie（留空自动同步）",
-            "手动 Cookie 优先",
+            "站点 Cookie",
+            "MoviePilot 站点 Cookie 优先",
+            "同步失败时作为备用",
             "cookieAutoFilled",
             "cookieEdited",
             "mdi-eye-outline",
+            "mdi-content-paste",
+            "/plugin/VuePill/cookie",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, dist_text)
@@ -806,8 +819,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                 self.assertNotIn(legacy_marker, lowered_dist)
 
         for forbidden_cookie_ui in (
-            "同步 Cookie",
-            "使用站点 Cookie",
+            "站点 Cookie（留空自动同步）",
+            "手动 Cookie 优先",
+            "清空后恢复自动同步",
             "站点 Cookie：手动填写",
             "cookieFieldValue",
             "auto_cookie",

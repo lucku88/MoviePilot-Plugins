@@ -212,7 +212,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、单件/批量赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.14"
+    plugin_version = "0.2.15"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -841,6 +841,7 @@ class VuePill(_PluginBase):
             {"path": "/status", "endpoint": self._get_status, "methods": ["GET"], "auth": "bear", "summary": "获取 Vue-魔丸状态"},
             {"path": "/refresh", "endpoint": self._refresh_data, "methods": ["POST"], "auth": "bear", "summary": "刷新 Vue-魔丸状态"},
             {"path": "/run", "endpoint": self._run_now, "methods": ["POST"], "auth": "bear", "summary": "立即执行 Vue-魔丸"},
+            {"path": "/cookie", "endpoint": self._sync_site_cookie_api, "methods": ["GET"], "auth": "bear", "summary": "同步站点 Cookie"},
             {"path": "/move-bricks", "endpoint": self._move_bricks_api, "methods": ["POST"], "auth": "bear", "summary": "立即搬砖"},
             {"path": "/clean-beach", "endpoint": self._clean_beach_api, "methods": ["POST"], "auth": "bear", "summary": "立即清理沙滩"},
             {"path": "/exchange-points", "endpoint": self._exchange_points_api, "methods": ["POST"], "auth": "bear", "summary": "兑换魔力"},
@@ -2261,17 +2262,19 @@ class VuePill(_PluginBase):
 
     def _build_config_api_response(self) -> Dict[str, Any]:
         config = self._get_config()
-        auto_filled = not self._is_valid_cookie_value(self._manual_cookie)
-        if auto_filled:
-            try:
-                self._sync_site_credentials()
-            except Exception:
-                pass
-            _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
-            config["cookie"] = cookie if self._is_valid_cookie_value(cookie) else ""
-        else:
+        try:
             self._ensure_cookie()
-            cookie_source = "手动配置"
+        except Exception:
+            pass
+        _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
+        auto_filled = self._is_valid_cookie_value(cookie) and cookie_source.startswith("站点同步：")
+        if self._is_valid_cookie_value(cookie):
+            config["cookie"] = cookie
+        elif self._is_valid_cookie_value(self._manual_cookie):
+            config["cookie"] = self._manual_cookie
+            cookie_source = "备用 Cookie"
+        else:
+            config["cookie"] = ""
         config["cookie_auto_filled"] = auto_filled
         config["cookie_source"] = cookie_source
         return config
@@ -2370,6 +2373,7 @@ class VuePill(_PluginBase):
             if activity_entered:
                 self._exit_migration_activity()
 
+    @_config_public_api
     def _sync_site_cookie_api(self):
         result = self._sync_cookie_from_site(save_config=True, silent=False)
         if result.get("success") and self._enabled:
@@ -2736,6 +2740,13 @@ class VuePill(_PluginBase):
 
     def _ensure_cookie(self):
         manual_cookie = self._manual_cookie
+        try:
+            self._sync_site_credentials()
+            return
+        except Exception:
+            if not self._is_valid_cookie_value(manual_cookie):
+                raise
+
         if self._is_valid_cookie_value(manual_cookie):
             with self._site_credentials_lock:
                 (
@@ -2748,13 +2759,12 @@ class VuePill(_PluginBase):
                 ) = (
                     None,
                     manual_cookie,
-                    "手动配置",
+                    "备用 Cookie（站点同步失败）",
                     self.DEFAULT_SITE_DOMAIN,
                     self.DEFAULT_SITE_URL,
                     self.DEFAULT_USER_AGENT,
                 )
             return
-        self._sync_site_credentials()
 
     def _reset_runtime_site_credentials(self):
         with self._site_credentials_lock:
@@ -2818,10 +2828,12 @@ class VuePill(_PluginBase):
         return self._is_valid_cookie_value(cookie)
 
     def _cookie_status(self) -> Tuple[bool, str]:
-        if self._is_valid_cookie_value(self._manual_cookie):
-            return True, "手动配置"
         _, cookie, cookie_source, _, _, _ = self._site_credentials_snapshot()
-        return self._is_valid_cookie_value(cookie), cookie_source
+        if self._is_valid_cookie_value(cookie):
+            return True, cookie_source
+        if self._is_valid_cookie_value(self._manual_cookie):
+            return True, "备用 Cookie（站点同步失败时使用）"
+        return False, cookie_source
 
     def _sync_site_credentials(self):
         with self._site_credentials_lock:

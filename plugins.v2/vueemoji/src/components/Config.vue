@@ -121,14 +121,6 @@
               </span>
             </div>
             <div class="siqi-switch-grid">
-              <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_cookie }" style="--siqi-accent:20,184,166">
-                <div class="siqi-switch-main">
-                  <v-icon icon="mdi-cookie-sync-outline" size="20" />
-                  <div><div class="siqi-switch-label">自动同步 Cookie</div><div class="siqi-switch-desc">优先读取 MoviePilot 站点 Cookie</div></div>
-                </div>
-                <v-switch v-model="config.auto_cookie" color="teal" density="compact" hide-details inset />
-              </div>
-
               <div class="siqi-switch-item" :class="{ 'siqi-switch-item--active': config.auto_stage }" style="--siqi-accent:249,115,22">
                 <div class="siqi-switch-main">
                   <v-icon icon="mdi-drama-masks" size="20" />
@@ -297,30 +289,34 @@
                 <v-icon icon="mdi-cookie-outline" size="19" color="teal" />
                 站点 Cookie
               </span>
-              <v-chip size="small" color="teal" variant="tonal">{{ config.auto_cookie ? '自动同步' : '手动配置' }}</v-chip>
             </div>
             <div class="cookie-body">
               <v-text-field
                 v-model="config.cookie"
                 :type="cookieVisible ? 'text' : 'password'"
-                label="Cookie 备用值"
-                placeholder="优先使用 MoviePilot 站点管理中的 si-qi.xyz Cookie"
-                prepend-inner-icon="mdi-key-outline"
-                :append-inner-icon="cookieVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                label="站点 Cookie"
+                placeholder="自动读取 MoviePilot 站点管理中的 si-qi.xyz Cookie"
+                prepend-inner-icon="mdi-cookie"
                 variant="outlined"
-                density="comfortable"
+                density="compact"
                 hide-details
                 autocomplete="off"
                 class="siqi-input"
-                @click:append-inner="cookieVisible = !cookieVisible"
-              />
+                :disabled="loading || saving"
+              >
+                <template #append-inner>
+                  <div class="siqi-cookie-actions">
+                    <v-btn variant="text" density="comfortable" size="x-small" icon class="siqi-secret-toggle" :aria-label="cookieVisible ? '隐藏 Cookie' : '显示 Cookie'" @click.stop="cookieVisible = !cookieVisible">
+                      <v-icon :icon="cookieVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" size="18" />
+                    </v-btn>
+                    <v-btn variant="tonal" color="teal" density="comfortable" size="x-small" icon class="siqi-cookie-sync" :loading="syncingCookie" :disabled="loading || saving" aria-label="使用 MoviePilot 站点 Cookie" @click.stop="syncCookie">
+                      <v-icon icon="mdi-content-paste" size="17" />
+                    </v-btn>
+                  </div>
+                </template>
+              </v-text-field>
               <div class="cookie-note">
-                开启自动同步时，插件会优先读取 MoviePilot 的 si-qi.xyz Cookie；关闭时使用这里保存的值。
-              </div>
-              <div class="cookie-actions">
-                <v-btn color="teal" variant="tonal" :loading="syncingCookie" :disabled="formLocked" @click="syncCookie">
-                  <v-icon icon="mdi-sync" size="18" class="mr-1" />立即同步站点 Cookie
-                </v-btn>
+                插件默认使用 MoviePilot 站点管理中的 Cookie；输入框内容仅在站点同步失败时作为备用，右侧按钮可立即重新读取。
               </div>
             </div>
           </section>
@@ -358,7 +354,6 @@ const config = reactive({
   enabled: false,
   notify: true,
   onlyonce: false,
-  auto_cookie: true,
   auto_stage: true,
   auto_spin: false,
   auto_open_bags: false,
@@ -589,8 +584,10 @@ onMounted(async () => {
 
 .cookie-body { display: grid; gap: 10px; }
 .cookie-note { color: rgba(var(--v-theme-on-surface), .6); font-size: .72rem; line-height: 1.5; }
-.cookie-actions { display: flex; justify-content: flex-end; }
-.cookie-actions .v-btn { min-height: 44px; }
+.siqi-cookie-actions { display: flex; align-items: center; gap: 3px; }
+.siqi-secret-toggle,
+.siqi-cookie-sync { min-width: 28px !important; min-height: 28px !important; width: 28px; height: 28px; }
+.siqi-secret-toggle { color: rgba(var(--v-theme-on-surface), .55); }
 
 @media (prefers-reduced-motion: reduce) {
   .siqi-switch-item { transition: none; }
@@ -612,6 +609,5 @@ onMounted(async () => {
   .siqi-form-grid { grid-template-columns: 1fr; }
   .siqi-switch-item { align-items: center; }
   .siqi-topbar__sub { max-width: 100%; }
-  .cookie-actions .v-btn { width: 100%; }
 }
 </style>

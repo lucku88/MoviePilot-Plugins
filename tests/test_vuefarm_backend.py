@@ -306,7 +306,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(payload, result["payload"])
 
     def test_release_metadata_matches_vuefarm_version(self):
-        expected = "0.2.14"
+        expected = "0.2.15"
         package = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package.json").read_text(encoding="utf-8"))
         package_lock = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package-lock.json").read_text(encoding="utf-8"))
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))["VueFarm"]
@@ -318,6 +318,9 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(expected, package_lock["packages"][""]["version"])
         self.assertEqual(expected, market["version"])
         self.assertIn(f"v{expected}", market["history"])
+        latest_note = market["history"][f"v{expected}"]
+        for phrase in ("站点 Cookie", "输入框", "自动同步", "保留配置"):
+            self.assertIn(phrase, latest_note)
         self.assertIn(f"| `Vue-农场` | `v{expected}` |", readme)
 
     def test_single_plot_fallback_counts_each_success_once_not_cumulative_inventory(self):

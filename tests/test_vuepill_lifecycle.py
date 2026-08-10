@@ -2167,7 +2167,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertEqual(secret, self.plugin._manual_cookie)
 
         status = self.plugin._build_status(auto_refresh=False)
-        self.assertEqual("手动配置", status["cookie_source"])
+        self.assertIn("备用", status["cookie_source"])
         self.assertIs(status["cookie_ready"], True)
         self.assertNotIn("cookie", status.get("config", {}))
         encoded_status = json.dumps(status, ensure_ascii=False, allow_nan=False)
@@ -2214,7 +2214,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertIs(result["config"]["cookie_auto_filled"], True)
         self.assertEqual(secret, result["config"]["cookie"])
 
-    def test_config_get_marks_manual_cookie_as_not_auto_filled(self):
+    def test_config_get_prefers_latest_site_cookie_over_saved_fallback(self):
         site_calls = []
 
         class ValidSiteOper:
@@ -2240,10 +2240,10 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         result = config_get()
 
-        self.assertEqual("sid=manual-cookie-secret", result["cookie"])
-        self.assertIs(result["cookie_auto_filled"], False)
-        self.assertEqual("手动配置", result["cookie_source"])
-        self.assertEqual([], site_calls)
+        self.assertEqual("sid=site-cookie-secret", result["cookie"])
+        self.assertIs(result["cookie_auto_filled"], True)
+        self.assertEqual("站点同步：si-qi.xyz", result["cookie_source"])
+        self.assertEqual([self.plugin.DEFAULT_SITE_DOMAIN], site_calls)
 
     def test_cookie_auto_fill_marker_is_boolean_and_config_only(self):
         unsafe_status = self.plugin._sanitize_public_response(
@@ -2273,7 +2273,7 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertNotIn("direct-secret", encoded_config)
         self.assertNotIn("nested-secret", encoded_config)
 
-    def test_manual_cookie_takes_priority_and_blank_restores_site_sync(self):
+    def test_site_cookie_takes_priority_and_saved_cookie_is_only_fallback(self):
         site_calls = []
 
         class ValidSiteOper:
@@ -2294,21 +2294,24 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.plugin._ensure_cookie()
 
-        self.assertEqual([], site_calls)
-        self.assertEqual("sid=manual-cookie-secret", self.plugin._cookie)
-        self.assertEqual("手动配置", self.plugin._cookie_source)
-
-        self.plugin._apply_config(
-            self.plugin._merge_public_config({"cookie": ""})
-        )
-        self.plugin._ensure_cookie()
-
         self.assertEqual([self.plugin.DEFAULT_SITE_DOMAIN], site_calls)
         self.assertEqual("sid=site-cookie-secret", self.plugin._cookie)
+        self.assertEqual("站点同步：si-qi.xyz", self.plugin._cookie_source)
+
+        class MissingSiteOper:
+            def get_by_domain(self, domain):
+                site_calls.append(domain)
+                return None
+
+        self.module.SiteOper = MissingSiteOper
+        self.plugin._ensure_cookie()
+
         self.assertEqual(
-            "站点同步：si-qi.xyz",
-            self.plugin._cookie_source,
+            [self.plugin.DEFAULT_SITE_DOMAIN, self.plugin.DEFAULT_SITE_DOMAIN],
+            site_calls,
         )
+        self.assertEqual("sid=manual-cookie-secret", self.plugin._cookie)
+        self.assertIn("备用", self.plugin._cookie_source)
 
     def test_save_config_rejects_unsafe_manual_cookie_without_echoing_it(self):
         self.plugin.save_data(self.plugin.LEGACY_MIGRATION_KEY, True)
@@ -2959,13 +2962,14 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertNotIn("preview", encoded_result.lower())
         self.assertNotIn(secret, encoded_result)
 
-    def test_get_api_is_exact_and_has_no_cookie_endpoint(self):
+    def test_get_api_is_exact_and_has_cookie_sync_endpoint(self):
         expected = [
             ("/config", ("GET",)),
             ("/config", ("POST",)),
             ("/status", ("GET",)),
             ("/refresh", ("POST",)),
             ("/run", ("POST",)),
+            ("/cookie", ("GET",)),
             ("/move-bricks", ("POST",)),
             ("/clean-beach", ("POST",)),
             ("/exchange-points", ("POST",)),
@@ -2981,7 +2985,8 @@ class VuePillLifecycleTests(unittest.TestCase):
 
         self.assertEqual(expected, actual)
         self.assertTrue(all(row["auth"] == "bear" for row in api))
-        self.assertFalse(any("cookie" in row["path"].lower() for row in api))
+        cookie_routes = [row for row in api if row["path"] == "/cookie"]
+        self.assertEqual(1, len(cookie_routes))
 
     def test_save_config_registers_bootstrap_at_most_once(self):
         self.plugin.save_data("v020_initialized", True)

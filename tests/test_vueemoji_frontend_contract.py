@@ -91,7 +91,7 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             r"\.bag-upgrade-tip\{[^}]*min-width:0",
         )
 
-    def test_slot_and_bags_use_content_height_in_responsive_two_column_hub(self):
+    def test_slot_and_recruit_stack_matches_bag_height_without_equal_sized_cards(self):
         self.assertLess(
             self.page.index('class="siqi-card slot-card'),
             self.page.index('class="siqi-card bag-card'),
@@ -102,23 +102,23 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.page.index('class="siqi-card bag-card'),
         )
         self.assertIn(
-            ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:start;margin-bottom:12px}",
+            ".emoji-hub-grid{display:grid;grid-template-columns:minmax(260px,.72fr)minmax(0,1.65fr);gap:12px;align-items:stretch;margin-bottom:12px}",
             self.compact_page,
         )
         self.assertIn(
-            ".emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:auto;min-height:0}",
+            ".emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:100%;min-height:0}",
             self.compact_page,
         )
         self.assertIn(
-            ".emoji-hub-stack{display:grid;grid-template-rows:autoauto;gap:12px;min-height:0}",
-            self.compact_page,
-        )
-        self.assertNotIn(
-            "grid-template-rows:minmax(190px,1fr)minmax(140px,1fr)",
+            ".emoji-hub-stack{display:grid;grid-template-rows:autominmax(140px,1fr);gap:12px;min-height:0}",
             self.compact_page,
         )
         self.assertIn(
-            "@media(max-width:1100px){.emoji-hub-grid{grid-template-columns:1fr}",
+            ".recruit-card{display:flex;flex-direction:column}.recruit-body{flex:1;align-content:center",
+            self.compact_page,
+        )
+        self.assertIn(
+            "@media(max-width:1100px){.emoji-hub-grid{grid-template-columns:1fr;align-items:start}.emoji-hub-grid>.emoji-hub-stack,.emoji-hub-grid>.siqi-card{height:auto}",
             self.compact_page,
         )
 
@@ -136,7 +136,7 @@ class VueEmojiFrontendContractTests(unittest.TestCase):
             self.assertNotIn(removed, self.page)
         self.assertRegex(
             self.compact_page,
-            r"\.recruit-body\{display:grid;gap:8px;padding:10px12px!important\}",
+            r"\.recruit-body\{[^}]*display:grid;gap:8px;padding:10px12px!important\}",
         )
 
     def test_stage_effect_choices_keep_text_controls_without_preview_animation(self):

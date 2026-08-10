@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.7"
+EXPECTED_VERSION = "0.2.8"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -26,12 +26,16 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(EXPECTED_VERSION, self.package_lock["packages"][""]["version"])
         self.assertEqual(EXPECTED_VERSION, self.market["version"])
 
-    def test_market_history_describes_v027_remote_early_collect_patch(self):
+    def test_market_history_describes_latest_cookie_ui_patch(self):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
-        for phrase in ("外展记录", "提前收回", "拾荒者", "collect_slot", "保留配置"):
+        for phrase in ("站点 Cookie", "输入框", "自动同步", "保留配置"):
             self.assertIn(phrase, note)
+
+        v027_note = history["v0.2.7"]
+        for phrase in ("外展记录", "提前收回", "拾荒者", "collect_slot", "保留配置"):
+            self.assertIn(phrase, v027_note)
 
         v025_note = history["v0.2.5"]
         for phrase in ("单行下次运行卡", "闲置玩偶回收", "后端校验", "保留配置"):

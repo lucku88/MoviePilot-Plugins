@@ -30,7 +30,7 @@ class VueEmoji(_PluginBase):
     plugin_name = "Vue-表情"
     plugin_desc = "老虎机、开包、舞台演出、网页操作日志、自动挖角。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3ad.png"
-    plugin_version = "0.1.16"
+    plugin_version = "0.1.17"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vueemoji_"
@@ -110,10 +110,9 @@ class VueEmoji(_PluginBase):
         self._apply_config(merged)
         self._resolve_site_profile()
 
-        if self._auto_cookie:
-            self._sync_cookie_from_site(save_config=False, silent=True)
-        else:
-            self._cookie_source = "手动配置" if self._cookie else "未配置"
+        cookie_result = self._sync_cookie_from_site(save_config=False, silent=True)
+        if not cookie_result.get("success"):
+            self._cookie_source = "手动配置（站点同步失败，作为备用）" if self._cookie else "站点同步失败"
 
         self._load_saved_next_run()
         self._load_saved_next_trigger()
@@ -536,7 +535,6 @@ class VueEmoji(_PluginBase):
         return {
             "enabled": self._enabled,
             "notify": self._notify,
-            "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
@@ -559,7 +557,6 @@ class VueEmoji(_PluginBase):
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
@@ -625,7 +622,6 @@ class VueEmoji(_PluginBase):
             "enabled": False,
             "notify": True,
             "onlyonce": False,
-            "auto_cookie": True,
             "auto_stage": True,
             "auto_spin": False,
             "auto_open_bags": False,
@@ -650,7 +646,8 @@ class VueEmoji(_PluginBase):
         self._enabled = self._to_bool(config.get("enabled", False))
         self._notify = self._to_bool(config.get("notify", True))
         self._onlyonce = self._to_bool(config.get("onlyonce", False))
-        self._auto_cookie = self._to_bool(config.get("auto_cookie", True))
+        # 自动同步固定启用；旧版 auto_cookie=False 仅作兼容输入，不再改变行为。
+        self._auto_cookie = True
         self._auto_stage = self._to_bool(config.get("auto_stage", True))
         self._auto_spin = self._to_bool(config.get("auto_spin", False))
         self._auto_open_bags = self._to_bool(config.get("auto_open_bags", False))
@@ -684,7 +681,6 @@ class VueEmoji(_PluginBase):
             "enabled": self._enabled,
             "notify": self._notify,
             "onlyonce": self._onlyonce,
-            "auto_cookie": self._auto_cookie,
             "auto_stage": self._auto_stage,
             "auto_spin": self._auto_spin,
             "auto_open_bags": self._auto_open_bags,
@@ -760,8 +756,13 @@ class VueEmoji(_PluginBase):
             return {"success": False, "message": detail}
 
     def _ensure_cookie(self):
-        if not self._cookie:
-            raise ValueError("未配置 SQ Cookie")
+        result = self._sync_cookie_from_site(save_config=False, silent=True)
+        if result.get("success"):
+            return
+        if self._cookie and self._cookie.strip().lower() != "cookie":
+            self._cookie_source = "手动配置（站点同步失败，作为备用）"
+            return
+        raise ValueError("未找到有效站点 Cookie，请先在 MoviePilot 站点管理中更新 Cookie")
 
     @staticmethod
     def _restore_legacy_address_family_selector():

@@ -144,6 +144,28 @@ class VueEmojiBackendTests(unittest.TestCase):
         self.assertNotIn("force_ipv4", self.plugin._get_config())
         self.assertNotIn("force_ipv4", captured)
 
+    def test_cookie_auto_sync_cannot_be_disabled_by_legacy_config(self):
+        config = self.plugin._default_config()
+        config.update({"auto_cookie": False, "cookie": "sid=manual-fallback"})
+
+        self.plugin._apply_config(config)
+
+        self.assertTrue(self.plugin._auto_cookie)
+        self.assertNotIn("auto_cookie", self.plugin._default_config())
+        self.assertNotIn("auto_cookie", self.plugin._get_config())
+
+    def test_ensure_cookie_always_attempts_site_sync_before_saved_fallback(self):
+        calls = []
+        self.plugin._cookie = "sid=manual-fallback"
+        self.plugin._sync_cookie_from_site = lambda save_config=False, silent=True: calls.append(
+            (save_config, silent)
+        ) or {"success": False, "message": "site unavailable"}
+
+        self.plugin._ensure_cookie()
+
+        self.assertEqual([(False, True)], calls)
+        self.assertIn("备用", self.plugin._cookie_source)
+
     def test_build_session_preserves_global_address_family_selector(self):
         connection_module = sys.modules["urllib3.util.connection"]
         sentinel = lambda: "system-default"

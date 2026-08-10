@@ -117,14 +117,15 @@ class VuePillFrontendContractTest(unittest.TestCase):
         self.assertIn("markCookieEdited", self.config)
         self.assertIn("mdi-eye-outline", self.config)
         self.assertIn("mdi-eye-off-outline", self.config)
-        self.assertIn("手动 Cookie 优先", self.config)
-        self.assertIn("清空后恢复自动同步", self.config)
+        self.assertIn("mdi-content-paste", self.config)
+        self.assertIn("syncCookie", self.config)
+        self.assertIn("站点 Cookie 优先", self.config)
+        self.assertIn("同步失败时作为备用", self.config)
         self.assertNotIn("auto_cookie", self.config)
-        self.assertNotIn("/cookie", self.config)
-        self.assertNotIn("syncCookie", self.config)
+        self.assertIn("/cookie", self.config)
         self.assertRegex(
             self.config,
-            r"<v-textarea[^>]+v-model=\"config\.cookie\"",
+            r"<v-text-field[^>]+v-model=\"config\.cookie\"",
         )
 
     def test_config_defaults_ranges_and_backend_validation_match(self):
@@ -603,7 +604,7 @@ try {
         self.assert_config_contains(
             "const configLoading = ref(false)",
             "const configSaving = ref(false)",
-            "const formLocked = computed(() => configLoading.value || configSaving.value || upgradeRestartRequired.value)",
+            "const formLocked = computed(() => configLoading.value || configSaving.value || syncingCookie.value || upgradeRestartRequired.value)",
             '<fieldset',
             ':disabled="formLocked"',
             ':inert="formLocked"',
