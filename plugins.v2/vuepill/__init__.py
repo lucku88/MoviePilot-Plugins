@@ -212,7 +212,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、单件/批量赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.16"
+    plugin_version = "0.2.17"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -908,9 +908,24 @@ class VuePill(_PluginBase):
             )
 
         try:
-            Scheduler().remove_plugin_job(self.__class__.__name__)
+            scheduler = self._get_existing_moviepilot_scheduler()
+            if scheduler:
+                scheduler.remove_plugin_job(self.__class__.__name__)
         except Exception:
             pass
+
+    @staticmethod
+    def _get_existing_moviepilot_scheduler():
+        getter = getattr(Scheduler, "get_existing_instance", None)
+        if callable(getter):
+            try:
+                return getter()
+            except Exception:
+                return None
+        instances = getattr(type(Scheduler), "_instances", None)
+        if isinstance(instances, dict):
+            return instances.get(Scheduler)
+        return None
 
     @_migration_activity
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:

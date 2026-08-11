@@ -5,6 +5,13 @@ from tests.test_vue_autocatchup import _load_plugin
 
 
 class VueStartupRecoveryTests(unittest.TestCase):
+    PLUGIN_CLASSES = {
+        "vuefarm": "VueFarm",
+        "vuepill": "VuePill",
+        "vuetoy": "VueToy",
+        "vueemoji": "VueEmoji",
+    }
+
     def assert_resilient_date_service(self, service):
         self.assertEqual("date", service["trigger"])
         self.assertIsNone(service["kwargs"]["misfire_grace_time"])
@@ -66,6 +73,111 @@ class VueStartupRecoveryTests(unittest.TestCase):
 
         self.assert_resilient_date_service(self._service(services, "VueEmoji_auto"))
         self.assert_resilient_date_service(self._service(services, "VueEmoji_recruit"))
+
+    def test_stop_service_does_not_construct_moviepilot_scheduler_during_startup(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin = getattr(module, class_name)()
+
+                class SchedulerProbe:
+                    constructed = 0
+
+                    @classmethod
+                    def get_existing_instance(cls):
+                        return None
+
+                    def __new__(cls):
+                        cls.constructed += 1
+                        raise AssertionError("MoviePilot scheduler must not be created here")
+
+                module.Scheduler = SchedulerProbe
+                stop = plugin._stop_service_locked if plugin_key == "vuepill" else plugin.stop_service
+
+                stop()
+
+                self.assertEqual(0, SchedulerProbe.constructed)
+
+    def test_stop_service_removes_job_from_existing_moviepilot_scheduler(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin_class = getattr(module, class_name)
+                plugin = plugin_class()
+
+                class ExistingScheduler:
+                    def __init__(self):
+                        self.removed = []
+
+                    def remove_plugin_job(self, plugin_id):
+                        self.removed.append(plugin_id)
+
+                existing = ExistingScheduler()
+
+                class SchedulerProbe:
+                    @classmethod
+                    def get_existing_instance(cls):
+                        return existing
+
+                    def __new__(cls):
+                        raise AssertionError("Existing MoviePilot scheduler should be reused")
+
+                module.Scheduler = SchedulerProbe
+                stop = plugin._stop_service_locked if plugin_key == "vuepill" else plugin.stop_service
+
+                stop()
+
+                self.assertEqual([plugin_class.__name__], existing.removed)
+
+    def test_stop_service_uses_moviepilot_singleton_registry(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin_class = getattr(module, class_name)
+                plugin = plugin_class()
+
+                class ExistingScheduler:
+                    def __init__(self):
+                        self.removed = []
+
+                    def remove_plugin_job(self, plugin_id):
+                        self.removed.append(plugin_id)
+
+                class SchedulerSingletonProbe(type):
+                    _instances = {}
+
+                class SchedulerProbe(metaclass=SchedulerSingletonProbe):
+                    def __new__(cls):
+                        raise AssertionError("Singleton registry should be read without construction")
+
+                existing = ExistingScheduler()
+                SchedulerSingletonProbe._instances[SchedulerProbe] = existing
+                module.Scheduler = SchedulerProbe
+                stop = plugin._stop_service_locked if plugin_key == "vuepill" else plugin.stop_service
+
+                stop()
+
+                self.assertEqual([plugin_class.__name__], existing.removed)
+
+    def test_stop_service_never_constructs_scheduler_without_existing_instance(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin = getattr(module, class_name)()
+
+                class SchedulerProbe:
+                    constructed = 0
+
+                    def __new__(cls):
+                        cls.constructed += 1
+                        raise AssertionError("MoviePilot scheduler must not be created during cleanup")
+
+                module.Scheduler = SchedulerProbe
+                stop = plugin._stop_service_locked if plugin_key == "vuepill" else plugin.stop_service
+
+                stop()
+
+                self.assertEqual(0, SchedulerProbe.constructed)
 
 
 if __name__ == "__main__":

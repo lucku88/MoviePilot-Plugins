@@ -37,7 +37,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.17"
+    plugin_version = "0.2.18"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -305,9 +305,24 @@ class VueFarm(_PluginBase):
             logger.warning("%s 停止一次性调度失败：%s", self.plugin_name, err)
 
         try:
-            Scheduler().remove_plugin_job(self.__class__.__name__)
+            scheduler = self._get_existing_moviepilot_scheduler()
+            if scheduler:
+                scheduler.remove_plugin_job(self.__class__.__name__)
         except Exception:
             pass
+
+    @staticmethod
+    def _get_existing_moviepilot_scheduler():
+        getter = getattr(Scheduler, "get_existing_instance", None)
+        if callable(getter):
+            try:
+                return getter()
+            except Exception:
+                return None
+        instances = getattr(type(Scheduler), "_instances", None)
+        if isinstance(instances, dict):
+            return instances.get(Scheduler)
+        return None
 
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         run_start = time.time()

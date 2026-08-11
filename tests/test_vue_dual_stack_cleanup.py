@@ -149,7 +149,8 @@ class VueDualStackCleanupTests(unittest.TestCase):
         self.assertEqual(socket.AF_UNSPEC, panel_connection.allowed_gai_family())
 
     def test_release_versions_and_upgrade_notes_are_consistent(self):
-        expected = {"VueFarm": "0.2.14", "VuePanel": "0.1.36"}
+        expected = {"VueFarm": "0.2.18", "VuePanel": "0.1.37"}
+        dual_stack_releases = {"VueFarm": "0.2.14", "VuePanel": "0.1.36"}
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
@@ -168,11 +169,12 @@ class VueDualStackCleanupTests(unittest.TestCase):
                 self.assertEqual(version, package_lock["packages"][""]["version"])
                 self.assertEqual(version, market[key]["version"])
                 self.assertIn(f"v{version}", market[key]["history"])
-                self.assertIn("IPv4", market[key]["history"][f"v{version}"])
-                self.assertIn("IPv6", market[key]["history"][f"v{version}"])
+                dual_stack_note = market[key]["history"][f"v{dual_stack_releases[key]}"]
+                self.assertIn("IPv4", dual_stack_note)
+                self.assertIn("IPv6", dual_stack_note)
 
-        self.assertIn("| `Vue-农场` | `v0.2.14` |", readme)
-        self.assertIn("| `Vue-面板` | `v0.1.36` |", readme)
+        self.assertIn("| `Vue-农场` | `v0.2.18` |", readme)
+        self.assertIn("| `Vue-面板` | `v0.1.37` |", readme)
 
 
 if __name__ == "__main__":
