@@ -3264,7 +3264,15 @@ class VuePillLifecycleTests(unittest.TestCase):
         stop_finished = threading.Event()
         errors = []
 
-        class RecordingScheduler:
+        class SchedulerSingleton(type):
+            _instances = {}
+
+            def __call__(cls, *args, **kwargs):
+                if cls not in cls._instances:
+                    cls._instances[cls] = super().__call__(*args, **kwargs)
+                return cls._instances[cls]
+
+        class RecordingScheduler(metaclass=SchedulerSingleton):
             def update_plugin_job(self, plugin_name):
                 register_calls.append("late-old-registration")
 
@@ -3274,6 +3282,7 @@ class VuePillLifecycleTests(unittest.TestCase):
             def remove_plugin_job(self, plugin_name):
                 stop_removed_job.set()
 
+        RecordingScheduler()
         self.module.Scheduler = RecordingScheduler
 
         @self.module._migration_activity
@@ -3318,7 +3327,15 @@ class VuePillLifecycleTests(unittest.TestCase):
         stop_removed_job = threading.Event()
         errors = []
 
-        class RacingScheduler:
+        class SchedulerSingleton(type):
+            _instances = {}
+
+            def __call__(cls, *args, **kwargs):
+                if cls not in cls._instances:
+                    cls._instances[cls] = super().__call__(*args, **kwargs)
+                return cls._instances[cls]
+
+        class RacingScheduler(metaclass=SchedulerSingleton):
             def update_plugin_job(self, plugin_name):
                 register_started.set()
                 if not allow_register_finish.wait(2):
@@ -3332,6 +3349,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 scheduled_jobs.discard(plugin_name)
                 stop_removed_job.set()
 
+        RacingScheduler()
         self.module.Scheduler = RacingScheduler
 
         @self.module._migration_activity
