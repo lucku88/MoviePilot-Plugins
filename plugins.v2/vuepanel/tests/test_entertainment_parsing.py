@@ -527,6 +527,82 @@ class CardRetryTest(unittest.TestCase):
         self.assertFalse(run_thread.is_alive())
         self.assertEqual([], errors)
 
+    def test_catchup_selection_and_execution_are_atomic(self):
+        plugin = self.VuePanel()
+        catchup_card = self._card()
+        scheduled_card = dict(catchup_card, id="hnr_claim-default", title="HNR领取")
+        catchup_card["notify"] = False
+        scheduled_card["notify"] = False
+        plugin._cards = [catchup_card, scheduled_card]
+        plugin._notify = False
+        plugin._random_delay_max_seconds = 0
+        plugin._load_card_states = lambda: {}
+        plugin._save_card_states = lambda _states: None
+        plugin._build_dashboard = lambda _states: {}
+        plugin._refresh_state = lambda reason="": {}
+        plugin._save_schedule_meta = lambda: None
+        plugin._reregister_plugin = lambda _reason: None
+        plugin._log_schedule_snapshot = lambda _reason: None
+        plugin._append_history = lambda _state: None
+        plugin._build_status = lambda auto_refresh=False: {}
+        plugin.save_data = lambda *_args, **_kwargs: None
+        plugin._result_to_state = lambda target, _result, previous=None, record_run=False: {
+            "card_id": target["id"],
+            "module_icon": "🪐",
+            "title": target["title"],
+            "status_text": "操作完成。",
+            "last_success": True,
+            "level": "success",
+        }
+
+        selection_started = threading.Event()
+        allow_catchup_continue = threading.Event()
+        scheduled_run_started = threading.Event()
+        execution_order = []
+        errors = []
+
+        def select_missed(_states):
+            selection_started.set()
+            if not allow_catchup_continue.wait(2):
+                raise RuntimeError("补跑判断线程等待超时")
+            return [catchup_card]
+
+        def execute_card(card):
+            execution_order.append(card["id"])
+            if card["id"] == scheduled_card["id"]:
+                scheduled_run_started.set()
+            return plugin._success_result("执行成功", "操作完成。")
+
+        def catchup():
+            try:
+                plugin._refresh_and_catchup_schedule("startup")
+            except BaseException as error:
+                errors.append(error)
+
+        def scheduled_run():
+            try:
+                plugin.run_job(target_cards=[scheduled_card])
+            except BaseException as error:
+                errors.append(error)
+
+        plugin._select_missed_catchup_cards = select_missed
+        plugin._execute_card_with_retry = execute_card
+        catchup_thread = threading.Thread(target=catchup)
+        scheduled_thread = threading.Thread(target=scheduled_run)
+        catchup_thread.start()
+        self.assertTrue(selection_started.wait(1))
+        scheduled_thread.start()
+        overlapped = scheduled_run_started.wait(0.2)
+        allow_catchup_continue.set()
+        catchup_thread.join(3)
+        scheduled_thread.join(3)
+
+        self.assertFalse(overlapped, "判断漏跑到执行补跑之间不能插入另一个定时执行")
+        self.assertEqual([catchup_card["id"], scheduled_card["id"]], execution_order)
+        self.assertFalse(catchup_thread.is_alive())
+        self.assertFalse(scheduled_thread.is_alive())
+        self.assertEqual([], errors)
+
 
 if __name__ == "__main__":
     unittest.main()

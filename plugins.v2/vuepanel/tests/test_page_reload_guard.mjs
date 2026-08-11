@@ -18,3 +18,9 @@ assert.match(
   /\.vpp-shell\.is-backend-reloading\s*>\s*:not\(\.vpp-version-alert\)[\s\S]*?pointer-events:\s*none/,
   '除版本提示外的页面操作在重载期间必须禁止点击',
 )
+
+const inertBindings = pageSource.match(/:inert="backendUpdate\.loading \|\| undefined"/g) || []
+assert.ok(
+  inertBindings.length >= 4,
+  '状态页主体和 3 个传送弹窗都必须用 inert 禁止鼠标、键盘和焦点交互',
+)

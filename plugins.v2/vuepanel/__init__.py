@@ -2395,6 +2395,7 @@ class VuePanel(_PluginBase):
         session.cookies.update(self._parse_cookie(card.get("cookie") or ""))
         return session
 
+    @_serialized_state_operation
     def _refresh_and_catchup_schedule(self, reason: str = "") -> Dict[str, Any]:
         reason_text = reason or "schedule_check"
         dashboard: Dict[str, Any] = {}

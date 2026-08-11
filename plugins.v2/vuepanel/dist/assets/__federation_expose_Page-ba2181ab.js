@@ -441,13 +441,13 @@ function logMatchesCard(item, card) {
   return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
-const Page_vue_vue_type_style_index_0_scoped_4e87290d_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_c37307e9_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,unref:_unref,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-4e87290d"),n=n(),_popScopeId(),n);
-const _hoisted_1 = ["aria-busy"];
+const _withScopeId = n => (_pushScopeId("data-v-c37307e9"),n=n(),_popScopeId(),n);
+const _hoisted_1 = ["aria-busy", "inert"];
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
 const _hoisted_4 = { class: "vpp-panel-right" };
@@ -1515,7 +1515,8 @@ return (_ctx, _cache) => {
   }, [
     _createElementVNode("div", {
       class: _normalizeClass(["vpp-shell", { 'is-backend-reloading': backendUpdate.loading }]),
-      "aria-busy": backendUpdate.loading
+      "aria-busy": backendUpdate.loading,
+      inert: backendUpdate.loading || undefined
     }, [
       _createElementVNode("header", _hoisted_2, [
         _createElementVNode("div", _hoisted_3, [
@@ -1753,7 +1754,8 @@ return (_ctx, _cache) => {
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, {
-          class: _normalizeClass(["vpp-dialog-card is-config", themeClass.value])
+          class: _normalizeClass(["vpp-dialog-card is-config", themeClass.value]),
+          inert: backendUpdate.loading || undefined
         }, {
           default: _withCtx(() => [
             _createElementVNode("div", _hoisted_31, [
@@ -1947,7 +1949,7 @@ return (_ctx, _cache) => {
             ])
           ]),
           _: 1
-        }, 8, ["class"])
+        }, 8, ["class", "inert"])
       ]),
       _: 1
     }, 8, ["modelValue"]),
@@ -1958,7 +1960,8 @@ return (_ctx, _cache) => {
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, {
-          class: _normalizeClass(["vpp-dialog-card is-logs", themeClass.value])
+          class: _normalizeClass(["vpp-dialog-card is-logs", themeClass.value]),
+          inert: backendUpdate.loading || undefined
         }, {
           default: _withCtx(() => [
             _createElementVNode("div", _hoisted_56, [
@@ -2058,7 +2061,7 @@ return (_ctx, _cache) => {
             ])
           ]),
           _: 1
-        }, 8, ["class"])
+        }, 8, ["class", "inert"])
       ]),
       _: 1
     }, 8, ["modelValue"]),
@@ -2069,7 +2072,8 @@ return (_ctx, _cache) => {
     }, {
       default: _withCtx(() => [
         _createVNode(_component_v_card, {
-          class: _normalizeClass(["vpp-dialog-card is-copy", themeClass.value])
+          class: _normalizeClass(["vpp-dialog-card is-copy", themeClass.value]),
+          inert: backendUpdate.loading || undefined
         }, {
           default: _withCtx(() => [
             _createElementVNode("div", _hoisted_80, [
@@ -2141,7 +2145,7 @@ return (_ctx, _cache) => {
             ])
           ]),
           _: 1
-        }, 8, ["class"])
+        }, 8, ["class", "inert"])
       ]),
       _: 1
     }, 8, ["modelValue"])
@@ -2150,6 +2154,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4e87290d"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c37307e9"]]);
 
 export { PageView as default, usePanelTheme as u };

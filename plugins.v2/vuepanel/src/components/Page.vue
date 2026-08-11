@@ -4,6 +4,7 @@
       class="vpp-shell"
       :class="{ 'is-backend-reloading': backendUpdate.loading }"
       :aria-busy="backendUpdate.loading"
+      :inert="backendUpdate.loading || undefined"
     >
       <header class="vpp-control-panel">
         <div class="vpp-panel-left">
@@ -141,7 +142,7 @@
     </div>
 
     <v-dialog v-model="dialog.config" max-width="760">
-      <v-card class="vpp-dialog-card is-config" :class="themeClass">
+      <v-card class="vpp-dialog-card is-config" :class="themeClass" :inert="backendUpdate.loading || undefined">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-cog-outline" size="22" class="vpp-dialog-icon is-config" />
@@ -268,7 +269,7 @@
     </v-dialog>
 
     <v-dialog v-model="dialog.logs" max-width="900">
-      <v-card class="vpp-dialog-card is-logs" :class="themeClass">
+      <v-card class="vpp-dialog-card is-logs" :class="themeClass" :inert="backendUpdate.loading || undefined">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-text-box-outline" size="22" class="vpp-dialog-icon is-logs" />
@@ -333,7 +334,7 @@
     </v-dialog>
 
     <v-dialog v-model="dialog.copy" max-width="560">
-      <v-card class="vpp-dialog-card is-copy" :class="themeClass">
+      <v-card class="vpp-dialog-card is-copy" :class="themeClass" :inert="backendUpdate.loading || undefined">
         <div class="vpp-dialog-head">
           <div class="vpp-dialog-title-wrap">
             <v-icon icon="mdi-content-copy" size="22" class="vpp-dialog-icon is-copy" />
