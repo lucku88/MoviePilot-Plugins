@@ -1,6 +1,7 @@
 import json
 import random
 import re
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -26,7 +27,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.2.12"
+    plugin_version = "0.2.13"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -77,9 +78,13 @@ class VueToy(_PluginBase):
     _next_trigger_time: Optional[datetime] = None
     _next_trigger_mode: str = ""
     _bootstrap_pending: bool = False
+    _startup_registration_delays = (15, 30, 60)
 
     def __init__(self):
         super().__init__()
+        self._startup_registration_lock = threading.Lock()
+        self._startup_registration_timer: Optional[threading.Timer] = None
+        self._startup_registration_generation = 0
 
     def init_plugin(self, config: Optional[dict] = None):
         self.stop_service()
@@ -112,6 +117,8 @@ class VueToy(_PluginBase):
             self._update_config()
             self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+        self._schedule_startup_registration()
 
     def get_state(self) -> bool:
         return bool(self._enabled)
@@ -194,6 +201,7 @@ class VueToy(_PluginBase):
         return services
 
     def stop_service(self):
+        self._cancel_startup_registration()
         try:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
@@ -202,6 +210,72 @@ class VueToy(_PluginBase):
                 self._scheduler = None
         except Exception as err:
             logger.warning("%s 停止一次性调度失败：%s", self.plugin_name, err)
+
+    def _cancel_startup_registration(self):
+        with self._startup_registration_lock:
+            self._startup_registration_generation += 1
+            timer = self._startup_registration_timer
+            self._startup_registration_timer = None
+        if timer:
+            timer.cancel()
+
+    def _schedule_startup_registration(self, attempt: int = 0, generation: Optional[int] = None):
+        if not self.get_service():
+            return
+        with self._startup_registration_lock:
+            if generation is None:
+                self._startup_registration_generation += 1
+                generation = self._startup_registration_generation
+            elif generation != self._startup_registration_generation:
+                return
+            previous = self._startup_registration_timer
+            delay = self._startup_registration_delays[min(attempt, len(self._startup_registration_delays) - 1)]
+            timer = threading.Timer(delay, self._startup_registration_worker, args=(generation, attempt))
+            timer.daemon = True
+            self._startup_registration_timer = timer
+        if previous:
+            previous.cancel()
+        timer.start()
+
+    def _startup_registration_worker(self, generation: int, attempt: int):
+        with self._startup_registration_lock:
+            if generation != self._startup_registration_generation:
+                return
+            self._startup_registration_timer = None
+        services = self.get_service()
+        if not services:
+            return
+        try:
+            try:
+                from app.core.plugin import PluginManager
+
+                if PluginManager().running_plugins.get(self.__class__.__name__) is not self:
+                    return
+            except (ImportError, AttributeError, TypeError):
+                pass
+
+            scheduler = Scheduler()
+            scheduler.update_plugin_job(self.__class__.__name__)
+            host_scheduler = getattr(scheduler, "_scheduler", None)
+            if host_scheduler is None or (
+                hasattr(host_scheduler, "running") and not host_scheduler.running
+            ):
+                raise RuntimeError("MoviePilot 主调度器尚未启动")
+            jobs = getattr(scheduler, "_jobs", None)
+            expected = {
+                f"{self.__class__.__name__}_{service['id']}".split("|")[0]
+                for service in services
+            }
+            if isinstance(jobs, dict) and not expected.issubset(jobs):
+                raise RuntimeError("MoviePilot 主调度器未登记插件任务")
+            logger.info("%s 已完成启动调度自检", self.plugin_name)
+        except Exception as err:
+            next_attempt = attempt + 1
+            if next_attempt < len(self._startup_registration_delays):
+                logger.warning("%s 启动调度自检失败，稍后重试：%s", self.plugin_name, err)
+                self._schedule_startup_registration(next_attempt, generation)
+            else:
+                logger.warning("%s 启动调度自检失败：%s", self.plugin_name, err)
 
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         start_time = time.time()

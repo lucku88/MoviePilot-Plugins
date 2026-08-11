@@ -212,7 +212,7 @@ class VuePill(_PluginBase):
     plugin_name = "Vue-魔丸"
     plugin_desc = "动态搬砖、清沙滩、炼造兑换、单件/批量赠送与赠礼统计。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2697.png"
-    plugin_version = "0.2.18"
+    plugin_version = "0.2.19"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepill_"
@@ -371,6 +371,7 @@ class VuePill(_PluginBase):
     _next_trigger_time: Optional[datetime] = None
     _next_trigger_mode: str = "run"
     _bootstrap_pending: bool = False
+    _startup_registration_delays = (15, 30, 60)
 
     JS_SAFE_INTEGER_MAX = (1 << 53) - 1
     CONFIG_INTEGER_RULES = {
@@ -432,6 +433,9 @@ class VuePill(_PluginBase):
 
     def __init__(self):
         super().__init__()
+        self._startup_registration_lock = threading.Lock()
+        self._startup_registration_timer: Optional[threading.Timer] = None
+        self._startup_registration_generation = 0
 
     def _enter_migration_activity(self):
         cls = type(self)
@@ -578,6 +582,7 @@ class VuePill(_PluginBase):
                     config,
                     preserve_running_onlyonce=True,
                 )
+                self._schedule_startup_registration()
             except Exception:
                 if was_stopping:
                     self._mark_migration_stopping()
@@ -893,6 +898,7 @@ class VuePill(_PluginBase):
         self._wait_for_migration_activities()
 
     def _stop_service_locked(self):
+        self._cancel_startup_registration()
         scheduler = self._scheduler
         self._scheduler = None
         try:
@@ -906,6 +912,72 @@ class VuePill(_PluginBase):
                 self.plugin_name,
                 self._get_error_detail(err),
             )
+
+    def _cancel_startup_registration(self):
+        with self._startup_registration_lock:
+            self._startup_registration_generation += 1
+            timer = self._startup_registration_timer
+            self._startup_registration_timer = None
+        if timer:
+            timer.cancel()
+
+    def _schedule_startup_registration(self, attempt: int = 0, generation: Optional[int] = None):
+        if not self.get_service():
+            return
+        with self._startup_registration_lock:
+            if generation is None:
+                self._startup_registration_generation += 1
+                generation = self._startup_registration_generation
+            elif generation != self._startup_registration_generation:
+                return
+            previous = self._startup_registration_timer
+            delay = self._startup_registration_delays[min(attempt, len(self._startup_registration_delays) - 1)]
+            timer = threading.Timer(delay, self._startup_registration_worker, args=(generation, attempt))
+            timer.daemon = True
+            self._startup_registration_timer = timer
+        if previous:
+            previous.cancel()
+        timer.start()
+
+    def _startup_registration_worker(self, generation: int, attempt: int):
+        with self._startup_registration_lock:
+            if generation != self._startup_registration_generation:
+                return
+            self._startup_registration_timer = None
+        services = self.get_service()
+        if not services:
+            return
+        try:
+            try:
+                from app.core.plugin import PluginManager
+
+                if PluginManager().running_plugins.get(self.__class__.__name__) is not self:
+                    return
+            except (ImportError, AttributeError, TypeError):
+                pass
+
+            scheduler = Scheduler()
+            scheduler.update_plugin_job(self.__class__.__name__)
+            host_scheduler = getattr(scheduler, "_scheduler", None)
+            if host_scheduler is None or (
+                hasattr(host_scheduler, "running") and not host_scheduler.running
+            ):
+                raise RuntimeError("MoviePilot 主调度器尚未启动")
+            jobs = getattr(scheduler, "_jobs", None)
+            expected = {
+                f"{self.__class__.__name__}_{service['id']}".split("|")[0]
+                for service in services
+            }
+            if isinstance(jobs, dict) and not expected.issubset(jobs):
+                raise RuntimeError("MoviePilot 主调度器未登记插件任务")
+            logger.info("%s 已完成启动调度自检", self.plugin_name)
+        except Exception as err:
+            next_attempt = attempt + 1
+            if next_attempt < len(self._startup_registration_delays):
+                logger.warning("%s 启动调度自检失败，稍后重试：%s", self.plugin_name, err)
+                self._schedule_startup_registration(next_attempt, generation)
+            else:
+                logger.warning("%s 启动调度自检失败：%s", self.plugin_name, err)
 
     @_migration_activity
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:

@@ -5,6 +5,7 @@ import json
 import random
 import re
 import socket
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -37,7 +38,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.19"
+    plugin_version = "0.2.20"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -106,6 +107,7 @@ class VueFarm(_PluginBase):
     _critical_attempt_limit: Optional[int] = None
     _harvest_deadline: Optional[float] = None
     _harvest_batch_deadline: Optional[float] = None
+    _startup_registration_delays = (15, 30, 60)
 
     _crop_icon = {
         "萝卜": "🥕",
@@ -118,6 +120,9 @@ class VueFarm(_PluginBase):
 
     def __init__(self):
         super().__init__()
+        self._startup_registration_lock = threading.Lock()
+        self._startup_registration_timer: Optional[threading.Timer] = None
+        self._startup_registration_generation = 0
 
     @staticmethod
     def _restore_legacy_address_family_selector():
@@ -178,6 +183,8 @@ class VueFarm(_PluginBase):
             self._update_config()
             self._scheduler.start()
             logger.info("%s 已注册一次性执行任务", self.plugin_name)
+
+        self._schedule_startup_registration()
 
     def get_state(self) -> bool:
         return bool(self._enabled)
@@ -295,6 +302,7 @@ class VueFarm(_PluginBase):
         return services
 
     def stop_service(self):
+        self._cancel_startup_registration()
         try:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
@@ -303,6 +311,72 @@ class VueFarm(_PluginBase):
                 self._scheduler = None
         except Exception as err:
             logger.warning("%s 停止一次性调度失败：%s", self.plugin_name, err)
+
+    def _cancel_startup_registration(self):
+        with self._startup_registration_lock:
+            self._startup_registration_generation += 1
+            timer = self._startup_registration_timer
+            self._startup_registration_timer = None
+        if timer:
+            timer.cancel()
+
+    def _schedule_startup_registration(self, attempt: int = 0, generation: Optional[int] = None):
+        if not self.get_service():
+            return
+        with self._startup_registration_lock:
+            if generation is None:
+                self._startup_registration_generation += 1
+                generation = self._startup_registration_generation
+            elif generation != self._startup_registration_generation:
+                return
+            previous = self._startup_registration_timer
+            delay = self._startup_registration_delays[min(attempt, len(self._startup_registration_delays) - 1)]
+            timer = threading.Timer(delay, self._startup_registration_worker, args=(generation, attempt))
+            timer.daemon = True
+            self._startup_registration_timer = timer
+        if previous:
+            previous.cancel()
+        timer.start()
+
+    def _startup_registration_worker(self, generation: int, attempt: int):
+        with self._startup_registration_lock:
+            if generation != self._startup_registration_generation:
+                return
+            self._startup_registration_timer = None
+        services = self.get_service()
+        if not services:
+            return
+        try:
+            try:
+                from app.core.plugin import PluginManager
+
+                if PluginManager().running_plugins.get(self.__class__.__name__) is not self:
+                    return
+            except (ImportError, AttributeError, TypeError):
+                pass
+
+            scheduler = Scheduler()
+            scheduler.update_plugin_job(self.__class__.__name__)
+            host_scheduler = getattr(scheduler, "_scheduler", None)
+            if host_scheduler is None or (
+                hasattr(host_scheduler, "running") and not host_scheduler.running
+            ):
+                raise RuntimeError("MoviePilot 主调度器尚未启动")
+            jobs = getattr(scheduler, "_jobs", None)
+            expected = {
+                f"{self.__class__.__name__}_{service['id']}".split("|")[0]
+                for service in services
+            }
+            if isinstance(jobs, dict) and not expected.issubset(jobs):
+                raise RuntimeError("MoviePilot 主调度器未登记插件任务")
+            logger.info("%s 已完成启动调度自检", self.plugin_name)
+        except Exception as err:
+            next_attempt = attempt + 1
+            if next_attempt < len(self._startup_registration_delays):
+                logger.warning("%s 启动调度自检失败，稍后重试：%s", self.plugin_name, err)
+                self._schedule_startup_registration(next_attempt, generation)
+            else:
+                logger.warning("%s 启动调度自检失败：%s", self.plugin_name, err)
 
     def run_job(self, force: bool = False, reason: str = "manual") -> Dict[str, Any]:
         run_start = time.time()

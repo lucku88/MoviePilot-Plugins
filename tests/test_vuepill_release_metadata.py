@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.18"
+EXPECTED_VERSION = "0.2.19"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -28,6 +28,11 @@ BUILD_INPUT_PATHS = (
     "src/utils/asyncGuards.js",
     "src/utils/configValidation.js",
     "src/utils/request.js",
+)
+EXPECTED_HISTORY_V0219 = (
+    "修复 Vue-魔丸 在 MoviePilot 容器重启后主调度器可能先于插件加载完成、导致搬砖和沙滩任务未登记的问题；"
+    "插件启动后会延迟自检并主动补登记，失败时继续重试，不改变搬砖 Cron、沙滩冷却和补跑规则。"
+    "v0.2.x 小版本升级继续保留配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V0218 = (
     "修复 Vue-魔丸 在 MoviePilot 容器更新后，后台插件同步再次初始化时停止旧实例会误删总调度任务的问题；"
@@ -131,6 +136,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.19",
     "v0.2.18",
     "v0.2.17",
     "v0.2.16",
@@ -573,6 +579,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V0219, history["v0.2.19"])
+        for phrase in ("主调度器", "延迟自检", "主动补登记", "保留配置"):
+            self.assertIn(phrase, history["v0.2.19"])
         self.assertEqual(EXPECTED_HISTORY_V0218, history["v0.2.18"])
         for phrase in ("后台插件同步", "停止旧实例", "总调度任务", "保留配置"):
             self.assertIn(phrase, history["v0.2.18"])
@@ -599,7 +608,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.18` |",
+            "| `Vue-魔丸` | `v0.2.19` |",
+            "主调度器可能先于插件加载完成",
+            "延迟自检并主动补登记",
             "后台插件同步会再次初始化插件",
             "停止旧实例时误删全局动态任务",
             "启动时插件清理旧任务会提前创建总调度器",

@@ -1,4 +1,6 @@
+import sys
 import time
+import types
 import unittest
 
 from tests.test_vue_autocatchup import _load_plugin
@@ -178,6 +180,132 @@ class VueStartupRecoveryTests(unittest.TestCase):
                 stop()
 
                 self.assertEqual(0, SchedulerProbe.constructed)
+
+    def test_plugins_delayed_registration_repairs_host_scheduler(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin = getattr(module, class_name)()
+                plugin._enabled = True
+                plugin.get_service = lambda: [{"id": "startup_probe"}]
+
+                self.assertTrue(
+                    hasattr(plugin, "_schedule_startup_registration"),
+                    f"{class_name} must schedule a delayed host registration check",
+                )
+
+                timers = []
+
+                class TimerProbe:
+                    def __init__(self, interval, function, args=None, kwargs=None):
+                        self.interval = interval
+                        self.function = function
+                        self.args = tuple(args or ())
+                        self.kwargs = dict(kwargs or {})
+                        self.daemon = False
+                        self.started = False
+                        self.cancelled = False
+                        timers.append(self)
+
+                    def start(self):
+                        self.started = True
+
+                    def cancel(self):
+                        self.cancelled = True
+
+                    def fire(self):
+                        if not self.cancelled:
+                            self.function(*self.args, **self.kwargs)
+
+                host_scheduler = types.SimpleNamespace(
+                    _scheduler=types.SimpleNamespace(running=True),
+                    _jobs={},
+                    updated=[],
+                )
+
+                def update_plugin_job(plugin_id):
+                    host_scheduler.updated.append(plugin_id)
+                    host_scheduler._jobs[f"{plugin_id}_startup_probe"] = {}
+
+                host_scheduler.update_plugin_job = update_plugin_job
+
+                class SchedulerProbe:
+                    constructed = 0
+
+                    def __new__(cls):
+                        cls.constructed += 1
+                        return host_scheduler
+
+                plugin_manager_module = types.ModuleType("app.core.plugin")
+
+                class PluginManager:
+                    running_plugins = {class_name: plugin}
+
+                plugin_manager_module.PluginManager = PluginManager
+                previous_plugin_manager = sys.modules.get("app.core.plugin")
+                sys.modules["app.core.plugin"] = plugin_manager_module
+                original_scheduler = module.Scheduler
+                original_timer = module.threading.Timer
+                module.Scheduler = SchedulerProbe
+                module.threading.Timer = TimerProbe
+                try:
+                    plugin._schedule_startup_registration()
+
+                    self.assertEqual(1, len(timers))
+                    self.assertTrue(timers[0].started)
+                    self.assertGreaterEqual(timers[0].interval, 5)
+                    self.assertEqual(0, SchedulerProbe.constructed)
+
+                    timers[0].fire()
+
+                    self.assertEqual(1, SchedulerProbe.constructed)
+                    self.assertEqual([class_name], host_scheduler.updated)
+                finally:
+                    module.Scheduler = original_scheduler
+                    module.threading.Timer = original_timer
+                    if previous_plugin_manager is None:
+                        sys.modules.pop("app.core.plugin", None)
+                    else:
+                        sys.modules["app.core.plugin"] = previous_plugin_manager
+
+    def test_stop_service_cancels_pending_startup_registration(self):
+        for plugin_key, class_name in self.PLUGIN_CLASSES.items():
+            with self.subTest(plugin=plugin_key):
+                module = _load_plugin(plugin_key)
+                plugin = getattr(module, class_name)()
+                plugin._enabled = True
+                plugin.get_service = lambda: [{"id": "startup_probe"}]
+
+                self.assertTrue(
+                    hasattr(plugin, "_schedule_startup_registration"),
+                    f"{class_name} must expose delayed startup registration",
+                )
+
+                timers = []
+
+                class TimerProbe:
+                    def __init__(self, interval, function, args=None, kwargs=None):
+                        self.cancelled = False
+                        self.daemon = False
+                        timers.append(self)
+
+                    def start(self):
+                        return None
+
+                    def cancel(self):
+                        self.cancelled = True
+
+                original_timer = module.threading.Timer
+                module.threading.Timer = TimerProbe
+                try:
+                    plugin._schedule_startup_registration()
+                    stop = plugin._stop_service_locked if plugin_key == "vuepill" else plugin.stop_service
+                    stop()
+
+                    self.assertEqual(1, len(timers))
+                    self.assertTrue(timers[0].cancelled)
+                finally:
+                    module.threading.Timer = original_timer
 
 
 if __name__ == "__main__":
