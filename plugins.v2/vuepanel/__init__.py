@@ -29,7 +29,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.36"
+    plugin_version = "0.1.37"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -40,6 +40,8 @@ class VuePanel(_PluginBase):
     DEFAULT_TIMEOUT = 15
     DEFAULT_RETRY_TIMES = 3
     DEFAULT_RANDOM_DELAY = 5
+    CARD_RETRY_TIMES = 3
+    CARD_RETRY_INTERVAL_SECONDS = 30
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
@@ -326,7 +328,7 @@ class VuePanel(_PluginBase):
 
             for card in targets:
                 try:
-                    result = self._execute_card(card)
+                    result = self._execute_card_with_retry(card)
                 except Exception as err:
                     detail = self._get_error_detail(err)
                     logger.warning("%s 执行卡片失败[%s]：%s", self.plugin_name, card.get("title") or card.get("id"), detail)
@@ -615,6 +617,185 @@ class VuePanel(_PluginBase):
             return self._inspect_newapi_checkin(card)
         return self._error_result("未知功能模块", f"不支持的模块类型：{module_key}")
 
+    def _execute_card_with_retry(self, card: Dict[str, Any]) -> Dict[str, Any]:
+        retries_used = 0
+        result: Dict[str, Any] = {}
+        execution_card = dict(card)
+        execution_card["_disable_http_retries"] = True
+
+        for attempt in range(self.CARD_RETRY_TIMES + 1):
+            try:
+                raw_result = self._execute_card(execution_card)
+                result = raw_result if isinstance(raw_result, dict) else self._error_result(
+                    "执行结果异常",
+                    "功能卡片没有返回有效结果。",
+                )
+                retryable = self._is_retryable_card_result(result)
+            except Exception as err:
+                if not self._is_retryable_card_exception(err):
+                    raise
+                result = self._card_exception_result(card, err, action="run")
+                retryable = True
+
+            if result.get("success") or not retryable or attempt >= self.CARD_RETRY_TIMES:
+                return self._append_card_retry_detail(result, retries_used)
+
+            retries_used += 1
+            card_name = str(card.get("title") or card.get("site_name") or card.get("id") or "功能卡片")
+            failure_text = str(result.get("status_text") or result.get("status_title") or "执行失败")
+            logger.warning(
+                "%s-%s 执行失败，%s 秒后进行第 %s/%s 次重试：%s",
+                self.plugin_name,
+                card_name,
+                self.CARD_RETRY_INTERVAL_SECONDS,
+                retries_used,
+                self.CARD_RETRY_TIMES,
+                failure_text,
+            )
+            self._sleep_before_card_retry(self.CARD_RETRY_INTERVAL_SECONDS)
+
+        return self._append_card_retry_detail(result, retries_used)
+
+    @staticmethod
+    def _sleep_before_card_retry(seconds: int):
+        time.sleep(seconds)
+
+    @staticmethod
+    def _is_retryable_card_exception(err: Exception) -> bool:
+        detail = str(err or "").lower()
+        if isinstance(err, requests.exceptions.SSLError) or any(
+            marker in detail
+            for marker in ("certificate verify failed", "self-signed certificate", "证书校验失败")
+        ):
+            return False
+        if isinstance(err, requests.exceptions.RequestException):
+            retryable_exception_types = (
+                "Timeout",
+                "ConnectionError",
+                "ProxyError",
+                "ChunkedEncodingError",
+                "ContentDecodingError",
+            )
+            if any(
+                isinstance(exception_type, type) and isinstance(err, exception_type)
+                for exception_type in (
+                    getattr(requests.exceptions, name, None) for name in retryable_exception_types
+                )
+            ):
+                return True
+
+            retryable_markers = (
+                "network",
+                "connection",
+                "timeout",
+                "timed out",
+                "temporary",
+                "temporarily",
+                "proxy",
+                "dns",
+                "name resolution",
+                "max retries exceeded",
+                "remote end closed",
+                "connection reset",
+                "connection aborted",
+                "failed to establish a new connection",
+                "getaddrinfo failed",
+                "网络",
+                "连接",
+                "超时",
+                "暂时",
+            )
+            if any(marker in detail for marker in retryable_markers):
+                return True
+            return bool(re.search(r"(?:^|\D)(408|425|429|500|502|503|504)(?:\D|$)", detail))
+        return isinstance(err, OSError)
+
+    @staticmethod
+    def _is_retryable_card_result(result: Dict[str, Any]) -> bool:
+        if not isinstance(result, dict) or result.get("success") or result.get("level") != "error":
+            return False
+        if result.get("retryable") is False:
+            return False
+
+        text_parts = [
+            result.get("status_title"),
+            result.get("status_text"),
+            *(result.get("detail_lines") or []),
+        ]
+        text = " ".join(str(item or "") for item in text_parts).lower()
+        non_retryable_markers = (
+            "待配置",
+            "未配置",
+            "请先填写",
+            "缺少",
+            "cookie",
+            "uid",
+            "登录失效",
+            "未登录",
+            "认证失败",
+            "授权失败",
+            "权限不足",
+            "今日已",
+            "已经完成",
+            "已签到",
+            "已领取",
+            "已下馆子",
+            "已呐喊",
+            "达到上限",
+            "已达上限",
+            "无需执行",
+            "参数错误",
+            "不存在",
+            "未找到",
+            "无可用",
+            "暂无可",
+            "未知功能模块",
+            "页面解析失败",
+            "certificate verify failed",
+            "self-signed certificate",
+            "证书校验失败",
+        )
+        if any(marker in text for marker in non_retryable_markers):
+            return False
+        if result.get("retryable") is True:
+            return True
+
+        retryable_markers = (
+            "网络",
+            "连接",
+            "超时",
+            "请求异常",
+            "timeout",
+            "timed out",
+            "connection",
+            "temporary",
+            "temporarily",
+            "服务暂时不可用",
+            "proxy",
+            "dns",
+            "name resolution",
+            "max retries exceeded",
+        )
+        if any(marker in text for marker in retryable_markers):
+            return True
+        return bool(re.search(r"(?:^|\D)(408|425|429|500|502|503|504)(?:\D|$)", text))
+
+    def _append_card_retry_detail(self, result: Dict[str, Any], retries_used: int) -> Dict[str, Any]:
+        if retries_used <= 0:
+            return result
+
+        merged = dict(result)
+        detail_lines = list(merged.get("detail_lines") or [])
+        retry_text = (
+            f"自动重试 {retries_used} 次后成功"
+            if merged.get("success")
+            else f"自动重试 {retries_used} 次后仍未成功"
+        )
+        if retry_text not in detail_lines:
+            detail_lines.append(retry_text)
+        merged["detail_lines"] = detail_lines
+        return merged
+
     def _execute_card(self, card: Dict[str, Any]) -> Dict[str, Any]:
         if not card.get("cookie"):
             return self._error_result("缺少 Cookie", "请先填写 Cookie 后再执行。")
@@ -793,6 +974,8 @@ class VuePanel(_PluginBase):
                 if success:
                     claimed.append(f"{name}(+{amount})")
                     total_amount += self._safe_int(amount, 0)
+            except requests.exceptions.RequestException:
+                raise
             except Exception:
                 failed.append(f"{name}(异常)")
 
@@ -2165,11 +2348,12 @@ class VuePanel(_PluginBase):
 
     def _build_session(self, card: Dict[str, Any]) -> requests.Session:
         session = requests.Session()
+        retry_times = 0 if card.get("_disable_http_retries") else self._http_retry_times
         retry_strategy = Retry(
-            total=self._http_retry_times,
-            connect=self._http_retry_times,
-            read=self._http_retry_times,
-            status=self._http_retry_times,
+            total=retry_times,
+            connect=retry_times,
+            read=retry_times,
+            status=retry_times,
             backoff_factor=1,
             status_forcelist=[500, 502, 503, 504],
             allowed_methods=frozenset(["HEAD", "GET", "POST", "OPTIONS"]),
