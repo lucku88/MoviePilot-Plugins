@@ -26,7 +26,7 @@ class VueToy(_PluginBase):
     plugin_name = "Vue-玩偶"
     plugin_desc = "自己展位优先，动态收回、展出和管理玩偶盲盒。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9f8.png"
-    plugin_version = "0.2.11"
+    plugin_version = "0.2.12"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuetoy_"
@@ -265,15 +265,34 @@ class VueToy(_PluginBase):
                 bundle = self._fetch_bundle(session)
                 state = bundle["state"] or state
                 html = bundle["html"] or html
-                if self._should_pause_remote_placement(state):
+                available_count = self._available_doll_count(state)
+                reserve_required = self._personal_slot_reserve_count(state)
+                reserve_count = min(available_count, reserve_required)
+                external_quota = max(0, available_count - reserve_count)
+                if reserve_count and external_quota <= 0:
                     nearest = self._nearest_personal_collect_seconds(state)
                     logger.info(
-                        "%s 自家展位将在 %s 内可收回，本轮暂停外展",
+                        "%s 自家展位将在 %s 内可收回，已预留 %s 个玩偶，本轮暂停外展",
                         self.plugin_name,
                         self._format_duration(nearest),
+                        reserve_count,
                     )
-                else:
-                    placed_times.extend(self._place_target_slots(session, state, place_names))
+                elif reserve_count:
+                    logger.info(
+                        "%s 已为即将空出的自家展位预留 %s 个玩偶，剩余 %s 个继续外展",
+                        self.plugin_name,
+                        reserve_count,
+                        external_quota,
+                    )
+                if external_quota > 0:
+                    placed_times.extend(
+                        self._place_target_slots(
+                            session,
+                            state,
+                            place_names,
+                            reserve_count=reserve_count,
+                        )
+                    )
 
             final_bundle = self._fetch_bundle(session)
             final_state = final_bundle["state"] or state
@@ -1132,9 +1151,22 @@ class VueToy(_PluginBase):
             time.sleep(max(self._place_retry_delay / 1000.0, 0))
         return placed_times
 
-    def _place_target_slots(self, session: requests.Session, state: Dict[str, Any], place_names: List[str]) -> List[Dict[str, Any]]:
+    def _place_target_slots(
+        self,
+        session: requests.Session,
+        state: Dict[str, Any],
+        place_names: List[str],
+        reserve_count: int = 0,
+    ) -> List[Dict[str, Any]]:
         placed_times: List[Dict[str, Any]] = []
         remaining = [dict(item) for item in self._iter_dicts(state.get("doll_inventory") or []) if self._safe_int(item.get("available"), 0) > 0]
+        pending_reserve = max(0, self._safe_int(reserve_count, 0))
+        for doll in remaining:
+            available = max(0, self._safe_int(doll.get("available"), 0))
+            reserved = min(available, pending_reserve)
+            doll["available"] = available - reserved
+            pending_reserve -= reserved
+        remaining = [item for item in remaining if self._safe_int(item.get("available"), 0) > 0]
         if not remaining:
             return placed_times
         attempt_limit = max(1, min(3, self._max_target_try))
@@ -1190,35 +1222,68 @@ class VueToy(_PluginBase):
         return min(candidates) if candidates else None
 
     def _has_available_doll_in_state(self, state: Dict[str, Any]) -> bool:
-        return any(
-            self._safe_int(item.get("available"), 0) > 0
+        return self._available_doll_count(state) > 0
+
+    def _available_doll_count(self, state: Dict[str, Any]) -> int:
+        return sum(
+            max(0, self._safe_int(item.get("available"), 0))
             for item in self._iter_dicts(state.get("doll_inventory") or [])
         )
 
-    def _should_pause_remote_placement(self, state: Dict[str, Any]) -> bool:
+    def _personal_slot_reserve_count(self, state: Dict[str, Any]) -> int:
         if not self._auto_collect or not self._auto_place or self._self_slot_guard_hours <= 0:
-            return False
-        if not self._has_available_doll_in_state(state):
-            return False
-        nearest = self._nearest_personal_collect_seconds(state)
-        if nearest is None:
-            return False
-        return nearest <= self._self_slot_guard_hours * 3600
+            return 0
+        threshold = self._self_slot_guard_hours * 3600
+        reserve_count = 0
+        for slot in self._iter_dicts(state.get("personal_slots") or []):
+            if not (slot.get("occupant") or {}).get("viewer_is_occupant"):
+                continue
+            remaining = self._get_personal_remain_sec(slot)
+            if remaining is not None and remaining <= threshold:
+                reserve_count += 1
+        return reserve_count
+
+    def _remote_placement_quota(self, state: Dict[str, Any]) -> int:
+        available = self._available_doll_count(state)
+        reserve_count = min(available, self._personal_slot_reserve_count(state))
+        return max(0, available - reserve_count)
+
+    def _should_pause_remote_placement(self, state: Dict[str, Any]) -> bool:
+        available = self._available_doll_count(state)
+        return bool(
+            available > 0
+            and self._personal_slot_reserve_count(state) > 0
+            and self._remote_placement_quota(state) <= 0
+        )
 
     def _build_placement_guard(self, state: Dict[str, Any]) -> Dict[str, Any]:
         nearest = self._nearest_personal_collect_seconds(state)
-        active = self._should_pause_remote_placement(state)
         enabled = bool(self._auto_collect and self._auto_place and self._self_slot_guard_hours > 0)
-        if active:
-            text = f"自家展位将在 {self._format_duration(nearest)} 内完成，已暂停外展"
+        available = self._available_doll_count(state)
+        reserve_required = self._personal_slot_reserve_count(state)
+        reserve_count = min(available, reserve_required)
+        external_available = max(0, available - reserve_count)
+        active = reserve_count > 0
+        paused = active and external_available <= 0
+        if active and external_available > 0:
+            text = (
+                f"自家展位将在 {self._format_duration(nearest)} 内完成，"
+                f"已预留 {reserve_count} 个，另有 {external_available} 个可外展"
+            )
+        elif paused:
+            text = f"自家展位将在 {self._format_duration(nearest)} 内完成，已预留 {reserve_count} 个并暂停外展"
         elif enabled:
-            text = f"距离自家展位完成 {self._self_slot_guard_hours} 小时内暂停外展"
+            text = f"距离自家展位完成 {self._self_slot_guard_hours} 小时内按空位数量预留玩偶"
         else:
             text = "自家展位保护未启用"
         return {
             "enabled": enabled,
             "active": active,
+            "paused": paused,
             "hours": self._self_slot_guard_hours,
+            "reserve_count": reserve_count,
+            "reserve_required": reserve_required,
+            "external_available": external_available,
             "nearest_seconds": nearest,
             "nearest_time": self._format_ts(int(time.time()) + nearest) if nearest is not None else "",
             "text": text,

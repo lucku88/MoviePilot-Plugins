@@ -139,6 +139,102 @@ class VueToyBackendTests(unittest.TestCase):
 
         self.assertFalse(self.plugin._should_pause_remote_placement(state))
 
+    def test_remote_placement_reserves_near_slot_and_allows_surplus(self):
+        state = _toy_state(personal_remaining=1200, available=3)
+
+        self.assertEqual(1, self.plugin._personal_slot_reserve_count(state))
+        self.assertEqual(2, self.plugin._remote_placement_quota(state))
+        self.assertFalse(self.plugin._should_pause_remote_placement(state))
+
+        guard = self.plugin._build_placement_guard(state)
+        self.assertTrue(guard["active"])
+        self.assertEqual(1, guard["reserve_count"])
+        self.assertEqual(2, guard["external_available"])
+        self.assertIn("已预留 1 个", guard["text"])
+        self.assertIn("2 个可外展", guard["text"])
+
+    def test_remote_placement_reserves_each_near_personal_slot(self):
+        state = _toy_state(personal_remaining=1200, available=3)
+        state["personal_slots"].append({
+            "owner_id": 10,
+            "slot_index": 2,
+            "occupant": {
+                "viewer_is_occupant": True,
+                "doll_name": "安娜贝拉",
+                "time_until_collect": 1800,
+            },
+        })
+
+        self.assertEqual(2, self.plugin._personal_slot_reserve_count(state))
+        self.assertEqual(1, self.plugin._remote_placement_quota(state))
+
+    def test_run_job_passes_personal_reserve_to_remote_placement(self):
+        state = _toy_state(personal_remaining=1200, available=3)
+        reserve_counts = []
+
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_bundle = lambda session: {"state": state, "html": "<html></html>"}
+        self.plugin._collect_personal_slots = lambda session, names: None
+        self.plugin._collect_remote_slots = lambda session, current, names: None
+        self.plugin._place_personal_slots = lambda session, current, names: []
+        self.plugin._place_target_slots = (
+            lambda session, current, names, reserve_count=0: reserve_counts.append(reserve_count) or []
+        )
+        self.plugin._summarize_gains = lambda logs, started_at: (0, 0)
+        self.plugin._compute_next_run = lambda current, placed_times=None: 9999
+        self.plugin._refresh_and_store_status = lambda *args, **kwargs: {}
+
+        result = self.plugin.run_job(force=True, reason="manual")
+
+        self.assertTrue(result["success"])
+        self.assertEqual([1], reserve_counts)
+
+    def test_remote_placement_skips_reserved_inventory_units(self):
+        placed_keys = []
+        state = _toy_state(personal_remaining=1200, available=0)
+        state["doll_inventory"] = [
+            {
+                "doll_key": "reserved",
+                "name": "自家预留",
+                "available": 2,
+                "quantity": 2,
+                "display_seconds": 3600,
+            },
+            {
+                "doll_key": "surplus",
+                "name": "外展剩余",
+                "available": 2,
+                "quantity": 2,
+                "display_seconds": 3600,
+            },
+        ]
+
+        def post_action(session, action, payload=None, retry_network=False):
+            if action == "random_target":
+                return {
+                    "success": True,
+                    "target": {
+                        "owner_id": 20,
+                        "slots": [
+                            {"owner_id": 20, "slot_index": index, "occupant": None, "cooldown_active": False}
+                            for index in range(1, 4)
+                        ],
+                    },
+                }
+            if action == "place_doll":
+                placed_keys.append(payload["doll_key"])
+                return {"success": True}
+            return {"success": False}
+
+        self.plugin._post_action = post_action
+        self.plugin._place_retry_delay = 0
+
+        placed = self.plugin._place_target_slots(object(), state, [], reserve_count=2)
+
+        self.assertEqual(["surplus", "surplus"], placed_keys)
+        self.assertEqual(2, len(placed))
+
     def test_remote_target_search_is_limited_to_three_targets_per_run(self):
         calls = []
 

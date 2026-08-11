@@ -1,12 +1,12 @@
 import { importShared } from './__federation_fn_import-b37dd681.js';
 import { _ as _export_sfc } from './_plugin-vue_export-helper-c4c0bc37.js';
 
-const Config_vue_vue_type_style_index_0_scoped_631c7759_lang = '';
+const Config_vue_vue_type_style_index_0_scoped_3d59e05d_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,withModifiers:_withModifiers,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-631c7759"),n=n(),_popScopeId(),n);
+const _withScopeId = n => (_pushScopeId("data-v-3d59e05d"),n=n(),_popScopeId(),n);
 const _hoisted_1 = { class: "siqi-config" };
 const _hoisted_2 = { class: "siqi-topbar" };
 const _hoisted_3 = { class: "siqi-topbar__left" };
@@ -72,7 +72,7 @@ const _hoisted_36 = { class: "siqi-card__header" };
 const _hoisted_37 = { class: "siqi-card__title" };
 const _hoisted_38 = { class: "siqi-form-grid" };
 const _hoisted_39 = { class: "siqi-field" };
-const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。", -1));
+const _hoisted_40 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "默认 1 小时。按即将空出的自家展位数量预留玩偶，其余继续外展；设置 0 可关闭。", -1));
 const _hoisted_41 = { class: "siqi-field" };
 const _hoisted_42 = /*#__PURE__*/ _withScopeId(() => /*#__PURE__*/_createElementVNode("div", { class: "siqi-field-hint" }, "任务触发后随机等待 0 到该秒数，设置 0 表示不延迟。", -1));
 const _hoisted_43 = { class: "siqi-card cookie-card" };
@@ -586,6 +586,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-631c7759"]]);
+const ConfigView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3d59e05d"]]);
 
 export { ConfigView as default };

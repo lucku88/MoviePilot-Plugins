@@ -162,7 +162,7 @@
                   hide-details
                   class="siqi-input siqi-number-input"
                 />
-                <div class="siqi-field-hint">默认 1 小时。自己展位快到期且有可用玩偶时暂停外展；设置 0 可关闭。</div>
+                <div class="siqi-field-hint">默认 1 小时。按即将空出的自家展位数量预留玩偶，其余继续外展；设置 0 可关闭。</div>
               </div>
 
               <div class="siqi-field">
