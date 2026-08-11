@@ -39,7 +39,7 @@ class VuePanel(_PluginBase):
     plugin_name = "Vue-面板"
     plugin_desc = "个人用模块化面板。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4ca.png"
-    plugin_version = "0.1.38"
+    plugin_version = "0.1.39"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuepanel_"
@@ -265,9 +265,22 @@ class VuePanel(_PluginBase):
             logger.warning("%s 停止一次性调度失败：%s", self.plugin_name, err)
 
         try:
-            Scheduler().remove_plugin_job(self.__class__.__name__)
+            scheduler = self._get_existing_moviepilot_scheduler()
+            if scheduler:
+                scheduler.remove_plugin_job(self.__class__.__name__)
         except Exception:
             pass
+
+    @staticmethod
+    def _get_existing_moviepilot_scheduler():
+        getter = getattr(Scheduler, "get_existing_instance", None)
+        if callable(getter):
+            try:
+                return getter()
+            except Exception:
+                return None
+        instances = getattr(type(Scheduler), "_instances", None)
+        return instances.get(Scheduler) if isinstance(instances, dict) else None
 
     def _manual_worker(self):
         return self.run_job(force=True, reason="onlyonce")
