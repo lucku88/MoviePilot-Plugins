@@ -112,3 +112,54 @@ export async function reloadVuePanelBackend({
     error: lastError,
   }
 }
+
+export async function reconcileVuePanelBackend({
+  api,
+  expectedVersion,
+  initialPayload,
+  readStatus,
+  storage,
+  wait = defaultWait,
+  pollAttempts = 5,
+  pollDelayMs = 500,
+}) {
+  const backendVersion = extractBackendVersion(initialPayload)
+  const attempted = !!readStorage(storage, backendReloadSessionKey(expectedVersion))
+  const action = decideBackendVersionAction(expectedVersion, backendVersion, attempted)
+
+  if (action !== 'auto-reload') {
+    return {
+      action,
+      reloaded: false,
+      backendVersion,
+      payload: initialPayload,
+      reason: action,
+    }
+  }
+
+  const reloadResult = await reloadVuePanelBackend({
+    api,
+    expectedVersion,
+    readStatus,
+    storage,
+    wait,
+    pollAttempts,
+    pollDelayMs,
+  })
+
+  if (reloadResult.success) {
+    return {
+      ...reloadResult,
+      action: 'ready',
+      reloaded: true,
+    }
+  }
+
+  return {
+    ...reloadResult,
+    action: 'manual-reload',
+    reloaded: false,
+    backendVersion: reloadResult.backendVersion || backendVersion,
+    payload: reloadResult.payload || initialPayload,
+  }
+}

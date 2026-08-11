@@ -5,6 +5,7 @@ import {
   compareVersions,
   decideBackendVersionAction,
   extractBackendVersion,
+  reconcileVuePanelBackend,
   reloadVuePanelBackend,
 } from '../src/utils/backendVersion.js'
 
@@ -128,3 +129,50 @@ const pollingResult = await reloadVuePanelBackend({
 assert.equal(pollingResult.success, true, '后端接口切换有短暂延迟时应继续轮询')
 assert.equal(statusReads, 2)
 assert.equal(waits, 1)
+
+const reconcileCalls = []
+const reconcileResult = await reconcileVuePanelBackend({
+  api: {
+    get: async (path) => {
+      reconcileCalls.push(path)
+      return { success: true }
+    },
+  },
+  expectedVersion: '0.1.38',
+  initialPayload: { dashboard: { schema_version: '0.1.37' } },
+  readStatus: async () => ({ dashboard: { schema_version: '0.1.38' } }),
+  storage: createMemoryStorage(),
+  wait: async () => {},
+})
+
+assert.equal(reconcileResult.action, 'ready')
+assert.equal(reconcileResult.reloaded, true)
+assert.equal(reconcileResult.backendVersion, '0.1.38')
+assert.deepEqual(reconcileCalls, ['/plugin/reload/VuePanel'])
+
+const readyCalls = []
+const readyResult = await reconcileVuePanelBackend({
+  api: { get: async (path) => readyCalls.push(path) },
+  expectedVersion: '0.1.38',
+  initialPayload: { dashboard: { schema_version: '0.1.38' } },
+  readStatus: async () => ({ dashboard: { schema_version: '0.1.38' } }),
+  storage: createMemoryStorage(),
+  wait: async () => {},
+})
+
+assert.equal(readyResult.action, 'ready')
+assert.equal(readyResult.reloaded, false)
+assert.deepEqual(readyCalls, [], '同版本不能触发重载')
+
+const newerBackendCalls = []
+const newerBackendResult = await reconcileVuePanelBackend({
+  api: { get: async (path) => newerBackendCalls.push(path) },
+  expectedVersion: '0.1.37',
+  initialPayload: { dashboard: { schema_version: '0.1.38' } },
+  readStatus: async () => ({ dashboard: { schema_version: '0.1.38' } }),
+  storage: createMemoryStorage(),
+  wait: async () => {},
+})
+
+assert.equal(newerBackendResult.action, 'refresh-frontend')
+assert.deepEqual(newerBackendCalls, [], '浏览器前端较旧时不能反复重载新版后端')

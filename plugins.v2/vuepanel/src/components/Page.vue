@@ -36,6 +36,31 @@
       />
 
       <v-alert
+        v-if="backendUpdate.action !== 'ready'"
+        type="warning"
+        variant="tonal"
+        rounded="xl"
+        class="vpp-alert vpp-version-alert"
+      >
+        <div class="vpp-version-alert-content">
+          <div>
+            <strong>{{ backendUpdateTitle }}</strong>
+            <div class="vpp-version-alert-text">{{ backendUpdateMessage }}</div>
+          </div>
+          <v-btn
+            v-if="backendUpdate.action === 'manual-reload'"
+            class="vpp-confirm-btn vpp-version-reload-btn"
+            variant="text"
+            prepend-icon="mdi-reload"
+            :loading="backendUpdate.loading"
+            @click="reloadBackendManually"
+          >
+            重新加载后端
+          </v-btn>
+        </div>
+      </v-alert>
+
+      <v-alert
         v-if="message.text"
         :type="message.type"
         variant="tonal"
@@ -364,10 +389,18 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import BaseCronField from './ui/BaseCronField.vue'
 import { usePanelTheme } from '../composables/usePanelTheme'
+import {
+  backendReloadSessionKey,
+  decideBackendVersionAction,
+  extractBackendVersion,
+  reconcileVuePanelBackend,
+  reloadVuePanelBackend,
+} from '../utils/backendVersion.js'
 import { logEntryKey, logMatchesCard, visibleLogLines } from '../utils/logMatching.js'
 
 const DEFAULT_CRON = '5 8 * * *'
 const DEPRECATED_MODULE_KEYS = new Set(['newapi_checkin'])
+const FRONTEND_VERSION = __VUEPANEL_VERSION__
 
 const props = defineProps({
   api: { type: Object, required: true },
@@ -388,6 +421,13 @@ const status = reactive({
 
 const panelConfig = ref(createEmptyConfig())
 const message = reactive({ text: '', type: 'success' })
+const backendUpdate = reactive({
+  action: 'ready',
+  frontendVersion: FRONTEND_VERSION,
+  backendVersion: '',
+  loading: false,
+  error: '',
+})
 const dialog = reactive({ config: false, logs: false, copy: false })
 const loading = reactive({ refreshAll: false, runAll: false, cardRefresh: false, cardRun: false })
 const saving = reactive({ config: false, copy: false, delete: false, importConfig: false })
@@ -413,6 +453,23 @@ const resolvedThemeName = computed(() => {
   return fallbackThemeName.value
 })
 const themeClass = computed(() => `vpp-theme--${resolvedThemeName.value}`)
+const backendUpdateTitle = computed(() => {
+  if (backendUpdate.action === 'auto-reload') return '正在切换新版后端'
+  if (backendUpdate.action === 'refresh-frontend') return '前端页面仍是旧版本'
+  return '新版后端尚未切换完成'
+})
+const backendUpdateMessage = computed(() => {
+  const backendVersion = backendUpdate.backendVersion || '未识别'
+  const versions = `前端 ${backendUpdate.frontendVersion}，后端 ${backendVersion}。`
+  if (backendUpdate.action === 'auto-reload') {
+    return `${versions}正在使用 MoviePilot 安全重载，现有配置和日志不会被删除。`
+  }
+  if (backendUpdate.action === 'refresh-frontend') {
+    return `${versions}请关闭并重新打开 Vue-面板，以加载新版前端文件。`
+  }
+  const detail = backendUpdate.error ? ` ${backendUpdate.error}` : ''
+  return `${versions}可以手动重新加载后端，不需要重置插件或重新导入配置。${detail}`
+})
 
 const dashboard = computed(() => status.dashboard || {})
 const dashboardCards = computed(() => Array.isArray(dashboard.value.cards) ? dashboard.value.cards : [])
@@ -855,15 +912,123 @@ function applyStatusPayload(payload = {}) {
   return true
 }
 
-async function loadStatus(showError = true) {
+function getSessionStorage() {
   try {
-    const payload = await props.api.get('/plugin/VuePanel/status')
-    applyStatusPayload(payload)
-    return true
-  } catch (error) {
-    if (showError) flash(error?.message || '加载状态失败', 'error')
+    return typeof window !== 'undefined' ? window.sessionStorage : null
+  } catch (_) {
+    return null
+  }
+}
+
+function hasBackendReloadAttempt(storage) {
+  try {
+    return !!storage?.getItem?.(backendReloadSessionKey(FRONTEND_VERSION))
+  } catch (_) {
     return false
   }
+}
+
+function backendReloadError(result = {}) {
+  if (result.error?.message) return result.error.message
+  if (result.reason === 'version-mismatch') return '重载后接口仍返回旧版本，请手动重试。'
+  if (result.reason === 'status-unavailable') return '重载后暂时无法读取插件状态，请手动重试。'
+  if (result.reason === 'already-attempted') return '本次页面已经自动尝试过一次。'
+  return '自动切换失败，请手动重试。'
+}
+
+async function readStatusPayload() {
+  return props.api.get('/plugin/VuePanel/status')
+}
+
+async function loadStatus(showError = true) {
+  try {
+    const payload = await readStatusPayload()
+    applyStatusPayload(payload)
+    return payload
+  } catch (error) {
+    if (showError) flash(error?.message || '加载状态失败', 'error')
+    return null
+  }
+}
+
+async function reconcileBackendVersion(payload) {
+  if (!payload) return
+
+  const storage = getSessionStorage()
+  const backendVersion = extractBackendVersion(payload)
+  const action = decideBackendVersionAction(
+    FRONTEND_VERSION,
+    backendVersion,
+    hasBackendReloadAttempt(storage),
+  )
+  Object.assign(backendUpdate, {
+    action,
+    backendVersion,
+    loading: action === 'auto-reload',
+    error: '',
+  })
+
+  if (action !== 'auto-reload') return
+
+  const result = await reconcileVuePanelBackend({
+    api: props.api,
+    expectedVersion: FRONTEND_VERSION,
+    initialPayload: payload,
+    readStatus: readStatusPayload,
+    storage,
+  })
+
+  if (result.success) {
+    applyStatusPayload(result.payload)
+    Object.assign(backendUpdate, {
+      action: 'ready',
+      backendVersion: result.backendVersion,
+      loading: false,
+      error: '',
+    })
+    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    return
+  }
+
+  if (result.payload) applyStatusPayload(result.payload)
+  Object.assign(backendUpdate, {
+    action: 'manual-reload',
+    backendVersion: result.backendVersion || backendVersion,
+    loading: false,
+    error: backendReloadError(result),
+  })
+}
+
+async function reloadBackendManually() {
+  backendUpdate.loading = true
+  backendUpdate.error = ''
+  const result = await reloadVuePanelBackend({
+    api: props.api,
+    expectedVersion: FRONTEND_VERSION,
+    readStatus: readStatusPayload,
+    storage: getSessionStorage(),
+    force: true,
+  })
+
+  if (result.success) {
+    applyStatusPayload(result.payload)
+    Object.assign(backendUpdate, {
+      action: 'ready',
+      backendVersion: result.backendVersion,
+      loading: false,
+      error: '',
+    })
+    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    return
+  }
+
+  if (result.payload) applyStatusPayload(result.payload)
+  Object.assign(backendUpdate, {
+    action: 'manual-reload',
+    backendVersion: result.backendVersion || backendUpdate.backendVersion,
+    loading: false,
+    error: backendReloadError(result),
+  })
 }
 
 async function persistCards(nextCards, successText) {
@@ -1140,7 +1305,8 @@ watch(
 
 onMounted(async () => {
   panelConfig.value = normalizeConfig(props.initialConfig || {})
-  await loadStatus()
+  const payload = await loadStatus()
+  await reconcileBackendVersion(payload)
 })
 
 onBeforeUnmount(() => {
@@ -1389,6 +1555,30 @@ onBeforeUnmount(() => {
 .vpp-alert {
   border: 1px solid var(--vpp-line);
   background: color-mix(in srgb, var(--vpp-field-bg) 92%, transparent);
+}
+
+.vpp-version-alert {
+  border-color: color-mix(in srgb, var(--vpp-yellow) 38%, var(--vpp-line)) !important;
+  color: var(--vpp-text) !important;
+}
+
+.vpp-version-alert-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.vpp-version-alert-text {
+  margin-top: 3px;
+  color: var(--vpp-text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vpp-version-reload-btn {
+  flex: 0 0 auto;
 }
 
 .vpp-stat-grid {
@@ -2256,6 +2446,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 560px) {
+  .vpp-version-alert-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .vpp-card-title-row,
   .vpp-dialog-head {
     flex-direction: column;
