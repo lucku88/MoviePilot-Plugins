@@ -578,7 +578,7 @@ const _sfc_main = {
 const props = __props;
 
 const DEPRECATED_MODULE_KEYS = new Set(['newapi_checkin']);
-const FRONTEND_VERSION = "0.1.37";
+const FRONTEND_VERSION = "0.1.38";
 
 
 
