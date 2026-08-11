@@ -1,10 +1,11 @@
 import random
 import re
 import socket
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
-from functools import partial
+from functools import partial, wraps
 from html import unescape
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -23,6 +24,15 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.scheduler import Scheduler
 from app.schemas import NotificationType
+
+
+def _serialized_state_operation(method):
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._state_operation_lock:
+            return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class VuePanel(_PluginBase):
@@ -47,6 +57,7 @@ class VuePanel(_PluginBase):
         "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
     )
     HISTORY_LIMIT = 30
+    _state_operation_lock = threading.RLock()
 
     MODULES: List[Dict[str, str]] = [
         {
@@ -301,6 +312,7 @@ class VuePanel(_PluginBase):
             return {"success": False, "message": "缺少 card_id", "status": self._build_status(auto_refresh=False)}
         return self.run_job(force=True, reason="manual-card", card_id=card_id)
 
+    @_serialized_state_operation
     def run_job(
         self,
         force: bool = False,
@@ -575,6 +587,7 @@ class VuePanel(_PluginBase):
             }
         )
 
+    @_serialized_state_operation
     def _refresh_state(self, reason: str = "refresh", card_id: str = "") -> Dict[str, Any]:
         states = self._load_card_states()
         targets = self._select_cards_for_refresh(card_id=card_id)

@@ -1,6 +1,10 @@
 ﻿<template>
   <div ref="rootEl" class="vuepanel-page" :class="themeClass">
-    <div class="vpp-shell">
+    <div
+      class="vpp-shell"
+      :class="{ 'is-backend-reloading': backendUpdate.loading }"
+      :aria-busy="backendUpdate.loading"
+    >
       <header class="vpp-control-panel">
         <div class="vpp-panel-left">
           <v-text-field
@@ -980,13 +984,16 @@ async function reconcileBackendVersion(payload) {
 
   if (result.success) {
     applyStatusPayload(result.payload)
+    const nextAction = result.action === 'refresh-frontend' ? 'refresh-frontend' : 'ready'
     Object.assign(backendUpdate, {
-      action: 'ready',
+      action: nextAction,
       backendVersion: result.backendVersion,
       loading: false,
       error: '',
     })
-    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    if (nextAction === 'ready') {
+      flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    }
     return
   }
 
@@ -1012,13 +1019,16 @@ async function reloadBackendManually() {
 
   if (result.success) {
     applyStatusPayload(result.payload)
+    const nextAction = result.reason === 'refresh-frontend' ? 'refresh-frontend' : 'ready'
     Object.assign(backendUpdate, {
-      action: 'ready',
+      action: nextAction,
       backendVersion: result.backendVersion,
       loading: false,
       error: '',
     })
-    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    if (nextAction === 'ready') {
+      flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`)
+    }
     return
   }
 
@@ -1426,6 +1436,11 @@ onBeforeUnmount(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2px;
+}
+
+.vpp-shell.is-backend-reloading > :not(.vpp-version-alert) {
+  pointer-events: none;
+  user-select: none;
 }
 
 .vuepanel-page {

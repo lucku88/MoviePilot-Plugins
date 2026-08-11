@@ -96,8 +96,14 @@ export async function reloadVuePanelBackend({
     try {
       payload = await readStatus()
       backendVersion = extractBackendVersion(payload)
-      if (compareVersions(backendVersion, expectedVersion) === 0) {
-        return { success: true, reason: 'ready', backendVersion, payload }
+      const comparison = compareVersions(backendVersion, expectedVersion)
+      if (comparison === 0 || comparison === 1) {
+        return {
+          success: true,
+          reason: comparison === 1 ? 'refresh-frontend' : 'ready',
+          backendVersion,
+          payload,
+        }
       }
     } catch (error) {
       lastError = error
@@ -150,7 +156,7 @@ export async function reconcileVuePanelBackend({
   if (reloadResult.success) {
     return {
       ...reloadResult,
-      action: 'ready',
+      action: reloadResult.reason === 'refresh-frontend' ? 'refresh-frontend' : 'ready',
       reloaded: true,
     }
   }

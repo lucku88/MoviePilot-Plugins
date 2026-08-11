@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && node ./scripts/postbuild.mjs",
     "preview": "vite preview",
-    "test:frontend": "node tests/test_backend_version.mjs && node tests/test_log_matching.mjs"
+    "test:frontend": "node tests/test_backend_version.mjs && node tests/test_log_matching.mjs && node tests/test_page_reload_guard.mjs"
   },
   "dependencies": {
     "vue": "3.3.4",

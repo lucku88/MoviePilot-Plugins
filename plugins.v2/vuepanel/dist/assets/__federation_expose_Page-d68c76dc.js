@@ -280,8 +280,14 @@ async function reloadVuePanelBackend({
     try {
       payload = await readStatus();
       backendVersion = extractBackendVersion(payload);
-      if (compareVersions(backendVersion, expectedVersion) === 0) {
-        return { success: true, reason: 'ready', backendVersion, payload }
+      const comparison = compareVersions(backendVersion, expectedVersion);
+      if (comparison === 0 || comparison === 1) {
+        return {
+          success: true,
+          reason: comparison === 1 ? 'refresh-frontend' : 'ready',
+          backendVersion,
+          payload,
+        }
       }
     } catch (error) {
       lastError = error;
@@ -334,7 +340,7 @@ async function reconcileVuePanelBackend({
   if (reloadResult.success) {
     return {
       ...reloadResult,
-      action: 'ready',
+      action: reloadResult.reason === 'refresh-frontend' ? 'refresh-frontend' : 'ready',
       reloaded: true,
     }
   }
@@ -435,13 +441,13 @@ function logMatchesCard(item, card) {
   return Boolean(cardTitle && itemTitle && cardTitle === itemTitle)
 }
 
-const Page_vue_vue_type_style_index_0_scoped_207a4888_lang = '';
+const Page_vue_vue_type_style_index_0_scoped_4e87290d_lang = '';
 
 const {resolveComponent:_resolveComponent,createVNode:_createVNode,createElementVNode:_createElementVNode,createTextVNode:_createTextVNode,withCtx:_withCtx,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,renderList:_renderList,Fragment:_Fragment,createElementBlock:_createElementBlock,normalizeClass:_normalizeClass,unref:_unref,pushScopeId:_pushScopeId,popScopeId:_popScopeId} = await importShared('vue');
 
 
-const _withScopeId = n => (_pushScopeId("data-v-207a4888"),n=n(),_popScopeId(),n);
-const _hoisted_1 = { class: "vpp-shell" };
+const _withScopeId = n => (_pushScopeId("data-v-4e87290d"),n=n(),_popScopeId(),n);
+const _hoisted_1 = ["aria-busy"];
 const _hoisted_2 = { class: "vpp-control-panel" };
 const _hoisted_3 = { class: "vpp-panel-left" };
 const _hoisted_4 = { class: "vpp-panel-right" };
@@ -1153,13 +1159,16 @@ async function reconcileBackendVersion(payload) {
 
   if (result.success) {
     applyStatusPayload(result.payload);
+    const nextAction = result.action === 'refresh-frontend' ? 'refresh-frontend' : 'ready';
     Object.assign(backendUpdate, {
-      action: 'ready',
+      action: nextAction,
       backendVersion: result.backendVersion,
       loading: false,
       error: '',
     });
-    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`);
+    if (nextAction === 'ready') {
+      flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`);
+    }
     return
   }
 
@@ -1185,13 +1194,16 @@ async function reloadBackendManually() {
 
   if (result.success) {
     applyStatusPayload(result.payload);
+    const nextAction = result.reason === 'refresh-frontend' ? 'refresh-frontend' : 'ready';
     Object.assign(backendUpdate, {
-      action: 'ready',
+      action: nextAction,
       backendVersion: result.backendVersion,
       loading: false,
       error: '',
     });
-    flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`);
+    if (nextAction === 'ready') {
+      flash(`后端已安全切换到 v${FRONTEND_VERSION}，原有配置已保留`);
+    }
     return
   }
 
@@ -1501,7 +1513,10 @@ return (_ctx, _cache) => {
     ref: rootEl,
     class: _normalizeClass(["vuepanel-page", themeClass.value])
   }, [
-    _createElementVNode("div", _hoisted_1, [
+    _createElementVNode("div", {
+      class: _normalizeClass(["vpp-shell", { 'is-backend-reloading': backendUpdate.loading }]),
+      "aria-busy": backendUpdate.loading
+    }, [
       _createElementVNode("header", _hoisted_2, [
         _createElementVNode("div", _hoisted_3, [
           _createVNode(_component_v_text_field, {
@@ -1730,7 +1745,7 @@ return (_ctx, _cache) => {
           ? (_openBlock(), _createElementBlock("div", _hoisted_30, _toDisplayString(searchQuery.value ? '没有找到匹配的功能模块。' : '当前还没有可展示的功能卡片。'), 1))
           : _createCommentVNode("", true)
       ])
-    ]),
+    ], 10, _hoisted_1),
     _createVNode(_component_v_dialog, {
       modelValue: dialog.config,
       "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((dialog.config) = $event)),
@@ -2135,6 +2150,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-207a4888"]]);
+const PageView = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-4e87290d"]]);
 
 export { PageView as default, usePanelTheme as u };

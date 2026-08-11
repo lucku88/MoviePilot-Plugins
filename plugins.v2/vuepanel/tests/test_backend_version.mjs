@@ -176,3 +176,16 @@ const newerBackendResult = await reconcileVuePanelBackend({
 
 assert.equal(newerBackendResult.action, 'refresh-frontend')
 assert.deepEqual(newerBackendCalls, [], '浏览器前端较旧时不能反复重载新版后端')
+
+const upgradedDuringReloadResult = await reconcileVuePanelBackend({
+  api: { get: async () => ({ success: true }) },
+  expectedVersion: '0.1.38',
+  initialPayload: { dashboard: { schema_version: '0.1.37' } },
+  readStatus: async () => ({ dashboard: { schema_version: '0.1.39' } }),
+  storage: createMemoryStorage(),
+  wait: async () => {},
+})
+
+assert.equal(upgradedDuringReloadResult.success, true, '重载得到更高版本后端也应视为切换成功')
+assert.equal(upgradedDuringReloadResult.action, 'refresh-frontend', '后端更高时应提示重新打开前端')
+assert.equal(upgradedDuringReloadResult.backendVersion, '0.1.39')

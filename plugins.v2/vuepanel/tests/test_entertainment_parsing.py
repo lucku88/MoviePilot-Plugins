@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+import threading
 import types
 import unittest
 from pathlib import Path
@@ -457,6 +458,74 @@ class CardRetryTest(unittest.TestCase):
 
         self.assertTrue(result["success"])
         self.assertEqual(calls, [card["id"]])
+
+    def test_state_refresh_and_execution_do_not_overlap(self):
+        plugin = self.VuePanel()
+        card = self._card()
+        card["notify"] = False
+        plugin._cards = [card]
+        plugin._notify = False
+        plugin._random_delay_max_seconds = 0
+        plugin._load_card_states = lambda: {}
+        plugin._save_card_states = lambda _states: None
+        plugin._build_dashboard = lambda _states: {}
+        plugin._save_schedule_meta = lambda: None
+        plugin._append_history = lambda _state: None
+        plugin._build_status = lambda auto_refresh=False: {}
+        plugin.save_data = lambda *_args, **_kwargs: None
+        plugin._result_to_state = lambda target, _result, previous=None, record_run=False: {
+            "card_id": target["id"],
+            "module_icon": "🪐",
+            "title": target["title"],
+            "status_text": "今日签到已完成。",
+            "last_success": True,
+            "level": "success",
+        }
+
+        refresh_started = threading.Event()
+        allow_refresh_finish = threading.Event()
+        run_started = threading.Event()
+        errors = []
+
+        def inspect_card(_card):
+            refresh_started.set()
+            if not allow_refresh_finish.wait(2):
+                raise RuntimeError("刷新线程等待超时")
+            return plugin._success_result("状态正常", "今日签到已完成。")
+
+        def execute_card(_card):
+            run_started.set()
+            return plugin._success_result("签到成功", "今日签到已完成。")
+
+        def refresh_state():
+            try:
+                plugin._refresh_state(reason="status-init")
+            except BaseException as error:
+                errors.append(error)
+
+        def run_job():
+            try:
+                plugin.run_job(target_cards=[card])
+            except BaseException as error:
+                errors.append(error)
+
+        plugin._inspect_card = inspect_card
+        plugin._execute_card_with_retry = execute_card
+        refresh_thread = threading.Thread(target=refresh_state)
+        run_thread = threading.Thread(target=run_job)
+        refresh_thread.start()
+        self.assertTrue(refresh_started.wait(1))
+        run_thread.start()
+        overlapped = run_started.wait(0.2)
+        allow_refresh_finish.set()
+        refresh_thread.join(3)
+        run_thread.join(3)
+
+        self.assertFalse(overlapped, "状态刷新未结束前不应开始执行卡片")
+        self.assertTrue(run_started.is_set())
+        self.assertFalse(refresh_thread.is_alive())
+        self.assertFalse(run_thread.is_alive())
+        self.assertEqual([], errors)
 
 
 if __name__ == "__main__":
