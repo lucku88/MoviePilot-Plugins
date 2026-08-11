@@ -37,7 +37,7 @@ class VueFarm(_PluginBase):
     plugin_name = "Vue-农场"
     plugin_desc = "动态收菜、种植、出售、按时间段偷菜、随机点赞。"
     plugin_icon = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f331.png"
-    plugin_version = "0.2.15"
+    plugin_version = "0.2.16"
     plugin_author = "lucku88"
     author_url = "https://github.com/lucku88/MoviePilot-Plugins/"
     plugin_config_prefix = "vuefarm_"
@@ -344,6 +344,7 @@ class VueFarm(_PluginBase):
             harvest_snapshot: List[Dict[str, Any]] = []
             sell_snapshot: List[Dict[str, Any]] = []
             sell_income_actual = 0
+            sell_accounted_quantities: Dict[tuple, int] = {}
             plant_snapshot: List[Dict[str, Any]] = []
             plant_cost_actual = 0
             sell_amount_estimate = 0
@@ -380,6 +381,8 @@ class VueFarm(_PluginBase):
                         if not result or result.get("success", True):
                             sell_success_count += 1
                             sell_qty = self._safe_int(item.get("quantity"), 0)
+                            sell_key = self._inventory_item_key(item)
+                            sell_accounted_quantities[sell_key] = sell_accounted_quantities.get(sell_key, 0) + sell_qty
                             sell_income_actual += self._safe_int(
                                 (result or {}).get("gain"),
                                 sell_qty * self._safe_int(item.get("unit_reward"), 0),
@@ -387,8 +390,26 @@ class VueFarm(_PluginBase):
                             sell_snapshot.append(self._normalize_sell_item(result or {}, item, sell_qty))
                     except Exception as err:
                         logger.warning("sell_inventory failed: %s", err)
-                action_sell = sell_success_count > 0
                 data = self._fetch_state(session)
+                reconciled_items = self._inventory_sold_delta_items(
+                    inventory,
+                    data.get("inventory") or [],
+                    sell_accounted_quantities,
+                )
+                for reconciled_item in reconciled_items:
+                    sell_success_count += 1
+                    sell_income_actual += self._safe_int(reconciled_item.get("qty"), 0) * self._safe_int(
+                        reconciled_item.get("unit"),
+                        0,
+                    )
+                    sell_snapshot.append(reconciled_item)
+                    logger.info(
+                        "%s 出售响应异常后复查确认成功：%s×%s",
+                        self.plugin_name,
+                        reconciled_item.get("name") or "作物",
+                        reconciled_item.get("qty") or 0,
+                    )
+                action_sell = sell_success_count > 0
                 logger.info("INFO 售出完成")
 
             empty_count = self._count_empty_plots(data)
@@ -3298,6 +3319,46 @@ class VueFarm(_PluginBase):
                 "icon": item.get("icon") or self._crop_icon.get(name, "🌱"),
             })
         return added_items
+
+    @staticmethod
+    def _inventory_item_key(item: Dict[str, Any]) -> tuple:
+        seed_id = item.get("seed_id")
+        if seed_id not in (None, ""):
+            return ("id", str(seed_id))
+        return ("name", str(item.get("name") or "作物"))
+
+    def _inventory_sold_delta_items(
+        self,
+        before_inventory: Any,
+        after_inventory: Any,
+        accounted_quantities: Optional[Dict[tuple, int]] = None,
+    ) -> List[Dict[str, Any]]:
+        """根据出售前后背包数量补记已被网站处理、但响应超时的出售结果。"""
+        before_items = [item for item in (before_inventory or []) if isinstance(item, dict)]
+        after_items = [item for item in (after_inventory or []) if isinstance(item, dict)]
+        after_quantities = {
+            self._inventory_item_key(item): self._safe_int(item.get("quantity"), 0)
+            for item in after_items
+        }
+        accounted = accounted_quantities or {}
+        reconciled: List[Dict[str, Any]] = []
+        for item in before_items:
+            key = self._inventory_item_key(item)
+            sold_quantity = max(
+                0,
+                self._safe_int(item.get("quantity"), 0) - after_quantities.get(key, 0),
+            )
+            missing_quantity = max(0, sold_quantity - self._safe_int(accounted.get(key), 0))
+            if missing_quantity <= 0:
+                continue
+            name = str(item.get("name") or "作物")
+            reconciled.append({
+                "name": name,
+                "qty": missing_quantity,
+                "unit": self._safe_int(item.get("unit_reward"), 0),
+                "icon": item.get("icon") or self._crop_icon.get(name, "🌱"),
+            })
+        return reconciled
 
     def _normalize_harvest_items(
         self,

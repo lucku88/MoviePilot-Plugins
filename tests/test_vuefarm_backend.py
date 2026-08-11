@@ -306,7 +306,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(payload, result["payload"])
 
     def test_release_metadata_matches_vuefarm_version(self):
-        expected = "0.2.15"
+        expected = "0.2.16"
         package = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package.json").read_text(encoding="utf-8"))
         package_lock = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package-lock.json").read_text(encoding="utf-8"))
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))["VueFarm"]
@@ -319,7 +319,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(expected, market["version"])
         self.assertIn(f"v{expected}", market["history"])
         latest_note = market["history"][f"v{expected}"]
-        for phrase in ("站点 Cookie", "输入框", "自动同步", "保留配置"):
+        for phrase in ("响应超时", "背包", "补齐", "保留配置"):
             self.assertIn(phrase, latest_note)
         self.assertIn(f"| `Vue-农场` | `v{expected}` |", readme)
 
@@ -924,6 +924,79 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertGreaterEqual(len(fetch_calls), 3)
         self.assertEqual(now + 14400, schedule_calls[-1])
+
+    def test_run_job_reconciles_sale_when_response_times_out_after_site_succeeds(self):
+        mushroom = {
+            "id": 5,
+            "name": "蘑菇",
+            "icon": "🍄",
+            "cost": 8400,
+            "grow_time": 604800,
+            "base_reward": 10080,
+            "unlocked": 1,
+        }
+        inventory = [
+            {"seed_id": 1, "name": "萝卜", "icon": "🥕", "quantity": 49, "unit_reward": 220},
+            {"seed_id": 2, "name": "西红柿", "icon": "🍅", "quantity": 9, "unit_reward": 450},
+            {"seed_id": 3, "name": "玉米", "icon": "🌽", "quantity": 25, "unit_reward": 1380},
+            {"seed_id": 4, "name": "茄子", "icon": "🍆", "quantity": 1, "unit_reward": 4230},
+            {"seed_id": 5, "name": "蘑菇", "icon": "🍄", "quantity": 24, "unit_reward": 10080},
+        ]
+        before_sale = {
+            "success": True,
+            "inventory": inventory,
+            "seeds": [mushroom],
+            "lands": [],
+            "user_lands": [],
+            "user_logs": [],
+        }
+        after_sale = {**before_sale, "inventory": []}
+        after_plant = {
+            **after_sale,
+            "user_lands": [{"seed_id": 5, "plot_index": index} for index in range(24)],
+        }
+        fetch_results = [before_sale, after_sale]
+        history_lines = []
+
+        self.plugin._enable_sell = True
+        self.plugin._enable_plant = True
+        self.plugin._ensure_cookie = lambda: None
+        self.plugin._build_session = lambda: object()
+        self.plugin._fetch_state = lambda session: fetch_results.pop(0)
+        self.plugin._collect_ready_plots = lambda data: []
+        self.plugin._count_empty_plots = lambda data: 24
+        self.plugin._pick_seed = lambda data: mushroom
+        self.plugin._count_seed_plots = lambda data, seed_id: len(data.get("user_lands") or [])
+        self.plugin._refetch_state_until = lambda *args, **kwargs: after_plant
+        self.plugin._compute_next_run = lambda data: int(time.time()) + 604800
+        self.plugin._schedule_next_run = lambda *args, **kwargs: None
+        self.plugin._parse_logs = lambda *args, **kwargs: {}
+        self.plugin._build_state_record = lambda *args, **kwargs: {}
+        self.plugin._build_ui_state = lambda *args, **kwargs: {}
+        self.plugin._build_status = lambda *args, **kwargs: {}
+        self.plugin._append_history = lambda title, lines: history_lines.extend(lines)
+
+        def post_action(session, action, payload=None, retry_network=False):
+            if action == "plant_fill_empty":
+                return {"success": True, "planted": 24, "total_cost": 201600}
+            if action != "sell_inventory":
+                self.fail(f"未预期动作：{action}")
+            if payload["seed_id"] == 5:
+                raise TimeoutError("网站已处理成功，但客户端等待响应超时")
+            item = next(entry for entry in inventory if entry["seed_id"] == payload["seed_id"])
+            return {"success": True, "gain": item["quantity"] * item["unit_reward"]}
+
+        self.plugin._post_action = post_action
+
+        result = self.plugin.run_job(force=True, reason="manual-api")
+
+        self.assertTrue(result["success"])
+        self.assertIn(
+            "🧺售出：🥕萝卜×49  🍅西红柿×9  🌽玉米×25  🍆茄子×1  🍄蘑菇×24",
+            history_lines,
+        )
+        self.assertIn("💰收益：93880 魔力", history_lines)
+        self.assertNotIn("💰收益：-148040 魔力", history_lines)
 
     def test_save_config_runs_full_job_after_refresh_when_ready(self):
         run_calls = []
