@@ -306,7 +306,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(payload, result["payload"])
 
     def test_release_metadata_matches_vuefarm_version(self):
-        expected = "0.2.16"
+        expected = "0.2.17"
         package = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package.json").read_text(encoding="utf-8"))
         package_lock = json.loads((REPO_ROOT / "plugins.v2" / "vuefarm" / "package-lock.json").read_text(encoding="utf-8"))
         market = json.loads((REPO_ROOT / "package.v2.json").read_text(encoding="utf-8"))["VueFarm"]
@@ -319,7 +319,7 @@ class VueFarmBackendTests(unittest.TestCase):
         self.assertEqual(expected, market["version"])
         self.assertIn(f"v{expected}", market["history"])
         latest_note = market["history"][f"v{expected}"]
-        for phrase in ("响应超时", "背包", "补齐", "保留配置"):
+        for phrase in ("容器重启", "动态", "错过", "保留配置"):
             self.assertIn(phrase, latest_note)
         self.assertIn(f"| `Vue-农场` | `v{expected}` |", readme)
 

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = ROOT / "plugins.v2" / "vuepill"
 DIST_DIR = PLUGIN_DIR / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-EXPECTED_VERSION = "0.2.15"
+EXPECTED_VERSION = "0.2.16"
 NPM_CI_TIMEOUT_SECONDS = 300
 NPM_BUILD_TIMEOUT_SECONDS = 180
 BUILD_INPUT_PATHS = (
@@ -54,6 +54,11 @@ EXPECTED_HISTORY_V0214 = (
     "修正 Vue-魔丸 炼造工坊操作区：配方名称与数量框、炼造按钮合并到同一行，材料独立排列，"
     "去掉重复的红色上限提示；手机端按标题、材料、操作纵向排列，并继续适配浅色和深色主题。"
     "v0.2.x 小版本升级保留现有配置、Cookie、执行历史和动态调度计划。"
+)
+EXPECTED_HISTORY_V0216 = (
+    "修复 Vue-魔丸 在 MoviePilot 容器重启或更新后，启动初始化和动态一次性任务可能因调度器"
+    "启动较慢而被判定为错过的问题；任务迟到后仍会执行一次状态刷新，并沿用现有规则判断是否补跑。"
+    "v0.2.x 小版本升级继续保留配置、Cookie、执行历史和动态调度计划。"
 )
 EXPECTED_HISTORY_V0215 = (
     "统一 Vue-魔丸 Cookie 配置为 Vue-思齐农场同款紧凑密码框，查看和站点同步按钮都放在输入框内；"
@@ -115,6 +120,7 @@ EXPECTED_HISTORY_V020 = (
     "插件不再提供强制 IPv4 设置，站点连接由系统自动选择可用的 IPv4 或 IPv6。"
 )
 EXPECTED_HISTORY_KEYS = [
+    "v0.2.16",
     "v0.2.15",
     "v0.2.14",
     "v0.2.13",
@@ -526,7 +532,7 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
                     build_inputs=("../outside-secret.txt",),
                 )
 
-    def test_release_versions_are_consistently_v0214(self):
+    def test_release_versions_are_consistent(self):
         init_source = (PLUGIN_DIR / "__init__.py").read_text(encoding="utf-8")
         version_match = re.search(
             r'plugin_version\s*=\s*["\']([^"\']+)["\']', init_source
@@ -554,6 +560,9 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
         market = read_json(ROOT / "package.v2.json")["VuePill"]
         history = market["history"]
         self.assertEqual(EXPECTED_HISTORY_KEYS, list(history))
+        self.assertEqual(EXPECTED_HISTORY_V0216, history["v0.2.16"])
+        for phrase in ("容器重启", "动态", "错过", "保留配置"):
+            self.assertIn(phrase, history["v0.2.16"])
         self.assertEqual(EXPECTED_HISTORY_V0215, history["v0.2.15"])
         self.assertEqual(EXPECTED_HISTORY_V0214, history["v0.2.14"])
         self.assertEqual(EXPECTED_HISTORY_V0213, history["v0.2.13"])
@@ -573,7 +582,10 @@ class VuePillReleaseMetadataTest(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         required_readme_text = (
-            "| `Vue-魔丸` | `v0.2.15` |",
+            "| `Vue-魔丸` | `v0.2.16` |",
+            "启动初始化和动态搬砖、沙滩任务",
+            "调度器启动较慢",
+            "原有搬砖 Cron 和沙滩冷却规则",
             "Cookie 配置改为 `Vue-思齐农场` 同款紧凑密码框",
             "优先读取 MoviePilot 的 `si-qi.xyz` 站点 Cookie",
             "站点读取失败时才使用已保存值作为备用",
