@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_INITS = {
+    "vuefarm": REPO_ROOT / "plugins.v2" / "vuefarm" / "__init__.py",
     "vuepill": REPO_ROOT / "plugins.v2" / "vuepill" / "__init__.py",
     "vuetoy": REPO_ROOT / "plugins.v2" / "vuetoy" / "__init__.py",
     "vueemoji": REPO_ROOT / "plugins.v2" / "vueemoji" / "__init__.py",
