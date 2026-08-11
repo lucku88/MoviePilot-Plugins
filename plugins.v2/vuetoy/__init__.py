@@ -184,7 +184,12 @@ class VueToy(_PluginBase):
                     "name": "Vue-玩偶初始化" if self._bootstrap_pending else "Vue-玩偶智能调度",
                     "trigger": "date",
                     "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
-                    "kwargs": {"run_date": next_run},
+                    "kwargs": {
+                        "run_date": next_run,
+                        "misfire_grace_time": None,
+                        "coalesce": True,
+                        "max_instances": 1,
+                    },
                 })
         return services
 

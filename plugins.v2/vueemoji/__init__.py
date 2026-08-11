@@ -181,7 +181,12 @@ class VueEmoji(_PluginBase):
                     "name": "Vue-表情初始化" if self._bootstrap_pending else "Vue-表情智能调度",
                     "trigger": "date",
                     "func": self._bootstrap_worker if self._bootstrap_pending else self._auto_worker,
-                    "kwargs": {"run_date": next_run},
+                    "kwargs": {
+                        "run_date": next_run,
+                        "misfire_grace_time": None,
+                        "coalesce": True,
+                        "max_instances": 1,
+                    },
                 })
         if self._enabled and self._auto_recruit:
             recruit_run = self._get_recruit_next_run_for_service()
@@ -191,7 +196,12 @@ class VueEmoji(_PluginBase):
                     "name": "Vue-表情自动挖角",
                     "trigger": "date",
                     "func": self._recruit_worker,
-                    "kwargs": {"run_date": recruit_run},
+                    "kwargs": {
+                        "run_date": recruit_run,
+                        "misfire_grace_time": None,
+                        "coalesce": True,
+                        "max_instances": 1,
+                    },
                 })
         return services
 

@@ -270,7 +270,12 @@ class VueFarm(_PluginBase):
                     "name": "Vue-农场初始化" if self._bootstrap_pending else "Vue-农场智能调度",
                     "trigger": "date",
                     "func": job_func,
-                    "kwargs": {"run_date": next_run},
+                    "kwargs": {
+                        "run_date": next_run,
+                        "misfire_grace_time": None,
+                        "coalesce": True,
+                        "max_instances": 1,
+                    },
                 })
             if self._auto_steal or self._auto_like:
                 try:
