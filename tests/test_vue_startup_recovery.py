@@ -98,7 +98,7 @@ class VueStartupRecoveryTests(unittest.TestCase):
 
                 self.assertEqual(0, SchedulerProbe.constructed)
 
-    def test_stop_service_removes_job_from_existing_moviepilot_scheduler(self):
+    def test_stop_service_leaves_existing_moviepilot_jobs_for_host_reload(self):
         for plugin_key, class_name in self.PLUGIN_CLASSES.items():
             with self.subTest(plugin=plugin_key):
                 module = _load_plugin(plugin_key)
@@ -127,9 +127,9 @@ class VueStartupRecoveryTests(unittest.TestCase):
 
                 stop()
 
-                self.assertEqual([plugin_class.__name__], existing.removed)
+                self.assertEqual([], existing.removed)
 
-    def test_stop_service_uses_moviepilot_singleton_registry(self):
+    def test_stop_service_does_not_remove_jobs_from_moviepilot_singleton_registry(self):
         for plugin_key, class_name in self.PLUGIN_CLASSES.items():
             with self.subTest(plugin=plugin_key):
                 module = _load_plugin(plugin_key)
@@ -157,7 +157,7 @@ class VueStartupRecoveryTests(unittest.TestCase):
 
                 stop()
 
-                self.assertEqual([plugin_class.__name__], existing.removed)
+                self.assertEqual([], existing.removed)
 
     def test_stop_service_never_constructs_scheduler_without_existing_instance(self):
         for plugin_key, class_name in self.PLUGIN_CLASSES.items():

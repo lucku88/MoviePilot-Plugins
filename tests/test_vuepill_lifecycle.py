@@ -3259,8 +3259,8 @@ class VuePillLifecycleTests(unittest.TestCase):
 
     def test_public_stop_skips_late_reregister_from_draining_activity(self):
         register_calls = []
-        stop_removed_job = threading.Event()
         activity_started = threading.Event()
+        allow_activity_finish = threading.Event()
         stop_finished = threading.Event()
         errors = []
 
@@ -3280,7 +3280,7 @@ class VuePillLifecycleTests(unittest.TestCase):
                 register_calls.append("late-old-registration")
 
             def remove_plugin_job(self, plugin_name):
-                stop_removed_job.set()
+                raise AssertionError("Plugin cleanup must not remove host scheduler jobs")
 
         RecordingScheduler()
         self.module.Scheduler = RecordingScheduler
@@ -3288,8 +3288,8 @@ class VuePillLifecycleTests(unittest.TestCase):
         @self.module._migration_activity
         def late_register(plugin):
             activity_started.set()
-            if not stop_removed_job.wait(2):
-                raise RuntimeError("停止标记等待超时")
+            if not allow_activity_finish.wait(2):
+                raise RuntimeError("在途活动等待超时")
             plugin._reregister_plugin("late-old-registration")
 
         def run_activity():
@@ -3311,16 +3311,21 @@ class VuePillLifecycleTests(unittest.TestCase):
         activity_thread.start()
         self.assertTrue(activity_started.wait(1))
         stop_thread.start()
-        activity_thread.join(3)
-        stop_thread.join(3)
+        try:
+            stop_returned_while_activity_active = stop_finished.wait(0.2)
+        finally:
+            allow_activity_finish.set()
+            activity_thread.join(3)
+            stop_thread.join(3)
 
+        self.assertFalse(stop_returned_while_activity_active)
         self.assertFalse(activity_thread.is_alive())
         self.assertFalse(stop_thread.is_alive())
         self.assertTrue(stop_finished.is_set())
         self.assertEqual([], errors)
         self.assertEqual([], register_calls)
 
-    def test_public_stop_waits_for_inflight_reregister_before_removing_job(self):
+    def test_public_stop_waits_for_inflight_reregister_without_removing_host_job(self):
         scheduled_jobs = set()
         register_started = threading.Event()
         allow_register_finish = threading.Event()
@@ -3384,7 +3389,8 @@ class VuePillLifecycleTests(unittest.TestCase):
         self.assertFalse(activity_thread.is_alive())
         self.assertFalse(stop_thread.is_alive())
         self.assertEqual([], errors)
-        self.assertEqual(set(), scheduled_jobs)
+        self.assertFalse(stop_removed_job.is_set())
+        self.assertEqual({"VuePill"}, scheduled_jobs)
 
     def test_gift_items_reject_invalid_payload_before_any_post(self):
         self._install_valid_site()

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.10"
+EXPECTED_VERSION = "0.2.11"
 
 
 class VueToyReleaseMetadataTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class VueToyReleaseMetadataTests(unittest.TestCase):
         history = self.market["history"]
         self.assertEqual(f"v{EXPECTED_VERSION}", next(iter(history)))
         note = history[f"v{EXPECTED_VERSION}"]
-        for phrase in ("启动阶段", "总调度器", "漏注册", "保留配置"):
+        for phrase in ("后台插件同步", "停止旧实例", "总调度任务", "保留配置"):
             self.assertIn(phrase, note)
 
         v027_note = history["v0.2.7"]
